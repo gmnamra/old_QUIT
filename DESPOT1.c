@@ -11,12 +11,12 @@
 #include "DESPOT1.h"
 #include "stdio.h"
 
-int tests()
+/*int tests()
 {
-	float testSPGR[2], testFlips[2];
-	float spgrTR = 5, irTR = 5, irFlip = radians(5.);
+	double testSPGR[2], testFlips[2];
+	double spgrTR = 5, irTR = 5, irFlip = radians(5.);
 	int nReadout = 128;
-	float T1 = 1500, M0 = 10000., B1 = .8;
+	double T1 = 1500, M0 = 10000., B1 = .8;
 
 	fprintf(stdout, "Running DESPOT1 Tests. Parameters are\n");
 	fprintf(stdout, "General - M0: %f B1: %f T1: %f\n", M0, B1, T1);
@@ -25,17 +25,17 @@ int tests()
 	testFlips[0] = radians(5.); testFlips[1] = radians(10.);
 	testSPGR[0] = SPGR(M0, B1, testFlips[0], T1, spgrTR);
 	testSPGR[1] = SPGR(M0, B1, testFlips[1], T1, spgrTR);
-	float testIR[2], testTI[2];
+	double testIR[2], testTI[2];
 	testTI[0] = 350; testTI[1] = 450;
 	// The 0.9 is a scale factor in Sean's code
 	testIR[0] = IRSPGR(M0, B1, irFlip, T1, testTI[0] * 0.9, irTR, nReadout);
 	testIR[1] = IRSPGR(M0, B1, irFlip, T1, testTI[1] * 0.9, irTR, nReadout);
 	
-	float spgrRes = calcSPGRResiduals(testSPGR, testFlips, 2, spgrTR, B1, T1, M0);
-	float irRes   = calcIRSPGRResiduals(testSPGR, testFlips, 2, spgrTR, testIR, testTI, 2, irFlip, irTR, nReadout, B1);
+	double spgrRes = calcSPGRResiduals(testSPGR, testFlips, 2, spgrTR, B1, T1, M0);
+	double irRes   = calcIRSPGRResiduals(testSPGR, testFlips, 2, spgrTR, testIR, testTI, 2, irFlip, irTR, nReadout, B1);
 	fprintf(stdout, "Residuals - SPGR = %f, SPGR-IR = %f\n", spgrRes, irRes);
 	
-	float checkT1, checkM0, checkB1;
+	double checkT1, checkM0, checkB1;
 	calcDESPOT1(testSPGR, testFlips, 2, spgrTR, B1, &checkT1, &checkM0);
 	fprintf(stdout, "DESPOT1 Result - T1 = %f, M0 = %f\n", checkT1, checkM0);
 	checkB1 = calcHIFI(testSPGR, testFlips, 2, spgrTR, 
@@ -63,138 +63,9 @@ int tests()
 		return 1;
 	else
 		return 0;
-}
+}*/
 
-float SPGR(float M0, float B1, float flipAngle, float T1, float TR)
-{
-	float e1 = exp(-TR / T1);
-	float spgr = M0 * (1. - e1) * sin(flipAngle * B1) /
-				      (1. - e1 * cos(flipAngle * B1));
-	return spgr;
-}
-
-float IRSPGR(float M0, float B1, float flipAngle, float T1, float TI, float TR, float nReadout)
-{
-	float M0scale = 0.975;
-	float irEfficiency = cos(B1 * M_PI) - 1;
-
-	float fullRepTime = TI + (nReadout * TR);
-	float eTI = exp(-TI / T1);
-	float eFull = exp(-fullRepTime / T1);
-
-	float irspgr = fabs(M0scale * M0 * sin(B1 * flipAngle) *
-					       (1. + irEfficiency * eTI + eFull));
-	return irspgr;
-}
-
-float calcSPGRResiduals(float *spgrVals, float *flipAngles,
-					   int n, float TR, float B1,
-					   float T1, float M0)
-{	
-	float cumulativeR = 0.;
-	for (int a = 0.; a < n; a++)
-	{
-		float theory = SPGR(M0, B1, flipAngles[a], T1, TR);
-		float diff = theory - spgrVals[a];
-		cumulativeR += sqrt(pow(diff, 2.));
-	}
-	
-	return cumulativeR;
-}
-
-float calcIRSPGRResiduals(float *spgrVals, float *flipAngles, int nSPGR, float spgrTR,
-						 float *irVals, float *TI, int nIR, float irFlipAngle, float irTR, float nReadout,
-						 float B1)
-{
-	
-	float T1, M0;
-	calcDESPOT1(spgrVals, flipAngles, nSPGR, spgrTR, B1, &T1, &M0);
-	
-	float guessSPGR[nSPGR];
-	float guessIR[nIR];
-	
-	float spgrR = 0.; float irR = 0.;
-	
-	if (!isnan(T1))
-	{
-		for (int i = 0; i < nSPGR; i++)
-		{
-			if (T1 > 0.)
-				guessSPGR[i] = SPGR(M0, B1, flipAngles[i], T1, spgrTR);
-			else
-				guessSPGR[i] = 0.;
-			float diff = guessSPGR[i] - spgrVals[i];
-			spgrR += pow(diff, 2.);
-		}
-		for (int i = 0; i < nIR; i++)
-		{
-			if (T1 > 0.)
-				guessIR[i] = IRSPGR(M0, B1, irFlipAngle, T1, TI[i], irTR, nReadout);
-			else
-				guessIR[i] = 0.;
-			float diff = guessIR[i] - irVals[i];
-			irR += pow(diff, 2.);
-		}
-		float sumR = irR + spgrR;
-		return sumR;
-	}
-	else
-		return NAN;
-}
-
-void calcDESPOT1(float *spgrVals, float *flipAngles,
-				 int n, float TR, float B1,
-				 float *T1, float *M0)
-{
-	float sumX, sumY, sumXX, sumXY;
-	sumX = sumY = sumXX = sumXY = 0.;
-	for (int i = 0; i < n; i++)
-	{
-		float x = spgrVals[i] / tan(flipAngles[i] * B1);
-		float y = spgrVals[i] / sin(flipAngles[i] * B1);
-		
-		sumX  += x;
-		sumY  += y;
-		sumXX += (x*x);
-		sumXY += (x*y);
-	}
-	
-	float slope = (n * sumXY - (sumX * sumY)) / (n * sumXX - (sumX * sumX));
-	float inter = (sumY - slope * sumX) / n;
-	
-	*T1 = -TR / log(slope);
-	*M0 = inter / (1 - slope);
-	
-	if ((*T1 < 0.) || (*M0 < 0.))
-	{
-		*T1 = 0.; *M0 = 0.;
-	}
-}
-
-void calcDESPOT1d(double *flipAngles, double *spgrVals, int n,
-				  double TR, double B1, double *M0, double *T1)
-{
-	float sumX, sumY, sumXX, sumXY;
-	sumX = sumY = sumXX = sumXY = 0.;
-	for (int i = 0; i < n; i++)
-	{
-		float x = spgrVals[i] / tan(flipAngles[i] * B1);
-		float y = spgrVals[i] / sin(flipAngles[i] * B1);
-		
-		sumX  += x;
-		sumY  += y;
-		sumXX += (x*x);
-		sumXY += (x*y);
-	}
-	
-	float slope = (n * sumXY - (sumX * sumY)) / (n * sumXX - (sumX * sumX));
-	float inter = (sumY - slope * sumX) / n;
-	
-	*T1 = -TR / log(slope);
-	*M0 = inter / (1 - slope);
-}
-
-double SPGRd(double flipAngle, double *p, double *c)
+double SPGR(double flipAngle, double *p, double *c)
 {
 	double M0 = p[0], T1 = p[1], B1 = p[2], TR = c[0];
 	double e1 = exp(-TR / T1);
@@ -203,7 +74,7 @@ double SPGRd(double flipAngle, double *p, double *c)
 	return spgr;
 }
 
-double IRSPGRd(double TI, double *p, double *c)
+double IRSPGR(double TI, double *p, double *c)
 {
 	double M0 = p[0], T1 = p[1], B1 = p[2];
 	double flipAngle = c[0], TR = c[1], nReadout = c[2];
@@ -220,81 +91,56 @@ double IRSPGRd(double TI, double *p, double *c)
 	return irspgr;
 }
 
-
-double calcCombined(const double X, double *p, double *c)
+void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
+				 double TR, double B1, double *M0, double *T1)
 {
-	int nSPGR = (int)c[1];
-	int nIR   = (int)c[5];
-	int current = (int)c[6];
+	double sumX, sumY, sumXX, sumXY;
+	sumX = sumY = sumXX = sumXY = 0.;
+	for (int i = 0; i < n; i++)
+	{
+		double x = spgrVals[i] / tan(flipAngles[i] * B1);
+		double y = spgrVals[i] / sin(flipAngles[i] * B1);
+		
+		sumX  += x;
+		sumY  += y;
+		sumXX += (x*x);
+		sumXY += (x*y);
+	}
 	
-	if (current < nSPGR)
-	{
-		c[6] = (double)(current + 1);
-		return SPGRd(X, p, c);
-	}
-	else if (current < nIR + nSPGR)
-	{
-		c[6] = (double)(current + 1);
-		return IRSPGRd(X, p, &(c[2])); // Cut off the SPGR constants
-	}
-	else
-	{
-		fprintf(stdout, "Called calcCombined too many times.\n");
-		exit(EXIT_FAILURE);
-	}
+	double slope = (n * sumXY - (sumX * sumY)) / (n * sumXX - (sumX * sumX));
+	double inter = (sumY - slope * sumX) / n;
+	
+	*T1 = -TR / log(slope);
+	*M0 = inter / (1 - slope);
 }
 
-void calcHIFId(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
-			   double *TI, double *irVals, int nIR, double irFlipAngle, double irTR, double nReadout,
-			   double *M0, double *T1, double *B1)
+double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
+				double *TI, double *irVals, int nIR, double irFlipAngle, double irTR, double nReadout,
+				double *M0, double *T1, double *B1)
 {
-	// Get an initial estimate from DESPOT1
-	*B1 = 1.;
-	calcDESPOT1d(flipAngles, spgrVals, nSPGR, spgrTR, *B1, M0, T1);
-	// Set up combined parameter, constants etc.
-	double pars[3] = {*M0, *T1, *B1};
-	// Oh dear lord this just got hacky
-	// Last constant is the current iteration
-	double constants[7] = {spgrTR, (double)nSPGR,
-						   irFlipAngle, irTR, nReadout, (double)nIR, (double)0};
-	double dataX[nSPGR + nIR], dataY[nSPGR + nIR];
-	for (int i = 0; i < nSPGR; i++)
-	{
-		dataX[i] = flipAngles[i];
-		dataY[i] = spgrVals[i];
-	}
-	for (int i = 0; i < nIR; i++)
-	{
-		dataX[i + nSPGR] = TI[i];
-		dataY[i + nSPGR] = irVals[i];
-	}
-	double res;
-	levMar(pars, 3, constants, dataX, dataY, nIR + nSPGR, calcCombined, <#eval_type **derivatives#>, <#double *finalResidue#>)
-	*M0 = pars[1];
-	*T1 = pars[2];
-	*B1 = pars[3];
-}
-	
-
-
-float calcHIFI(float *spgrVals, float *flipAngles, int nSPGR, float spgrTR,
-              float *irVals, float *TI, int nIR, float irFlipAngle, float irTR, float nReadout)
-{	
 	// Golden Section Search to find B1	
 	// From www.mae.wvu.edu/~smirnov/nr/c10-1.pdf
-	float R = 0.61803399; // Golden ratio - 1
-	float C = 1 - R;
-	float precision = 0.001;	
+	double R = 0.61803399; // Golden ratio - 1
+	double C = 1 - R;
+	double precision = 0.001;	
 	
 	// Set up initial bracket using some guesses
-	float B1_0 = 0.3; float B1_3 = 1.8; float B1_1, B1_2;
-	float res1 = calcIRSPGRResiduals(spgrVals, flipAngles, nSPGR, spgrTR,
-	                                   irVals, TI, nIR, irFlipAngle, irTR, nReadout,
-									   B1_0);
-	float res2 = calcIRSPGRResiduals(spgrVals, flipAngles, nSPGR, spgrTR,
-	                                   irVals, TI, nIR, irFlipAngle, irTR, nReadout,
-									   B1_3);
+	double B1_0 = 0.3; double B1_3 = 1.8; double B1_1, B1_2;
 	
+	// Assemble parameters
+	double par[3] = { *M0, *T1, B1_1 };
+	double spgrConstants[1] = { spgrTR };
+	double irConstants[3] = { irFlipAngle, irTR, nReadout };
+	double spgrRes[nSPGR], irRes[nIR];
+	
+	par[2] = B1_0;
+	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
+	double res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, &SPGR, spgrRes) +
+	              calcResiduals(par, irConstants, TI, irVals, nIR, &IRSPGR, irRes);
+	par[2] = B1_3;
+	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
+	double res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes) +
+	              calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes);
 	
 	if (res1 < res2)
 	{
@@ -307,12 +153,14 @@ float calcHIFI(float *spgrVals, float *flipAngles, int nSPGR, float spgrTR,
 		B1_1 = B1_2 - C * (B1_2 - B1_0);
 	}
 	
-	res1 = calcIRSPGRResiduals(spgrVals, flipAngles, nSPGR, spgrTR,
-							   irVals, TI, nIR, irFlipAngle, irTR, nReadout,
-							   B1_1);
-	res2 = calcIRSPGRResiduals(spgrVals, flipAngles, nSPGR, spgrTR,
-							   irVals, TI, nIR, irFlipAngle, irTR, nReadout,
-							   B1_2);
+	par[2] = B1_1;
+	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
+	res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes) +
+	       calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes);
+	par[2] = B1_2;
+	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
+	res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes) +
+	       calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes);
 	
 	while ( fabs(B1_3 - B1_0) > precision * (fabs(B1_1) + fabs(B1_2)))
 	{
@@ -321,24 +169,32 @@ float calcHIFI(float *spgrVals, float *flipAngles, int nSPGR, float spgrTR,
 			B1_0 = B1_1; B1_1 = B1_2;
 			B1_2 = R * B1_1 + C * B1_3;
 			res1 = res2;
-			res2 = calcIRSPGRResiduals(spgrVals, flipAngles, nSPGR, spgrTR,
-	                                   irVals, TI, nIR, irFlipAngle, irTR, nReadout,
-									   B1_2);
+			par[2] = B1_2;
+			calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
+			res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes) +
+	               calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes);
 		}
 		else
 		{
 			B1_3 = B1_2; B1_2 = B1_1;
 			B1_1 = R * B1_2 + C * B1_0;
 			res2 = res1;
-			res1 = calcIRSPGRResiduals(spgrVals, flipAngles, nSPGR, spgrTR,
-	                                   irVals, TI, nIR, irFlipAngle, irTR, nReadout,
-									   B1_1);
+			par[2] = B1_1;
+			calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
+			res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes) +
+	               calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes);
 		}
 	}
 	
 	// Best value for B1
 	if (res1 < res2)
-		return B1_1;
+	{
+		*B1 = B1_1;
+		return res1;
+	}
 	else
-		return B1_2;
+	{
+		*B1 = B1_2;
+		return res2;
+	}
 }

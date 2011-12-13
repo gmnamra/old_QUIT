@@ -12,19 +12,11 @@
 #include "math.h"
 #include "mathArray.h"
 int tests();
-float SPGR(float M0, float B1, float flipAngle, float T1, float TR);
-float IRSPGR(float M0, float B1, float flipAngle, float T1, float TI, float TR, float nReadout);
-
-float calcSPGRResiduals(float *spgrVals, float *flipAngles,
-					   int n, float TR, float B1,
-					   float T1, float M0);
-float calcIRSPGRResiduals(float *spgrVals, float *flipAngles, int nSPGR, float spgrTR,
-						 float *irVals, float *TI, int nIR, float irFlipAngle, float irTR, float nReadout,
-						 float B1);
-
-void calcDESPOT1(float *spgrVals, float *flipAngles, int n, float TR, float B1, float *T1, float *M0);
-float calcHIFI(float *spgrVals, float *flipAngles, int nSPGR, float spgrTR,
-               float *irVals, float *TI, int nIR, float irFlipAngle, float irTR, float nReadout);
-
-
+double SPGR(double flipAngle, double *p, double *c);
+double IRSPGR(double TI, double *p, double *c);
+double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
+				double *TI, double *irVals, int nIR, double irFlipAngle, double irTR, double nReadout,
+				double *M0, double *T1, double *B1);
+void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
+				 double TR, double B1, double *M0, double *T1);
 #endif

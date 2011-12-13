@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 	char *outPrefix = argv[1];
 	char **imageNames;
 	double *TRs, *scales;
-	int nImgs = readInputFile(argv[2], &imageNames, 2, &TRs, &scales);
+	int nImgs = readRecordFile(argv[2], "sdd", &imageNames, &TRs, &scales);
 	nifti_image **headers = (nifti_image **)malloc(nImgs * sizeof(nifti_image *));
 	loadHeaders(imageNames, headers, nImgs);
 	

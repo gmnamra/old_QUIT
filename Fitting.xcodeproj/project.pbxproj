@@ -1,0 +1,430 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 45;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		F65C05A3149655CE0046A464 /* despot1_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0587149655140046A464 /* despot1_main.c */; };
+		F65C05A4149655CE0046A464 /* DESPOT1.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT1.c */; };
+		F65C05A5149655D50046A464 /* recovery_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C058A149655140046A464 /* recovery_main.c */; };
+		F65C05A6149655D50046A464 /* recovery.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C058B149655140046A464 /* recovery.c */; };
+		F65C05BF149656190046A464 /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
+		F65C05C0149656190046A464 /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
+		F65C05C11496561D0046A464 /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
+		F65C05C21496561D0046A464 /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
+		F65C05C4149656340046A464 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
+		F65C05C5149656390046A464 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
+		F65C05E31496570D0046A464 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05E21496570D0046A464 /* Accelerate.framework */; };
+		F65C05E41496570D0046A464 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05E21496570D0046A464 /* Accelerate.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F65C05B8149656140046A464 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = D2AAC046055464E500DB518D;
+			remoteInfo = formats;
+		};
+		F65C05BD149656150046A464 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = D2AAC046055464E500DB518D;
+			remoteInfo = maths;
+		};
+		F677E06D1496786D00180833 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
+			remoteInfo = maths;
+		};
+		F677E06F1496786D00180833 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
+			remoteInfo = formats;
+		};
+		F677E0711496787400180833 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
+			remoteInfo = maths;
+		};
+		F677E0731496787400180833 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
+			remoteInfo = formats;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		F65C0587149655140046A464 /* despot1_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = despot1_main.c; path = /Users/Tobias/Code/MacRI/Source/Fitting/despot1_main.c; sourceTree = "<absolute>"; };
+		F65C0588149655140046A464 /* DESPOT1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = DESPOT1.c; path = /Users/Tobias/Code/MacRI/Source/Fitting/DESPOT1.c; sourceTree = "<absolute>"; };
+		F65C0589149655140046A464 /* DESPOT1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DESPOT1.h; path = /Users/Tobias/Code/MacRI/Source/Fitting/DESPOT1.h; sourceTree = "<absolute>"; };
+		F65C058A149655140046A464 /* recovery_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = recovery_main.c; path = /Users/Tobias/Code/MacRI/Source/Fitting/recovery_main.c; sourceTree = "<absolute>"; };
+		F65C058B149655140046A464 /* recovery.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = recovery.c; path = /Users/Tobias/Code/MacRI/Source/Fitting/recovery.c; sourceTree = "<absolute>"; };
+		F65C058C149655140046A464 /* recovery.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = recovery.h; path = /Users/Tobias/Code/MacRI/Source/Fitting/recovery.h; sourceTree = "<absolute>"; };
+		F65C0597149655370046A464 /* recovery */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = recovery; sourceTree = BUILT_PRODUCTS_DIR; };
+		F65C059F1496558A0046A464 /* despot1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot1; sourceTree = BUILT_PRODUCTS_DIR; };
+		F65C05A8149656130046A464 /* formats.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = formats.xcodeproj; path = /Users/Tobias/Code/MacRI/formats.xcodeproj; sourceTree = "<absolute>"; };
+		F65C05AB149656130046A464 /* maths.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = maths.xcodeproj; path = /Users/Tobias/Code/MacRI/maths.xcodeproj; sourceTree = "<absolute>"; };
+		F65C05C3149656340046A464 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
+		F65C05E21496570D0046A464 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = /Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/Accelerate.framework; sourceTree = "<absolute>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F65C0595149655370046A464 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F65C05BF149656190046A464 /* libformats.a in Frameworks */,
+				F65C05C0149656190046A464 /* libmaths.a in Frameworks */,
+				F65C05C4149656340046A464 /* libz.dylib in Frameworks */,
+				F65C05E31496570D0046A464 /* Accelerate.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F65C059D1496558A0046A464 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F65C05C5149656390046A464 /* libz.dylib in Frameworks */,
+				F65C05C11496561D0046A464 /* libformats.a in Frameworks */,
+				F65C05C21496561D0046A464 /* libmaths.a in Frameworks */,
+				F65C05E41496570D0046A464 /* Accelerate.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		08FB7794FE84155DC02AAC07 /* Fitting */ = {
+			isa = PBXGroup;
+			children = (
+				F65C05A8149656130046A464 /* formats.xcodeproj */,
+				F65C05AB149656130046A464 /* maths.xcodeproj */,
+				08FB7795FE84155DC02AAC07 /* Source */,
+				C6A0FF2B0290797F04C91782 /* Documentation */,
+				1AB674ADFE9D54B511CA2CBB /* Products */,
+				F65C05C3149656340046A464 /* libz.dylib */,
+				F65C05E21496570D0046A464 /* Accelerate.framework */,
+			);
+			name = Fitting;
+			sourceTree = "<group>";
+		};
+		08FB7795FE84155DC02AAC07 /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				F65C0587149655140046A464 /* despot1_main.c */,
+				F65C0588149655140046A464 /* DESPOT1.c */,
+				F65C0589149655140046A464 /* DESPOT1.h */,
+				F65C058A149655140046A464 /* recovery_main.c */,
+				F65C058B149655140046A464 /* recovery.c */,
+				F65C058C149655140046A464 /* recovery.h */,
+			);
+			name = Source;
+			sourceTree = "<group>";
+		};
+		1AB674ADFE9D54B511CA2CBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F65C0597149655370046A464 /* recovery */,
+				F65C059F1496558A0046A464 /* despot1 */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C6A0FF2B0290797F04C91782 /* Documentation */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Documentation;
+			sourceTree = "<group>";
+		};
+		F65C05B5149656140046A464 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F65C05B9149656140046A464 /* libformats.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F65C05BA149656150046A464 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F65C05BE149656150046A464 /* libmaths.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F65C0596149655370046A464 /* recovery */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F65C059B149655860046A464 /* Build configuration list for PBXNativeTarget "recovery" */;
+			buildPhases = (
+				F65C0594149655370046A464 /* Sources */,
+				F65C0595149655370046A464 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F677E0721496787400180833 /* PBXTargetDependency */,
+				F677E0741496787400180833 /* PBXTargetDependency */,
+			);
+			name = recovery;
+			productName = recovery;
+			productReference = F65C0597149655370046A464 /* recovery */;
+			productType = "com.apple.product-type.tool";
+		};
+		F65C059E1496558A0046A464 /* despot1 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F65C05A7149655F30046A464 /* Build configuration list for PBXNativeTarget "despot1" */;
+			buildPhases = (
+				F65C059C1496558A0046A464 /* Sources */,
+				F65C059D1496558A0046A464 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F677E06E1496786D00180833 /* PBXTargetDependency */,
+				F677E0701496786D00180833 /* PBXTargetDependency */,
+			);
+			name = despot1;
+			productName = despot1;
+			productReference = F65C059F1496558A0046A464 /* despot1 */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		08FB7793FE84155DC02AAC07 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 1DEB928908733DD80010E9CD /* Build configuration list for PBXProject "Fitting" */;
+			compatibilityVersion = "Xcode 3.1";
+			developmentRegion = English;
+			hasScannedForEncodings = 1;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
+			mainGroup = 08FB7794FE84155DC02AAC07 /* Fitting */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = F65C05B5149656140046A464 /* Products */;
+					ProjectRef = F65C05A8149656130046A464 /* formats.xcodeproj */;
+				},
+				{
+					ProductGroup = F65C05BA149656150046A464 /* Products */;
+					ProjectRef = F65C05AB149656130046A464 /* maths.xcodeproj */;
+				},
+			);
+			projectRoot = .;
+			targets = (
+				F65C0596149655370046A464 /* recovery */,
+				F65C059E1496558A0046A464 /* despot1 */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		F65C05B9149656140046A464 /* libformats.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libformats.a;
+			remoteRef = F65C05B8149656140046A464 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		F65C05BE149656150046A464 /* libmaths.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libmaths.a;
+			remoteRef = F65C05BD149656150046A464 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F65C0594149655370046A464 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F65C05A5149655D50046A464 /* recovery_main.c in Sources */,
+				F65C05A6149655D50046A464 /* recovery.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F65C059C1496558A0046A464 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F65C05A3149655CE0046A464 /* despot1_main.c in Sources */,
+				F65C05A4149655CE0046A464 /* DESPOT1.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F677E06E1496786D00180833 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = maths;
+			targetProxy = F677E06D1496786D00180833 /* PBXContainerItemProxy */;
+		};
+		F677E0701496786D00180833 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = formats;
+			targetProxy = F677E06F1496786D00180833 /* PBXContainerItemProxy */;
+		};
+		F677E0721496787400180833 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = maths;
+			targetProxy = F677E0711496787400180833 /* PBXContainerItemProxy */;
+		};
+		F677E0741496787400180833 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = formats;
+			targetProxy = F677E0731496787400180833 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1DEB928A08733DD80010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PREBINDING = NO;
+				SDKROOT = macosx10.6;
+			};
+			name = Debug;
+		};
+		1DEB928B08733DD80010E9CD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				PREBINDING = NO;
+				SDKROOT = macosx10.6;
+			};
+			name = Release;
+		};
+		F65C0599149655370046A464 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				PREBINDING = NO;
+				PRODUCT_NAME = recovery;
+				SYMROOT = ../../build;
+				VALID_ARCHS = "i386 x86_64";
+			};
+			name = Debug;
+		};
+		F65C059A149655370046A464 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				PREBINDING = NO;
+				PRODUCT_NAME = recovery;
+				SYMROOT = ../../build;
+				VALID_ARCHS = "i386 x86_64";
+			};
+			name = Release;
+		};
+		F65C05A11496558A0046A464 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				PREBINDING = NO;
+				PRODUCT_NAME = despot1;
+				SYMROOT = ../../build;
+				VALID_ARCHS = "i386 x86_64";
+			};
+			name = Debug;
+		};
+		F65C05A21496558A0046A464 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				PREBINDING = NO;
+				PRODUCT_NAME = despot1;
+				SYMROOT = ../../build;
+				VALID_ARCHS = "i386 x86_64";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1DEB928908733DD80010E9CD /* Build configuration list for PBXProject "Fitting" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB928A08733DD80010E9CD /* Debug */,
+				1DEB928B08733DD80010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F65C059B149655860046A464 /* Build configuration list for PBXNativeTarget "recovery" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F65C0599149655370046A464 /* Debug */,
+				F65C059A149655370046A464 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F65C05A7149655F30046A464 /* Build configuration list for PBXNativeTarget "despot1" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F65C05A11496558A0046A464 /* Debug */,
+				F65C05A21496558A0046A464 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 08FB7793FE84155DC02AAC07 /* Project object */;
+}

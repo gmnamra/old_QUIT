@@ -10,7 +10,7 @@
 #include "recovery.h"
 #include "mathUtil.h"
 
-inline double saturation_Mz(const double TR, const double* par)
+inline double saturation_Mz(const double TR, const double* par, const double *c)
 {
 	double M0 = par[0];
 	double T1 = par[1];
@@ -18,7 +18,7 @@ inline double saturation_Mz(const double TR, const double* par)
 	return val;
 }
 
-inline double inversion_Mz(const double TR, const double *par)
+inline double inversion_Mz(const double TR, const double *par, const double *c)
 {
 	double M0 = par[0];
 	double T1 = par[1];
@@ -26,7 +26,7 @@ inline double inversion_Mz(const double TR, const double *par)
 	return val;
 }
 
-inline double recovery_Mz(const double TR, const double *par)
+inline double recovery_Mz(const double TR, const double *par, const double *c)
 {
 	double M0 = par[0];
 	double T1 = par[1];
@@ -35,7 +35,7 @@ inline double recovery_Mz(const double TR, const double *par)
 	return val;
 }
 
-inline double recovery_dMzdM0(const double TR, const double *par)
+inline double recovery_dMzdM0(const double TR, const double *par, const double *c)
 {
 	//double M0 = par[0];
 	double T1 = par[1];
@@ -44,7 +44,7 @@ inline double recovery_dMzdM0(const double TR, const double *par)
 	return val;
 }
 
-inline double recovery_dMzdT1(const double TR, const double *par)
+inline double recovery_dMzdT1(const double TR, const double *par, const double *c)
 {
 	double M0 = par[0];
 	double T1 = par[1];
@@ -53,7 +53,7 @@ inline double recovery_dMzdT1(const double TR, const double *par)
 	return val;
 }
 
-inline double recovery_dMzdalpha(const double TR, const double *par)
+inline double recovery_dMzdalpha(const double TR, const double *par, const double *c)
 {
 	double M0 = par[0];
 	double T1 = par[1];
@@ -74,7 +74,7 @@ double calcRecovery(double *vals, double* TR, int n, double *M0out, double *T1ou
 								recovery_dMzdalpha};
 	double finalRes;
 	MATH_LEVENBERG_DEBUG = 0;
-	levMar(par, n_par, TR, vals, n, &recovery_Mz, gradients, &finalRes);
+	levMar(par, n_par, NULL, TR, vals, n, &recovery_Mz, gradients, &finalRes);
 	*M0out = par[0];
 	*T1out = par[1];
 	*alpha = par[2];

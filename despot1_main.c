@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 	}
 	
 	outPrefix = argv[1];
-	nSPGR = readRecordFile(argv[2], "sf", &spgrFilenames, &spgrAngles);
+	nSPGR = readRecordFile(argv[2], "sd", &spgrFilenames, &spgrAngles);
 	for (int i = 0; i < nSPGR; i++)
 		spgrAngles[i] = radians(spgrAngles[i]);
 	spgrTR = atof(argv[3]);
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	
 	if ((argc - 1) == 8)
 	{
-		nIR = readRecordFile(argv[4], "sf", &irFilenames, &irTI);
+		nIR = readRecordFile(argv[4], "sd", &irFilenames, &irTI);
 		irTR = atof(argv[5]);
 		irAngle = radians(atof(argv[6]));
 		nReadout = atoi(argv[7]);
@@ -124,13 +124,13 @@ int main(int argc, char **argv)
 	else
 		fprintf(stdout, "Fitting classic DESPOT1.\n");
 	
-	for (int slice = 0; slice < SPGRFiles[0]->nz; slice++)
-	//void (^processSlice)(size_t slice) = ^(size_t slice)
+	//for (int slice = 0; slice < SPGRFiles[0]->nz; slice++)
+	void (^processSlice)(size_t slice) = ^(size_t slice)
 	{
 		// Read in data
 		fprintf(stdout, "Processing slice %ld...\n", slice);
-		//float T1 = 0., M0 = 0., B1 = 1.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
-		double pars[3] = {0., 1., 0.};
+		double T1 = 0., M0 = 0., B1 = 1.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
+		//double pars[3] = {0., 1., 0.};
 		
 		int sliceStart[7] = {0, 0, slice, 0, 0, 0, 0};
 		int sliceDim[7] = {SPGRFiles[0]->nx, SPGRFiles[0]->ny, 1, 1, 1, 1, 1};
@@ -157,21 +157,22 @@ int main(int argc, char **argv)
 				double irs[nIR];
 				for (int img = 0; img < nIR; img++)
 					irs[img] = (double)irData[img][vox];
-				B1 = calcHIFI(spgrs, spgrAngles, nSPGR, spgrTR,
-							  irs, irTI, nIR, irAngle, irTR, nReadout);
+				calcHIFI(spgrAngles, spgrs, nSPGR, spgrTR,
+						 irTI, irs, nIR, irAngle, irTR, nReadout,
+						 &M0, &T1, &B1);
 			}
 			else
-				calcDESPOT1(spgrs, spgrAngles, nSPGR, spgrTR, B1, &T1, &M0);
+				calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
 			
 			//ARR_D(pars, 3);
 			// Sanity check
-			if (pars[1] < 0.) pars[1] = 0.; if (pars[1] > 2.) pars[1] = 2.;
-			if (pars[0] < 0.) pars[0] = 0.; if (pars[0] > 99999999.) pars[0] = 99999999.;
-			if (pars[2] < 0.) pars[2] = 0.; if (pars[2] > 9999.) pars[2] = 9999.;		 
-			
-			T1Data[sliceIndex + vox] = pars[2];
-			M0Data[sliceIndex + vox] = pars[0];
-			B1Data[sliceIndex + vox] = pars[1];
+			M0 = clamp(M0, 0., 1.e8);
+			T1 = clamp(T1, 0., 1.e4);
+			B1 = clamp(B1, 0., 2.);
+						
+			T1Data[sliceIndex + vox] = (float)T1;
+			M0Data[sliceIndex + vox] = (float)M0;
+			B1Data[sliceIndex + vox] = (float)B1;
 		}
 		
 		if (nIR > 0)
@@ -184,13 +185,21 @@ int main(int argc, char **argv)
 				double spgrs[nSPGR];
 				for (int img = 0; img < nSPGR; img++)
 					spgrs[img] = (double)SPGRData[img][vox];
-				calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, &(pars[0]), &(pars[2]), pars[1]);
-				
+				B1 = (double)B1Data[sliceIndex + vox];
+				calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
 				// Sanity check
-				if (pars[0] < 0.) pars[0] = 0.; if (pars[0] > 99999999.) pars[0] = 99999999.;
-				if (pars[2] < 0.) pars[2] = 0.; if (pars[2] > 9999.) pars[2] = 9999.;				
-				T1Data[sliceIndex + vox] = pars[2];
-				M0Data[sliceIndex + vox] = pars[0];
+				M0 = clamp(M0, 0, 1.e8);
+				T1 = clamp(T1, 0, 1.e4);		
+				T1Data[sliceIndex + vox] = T1;
+				M0Data[sliceIndex + vox] = M0;
+				B1 = (double)B1Smooth[sliceIndex + vox];
+				calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
+				// Sanity check
+				M0 = clamp(M0, 0, 1.e8);
+				T1 = clamp(T1, 0, 1.e4);		
+				T1Smooth[sliceIndex + vox] = T1;
+				M0Smooth[sliceIndex + vox] = M0;
+
 			}
 		};
 		
@@ -201,8 +210,8 @@ int main(int argc, char **argv)
 		for (int i = 0; i < nIR; i++)
 			free(irData[i]);
 	};
-	//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	//dispatch_apply(SPGRFiles[0]->nz, global_queue, processSlice);
+	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	dispatch_apply(SPGRFiles[0]->nz, global_queue, processSlice);
 	fprintf(stdout, "Finished fitting. Writing results files.\n");
 
 	//**************************************************************************
@@ -210,38 +219,26 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	nifti_image *out = nifti_copy_nim_info(SPGRFiles[0]);
 	char outName[strlen(outPrefix) + 4]; // Space for "T1" plus null
-	strcpy(outName, outPrefix); strcat(outName, "_T1");
-	fprintf(stdout, "Writing T1 Map: %s\n", outName);
-	nifti_set_filenames(out, outName, FALSE, TRUE);	
-	out->data = (void *)T1Data;
-	nifti_image_write(out);
 	strcpy(outName, outPrefix); strcat(outName, "_M0");
 	fprintf(stdout, "Writing M0 Map: %s\n", outName);
-	nifti_set_filenames(out, outName, FALSE, TRUE);	
-	out->data = (void *)M0Data;
-	nifti_image_write(out);
+	writeResult(out, outName, (void*)M0Data);
+	strcpy(outName, outPrefix); strcat(outName, "_T1");
+	fprintf(stdout, "Writing T1 Map: %s\n", outName);
+	writeResult(out, outName, (void*)T1Data);
 	if (nIR > 0)
 	{
 		strcpy(outName, outPrefix); strcat(outName, "_B1");
 		fprintf(stdout, "Writing B1 Map: %s\n", outName);
-		nifti_set_filenames(out, outName, FALSE, TRUE);
-		out->data = (void *)B1Data;
-		nifti_image_write(out);
-		strcpy(outName, outPrefix); strcat(outName, "_SmoothT1");
-		fprintf(stdout, "Writing Smoothed T1 Map: %s\n", outName);
-		nifti_set_filenames(out, outName, FALSE, TRUE);	
-		out->data = (void *)T1Smooth;
-		nifti_image_write(out);
-		strcpy(outName, outPrefix); strcat(outName, "_SmoothM0");
-		fprintf(stdout, "Writing Smoothed M0 Map: %s\n", outName);
-		nifti_set_filenames(out, outName, FALSE, TRUE);	
-		out->data = (void *)M0Smooth;
-		nifti_image_write(out);	
+		writeResult(out, outName, (void*)B1Data);
 		strcpy(outName, outPrefix); strcat(outName, "_SmoothB1");
 		fprintf(stdout, "Writing Smoothed B1 Map: %s\n", outName);
-		nifti_set_filenames(out, outName, FALSE, TRUE);
-		out->data = (void *)B1Smooth;
-		nifti_image_write(out);
+		writeResult(out, outName, (void*)B1Smooth);		
+		strcpy(outName, outPrefix); strcat(outName, "_SmoothM0");
+		fprintf(stdout, "Writing Smoothed M0 Map: %s\n", outName);
+		writeResult(out, outName, (void*)M0Smooth);
+		strcpy(outName, outPrefix); strcat(outName, "_SmoothT1");
+		fprintf(stdout, "Writing Smoothed T1 Map: %s\n", outName);
+		writeResult(out, outName, (void*)T1Smooth);
 	}
 	fprintf(stdout, "All done.\n");
 	return EXIT_SUCCESS;
