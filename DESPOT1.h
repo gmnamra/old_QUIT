@@ -14,9 +14,13 @@
 int tests();
 double SPGR(double flipAngle, double *p, double *c);
 double IRSPGR(double TI, double *p, double *c);
+void IRSPGR_Jacobian(double *data, int nD, double *par, double *c, double *result);
 double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 				double *TI, double *irVals, int nIR, double irFlipAngle, double irTR, double nReadout,
 				double *M0, double *T1, double *B1);
 void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 				 double TR, double B1, double *M0, double *T1);
+double calcIR(double *TI, double *irVals, int nIR,
+              double alpha, double TR, double nReadout,
+			  double *M0, double *T1, double *B1);
 #endif

@@ -53,9 +53,9 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	if (!((argc - 1) == 3 || (argc - 1) == 8))
+	if ((argc != 4) && (argc != 5) && (argc != 9) && (argc != 10))
 	{
-		fprintf(stderr, "Incorrect number of arguments (= %d) specified, should be 3 for DESPOT1 and 8 for DESPOT1-HIFI.\n",
+		fprintf(stderr, "Incorrect number of arguments (= %d) specified, should be 3 for DESPOT1 and 8 for DESPOT1-HIFI (+1 if masked).\n",
 				argc - 1); // Subtract off filename
 		fprintf(stderr, "%s", usage);
 		exit(EXIT_FAILURE);
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	spgrTR = atof(argv[3]);
 	fprintf(stdout, "Specified %d SPGR files with TR=%f ms.\n", nSPGR, spgrTR);
 	
-	if ((argc - 1) == 8)
+	if (argc == 9)
 	{
 		nIR = readRecordFile(argv[4], "sd", &irFilenames, &irTI);
 		irTR = atof(argv[5]);
@@ -97,6 +97,12 @@ int main(int argc, char **argv)
 			irTI[i] = irTI[i] * TIScale;
 		fprintf(stdout, "Specified %d SPGR-IR files with TR=%f ms, flip angle: %f degrees and (calculated) readout pulse count: %d\n", nIR, irTR, degrees(irAngle), nReadout);
 	}
+	
+	nifti_image *mask = NULL;
+	if (argc == 5)
+		mask = nifti_image_read(argv[4], false);
+	if (argc == 10)
+		mask = nifti_image_read(argv[9], false);
 	//**************************************************************************	
 	// Read in headers / Allocate memory for slices and results
 	//**************************************************************************
@@ -130,45 +136,58 @@ int main(int argc, char **argv)
 		// Read in data
 		fprintf(stdout, "Processing slice %ld...\n", slice);
 		double T1 = 0., M0 = 0., B1 = 1.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
-		//double pars[3] = {0., 1., 0.};
 		
 		int sliceStart[7] = {0, 0, slice, 0, 0, 0, 0};
 		int sliceDim[7] = {SPGRFiles[0]->nx, SPGRFiles[0]->ny, 1, 1, 1, 1, 1};
 		float *SPGRData[nSPGR];
 		for (int i = 0; i < nSPGR; i++)
-			SPGRData[i] = (float *)malloc(voxelsPerSlice * sizeof(float));
+			SPGRData[i] = malloc(voxelsPerSlice * sizeof(float));
 		float *irData[nIR];
 		for (int i = 0; i < nIR; i++)
-			irData[i] = (float *)malloc(voxelsPerSlice * sizeof(float));
-			
+			irData[i] = malloc(voxelsPerSlice * sizeof(float));
+		float *maskData;
+		if (mask)
+			maskData = malloc(voxelsPerSlice * sizeof(float));
+		
 		for (int img = 0; img < nSPGR; img++)
 			nifti_read_subregion_image(SPGRFiles[img], sliceStart, sliceDim, (void**)&(SPGRData[img]));
 		for (int img = 0; img < nIR; img++)
 			nifti_read_subregion_image(irFiles[img], sliceStart, sliceDim, (void**)&(irData[img]));
-
+		if (mask)
+			nifti_read_subregion_image(mask, sliceStart, sliceDim, (void**)&(maskData));
+		
 		int sliceIndex = slice * voxelsPerSlice;	
 		for (int vox = 0; vox < voxelsPerSlice; vox++)
 		{
-			double spgrs[nSPGR];
-			for (int img = 0; img < nSPGR; img++)
-				spgrs[img] = (double)SPGRData[img][vox];		
-			if (nIR > 0)
+			if (!mask || (maskData[vox] > 0.))
 			{
-				double irs[nIR];
-				for (int img = 0; img < nIR; img++)
-					irs[img] = (double)irData[img][vox];
-				calcHIFI(spgrAngles, spgrs, nSPGR, spgrTR,
-						 irTI, irs, nIR, irAngle, irTR, nReadout,
-						 &M0, &T1, &B1);
+				double spgrs[nSPGR];
+				for (int img = 0; img < nSPGR; img++)
+					spgrs[img] = (double)SPGRData[img][vox];		
+				if (nIR > 0)
+				{
+					double irs[nIR];
+					for (int img = 0; img < nIR; img++)
+						irs[img] = (double)irData[img][vox];
+					B1 = 1.;
+					calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
+					calcIR(irTI, irs, nIR, irAngle, irTR, nReadout, &M0, &T1, &B1);
+					/*calcHIFI(spgrAngles, spgrs, nSPGR, spgrTR,
+							 irTI, irs, nIR, irAngle, irTR, nReadout,
+							 &M0, &T1, &B1);*/
+				}
+				else
+					calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
+				// Sanity check
+				M0 = clamp(M0, 0., 1.e8);
+				T1 = clamp(T1, 0., 3.e3);
+				B1 = clamp(B1, 0., 2.);
 			}
 			else
-				calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
-			
-			//ARR_D(pars, 3);
-			// Sanity check
-			M0 = clamp(M0, 0., 1.e8);
-			T1 = clamp(T1, 0., 1.e4);
-			B1 = clamp(B1, 0., 2.);
+			{
+				M0 = 0.; T1 = 0.; B1 = 0.;
+			}
+
 						
 			T1Data[sliceIndex + vox] = (float)T1;
 			M0Data[sliceIndex + vox] = (float)M0;
@@ -182,27 +201,26 @@ int main(int argc, char **argv)
 						   gaussKernel, kernelSize, kernelSize);
 			for (int vox = 0; vox < voxelsPerSlice; vox++)
 			{
-				double spgrs[nSPGR];
-				for (int img = 0; img < nSPGR; img++)
-					spgrs[img] = (double)SPGRData[img][vox];
-				B1 = (double)B1Data[sliceIndex + vox];
-				calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
-				// Sanity check
-				M0 = clamp(M0, 0, 1.e8);
-				T1 = clamp(T1, 0, 1.e4);		
-				T1Data[sliceIndex + vox] = T1;
-				M0Data[sliceIndex + vox] = M0;
-				B1 = (double)B1Smooth[sliceIndex + vox];
-				calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
-				// Sanity check
-				M0 = clamp(M0, 0, 1.e8);
-				T1 = clamp(T1, 0, 1.e4);		
+				if (!mask || (maskData[vox] > 0))
+				{
+					double spgrs[nSPGR];
+					for (int img = 0; img < nSPGR; img++)
+						spgrs[img] = (double)SPGRData[img][vox];
+					B1 = (double)B1Smooth[sliceIndex + vox];
+					calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
+					// Sanity check
+					M0 = clamp(M0, 0, 1.e8);
+					T1 = clamp(T1, 0, 3.e3);
+				}
+				else
+				{
+					M0 = 0.; T1 = 0.; B1 = 0.;
+				}
+
 				T1Smooth[sliceIndex + vox] = T1;
 				M0Smooth[sliceIndex + vox] = M0;
-
 			}
 		};
-		
 		
 		// Clean up memory
 		for (int i = 0; i < nSPGR; i++)
@@ -220,24 +238,18 @@ int main(int argc, char **argv)
 	nifti_image *out = nifti_copy_nim_info(SPGRFiles[0]);
 	char outName[strlen(outPrefix) + 4]; // Space for "T1" plus null
 	strcpy(outName, outPrefix); strcat(outName, "_M0");
-	fprintf(stdout, "Writing M0 Map: %s\n", outName);
 	writeResult(out, outName, (void*)M0Data);
 	strcpy(outName, outPrefix); strcat(outName, "_T1");
-	fprintf(stdout, "Writing T1 Map: %s\n", outName);
 	writeResult(out, outName, (void*)T1Data);
 	if (nIR > 0)
 	{
 		strcpy(outName, outPrefix); strcat(outName, "_B1");
-		fprintf(stdout, "Writing B1 Map: %s\n", outName);
 		writeResult(out, outName, (void*)B1Data);
 		strcpy(outName, outPrefix); strcat(outName, "_SmoothB1");
-		fprintf(stdout, "Writing Smoothed B1 Map: %s\n", outName);
 		writeResult(out, outName, (void*)B1Smooth);		
 		strcpy(outName, outPrefix); strcat(outName, "_SmoothM0");
-		fprintf(stdout, "Writing Smoothed M0 Map: %s\n", outName);
 		writeResult(out, outName, (void*)M0Smooth);
 		strcpy(outName, outPrefix); strcat(outName, "_SmoothT1");
-		fprintf(stdout, "Writing Smoothed T1 Map: %s\n", outName);
 		writeResult(out, outName, (void*)T1Smooth);
 	}
 	fprintf(stdout, "All done.\n");

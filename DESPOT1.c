@@ -78,40 +78,74 @@ double IRSPGR(double TI, double *p, double *c)
 {
 	double M0 = p[0], T1 = p[1], B1 = p[2];
 	double flipAngle = c[0], TR = c[1], nReadout = c[2];
-
-	double M0scale = 0.975;
+	
 	double irEfficiency = cos(B1 * M_PI) - 1;
 
 	double fullRepTime = TI + (nReadout * TR);
 	double eTI = exp(-TI / T1);
 	double eFull = exp(-fullRepTime / T1);
 
-	double irspgr = fabs(M0scale * M0 * sin(B1 * flipAngle) *
+	double irspgr = fabs(M0 * sin(B1 * flipAngle) *
 					       (1. + irEfficiency * eTI + eFull));
 	return irspgr;
+}
+
+void IRSPGR_Jacobian(double *data, int nD, double *p, double *c, double *result)
+{
+	double M0 = p[0], T1 = p[1], B1 = p[2];
+	double alpha = c[0], TR = c[1], nReadout = c[2];
+	
+	for (int p = 0; p < 3; p++)
+	{	for (int d = 0; d < nD; d++)
+		{
+			double TI = data[d];
+			double irEff = cos(B1 * M_PI) - 1;
+			
+			double fullTR = TI + (nReadout * TR);
+			double eTI = exp(-TI / T1);
+			double eTR = exp(-fullTR / T1);
+			
+			double dMzM0 = sin(B1 * alpha) * (1. + eTR + irEff * eTI);
+			double dMzT1 = (M0 * sin(B1 * alpha) / (T1 * T1)) *
+			               (fullTR * eTR + TI * irEff * eTI);
+			double b1 = M0 * alpha * cos(B1 * alpha) *
+			               (1 + eTR + irEff * eTI);
+			double b2 =    M0 * sin(B1 * alpha) *
+						   (M_PI * sin(B1 * M_PI) * eTI);
+			double dMzB1 = b1 - b2;
+			result[0 * nD + d] = dMzM0;
+			result[1 * nD + d] = dMzT1;
+			result[2 * nD + d] = dMzB1;
+		}
+	}
 }
 
 void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 				 double TR, double B1, double *M0, double *T1)
 {
-	double sumX, sumY, sumXX, sumXY;
-	sumX = sumY = sumXX = sumXY = 0.;
+	// Linearise the data, then least-squares
+	
+	double X[n], Y[n], slope, inter;
 	for (int i = 0; i < n; i++)
 	{
-		double x = spgrVals[i] / tan(flipAngles[i] * B1);
-		double y = spgrVals[i] / sin(flipAngles[i] * B1);
-		
-		sumX  += x;
-		sumY  += y;
-		sumXX += (x*x);
-		sumXY += (x*y);
+		X[i] = spgrVals[i] / tan(flipAngles[i] * B1);
+		Y[i] = spgrVals[i] / sin(flipAngles[i] * B1);
 	}
-	
-	double slope = (n * sumXY - (sumX * sumY)) / (n * sumXX - (sumX * sumX));
-	double inter = (sumY - slope * sumX) / n;
-	
+	linearLeastSquares(X, Y, n, &slope, &inter);	
 	*T1 = -TR / log(slope);
 	*M0 = inter / (1 - slope);
+}
+
+double calcIR(double *TI, double *irVals, int nIR,
+              double alpha, double TR, double nReadout,
+			  double *M0, double *T1, double *B1)
+{
+	double par[3] = {*M0, *T1, *B1};
+	double con[3] = {alpha, TR, nReadout};
+	double res = 0;
+	levMar(par, 3, con, TI, irVals, nIR, IRSPGR, IRSPGR_Jacobian, &res);
+	*M0 = par[0]; *T1 = par[1]; *B1 = par[2];
+	return res;
 }
 
 double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
