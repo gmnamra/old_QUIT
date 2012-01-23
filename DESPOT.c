@@ -8,7 +8,7 @@
  */
 
 #include "math3d.h"
-#include "DESPOT1.h"
+#include "DESPOT.h"
 #include "stdio.h"
 
 /*int tests()
@@ -74,14 +74,34 @@ double SPGR(double flipAngle, double *p, double *c)
 	return spgr;
 }
 
+void SPGR_Jacobian(double *angles, int nD, double *p, double *c, double *result)
+{
+	double M0 = p[0], T1 = p[1], B1 = p[2], TR = c[0];
+	double eTR = exp(-TR / T1);
+	for (int d = 0; d < nD; d++)
+	{
+		double alpha = angles[d];
+		
+		double denom = (1. - eTR * cos(B1 * alpha));
+		
+		double dMzM0 = (1 - eTR * sin(B1 * alpha)) / denom;
+		double dMzT1 = (M0 * TR * sin(B1 * alpha) * eTR * (cos(B1 * alpha) - 1.)) /
+		               (T1 * T1 * denom * denom);
+		double dMzB1 = (M0 * B1 * eTR * (1. - eTR + cos(B1 * alpha))) / (denom * denom);
+		result[0 * nD + d] = dMzM0;
+		result[1 * nD + d] = dMzT1;
+		result[2 * nD + d] = dMzB1;
+	}
+}
+
 double IRSPGR(double TI, double *p, double *c)
 {
 	double M0 = p[0], T1 = p[1], B1 = p[2];
-	double flipAngle = c[0], TR = c[1], nReadout = c[2];
+	double flipAngle = c[0], TR = c[1];
 	
 	double irEfficiency = cos(B1 * M_PI) - 1;
 
-	double fullRepTime = TI + (nReadout * TR);
+	double fullRepTime = TI + TR;
 	double eTI = exp(-TI / T1);
 	double eFull = exp(-fullRepTime / T1);
 
@@ -95,29 +115,40 @@ void IRSPGR_Jacobian(double *data, int nD, double *p, double *c, double *result)
 	double M0 = p[0], T1 = p[1], B1 = p[2];
 	double alpha = c[0], TR = c[1], nReadout = c[2];
 	
-	for (int p = 0; p < 3; p++)
-	{	for (int d = 0; d < nD; d++)
-		{
-			double TI = data[d];
-			double irEff = cos(B1 * M_PI) - 1;
-			
-			double fullTR = TI + (nReadout * TR);
-			double eTI = exp(-TI / T1);
-			double eTR = exp(-fullTR / T1);
-			
-			double dMzM0 = sin(B1 * alpha) * (1. + eTR + irEff * eTI);
-			double dMzT1 = (M0 * sin(B1 * alpha) / (T1 * T1)) *
-			               (fullTR * eTR + TI * irEff * eTI);
-			double b1 = M0 * alpha * cos(B1 * alpha) *
-			               (1 + eTR + irEff * eTI);
-			double b2 =    M0 * sin(B1 * alpha) *
-						   (M_PI * sin(B1 * M_PI) * eTI);
-			double dMzB1 = b1 - b2;
-			result[0 * nD + d] = dMzM0;
-			result[1 * nD + d] = dMzT1;
-			result[2 * nD + d] = dMzB1;
-		}
+	for (int d = 0; d < nD; d++)
+	{
+		double TI = data[d];
+		double irEff = cos(B1 * M_PI) - 1;
+		
+		double fullTR = TI + (nReadout * TR);
+		double eTI = exp(-TI / T1);
+		double eTR = exp(-fullTR / T1);
+		
+		double dMzM0 = sin(B1 * alpha) * (1. + eTR + irEff * eTI);
+		double dMzT1 = (M0 * sin(B1 * alpha) / (T1 * T1)) *
+					   (fullTR * eTR + TI * irEff * eTI);
+		double b1 = M0 * alpha * cos(B1 * alpha) *
+					   (1 + eTR + irEff * eTI);
+		double b2 =    M0 * sin(B1 * alpha) *
+					   (M_PI * sin(B1 * M_PI) * eTI);
+		double dMzB1 = b1 - b2;
+		result[0 * nD + d] = dMzM0;
+		result[1 * nD + d] = dMzT1;
+		result[2 * nD + d] = dMzB1;
 	}
+}
+
+double SSFP(double flipAngle, double *p, double *c)
+{
+	double M0 = p[0], T1 = p[1], B1 = p[2], T2 = p[3];
+	double TR = c[1];
+	
+	double eT1 = exp(-TR / T1);
+	double eT2 = exp(-TR / T2);
+	
+	double ssfp = (M0 * (1 - eT1) * sin(B1 * flipAngle)) /
+	              (1 - eT1 * eT2 - (eT1 - eT2) * cos(B1 * flipAngle));
+	return ssfp;
 }
 
 void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
@@ -133,15 +164,43 @@ void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 	}
 	linearLeastSquares(X, Y, n, &slope, &inter);	
 	*T1 = -TR / log(slope);
-	*M0 = inter / (1 - slope);
+	*M0 = inter / (1. - slope);
+}
+
+void calcDESPOT2(double *flipAngles, double *ssfpVals, int n,
+                 double TR, double T1, double B1, double *M0, double *T2)
+{
+	// As above, linearise, then least-squares
+	
+	double X[n], Y[n], slope, inter;
+	for (int i = 0; i < n; i++)
+	{
+		X[i] = ssfpVals[i] / tan(flipAngles[i] * B1);
+		Y[i] = ssfpVals[i] / sin(flipAngles[i] * B1);
+	}
+	linearLeastSquares(X, Y, n, &slope, &inter);
+	double eT1 = exp(-TR / T1);
+	*T2 = -TR / log((slope - eT1) / (slope * eT1 - 1.));
+	double eT2 = exp(-TR / (*T2));
+	*M0 = inter * (eT1 * eT2 - 1.) / (1. - eT1);
+}
+
+double calcSPGR(double *angles, double *spgrVals, int n, double TR,
+                double *M0, double *T1, double *B1)
+{
+	double par[3] = {*M0, *T1, *B1};
+	double res = 0;
+	levMar(par, 3, &TR, angles, spgrVals, n, SPGR, SPGR_Jacobian, &res);
+	*M0 = par[0]; *T1 = par[1]; *B1 = par[2];
+	return res;
 }
 
 double calcIR(double *TI, double *irVals, int nIR,
-              double alpha, double TR, double nReadout,
+              double alpha, double TR,
 			  double *M0, double *T1, double *B1)
 {
 	double par[3] = {*M0, *T1, *B1};
-	double con[3] = {alpha, TR, nReadout};
+	double con[2] = {alpha, TR};
 	double res = 0;
 	levMar(par, 3, con, TI, irVals, nIR, IRSPGR, IRSPGR_Jacobian, &res);
 	*M0 = par[0]; *T1 = par[1]; *B1 = par[2];
@@ -149,7 +208,7 @@ double calcIR(double *TI, double *irVals, int nIR,
 }
 
 double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
-				double *TI, double *irVals, int nIR, double irFlipAngle, double irTR, double nReadout,
+				double *TI, double *irVals, int nIR, double irFlipAngle, double irTR,
 				double *M0, double *T1, double *B1)
 {
 	// Golden Section Search to find B1	
@@ -164,7 +223,7 @@ double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 	// Assemble parameters
 	double par[3] = { *M0, *T1, B1_1 };
 	double spgrConstants[1] = { spgrTR };
-	double irConstants[3] = { irFlipAngle, irTR, nReadout };
+	double irConstants[2] = { irFlipAngle, irTR };
 	double spgrRes[nSPGR], irRes[nIR];
 	
 	par[2] = B1_0;
@@ -221,6 +280,7 @@ double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 	}
 	
 	// Best value for B1
+	*M0 = par[0]; *T1 = par[1];
 	if (res1 < res2)
 	{
 		*B1 = B1_1;

@@ -10,7 +10,7 @@
 #include <string.h>
 #include <util.h>
 #include <dispatch/dispatch.h>
-#include "DESPOT1.h"
+#include "DESPOT.h"
 #include "nifti_tools.h"
 #include "znzlib.h"
 
@@ -20,7 +20,7 @@
 #define __DEBUG__ FALSE
 #define __DEBUG_THRESH__ 60000
 
-char *usage = "Usage is: despot1 [Output Prefix] [SPGR input file] [SPGR TR] <[SPGR-IR input file] [TR] [Flip Angle] [PE Readout Step count] [Inversion Mode]>\n\
+char *usage = "Usage is: despot1 [Output Prefix] [SPGR input file] [SPGR TR] <[SPGR-IR input file] [Flip Angle] [TR] [PE Readout Step count] [Inversion Mode]>\n\
 \n\
 Input File format:\n\
 1st line - single integer (N) specifying number of files.\n\
@@ -30,7 +30,8 @@ N lines  - Path to file, space, parameter. For the SPGR files\n\
 \n\
 Inversion Modes: 0 = 1.5T scanner (readout pulses div 2 + 2)\n\
                  1 = 3.0T scanner 1 (scale TI times by 0.9)\n\
-                 2 = 3.0T scanner 2 (scale TI times by 0.84, readout pulses + 2)\n";
+                 2 = 3.0T scanner 2 (scale TI times by 0.84, readout pulses + 2)\n\
+				 3 = Varian DESPOT Sequence (Use raw TR, readout puleses ignored)\n";
 
 //******************************************************************************
 // Main
@@ -44,7 +45,7 @@ int main(int argc, char **argv)
 	int nSPGR = 0, nIR = 0;
 	double spgrTR; char **spgrFilenames;
 	double *spgrAngles;
-	double irTR, irAngle, *irTI, TIScale = 1.; int nReadout; char **irFilenames;
+	double irTR, irAngle, *irTI, TIScale = 1.; char **irFilenames;
 	char *outPrefix;
 	
 	if (argc == 1)
@@ -68,26 +69,34 @@ int main(int argc, char **argv)
 	spgrTR = atof(argv[3]);
 	fprintf(stdout, "Specified %d SPGR files with TR=%f ms.\n", nSPGR, spgrTR);
 	
-	if (argc == 9)
+	if (argc >= 9)
 	{
 		nIR = readRecordFile(argv[4], "sd", &irFilenames, &irTI);
-		irTR = atof(argv[5]);
-		irAngle = radians(atof(argv[6]));
-		nReadout = atoi(argv[7]);
+		irAngle = radians(atof(argv[5]));
+		double irStepTR = atof(argv[6]);
+		int nReadout = atoi(argv[7]);
 		int invMode = atoi(argv[8]);
 		switch (invMode)
 		{
 			case 0:
 				TIScale = 1.0;
 				nReadout = (nReadout / 2) + 2;
+				irTR = nReadout * irStepTR;
 				break;
 			case 1:
 				TIScale = 0.9; // From Sean's code
 				nReadout = (nReadout / 2) + 2;
+				irTR = nReadout * irStepTR;
 				break;
 			case 2:
 				TIScale = 0.84; // From Sean's code
 				nReadout = nReadout + 2;
+				irTR = nReadout * irStepTR;
+				break;
+			case 3:
+				TIScale = 1.0;
+				irTR = irStepTR;
+				break;
 			default:
 				fprintf(stderr, "Inversion mode must be 0, 1, or 2\n");
 				exit(EXIT_FAILURE);
@@ -95,7 +104,7 @@ int main(int argc, char **argv)
 		}
 		for (int i = 0; i < nIR; i++)
 			irTI[i] = irTI[i] * TIScale;
-		fprintf(stdout, "Specified %d SPGR-IR files with TR=%f ms, flip angle: %f degrees and (calculated) readout pulse count: %d\n", nIR, irTR, degrees(irAngle), nReadout);
+		fprintf(stdout, "Specified %d SPGR-IR files with TR=%f ms, flip angle: %f degrees and (calculated) TR: %f\n", nIR, irTR, degrees(irAngle), irTR);
 	}
 	
 	nifti_image *mask = NULL;
@@ -110,6 +119,12 @@ int main(int argc, char **argv)
 	nifti_image **irFiles = (nifti_image **)malloc(nIR * sizeof(nifti_image *));
 	loadHeaders(spgrFilenames, SPGRFiles, nSPGR);
 	loadHeaders(irFilenames, irFiles, nIR);
+	
+	if (SPGRFiles[0]->nvox != irFiles[0]->nvox)
+	{
+		fprintf(stderr, "SPGR and IR-SPGR files have different number of voxels (%ld and %ld)\n", SPGRFiles[0]->nvox, irFiles[0]->nvox);
+		exit(EXIT_FAILURE);
+	}
 	
 	int voxelsPerSlice = SPGRFiles[0]->nx * SPGRFiles[0]->ny;	
 	int totalVoxels = voxelsPerSlice * SPGRFiles[0]->nz;
@@ -130,8 +145,8 @@ int main(int argc, char **argv)
 	else
 		fprintf(stdout, "Fitting classic DESPOT1.\n");
 	
-	//for (int slice = 0; slice < SPGRFiles[0]->nz; slice++)
-	void (^processSlice)(size_t slice) = ^(size_t slice)
+	for (int slice = 0; slice < SPGRFiles[0]->nz; slice++)
+	//void (^processSlice)(size_t slice) = ^(size_t slice)
 	{
 		// Read in data
 		fprintf(stdout, "Processing slice %ld...\n", slice);
@@ -164,20 +179,18 @@ int main(int argc, char **argv)
 				double spgrs[nSPGR];
 				for (int img = 0; img < nSPGR; img++)
 					spgrs[img] = (double)SPGRData[img][vox];		
+				calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
 				if (nIR > 0)
 				{
 					double irs[nIR];
 					for (int img = 0; img < nIR; img++)
 						irs[img] = (double)irData[img][vox];
 					B1 = 1.;
-					calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
-					calcIR(irTI, irs, nIR, irAngle, irTR, nReadout, &M0, &T1, &B1);
-					/*calcHIFI(spgrAngles, spgrs, nSPGR, spgrTR,
-							 irTI, irs, nIR, irAngle, irTR, nReadout,
-							 &M0, &T1, &B1);*/
+					calcHIFI(spgrAngles, spgrs, nSPGR, spgrTR,
+							 irTI, irs, nIR, irAngle, irTR,
+							 &M0, &T1, &B1);
 				}
-				else
-					calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
+				
 				// Sanity check
 				M0 = clamp(M0, 0., 1.e8);
 				T1 = clamp(T1, 0., 3.e3);
@@ -228,8 +241,8 @@ int main(int argc, char **argv)
 		for (int i = 0; i < nIR; i++)
 			free(irData[i]);
 	};
-	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	dispatch_apply(SPGRFiles[0]->nz, global_queue, processSlice);
+	//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	//dispatch_apply(SPGRFiles[0]->nz, global_queue, processSlice);
 	fprintf(stdout, "Finished fitting. Writing results files.\n");
 
 	//**************************************************************************
