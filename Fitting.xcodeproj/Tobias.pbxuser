@@ -2,347 +2,73 @@
 {
 	08FB7793FE84155DC02AAC07 /* Project object */ = {
 		activeBuildConfigurationName = Debug;
-		activeExecutable = F65C05A01496558A0046A464 /* despot1 */;
-		activeTarget = F65C059E1496558A0046A464 /* despot1 */;
+		activeExecutable = F692991F14CDDEC1003EF4FD /* despot2 */;
+		activeTarget = F692991D14CDDEC1003EF4FD /* despot2 */;
 		addToTargets = (
 			F65C0596149655370046A464 /* recovery */,
 			F65C059E1496558A0046A464 /* despot1 */,
 		);
 		breakpoints = (
-			F677E1A514968A6100180833 /* despot1_main.c:165 */,
-			F636875B149760A300A1674F /* DESPOT1.c:99 */,
-			F636878D1497632400A1674F /* despot1_main.c:157 */,
-			F63687BA14976C8300A1674F /* despot1_main.c:180 */,
 		);
 		codeSenseManager = F65C057D149654E60046A464 /* Code sense */;
 		executables = (
 			F65C0598149655370046A464 /* recovery */,
 			F65C05A01496558A0046A464 /* despot1 */,
+			F692991F14CDDEC1003EF4FD /* despot2 */,
 		);
 		perUserDictionary = {
-			PBXPerProjectTemplateStateSaveDate = 345464833;
-			PBXWorkspaceStateSaveDate = 345464833;
-		};
-		perUserProjectItems = {
-			F636876F149760F900A1674F /* PBXTextBookmark */ = F636876F149760F900A1674F /* PBXTextBookmark */;
-			F636877A1497616600A1674F /* PBXBookmark */ = F636877A1497616600A1674F /* PBXBookmark */;
-			F636877B1497617300A1674F /* PBXBookmark */ = F636877B1497617300A1674F /* PBXBookmark */;
-			F6368780149761CF00A1674F /* PBXTextBookmark */ = F6368780149761CF00A1674F /* PBXTextBookmark */;
-			F6368783149761CF00A1674F /* PBXTextBookmark */ = F6368783149761CF00A1674F /* PBXTextBookmark */;
-			F6368786149761CF00A1674F /* PBXTextBookmark */ = F6368786149761CF00A1674F /* PBXTextBookmark */;
-			F63687991497644B00A1674F /* PBXTextBookmark */ = F63687991497644B00A1674F /* PBXTextBookmark */;
-			F636879A1497644B00A1674F /* PBXTextBookmark */ = F636879A1497644B00A1674F /* PBXTextBookmark */;
-			F636879B1497644B00A1674F /* PBXTextBookmark */ = F636879B1497644B00A1674F /* PBXTextBookmark */;
-			F636879C1497644B00A1674F /* PBXTextBookmark */ = F636879C1497644B00A1674F /* PBXTextBookmark */;
-			F63687A414976A4F00A1674F /* PBXBookmark */ = F63687A414976A4F00A1674F /* PBXBookmark */;
-			F63687AE14976C1000A1674F /* PBXTextBookmark */ = F63687AE14976C1000A1674F /* PBXTextBookmark */;
-			F63687AF14976C1000A1674F /* PBXTextBookmark */ = F63687AF14976C1000A1674F /* PBXTextBookmark */;
-			F63687B014976C1000A1674F /* PBXTextBookmark */ = F63687B014976C1000A1674F /* PBXTextBookmark */;
-			F63687B314976C1000A1674F /* PBXTextBookmark */ = F63687B314976C1000A1674F /* PBXTextBookmark */;
-			F63687B614976C1000A1674F /* PBXTextBookmark */ = F63687B614976C1000A1674F /* PBXTextBookmark */;
-			F63687B814976C1000A1674F /* PBXTextBookmark */ = F63687B814976C1000A1674F /* PBXTextBookmark */;
-			F63687C014976CA000A1674F /* PBXTextBookmark */ = F63687C014976CA000A1674F /* PBXTextBookmark */;
-			F63687C114976CA000A1674F /* PBXTextBookmark */ = F63687C114976CA000A1674F /* PBXTextBookmark */;
-			F63687C214976CA000A1674F /* PBXTextBookmark */ = F63687C214976CA000A1674F /* PBXTextBookmark */;
-			F63687C314976CA000A1674F /* PBXTextBookmark */ = F63687C314976CA000A1674F /* PBXTextBookmark */;
-			F63687C414976CA000A1674F /* PBXTextBookmark */ = F63687C414976CA000A1674F /* PBXTextBookmark */;
-			F63687C514976CA000A1674F /* PBXTextBookmark */ = F63687C514976CA000A1674F /* PBXTextBookmark */;
-			F63687C614976CA000A1674F /* PBXTextBookmark */ = F63687C614976CA000A1674F /* PBXTextBookmark */;
-			F677E1AB14968A7200180833 = F677E1AB14968A7200180833 /* PBXTextBookmark */;
-			F677E1AE1496C54500180833 = F677E1AE1496C54500180833 /* PBXTextBookmark */;
+			"PBXConfiguration.PBXBreakpointsDataSource.v1:1CA1AED706398EBD00589147" = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXBreakpointsDataSource_BreakpointID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					20,
+					198,
+					20,
+					99,
+					99,
+					29,
+					20,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXBreakpointsDataSource_ActionID,
+					PBXBreakpointsDataSource_TypeID,
+					PBXBreakpointsDataSource_BreakpointID,
+					PBXBreakpointsDataSource_UseID,
+					PBXBreakpointsDataSource_LocationID,
+					PBXBreakpointsDataSource_ConditionID,
+					PBXBreakpointsDataSource_IgnoreCountID,
+					PBXBreakpointsDataSource_ContinueID,
+				);
+			};
+			PBXConfiguration.PBXFileTableDataSource3.PBXFileTableDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					315,
+					20,
+					48.16259765625,
+					43,
+					43,
+					20,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXFileDataSource_FiletypeID,
+					PBXFileDataSource_Filename_ColumnID,
+					PBXFileDataSource_Built_ColumnID,
+					PBXFileDataSource_ObjectSize_ColumnID,
+					PBXFileDataSource_Errors_ColumnID,
+					PBXFileDataSource_Warnings_ColumnID,
+					PBXFileDataSource_Target_ColumnID,
+				);
+			};
+			PBXPerProjectTemplateStateSaveDate = 349195672;
+			PBXWorkspaceStateSaveDate = 349195672;
 		};
 		sourceControlManager = F65C057C149654E60046A464 /* Source Control */;
 		userBuildSettings = {
 		};
-	};
-	F636875B149760A300A1674F /* DESPOT1.c:99 */ = {
-		isa = PBXFileBreakpoint;
-		actions = (
-		);
-		breakpointStyle = 0;
-		continueAfterActions = 0;
-		countType = 0;
-		delayBeforeContinue = 0;
-		fileReference = F65C0588149655140046A464 /* DESPOT1.c */;
-		functionName = "calcDESPOT1()";
-		hitCount = 1;
-		ignoreCount = 0;
-		lineNumber = 99;
-		location = despot1;
-		modificationTime = 345465672.843665;
-		originalNumberOfMultipleMatches = 1;
-		state = 2;
-	};
-	F636876F149760F900A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0587149655140046A464 /* despot1_main.c */;
-		name = "despot1_main.c: 63";
-		rLen = 0;
-		rLoc = 1910;
-		rType = 0;
-		vrLen = 1099;
-		vrLoc = 1470;
-	};
-	F636877A1497616600A1674F /* PBXBookmark */ = {
-		isa = PBXBookmark;
-		fRef = F65C0588149655140046A464 /* DESPOT1.c */;
-	};
-	F636877B1497617300A1674F /* PBXBookmark */ = {
-		isa = PBXBookmark;
-		fRef = F65C0589149655140046A464 /* DESPOT1.h */;
-	};
-	F6368780149761CF00A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0587149655140046A464 /* despot1_main.c */;
-		name = "despot1_main.c: 165";
-		rLen = 0;
-		rLoc = 6016;
-		rType = 0;
-		vrLen = 1142;
-		vrLoc = 5587;
-	};
-	F6368783149761CF00A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0588149655140046A464 /* DESPOT1.c */;
-		name = "DESPOT1.c: 101";
-		rLen = 0;
-		rLoc = 3693;
-		rType = 0;
-		vrLen = 1150;
-		vrLoc = 3181;
-	};
-	F6368786149761CF00A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0589149655140046A464 /* DESPOT1.h */;
-		name = "DESPOT1.h: 1";
-		rLen = 0;
-		rLoc = 0;
-		rType = 0;
-		vrLen = 660;
-		vrLoc = 0;
-	};
-	F636878D1497632400A1674F /* despot1_main.c:157 */ = {
-		isa = PBXFileBreakpoint;
-		actions = (
-		);
-		breakpointStyle = 0;
-		continueAfterActions = 0;
-		countType = 0;
-		delayBeforeContinue = 0;
-		fileReference = F65C0587149655140046A464 /* despot1_main.c */;
-		functionName = "main()";
-		hitCount = 1;
-		ignoreCount = 0;
-		lineNumber = 157;
-		location = despot1;
-		modificationTime = 345465648.113768;
-		originalNumberOfMultipleMatches = 1;
-		state = 1;
-	};
-	F63687991497644B00A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0587149655140046A464 /* despot1_main.c */;
-		name = "despot1_main.c: 179";
-		rLen = 0;
-		rLoc = 6462;
-		rType = 0;
-		vrLen = 1146;
-		vrLoc = 5534;
-	};
-	F636879A1497644B00A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0587149655140046A464 /* despot1_main.c */;
-		name = "despot1_main.c: 207";
-		rLen = 0;
-		rLoc = 7463;
-		rType = 0;
-		vrLen = 1428;
-		vrLoc = 6564;
-	};
-	F636879B1497644B00A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0588149655140046A464 /* DESPOT1.c */;
-		name = "DESPOT1.c: 101";
-		rLen = 0;
-		rLoc = 3693;
-		rType = 0;
-		vrLen = 1150;
-		vrLoc = 3181;
-	};
-	F636879C1497644B00A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0589149655140046A464 /* DESPOT1.h */;
-		name = "DESPOT1.h: 1";
-		rLen = 0;
-		rLoc = 0;
-		rType = 0;
-		vrLen = 660;
-		vrLoc = 0;
-	};
-	F63687A414976A4F00A1674F /* PBXBookmark */ = {
-		isa = PBXBookmark;
-		fRef = F65C058A149655140046A464 /* recovery_main.c */;
-	};
-	F63687AE14976C1000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0587149655140046A464 /* despot1_main.c */;
-		name = "despot1_main.c: 190";
-		rLen = 0;
-		rLoc = 6758;
-		rType = 0;
-		vrLen = 1139;
-		vrLoc = 6063;
-	};
-	F63687AF14976C1000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0588149655140046A464 /* DESPOT1.c */;
-		name = "DESPOT1.c: 101";
-		rLen = 0;
-		rLoc = 3693;
-		rType = 0;
-		vrLen = 1150;
-		vrLoc = 3181;
-	};
-	F63687B014976C1000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0589149655140046A464 /* DESPOT1.h */;
-		name = "DESPOT1.h: 1";
-		rLen = 0;
-		rLoc = 0;
-		rType = 0;
-		vrLen = 660;
-		vrLoc = 0;
-	};
-	F63687B314976C1000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C058A149655140046A464 /* recovery_main.c */;
-		name = "recovery_main.c: 29";
-		rLen = 0;
-		rLoc = 568;
-		rType = 0;
-		vrLen = 1206;
-		vrLoc = 2157;
-	};
-	F63687B614976C1000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F63687B714976C1000A1674F /* mathArray.h */;
-		rLen = 1;
-		rLoc = 40;
-		rType = 1;
-	};
-	F63687B714976C1000A1674F /* mathArray.h */ = {
-		isa = PBXFileReference;
-		lastKnownFileType = sourcecode.c.h;
-		name = mathArray.h;
-		path = /Users/Tobias/Code/MacRI/Source/Common/Maths/mathArray.h;
-		sourceTree = "<absolute>";
-	};
-	F63687B814976C1000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F63687B914976C1000A1674F /* mathArray.h */;
-		name = "mathArray.h: 34";
-		rLen = 0;
-		rLoc = 909;
-		rType = 0;
-		vrLen = 1480;
-		vrLoc = 154;
-	};
-	F63687B914976C1000A1674F /* mathArray.h */ = {
-		isa = PBXFileReference;
-		lastKnownFileType = sourcecode.c.h;
-		name = mathArray.h;
-		path = /Users/Tobias/Code/MacRI/Source/Common/Maths/mathArray.h;
-		sourceTree = "<absolute>";
-		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {1067, 950}}";
-			sepNavSelRange = "{971, 0}";
-			sepNavVisRange = "{154, 1480}";
-			sepNavWindowFrame = "{{15, 4}, {1126, 874}}";
-		};
-	};
-	F63687BA14976C8300A1674F /* despot1_main.c:180 */ = {
-		isa = PBXFileBreakpoint;
-		actions = (
-		);
-		breakpointStyle = 0;
-		continueAfterActions = 0;
-		countType = 0;
-		delayBeforeContinue = 0;
-		fileReference = F65C0587149655140046A464 /* despot1_main.c */;
-		functionName = "main()";
-		hitCount = 0;
-		ignoreCount = 0;
-		lineNumber = 180;
-		modificationTime = 345468035.22371;
-		originalNumberOfMultipleMatches = 0;
-		state = 1;
-	};
-	F63687C014976CA000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0587149655140046A464 /* despot1_main.c */;
-		name = "despot1_main.c: 187";
-		rLen = 0;
-		rLoc = 6630;
-		rType = 0;
-		vrLen = 1126;
-		vrLoc = 6121;
-	};
-	F63687C114976CA000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0587149655140046A464 /* despot1_main.c */;
-		name = "despot1_main.c: 117";
-		rLen = 0;
-		rLoc = 4088;
-		rType = 0;
-		vrLen = 2017;
-		vrLoc = 3086;
-	};
-	F63687C214976CA000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0588149655140046A464 /* DESPOT1.c */;
-		name = "DESPOT1.c: 101";
-		rLen = 0;
-		rLoc = 3693;
-		rType = 0;
-		vrLen = 1150;
-		vrLoc = 3181;
-	};
-	F63687C314976CA000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0589149655140046A464 /* DESPOT1.h */;
-		name = "DESPOT1.h: 1";
-		rLen = 0;
-		rLoc = 0;
-		rType = 0;
-		vrLen = 660;
-		vrLoc = 0;
-	};
-	F63687C414976CA000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C058A149655140046A464 /* recovery_main.c */;
-		name = "recovery_main.c: 29";
-		rLen = 0;
-		rLoc = 568;
-		rType = 0;
-		vrLen = 1206;
-		vrLoc = 2157;
-	};
-	F63687C514976CA000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F63687B714976C1000A1674F /* mathArray.h */;
-		rLen = 1;
-		rLoc = 40;
-		rType = 1;
-	};
-	F63687C614976CA000A1674F /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F63687B914976C1000A1674F /* mathArray.h */;
-		name = "mathArray.h: 35";
-		rLen = 0;
-		rLoc = 971;
-		rType = 0;
-		vrLen = 1480;
-		vrLoc = 154;
 	};
 	F65C057C149654E60046A464 /* Source Control */ = {
 		isa = PBXSourceControlManager;
@@ -360,31 +86,31 @@
 	};
 	F65C0587149655140046A464 /* despot1_main.c */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {1404, 4579}}";
-			sepNavSelRange = "{4088, 0}";
-			sepNavVisRange = "{3086, 2017}";
-			sepNavWindowFrame = "{{672, 4}, {1126, 874}}";
+			sepNavIntBoundsRect = "{{0, 0}, {1332, 5523}}";
+			sepNavSelRange = "{5239, 55}";
+			sepNavVisRange = "{5106, 440}";
+			sepNavWindowFrame = "{{598, 4}, {842, 874}}";
 		};
 	};
-	F65C0588149655140046A464 /* DESPOT1.c */ = {
+	F65C0588149655140046A464 /* DESPOT.c */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {934, 4009}}";
-			sepNavSelRange = "{6871, 0}";
-			sepNavVisRange = "{5384, 1282}";
-			sepNavWindowFrame = "{{2, 4}, {708, 874}}";
+			sepNavIntBoundsRect = "{{0, 0}, {892, 6531}}";
+			sepNavSelRange = "{6113, 0}";
+			sepNavVisRange = "{5335, 986}";
+			sepNavWindowFrame = "{{0, 4}, {813, 874}}";
 		};
 	};
-	F65C0589149655140046A464 /* DESPOT1.h */ = {
+	F65C0589149655140046A464 /* DESPOT.h */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {828, 746}}";
-			sepNavSelRange = "{0, 0}";
-			sepNavVisRange = "{0, 660}";
-			sepNavWindowFrame = "{{15, 4}, {708, 874}}";
+			sepNavIntBoundsRect = "{{0, 0}, {1059, 746}}";
+			sepNavSelRange = "{1200, 0}";
+			sepNavVisRange = "{0, 1250}";
+			sepNavWindowFrame = "{{15, 4}, {1118, 874}}";
 		};
 	};
 	F65C058A149655140046A464 /* recovery_main.c */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {796, 1957}}";
+			sepNavIntBoundsRect = "{{0, 0}, {796, 2090}}";
 			sepNavSelRange = "{568, 0}";
 			sepNavVisRange = "{2157, 563}";
 			sepNavWindowFrame = "{{15, 4}, {1126, 874}}";
@@ -396,6 +122,13 @@
 			sepNavSelRange = "{1903, 0}";
 			sepNavVisRange = "{914, 1112}";
 			sepNavWindowFrame = "{{754, 4}, {725, 874}}";
+		};
+	};
+	F65C058C149655140046A464 /* recovery.h */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {796, 418}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRange = "{0, 602}";
 		};
 	};
 	F65C0596149655370046A464 /* recovery */ = {
@@ -450,18 +183,33 @@
 			YES,
 		);
 		argumentStrings = (
-			des1,
+			phantom,
 			spgrs.txt,
-			5,
+			8.464000,
 			"ir-spgrs.txt",
 			5,
-			5,
-			128,
+			7.112000,
 			0,
+			3,
 		);
 		autoAttachOnCrash = 1;
 		breakpointsEnabled = 0;
 		configStateDict = {
+			"PBXLSLaunchAction-0" = {
+				PBXLSLaunchAction = 0;
+				PBXLSLaunchStartAction = 1;
+				PBXLSLaunchStdioStyle = 2;
+				PBXLSLaunchStyle = 0;
+				class = PBXLSRunLaunchConfig;
+				commandLineArgs = (
+				);
+				displayName = "Executable Runner";
+				environment = {
+				};
+				identifier = com.apple.Xcode.launch.runConfig;
+				remoteHostInfo = "";
+				startActionInfo = "";
+			};
 		};
 		customDataFormattersEnabled = 1;
 		dataTipCustomDataFormattersEnabled = 1;
@@ -482,45 +230,80 @@
 		showTypeColumn = 0;
 		sourceDirectories = (
 		);
+		startupPath = "<<ProductDirectory>>";
 		variableFormatDictionary = {
 		};
 	};
-	F677E1A514968A6100180833 /* despot1_main.c:165 */ = {
-		isa = PBXFileBreakpoint;
-		actions = (
+	F692991714CDDEA4003EF4FD /* despot2_main.c */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {1242, 3318}}";
+			sepNavSelRange = "{1728, 0}";
+			sepNavVisRange = "{2149, 716}";
+			sepNavWindowFrame = "{{15, 4}, {865, 874}}";
+		};
+	};
+	F692991D14CDDEC1003EF4FD /* despot2 */ = {
+		activeExec = 0;
+		executables = (
+			F692991F14CDDEC1003EF4FD /* despot2 */,
 		);
-		breakpointStyle = 0;
-		continueAfterActions = 0;
-		countType = 0;
-		delayBeforeContinue = 0;
-		fileReference = F65C0587149655140046A464 /* despot1_main.c */;
-		functionName = "main()";
-		hitCount = 0;
-		ignoreCount = 0;
-		lineNumber = 165;
-		location = despot1;
-		modificationTime = 345465647.861369;
-		originalNumberOfMultipleMatches = 1;
-		state = 1;
 	};
-	F677E1AB14968A7200180833 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0587149655140046A464 /* despot1_main.c */;
-		name = "despot1_main.c: 188";
-		rLen = 0;
-		rLoc = 6709;
-		rType = 0;
-		vrLen = 1180;
-		vrLoc = 5103;
-	};
-	F677E1AE1496C54500180833 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = F65C0587149655140046A464 /* despot1_main.c */;
-		name = "despot1_main.c: 188";
-		rLen = 0;
-		rLoc = 6709;
-		rType = 0;
-		vrLen = 1180;
-		vrLoc = 5103;
+	F692991F14CDDEC1003EF4FD /* despot2 */ = {
+		isa = PBXExecutable;
+		activeArgIndices = (
+			YES,
+			YES,
+			YES,
+			YES,
+			YES,
+		);
+		argumentStrings = (
+			phantom,
+			ssfp.txt,
+			2.884000,
+			phantom_T1.nii,
+			phantom_B1.nii,
+		);
+		autoAttachOnCrash = 1;
+		breakpointsEnabled = 0;
+		configStateDict = {
+			"PBXLSLaunchAction-0" = {
+				PBXLSLaunchAction = 0;
+				PBXLSLaunchStartAction = 1;
+				PBXLSLaunchStdioStyle = 2;
+				PBXLSLaunchStyle = 0;
+				class = PBXLSRunLaunchConfig;
+				commandLineArgs = (
+				);
+				displayName = "Executable Runner";
+				environment = {
+				};
+				identifier = com.apple.Xcode.launch.runConfig;
+				remoteHostInfo = "";
+				startActionInfo = "";
+			};
+		};
+		customDataFormattersEnabled = 1;
+		dataTipCustomDataFormattersEnabled = 1;
+		dataTipShowTypeColumn = 1;
+		dataTipSortType = 0;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		dylibVariantSuffix = "";
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = despot2;
+		savedGlobals = {
+		};
+		showTypeColumn = 0;
+		sourceDirectories = (
+		);
+		startupPath = "<<ProductDirectory>>";
+		variableFormatDictionary = {
+		};
 	};
 }
