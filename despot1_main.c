@@ -8,8 +8,11 @@
  */
 
 #include <string.h>
-#include <util.h>
-#include <dispatch/dispatch.h>
+#ifdef __APPLE__
+	#include <dispatch/dispatch.h>
+#else
+	#define __block 
+#endif
 #include "DESPOT.h"
 #include "nifti_tools.h"
 #include "znzlib.h"
@@ -109,9 +112,9 @@ int main(int argc, char **argv)
 	
 	nifti_image *mask = NULL;
 	if (argc == 5)
-		mask = nifti_image_read(argv[4], false);
+		mask = nifti_image_read(argv[4], FALSE);
 	if (argc == 10)
-		mask = nifti_image_read(argv[9], false);
+		mask = nifti_image_read(argv[9], FALSE);
 	//**************************************************************************	
 	// Read in headers / Allocate memory for slices and results
 	//**************************************************************************

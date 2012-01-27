@@ -8,8 +8,11 @@
  */
 
 #include <string.h>
-#include <util.h>
-#include <dispatch/dispatch.h>
+#ifdef __APPLE__
+	#include <dispatch/dispatch.h>
+#else
+	#define __block 
+#endif
 #include "DESPOT.h"
 #include "nifti_tools.h"
 #include "znzlib.h"
@@ -62,10 +65,10 @@ int main(int argc, char **argv)
 	fprintf(stdout, "Specified %d SSFP files with TR=%f ms.\n", nSSFP, ssfpTR);
 	
 	nifti_image *T1Map = NULL, *B1Map = NULL, *mask = NULL;
-	T1Map = nifti_image_read(argv[4], false);
-	B1Map = nifti_image_read(argv[5], false);
+	T1Map = nifti_image_read(argv[4], FALSE);
+	B1Map = nifti_image_read(argv[5], FALSE);
 	if (argc == 7)
-		mask = nifti_image_read(argv[6], false);
+		mask = nifti_image_read(argv[6], FALSE);
 	//**************************************************************************	
 	// Read in headers / Allocate memory for slices and results
 	//**************************************************************************
