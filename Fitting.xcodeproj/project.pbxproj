@@ -29,6 +29,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		F61BFD0A14D996E700448CA7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F61BFCFF14D996C900448CA7;
+			remoteInfo = tests;
+		};
 		F65C05B8149656140046A464 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
@@ -198,6 +205,7 @@
 			isa = PBXGroup;
 			children = (
 				F65C05BE149656150046A464 /* libmaths.a */,
+				F61BFD0B14D996E700448CA7 /* tests */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -286,7 +294,7 @@
 					ProjectRef = F65C05AB149656130046A464 /* maths.xcodeproj */;
 				},
 			);
-			projectRoot = .;
+			projectRoot = "";
 			targets = (
 				F65C0596149655370046A464 /* recovery */,
 				F65C059E1496558A0046A464 /* despot1 */,
@@ -296,6 +304,13 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
+		F61BFD0B14D996E700448CA7 /* tests */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = tests;
+			remoteRef = F61BFD0A14D996E700448CA7 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		F65C05B9149656140046A464 /* libformats.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
@@ -442,9 +457,9 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../**";
 				PREBINDING = NO;
 				PRODUCT_NAME = despot1;
 				SYMROOT = ../../build;
@@ -459,9 +474,9 @@
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../**";
 				PREBINDING = NO;
 				PRODUCT_NAME = despot1;
 				SYMROOT = ../../build;
