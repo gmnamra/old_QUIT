@@ -148,8 +148,8 @@ int main(int argc, char **argv)
 	else
 		fprintf(stdout, "Fitting classic DESPOT1.\n");
 	
-	for (int slice = 0; slice < SPGRFiles[0]->nz; slice++)
-	//void (^processSlice)(size_t slice) = ^(size_t slice)
+	//for (int slice = 0; slice < SPGRFiles[0]->nz; slice++)
+	void (^processSlice)(size_t slice) = ^(size_t slice)
 	{
 		// Read in data
 		fprintf(stdout, "Processing slice %ld...\n", slice);
@@ -244,8 +244,8 @@ int main(int argc, char **argv)
 		for (int i = 0; i < nIR; i++)
 			free(irData[i]);
 	};
-	//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	//dispatch_apply(SPGRFiles[0]->nz, global_queue, processSlice);
+	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	dispatch_apply(SPGRFiles[0]->nz, global_queue, processSlice);
 	fprintf(stdout, "Finished fitting. Writing results files.\n");
 
 	//**************************************************************************

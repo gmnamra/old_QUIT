@@ -140,14 +140,24 @@ void IRSPGR_Jacobian(double *data, int nD, double *p, double *c, double *result)
 
 double SSFP(double flipAngle, double *p, double *c)
 {
-	double M0 = p[0], T1 = p[1], B1 = p[2], T2 = p[3];
-	double TR = c[1];
+	double M0 = p[0], T2 = p[1], dO = p[2];
+	double TR = c[0], T1 = c[1], B1 = c[2], offset = c[3];
 	
 	double eT1 = exp(-TR / T1);
 	double eT2 = exp(-TR / T2);
 	
-	double ssfp = (M0 * (1 - eT1) * sin(B1 * flipAngle)) /
-	              (1 - eT1 * eT2 - (eT1 - eT2) * cos(B1 * flipAngle));
+	double phase = offset + dO * (TR / 1.e3) * 2. * M_PI;
+	double sina = sin(B1 * flipAngle);
+	double cosa = cos(B1 * flipAngle);
+	double sinp = sin(phase);
+	double cosp = cos(phase);
+	
+	double denom = ((1. - eT1 * cosa) * (1. - eT2 * cosp)) - 
+				   (eT2 * (eT1 - cosa) * (eT2 - cosp));
+	
+	double Mx = ((1 - eT1) * eT2 * sina * (cosp - eT2)) / denom;
+	double My = ((1.- eT1) * eT2 * sina * sinp) / denom;
+	double ssfp = M0 * sqrt(Mx*Mx + My*My);
 	return ssfp;
 }
 
@@ -155,7 +165,6 @@ void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 				 double TR, double B1, double *M0, double *T1)
 {
 	// Linearise the data, then least-squares
-	
 	double X[n], Y[n], slope, inter;
 	for (int i = 0; i < n; i++)
 	{
@@ -167,11 +176,10 @@ void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 	*M0 = inter / (1. - slope);
 }
 
-void calcDESPOT2(double *flipAngles, double *ssfpVals, int n,
-                 double TR, double T1, double B1, double *M0, double *T2)
+void classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
+                    double TR, double T1, double B1, double *M0, double *T2)
 {
 	// As above, linearise, then least-squares
-	
 	double X[n], Y[n], slope, inter;
 	for (int i = 0; i < n; i++)
 	{
@@ -180,9 +188,27 @@ void calcDESPOT2(double *flipAngles, double *ssfpVals, int n,
 	}
 	linearLeastSquares(X, Y, n, &slope, &inter);
 	double eT1 = exp(-TR / T1);
-	*T2 = -TR / log((slope - eT1) / (slope * eT1 - 1.));
+	*T2 = -TR / log((eT1 - slope) / (1. - slope * eT1));
 	double eT2 = exp(-TR / (*T2));
-	*M0 = inter * (eT1 * eT2 - 1.) / (1. - eT1);
+	*M0 = inter * (1. - eT1 * eT2) / (1. - eT1);
+}
+
+void simplexDESPOT2(double *flipAngles, double *ssfp0, double *ssfp180, size_t n,
+					double TR, double T1, double B1, double *M0, double *T2, double *dO)
+{
+	// Gather together all the data
+	double p[3] = {*M0, *T2, *dO},
+		   c1[4] = {TR, T1, B1, 0.},
+		   c2[4] = {TR, T1, B1, M_PI},
+	       *c[2] = { c1, c2 },
+		   *dX[2] = {flipAngles, flipAngles},
+		   *dY[2] = {ssfp0, ssfp180},
+		   fRes = 0.;
+	size_t nD[2] = {n, n};
+	eval_type *f[2] = {SSFP, SSFP};
+	
+	int evals = simplex(p, 3, c, 2, dX, dY, nD, f, NULL, &fRes);
+	*M0 = p[0]; *T2 = p[1]; *dO = p[2];
 }
 
 double calcSPGR(double *angles, double *spgrVals, int n, double TR,

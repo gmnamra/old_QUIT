@@ -11,6 +11,7 @@
 
 #include "math.h"
 #include "mathArray.h"
+#include "mathOptimisers.h"
 int tests();
 double SPGR(double flipAngle, double *p, double *c);
 void SPGR_Jacobian(double *angles, int nD, double *p, double *c, double *result);
@@ -22,8 +23,10 @@ double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 				double *M0, double *T1, double *B1);
 void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 				 double TR, double B1, double *M0, double *T1);
-void calcDESPOT2(double *flipAngles, double *ssfpVals, int n,
-                 double TR, double T1, double B1, double *M0, double *T2);
+void classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
+                    double TR, double T1, double B1, double *M0, double *T2);
+void simplexDESPOT2(double *flipAngles, double *ssfp0, double *ssfp180, size_t n,
+					double TR, double T1, double B1, double *M0, double *T2, double *domega);
 double calcSPGR(double *angles, double *spgrVals, int n, double TR,
                 double *M0, double *T1, double *B1);
 double calcIR(double *TI, double *irVals, int nIR,
