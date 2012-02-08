@@ -193,21 +193,21 @@ void classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
 	*M0 = inter * (1. - eT1 * eT2) / (1. - eT1);
 }
 
-void simplexDESPOT2(double *flipAngles, double *ssfp0, double *ssfp180, size_t n,
+void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAngles, double **ssfp,
 					double TR, double T1, double B1, double *M0, double *T2, double *dO)
 {
 	// Gather together all the data
-	double p[3] = {*M0, *T2, *dO},
-		   c1[4] = {TR, T1, B1, 0.},
-		   c2[4] = {TR, T1, B1, M_PI},
-	       *c[2] = { c1, c2 },
-		   *dX[2] = {flipAngles, flipAngles},
-		   *dY[2] = {ssfp0, ssfp180},
-		   fRes = 0.;
-	size_t nD[2] = {n, n};
-	eval_type *f[2] = {SSFP, SSFP};
+	double p[3] = {*M0, *T2, *dO}, *c[nPhases], fRes = 0.;
+	eval_type *f[nPhases];
+	for (int i = 0; i < nPhases; i++)
+	{
+		c[i] = malloc(4 * sizeof(double));
+		c[i][0] = TR; c[i][1] = T1; c[i][2] = B1;
+		c[i][3] = phases[i];
+		f[i] = SSFP;
+	}
 	
-	int evals = simplex(p, 3, c, 2, dX, dY, nD, f, NULL, &fRes);
+	int evals = simplex(p, 3, c, nPhases, flipAngles, ssfp, nD, f, NULL, &fRes);
 	*M0 = p[0]; *T2 = p[1]; *dO = p[2];
 }
 

@@ -25,7 +25,7 @@ void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 				 double TR, double B1, double *M0, double *T1);
 void classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
                     double TR, double T1, double B1, double *M0, double *T2);
-void simplexDESPOT2(double *flipAngles, double *ssfp0, double *ssfp180, size_t n,
+void simplexDESPOT2(size_t nP, size_t *nD, double *phases, double **flipAngles, double **ssfp,
 					double TR, double T1, double B1, double *M0, double *T2, double *domega);
 double calcSPGR(double *angles, double *spgrVals, int n, double TR,
                 double *M0, double *T1, double *B1);

@@ -23,17 +23,11 @@
 #define __DEBUG__ FALSE
 #define __DEBUG_THRESH__ 60000
 
-enum DESPOT2_MODE
-{
-	MODE_CLASSIC = 0,
-	MODE_SIMPLEX
-};
-
-char *usage = "Usage is: despot2 [Output Prefix] [Classic/Simplex Switch] [SSFP0 input file] [SSFP TR] [T1 Map File] [B1 Map File] <[Mask File]>\n\
+char *usage = "Usage is: despot2 [Output Prefix] [Number of phase cycling patterns] <[SSFP input file] [Phase Cycling]>  [SSFP TR] [T1 Map File] [B1 Map File] <[Mask File]>\n\
 \n\
-For classic DESPOT2 set switch to 0, simplex DESPOT2 set to 1.\n\
-For classic DESPOT2 the input file requires 2 columns - SSFP 180 file, flip angle.\n\
-For simplex DESPOT2 the input file requires 3 columns - SSFP 0 Phase file, SSFP 180 Phase file, Flip Angle.";
+For classic DESPOT2 use 1 phase cycle, simplex DESPOT2 use multiple.\n\
+The input file requires 2 columns - SSFP 180 file, flip angle.\n\
+Specify the phase cycling pattern in degrees after each input file.\n";
 
 //******************************************************************************
 // Main
@@ -44,72 +38,65 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	int nSSFP = 0;
-	char **ssfp0Filenames, **ssfp180Filenames;
-	double ssfpTR, *ssfpAngles;
-	char *outPrefix;
-	
 	if (argc == 1)
 	{
 		fprintf(stderr, "%s", usage);
 		exit(EXIT_FAILURE);
 	}
 	
-	if ((argc != 7) && (argc != 8))
+	if (argc < 9)
 	{
-		fprintf(stderr, "Incorrect number of arguments (= %d) specified, should be 6 (7 if masked).\n",
+		fprintf(stderr, "Incorrect number of arguments (= %d) specified, should be at least 8.\n",
 				argc - 1); // Subtract off filename
 		fprintf(stderr, "%s", usage);
 		exit(EXIT_FAILURE);
 	}
-	
-	outPrefix = argv[1];
-	int mode = atoi(argv[2]);
-	if (mode == MODE_CLASSIC)
-	{
-		fprintf(stdout, "Specified classic DESPOT2 fitting.\n");
-		nSSFP = readRecordFile(argv[3], "sd", &ssfp180Filenames, &ssfpAngles);
-	}
-	else if (mode == MODE_SIMPLEX)
-	{
-		fprintf(stdout, "Specified simplex full DESPOT2 fitting.\n");
-		nSSFP = readRecordFile(argv[3], "ssd", &ssfp0Filenames, &ssfp180Filenames, &ssfpAngles);
-	}
-	else
-	{
-		fprintf(stderr, "Unknown mode %d specified.\n", mode);
-		exit(EXIT_FAILURE);
-	}
 
-
-	for (int i = 0; i < nSSFP; i++)
-		ssfpAngles[i] = radians(ssfpAngles[i]);
-	ssfpTR = atof(argv[4]);
-	fprintf(stdout, "Specified %d SSFP files with TR=%f ms.\n", nSSFP, ssfpTR);
+	char *outPrefix = argv[1];
+	size_t nPhases = atoi(argv[2]);
 	
+	size_t *nSSFP = malloc(nPhases * sizeof(size_t));
+	char **ssfpFilenames[nPhases];
+	double ssfpTR, *ssfpPhases = malloc(nPhases * sizeof(double)),
+	       **ssfpAngles = malloc(nPhases * sizeof(double *));
+
+	fprintf(stdout, "Specified %ld phase cycling patterns.\n", nPhases);	
+	for (size_t p = 0; p < nPhases; p++)
+	{
+		nSSFP[p] = readRecordFile(argv[3 + (p * 2)], "sd", &(ssfpFilenames[p]), &(ssfpAngles[p]));
+		ssfpPhases[p] = radians(atof(argv[4 + (p * 2)]));
+		for (int i = 0; i < nSSFP[p]; i++)
+			ssfpAngles[p][i] = radians(ssfpAngles[p][i]);
+		fprintf(stdout, "Specified pattern %ld with phase %f deg and %ld files.\n", p, degrees(ssfpPhases[p]), nSSFP[p]);
+		//ARR_D( ssfpAngles[p], nSSFP[p] );
+	}
+	ssfpTR = atof(argv[3 + (nPhases * 2)]);
+	fprintf(stdout, "Specified TR of %f ms.\n", ssfpTR);
 	nifti_image *T1Map = NULL, *B1Map = NULL, *mask = NULL;
-	T1Map = nifti_image_read(argv[5], FALSE);
-	B1Map = nifti_image_read(argv[6], FALSE);
-	if (argc == 8)
-		mask = nifti_image_read(argv[7], FALSE);
+	fprintf(stdout, "Reading T1 Map: %s\n", argv[4 + (nPhases * 2)]);
+	T1Map = nifti_image_read(argv[4 + (nPhases * 2)], FALSE);
+	fprintf(stdout, "Reading B1 Map: %s\n", argv[5 + (nPhases * 2)]);
+	B1Map = nifti_image_read(argv[5 + (nPhases * 2)], FALSE);
+	fprintf(stdout, "argc %d comp to %ld\n", argc, 7 + (nPhases * 2));
+	if (argc == (7 + (nPhases * 2)))
+		mask = nifti_image_read(argv[6 + (nPhases * 2)], FALSE);
 	//**************************************************************************	
 	// Read in headers / Allocate memory for slices and results
 	//**************************************************************************
-	nifti_image **ssfp0Files = (nifti_image **)malloc(nSSFP * sizeof(nifti_image *));
-	nifti_image **ssfp180Files = (nifti_image **)malloc(nSSFP * sizeof(nifti_image *));
-	loadHeaders(ssfp180Filenames, ssfp180Files, nSSFP);
-	if (mode == MODE_SIMPLEX)
+	nifti_image ***ssfpFiles = malloc(nPhases * sizeof(nifti_image **));
+	for (int p = 0; p < nPhases; p++)
 	{
-		loadHeaders(ssfp0Filenames, ssfp0Files, nSSFP);
-		if (ssfp0Files[0]->nvox != ssfp180Files[0]->nvox)
+		ssfpFiles[p] = (nifti_image **)malloc(nSSFP[p] * sizeof(nifti_image *));
+		loadHeaders(ssfpFilenames[p], ssfpFiles[p], nSSFP[p]);
+		if ((p > 0) && ssfpFiles[p - 1][0]->nvox != ssfpFiles[p][0]->nvox)
 		{
-			fprintf(stderr, "Differing number of voxels in phase 0 and phase 180 headers.\n");
+			fprintf(stderr, "Differing number of voxels in phase %d and %d headers.\n", p - 1, p);
 			exit(EXIT_FAILURE);
 		}
 	}
 	
-	int voxelsPerSlice = ssfp180Files[0]->nx * ssfp180Files[0]->ny;	
-	int totalVoxels = voxelsPerSlice * ssfp180Files[0]->nz;
+	int voxelsPerSlice = ssfpFiles[0][0]->nx * ssfpFiles[0][0]->ny;	
+	int totalVoxels = voxelsPerSlice * ssfpFiles[0][0]->nz;
 	__block float *T2Data = malloc(totalVoxels * sizeof(float));
 	__block float *M0Data = malloc(totalVoxels * sizeof(float));
 	__block float *dOData = malloc(totalVoxels * sizeof(float));
@@ -118,21 +105,24 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	fprintf(stdout, "Fitting DESPOT2.\n");
 	
-	for (int slice = 0; slice < ssfp180Files[0]->nz; slice++)
-	//void (^processSlice)(size_t slice) = ^(size_t slice)
+	//for (int slice = 0; slice < ssfpFiles[0][0]->nz; slice++)
+	void (^processSlice)(size_t slice) = ^(size_t slice)
 	{
 		// Read in data
 		fprintf(stdout, "Processing slice %ld...\n", slice);
 		double T2 = 0., M0 = 0., dO = 0.;
 		
 		int sliceStart[7] = {0, 0, slice, 0, 0, 0, 0};
-		int sliceDim[7] = {ssfp180Files[0]->nx, ssfp180Files[0]->ny, 1, 1, 1, 1, 1};
-		float *ssfp180Data[nSSFP], *ssfp0Data[nSSFP];
-		for (int i = 0; i < nSSFP; i++)
+		int sliceDim[7] = {ssfpFiles[0][0]->nx, ssfpFiles[0][0]->ny, 1, 1, 1, 1, 1};
+		float ***ssfpData = malloc(nPhases * sizeof(float **));
+		for (int p = 0; p < nPhases; p++)
 		{
-			ssfp180Data[i] = malloc(voxelsPerSlice * sizeof(float));
-			if (mode == MODE_SIMPLEX)
-				ssfp0Data[i] = malloc(voxelsPerSlice * sizeof(float));
+			ssfpData[p] = malloc(nSSFP[p] * sizeof(float *));
+			for (int i = 0; i < nSSFP[p]; i++)
+			{
+				ssfpData[p][i] = malloc(voxelsPerSlice * sizeof(float));
+				nifti_read_subregion_image(ssfpFiles[p][i], sliceStart, sliceDim, (void**)&(ssfpData[p][i]));
+			}
 		}
 		float *T1Data, *B1Data, *maskData;
 		T1Data = malloc(voxelsPerSlice * sizeof(float));
@@ -140,12 +130,6 @@ int main(int argc, char **argv)
 		if (mask)
 			maskData = malloc(voxelsPerSlice * sizeof(float));
 		
-		for (int img = 0; img < nSSFP; img++)
-		{
-			nifti_read_subregion_image(ssfp180Files[img], sliceStart, sliceDim, (void**)&(ssfp180Data[img]));
-			if (mode == MODE_SIMPLEX)
-				nifti_read_subregion_image(ssfp0Files[img], sliceStart, sliceDim, (void**)&(ssfp0Data[img]));
-		}
 		nifti_read_subregion_image(T1Map, sliceStart, sliceDim, (void**)&(T1Data));
 		nifti_read_subregion_image(B1Map, sliceStart, sliceDim, (void**)&(B1Data));
 		if (mask)
@@ -156,20 +140,34 @@ int main(int argc, char **argv)
 		{
 			if (!mask || (maskData[vox] > 0.))
 			{
-				double ssfp180Signal[nSSFP], ssfp0Signal[nSSFP], T1, B1;
-				for (int img = 0; img < nSSFP; img++)
+				double T1, B1, **ssfpSignal = malloc(nPhases * sizeof(double *));
+				for (int p = 0; p < nPhases; p++)
 				{
-					ssfp180Signal[img] = (double)ssfp180Data[img][vox];
-					if (mode == MODE_SIMPLEX)
-						ssfp0Signal[img] = (double)ssfp0Data[img][vox];
+					ssfpSignal[p] = malloc(nSSFP[p] * sizeof(double));
+					for (int img = 0; img < nSSFP[p]; img++)
+						ssfpSignal[p][img] = (double)ssfpData[p][img][vox];
 				}
 				
 				T1 = (double)T1Data[vox];
 				B1 = (double)B1Data[vox];
 				dO = 125. / ssfpTR; // Guess from Sean's code
-				classicDESPOT2(ssfpAngles, ssfp180Signal, nSSFP, ssfpTR, T1, B1, &M0, &T2);
-				if (mode == MODE_SIMPLEX)
-					simplexDESPOT2(ssfpAngles, ssfp0Signal, ssfp180Signal, nSSFP, ssfpTR, T1, B1, &M0, &T2, &dO);
+				if (nPhases == 1)
+					classicDESPOT2(ssfpAngles[0], ssfpSignal[0], nSSFP[0], ssfpTR, T1, B1, &M0, &T2);
+				else
+				{
+					// Find phase cycle with highest intensity
+					double *pSigs = malloc(nPhases * sizeof(double));
+					for (int p = 0; p < nPhases; p++)
+						pSigs[p] = ssfpSignal[p][0];
+					size_t *ind = malloc(nPhases * sizeof(double));
+					arraySort(pSigs, nPhases, ind);
+					size_t hi = ind[nPhases - 1];
+					classicDESPOT2(ssfpAngles[hi], ssfpSignal[hi], nSSFP[hi], ssfpTR, T1, B1, &M0, &T2);
+					simplexDESPOT2(nPhases, nSSFP, ssfpPhases, ssfpAngles, ssfpSignal, ssfpTR, T1, B1, &M0, &T2, &dO);
+					
+					free(ind);
+					free(pSigs);
+				}
 				// Sanity check
 				M0 = clamp(M0, 0., 1.e8);
 				T2 = clamp(T2, 0., 3.e3);
@@ -187,27 +185,27 @@ int main(int argc, char **argv)
 		}
 		
 		// Clean up memory
-		for (int i = 0; i < nSSFP; i++)
+		for (int p = 0; p < nPhases; p++)
 		{
-			free(ssfp180Data[i]);
-			if (mode == MODE_SIMPLEX)
-				free(ssfp0Data[i]);
+			for (int img = 0; img < nSSFP[p]; img++)
+				free(ssfpData[p][img]);
+			free(ssfpData[p]);
 		}
 	};
-	//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	//dispatch_apply(ssfp180Files[0]->nz, global_queue, processSlice);
+	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	dispatch_apply(ssfpFiles[0][0]->nz, global_queue, processSlice);
 	fprintf(stdout, "Finished fitting. Writing results files.\n");
 
 	//**************************************************************************
 	// Create results files
 	//**************************************************************************
-	nifti_image *out = nifti_copy_nim_info(ssfp180Files[0]);
+	nifti_image *out = nifti_copy_nim_info(ssfpFiles[0][0]);
 	char outName[strlen(outPrefix) + 4]; // Space for "T1" plus null
 	strcpy(outName, outPrefix); strcat(outName, "_M0");
 	writeResult(out, outName, (void*)M0Data);
 	strcpy(outName, outPrefix); strcat(outName, "_T2");
 	writeResult(out, outName, (void*)T2Data);
-	if (mode == MODE_SIMPLEX)
+	if (nPhases > 1)
 	{
 		strcpy(outName, outPrefix); strcat(outName, "_dO");
 		writeResult(out, outName, (void*)dOData);

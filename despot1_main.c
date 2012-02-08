@@ -32,9 +32,9 @@ N lines  - Path to file, space, parameter. For the SPGR files\n\
 		    is the TI in ms.\n\
 \n\
 Inversion Modes: 0 = 1.5T scanner (readout pulses div 2 + 2)\n\
-                 1 = 3.0T scanner 1 (scale TI times by 0.9)\n\
+                 1 = 3.0T scanner 1 (scale TI times by 0.9, readout pulses div 2 + 2)\n\
                  2 = 3.0T scanner 2 (scale TI times by 0.84, readout pulses + 2)\n\
-				 3 = Varian DESPOT Sequence (Use raw TR, readout puleses ignored)\n";
+				 3 = Varian MPRAGE Sequence (Use raw segment TR from input file, TR, pulses ignored)\n";
 
 //******************************************************************************
 // Main
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 				break;
 			case 3:
 				TIScale = 1.0;
-				irTR = irStepTR;
+				irTR = 0.;
 				break;
 			default:
 				fprintf(stderr, "Inversion mode must be 0, 1, or 2\n");
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 		}
 		for (int i = 0; i < nIR; i++)
 			irTI[i] = irTI[i] * TIScale;
-		fprintf(stdout, "Specified %d SPGR-IR files with TR=%f ms, flip angle: %f degrees and (calculated) TR: %f\n", nIR, irTR, degrees(irAngle), irTR);
+		fprintf(stdout, "Specified %d SPGR-IR files with flip angle: %f degrees and (calculated first) TR: %f\n", nIR, degrees(irAngle), irTR + irTI[0]);
 	}
 	
 	nifti_image *mask = NULL;
