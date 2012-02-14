@@ -8,11 +8,7 @@
  */
 
 #include <string.h>
-#ifdef __APPLE__
-	#include <dispatch/dispatch.h>
-#else
-	#define __block 
-#endif
+#include <dispatch/dispatch.h>
 #include "DESPOT.h"
 #include "nifti_tools.h"
 #include "znzlib.h"
