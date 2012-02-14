@@ -161,6 +161,29 @@ double SSFP(double flipAngle, double *p, double *c)
 	return ssfp;
 }
 
+double nSSFP(double flipAngle, double *p, double *c)
+{
+	double M0 = 1., T2 = p[0], dO = p[1];
+	double TR = c[0], T1 = c[1], B1 = c[2], offset = c[3];
+	
+	double eT1 = exp(-TR / T1);
+	double eT2 = exp(-TR / T2);
+	
+	double phase = offset + dO * (TR / 1.e3) * 2. * M_PI;
+	double sina = sin(B1 * flipAngle);
+	double cosa = cos(B1 * flipAngle);
+	double sinp = sin(phase);
+	double cosp = cos(phase);
+	
+	double denom = ((1. - eT1 * cosa) * (1. - eT2 * cosp)) - 
+				   (eT2 * (eT1 - cosa) * (eT2 - cosp));
+	
+	double Mx = ((1 - eT1) * eT2 * sina * (cosp - eT2)) / denom;
+	double My = ((1.- eT1) * eT2 * sina * sinp) / denom;
+	double ssfp = M0 * sqrt(Mx*Mx + My*My);
+	return ssfp;
+}
+
 void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 				 double TR, double B1, double *M0, double *T1)
 {
@@ -211,6 +234,27 @@ void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAng
 	*M0 = p[0]; *T2 = p[1]; *dO = p[2];
 }
 
+void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAngles, double **ssfp,
+					 double TR, double T1, double B1, double *M0, double *T2, double *dO)
+{
+	double loBounds[2] = {1., 150. / TR}; // A T2 of 0. causes nasty maths
+	double hiBounds[2] = {300., 100. / TR};
+	double *bounds[2] = {loBounds, hiBounds}; 
+	double p[2] = {*T2, *dO}, *c[nPhases], fRes = 0.;
+	eval_type *f[nPhases];
+	for (int i = 0; i < nPhases; i++)
+	{
+		c[i] = malloc(4 * sizeof(double));
+		c[i][0] = TR; c[i][1] = T1; c[i][2] = B1;
+		c[i][3] = phases[i];
+		f[i] = nSSFP;
+		arrayScale(ssfp[i], ssfp[i], 1. / arraySum(ssfp[i], nD[i]), nD[i]);
+	}
+	int contractions = regionContraction(p, 2, c, nPhases, flipAngles, ssfp, nD, true, f,
+	                                     bounds, 200, 20, 0.05, &fRes);
+	*M0 = 1.; *T2 = p[1]; *dO = p[2];
+}
+
 double calcSPGR(double *angles, double *spgrVals, int n, double TR,
                 double *M0, double *T1, double *B1)
 {
@@ -254,12 +298,12 @@ double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 	
 	par[2] = B1_0;
 	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-	double res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, &SPGR, spgrRes) +
-	              calcResiduals(par, irConstants, TI, irVals, nIR, &IRSPGR, irRes);
+	double res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, &SPGR, spgrRes, false) +
+	              calcResiduals(par, irConstants, TI, irVals, nIR, &IRSPGR, irRes, false);
 	par[2] = B1_3;
 	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-	double res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes) +
-	              calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes);
+	double res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
+	              calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes, false);
 	
 	if (res1 < res2)
 	{
@@ -274,12 +318,12 @@ double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 	
 	par[2] = B1_1;
 	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-	res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes) +
-	       calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes);
+	res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
+	       calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes, false);
 	par[2] = B1_2;
 	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-	res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes) +
-	       calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes);
+	res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
+	       calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes, false);
 	
 	while ( fabs(B1_3 - B1_0) > precision * (fabs(B1_1) + fabs(B1_2)))
 	{
@@ -290,8 +334,8 @@ double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 			res1 = res2;
 			par[2] = B1_2;
 			calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-			res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes) +
-	               calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes);
+			res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
+	               calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes, false);
 		}
 		else
 		{
@@ -300,8 +344,8 @@ double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 			res2 = res1;
 			par[2] = B1_1;
 			calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-			res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes) +
-	               calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes);
+			res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
+	               calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes, false);
 		}
 	}
 	

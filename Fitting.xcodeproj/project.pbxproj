@@ -26,6 +26,12 @@
 		F692992C14CDDEF5003EF4FD /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05E21496570D0046A464 /* Accelerate.framework */; };
 		F692994114CDE3BC003EF4FD /* despot2_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F692991714CDDEA4003EF4FD /* despot2_main.c */; };
 		F692994E14CDE3F4003EF4FD /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
+		F6BC22A814EA6987009149C6 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
+		F6BC22A914EA6987009149C6 /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
+		F6BC22AA14EA6987009149C6 /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
+		F6BC22AB14EA6987009149C6 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05E21496570D0046A464 /* Accelerate.framework */; };
+		F6BC22AC14EA698E009149C6 /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
+		F6BC22AE14EA69A3009149C6 /* mcdespot_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6BC22AD14EA69A3009149C6 /* mcdespot_main.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +98,20 @@
 			remoteGlobalIDString = D2AAC045055464E500DB518D;
 			remoteInfo = formats;
 		};
+		F6BC22A114EA6971009149C6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D /* maths */;
+			remoteInfo = maths;
+		};
+		F6BC22A314EA6981009149C6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D /* formats */;
+			remoteInfo = formats;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -109,6 +129,8 @@
 		F65C05E21496570D0046A464 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = ../../../../../../Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/Accelerate.framework; sourceTree = SOURCE_ROOT; };
 		F692991714CDDEA4003EF4FD /* despot2_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = despot2_main.c; sourceTree = SOURCE_ROOT; };
 		F692991E14CDDEC1003EF4FD /* despot2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot2; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6BC229D14EA6966009149C6 /* mcdespot */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mcdespot; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6BC22AD14EA69A3009149C6 /* mcdespot_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mcdespot_main.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -145,6 +167,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F6BC229B14EA6966009149C6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6BC22A814EA6987009149C6 /* libz.dylib in Frameworks */,
+				F6BC22A914EA6987009149C6 /* libformats.a in Frameworks */,
+				F6BC22AA14EA6987009149C6 /* libmaths.a in Frameworks */,
+				F6BC22AB14EA6987009149C6 /* Accelerate.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -172,6 +205,7 @@
 				F65C058A149655140046A464 /* recovery_main.c */,
 				F65C058B149655140046A464 /* recovery.c */,
 				F65C058C149655140046A464 /* recovery.h */,
+				F6BC22AD14EA69A3009149C6 /* mcdespot_main.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -182,6 +216,7 @@
 				F65C0597149655370046A464 /* recovery */,
 				F65C059F1496558A0046A464 /* despot1 */,
 				F692991E14CDDEC1003EF4FD /* despot2 */,
+				F6BC229D14EA6966009149C6 /* mcdespot */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -267,6 +302,24 @@
 			productReference = F692991E14CDDEC1003EF4FD /* despot2 */;
 			productType = "com.apple.product-type.tool";
 		};
+		F6BC229C14EA6966009149C6 /* mcdespot */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6BC22B014EA69A3009149C6 /* Build configuration list for PBXNativeTarget "mcdespot" */;
+			buildPhases = (
+				F6BC229A14EA6966009149C6 /* Sources */,
+				F6BC229B14EA6966009149C6 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F6BC22A214EA6971009149C6 /* PBXTargetDependency */,
+				F6BC22A414EA6981009149C6 /* PBXTargetDependency */,
+			);
+			name = mcdespot;
+			productName = mcdespot;
+			productReference = F6BC229D14EA6966009149C6 /* mcdespot */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -299,6 +352,7 @@
 				F65C0596149655370046A464 /* recovery */,
 				F65C059E1496558A0046A464 /* despot1 */,
 				F692991D14CDDEC1003EF4FD /* despot2 */,
+				F6BC229C14EA6966009149C6 /* mcdespot */,
 			);
 		};
 /* End PBXProject section */
@@ -356,6 +410,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F6BC229A14EA6966009149C6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6BC22AC14EA698E009149C6 /* DESPOT.c in Sources */,
+				F6BC22AE14EA69A3009149C6 /* mcdespot_main.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -388,6 +451,16 @@
 			isa = PBXTargetDependency;
 			name = formats;
 			targetProxy = F692992414CDDEE5003EF4FD /* PBXContainerItemProxy */;
+		};
+		F6BC22A214EA6971009149C6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = maths;
+			targetProxy = F6BC22A114EA6971009149C6 /* PBXContainerItemProxy */;
+		};
+		F6BC22A414EA6981009149C6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = formats;
+			targetProxy = F6BC22A314EA6981009149C6 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -517,6 +590,49 @@
 			};
 			name = Release;
 		};
+		F6BC229F14EA6967009149C6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
+				GCC_PREFIX_HEADER = "";
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				OTHER_LDFLAGS = "";
+				PREBINDING = NO;
+				PRODUCT_NAME = mcdespot;
+				SYMROOT = ../../build;
+				VALID_ARCHS = "i386 x86_64";
+			};
+			name = Debug;
+		};
+		F6BC22A014EA6967009149C6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
+				GCC_PREFIX_HEADER = "";
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				OTHER_LDFLAGS = "";
+				PREBINDING = NO;
+				PRODUCT_NAME = mcdespot;
+				SYMROOT = ../../build;
+				VALID_ARCHS = "i386 x86_64";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -552,6 +668,15 @@
 			buildConfigurations = (
 				F692992014CDDEC2003EF4FD /* Debug */,
 				F692992114CDDEC2003EF4FD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F6BC22B014EA69A3009149C6 /* Build configuration list for PBXNativeTarget "mcdespot" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6BC229F14EA6967009149C6 /* Debug */,
+				F6BC22A014EA6967009149C6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

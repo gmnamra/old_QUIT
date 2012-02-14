@@ -23,7 +23,7 @@
 #define __DEBUG__ FALSE
 #define __DEBUG_THRESH__ 60000
 
-char *usage = "Usage is: despot2 [Output Prefix] [Number of phase cycling patterns] <[SSFP input file] [Phase Cycling]>  [SSFP TR] [T1 Map File] [B1 Map File] <[Mask File]>\n\
+char *usage = "Usage is: despot2 [Output Prefix] [Number of phase cycling patterns] <[SSFP input file] [Phase Cycling]>  [SSFP TR] [Simplex/Region Contraction] [T1 Map File] [B1 Map File] <[Mask File]>\n\
 \n\
 For classic DESPOT2 use 1 phase cycle, simplex DESPOT2 use multiple.\n\
 The input file requires 2 columns - SSFP 180 file, flip angle.\n\
@@ -71,15 +71,19 @@ int main(int argc, char **argv)
 		//ARR_D( ssfpAngles[p], nSSFP[p] );
 	}
 	ssfpTR = atof(argv[3 + (nPhases * 2)]);
+	int mode = atoi(argv[4 + (nPhases * 2)]);
 	fprintf(stdout, "Specified TR of %f ms.\n", ssfpTR);
 	nifti_image *T1Map = NULL, *B1Map = NULL, *mask = NULL;
-	fprintf(stdout, "Reading T1 Map: %s\n", argv[4 + (nPhases * 2)]);
-	T1Map = nifti_image_read(argv[4 + (nPhases * 2)], FALSE);
-	fprintf(stdout, "Reading B1 Map: %s\n", argv[5 + (nPhases * 2)]);
-	B1Map = nifti_image_read(argv[5 + (nPhases * 2)], FALSE);
-	fprintf(stdout, "argc %d comp to %ld\n", argc, 7 + (nPhases * 2));
-	if (argc == (7 + (nPhases * 2)))
-		mask = nifti_image_read(argv[6 + (nPhases * 2)], FALSE);
+	fprintf(stdout, "Reading T1 Map: %s\n", argv[5 + (nPhases * 2)]);
+	T1Map = nifti_image_read(argv[5 + (nPhases * 2)], FALSE);
+	fprintf(stdout, "Reading B1 Map: %s\n", argv[6 + (nPhases * 2)]);
+	B1Map = nifti_image_read(argv[6 + (nPhases * 2)], FALSE);
+	fprintf(stdout, "argc %d comp to %ld\n", argc, 8 + (nPhases * 2));
+	if (argc == (8 + (nPhases * 2)))
+	{
+		fprintf(stdout, "Reading Mask: %s\n", argv[7 + (nPhases * 2)]);
+		mask = nifti_image_read(argv[7 + (nPhases * 2)], FALSE);
+	}
 	//**************************************************************************	
 	// Read in headers / Allocate memory for slices and results
 	//**************************************************************************
@@ -105,8 +109,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	fprintf(stdout, "Fitting DESPOT2.\n");
 	
-	//for (int slice = 0; slice < ssfpFiles[0][0]->nz; slice++)
-	void (^processSlice)(size_t slice) = ^(size_t slice)
+	for (int slice = 0; slice < ssfpFiles[0][0]->nz; slice++)
+	//void (^processSlice)(size_t slice) = ^(size_t slice)
 	{
 		// Read in data
 		fprintf(stdout, "Processing slice %ld...\n", slice);
@@ -155,18 +159,24 @@ int main(int argc, char **argv)
 					classicDESPOT2(ssfpAngles[0], ssfpSignal[0], nSSFP[0], ssfpTR, T1, B1, &M0, &T2);
 				else
 				{
-					// Find phase cycle with highest intensity
-					double *pSigs = malloc(nPhases * sizeof(double));
-					for (int p = 0; p < nPhases; p++)
-						pSigs[p] = ssfpSignal[p][0];
-					size_t *ind = malloc(nPhases * sizeof(double));
-					arraySort(pSigs, nPhases, ind);
-					size_t hi = ind[nPhases - 1];
-					classicDESPOT2(ssfpAngles[hi], ssfpSignal[hi], nSSFP[hi], ssfpTR, T1, B1, &M0, &T2);
-					simplexDESPOT2(nPhases, nSSFP, ssfpPhases, ssfpAngles, ssfpSignal, ssfpTR, T1, B1, &M0, &T2, &dO);
-					
-					free(ind);
-					free(pSigs);
+					if (mode == 0)
+					{	// Use phase cycle with highest intensity to bootstrap simplex
+						double *pSigs = malloc(nPhases * sizeof(double));
+						for (int p = 0; p < nPhases; p++)
+							pSigs[p] = ssfpSignal[p][0];
+						size_t *ind = malloc(nPhases * sizeof(double));
+						arraySort(pSigs, nPhases, ind);
+						size_t hi = ind[nPhases - 1];
+						classicDESPOT2(ssfpAngles[hi], ssfpSignal[hi], nSSFP[hi], ssfpTR, T1, B1, &M0, &T2);
+						simplexDESPOT2(nPhases, nSSFP, ssfpPhases, ssfpAngles, ssfpSignal, ssfpTR, T1, B1, &M0, &T2, &dO);
+						
+						free(ind);
+						free(pSigs);
+					}
+					else
+					{	// Use region contraction
+						contractDESPOT2(nPhases, nSSFP, ssfpPhases, ssfpAngles, ssfpSignal, ssfpTR, T1, B1, &M0, &T2, &dO);
+					}
 				}
 				// Sanity check
 				M0 = clamp(M0, 0., 1.e8);
@@ -192,8 +202,8 @@ int main(int argc, char **argv)
 			free(ssfpData[p]);
 		}
 	};
-	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	dispatch_apply(ssfpFiles[0][0]->nz, global_queue, processSlice);
+	//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	//dispatch_apply(ssfpFiles[0][0]->nz, global_queue, processSlice);
 	fprintf(stdout, "Finished fitting. Writing results files.\n");
 
 	//**************************************************************************
