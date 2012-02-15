@@ -252,7 +252,7 @@ void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAn
 	}
 	int contractions = regionContraction(p, 2, c, nPhases, flipAngles, ssfp, nD, true, f,
 	                                     bounds, 200, 20, 0.05, &fRes);
-	*M0 = 1.; *T2 = p[1]; *dO = p[2];
+	*M0 = 1.; *T2 = p[0]; *dO = p[1];
 }
 
 double calcSPGR(double *angles, double *spgrVals, int n, double TR,
