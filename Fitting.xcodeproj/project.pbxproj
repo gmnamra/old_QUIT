@@ -17,19 +17,15 @@
 		F65C05C21496561D0046A464 /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
 		F65C05C4149656340046A464 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
 		F65C05C5149656390046A464 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
-		F65C05E31496570D0046A464 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05E21496570D0046A464 /* Accelerate.framework */; };
-		F65C05E41496570D0046A464 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05E21496570D0046A464 /* Accelerate.framework */; };
 		F692991814CDDEA4003EF4FD /* despot2_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F692991714CDDEA4003EF4FD /* despot2_main.c */; };
 		F692992914CDDEF5003EF4FD /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
 		F692992A14CDDEF5003EF4FD /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
 		F692992B14CDDEF5003EF4FD /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
-		F692992C14CDDEF5003EF4FD /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05E21496570D0046A464 /* Accelerate.framework */; };
 		F692994114CDE3BC003EF4FD /* despot2_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F692991714CDDEA4003EF4FD /* despot2_main.c */; };
 		F692994E14CDE3F4003EF4FD /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
 		F6BC22A814EA6987009149C6 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
 		F6BC22A914EA6987009149C6 /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
 		F6BC22AA14EA6987009149C6 /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
-		F6BC22AB14EA6987009149C6 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05E21496570D0046A464 /* Accelerate.framework */; };
 		F6BC22AC14EA698E009149C6 /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
 		F6BC22AE14EA69A3009149C6 /* mcdespot_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6BC22AD14EA69A3009149C6 /* mcdespot_main.c */; };
 /* End PBXBuildFile section */
@@ -102,14 +98,14 @@
 			isa = PBXContainerItemProxy;
 			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
 			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D /* maths */;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
 			remoteInfo = maths;
 		};
 		F6BC22A314EA6981009149C6 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
 			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D /* formats */;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
 			remoteInfo = formats;
 		};
 /* End PBXContainerItemProxy section */
@@ -126,7 +122,6 @@
 		F65C05A8149656130046A464 /* formats.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = formats.xcodeproj; path = /Users/Tobias/Code/MacRI/formats.xcodeproj; sourceTree = "<absolute>"; };
 		F65C05AB149656130046A464 /* maths.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = maths.xcodeproj; path = /Users/Tobias/Code/MacRI/maths.xcodeproj; sourceTree = "<absolute>"; };
 		F65C05C3149656340046A464 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
-		F65C05E21496570D0046A464 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = ../../../../../../Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/Accelerate.framework; sourceTree = SOURCE_ROOT; };
 		F692991714CDDEA4003EF4FD /* despot2_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = despot2_main.c; sourceTree = SOURCE_ROOT; };
 		F692991E14CDDEC1003EF4FD /* despot2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot2; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6BC229D14EA6966009149C6 /* mcdespot */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mcdespot; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -141,7 +136,6 @@
 				F65C05BF149656190046A464 /* libformats.a in Frameworks */,
 				F65C05C0149656190046A464 /* libmaths.a in Frameworks */,
 				F65C05C4149656340046A464 /* libz.dylib in Frameworks */,
-				F65C05E31496570D0046A464 /* Accelerate.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -152,7 +146,6 @@
 				F65C05C5149656390046A464 /* libz.dylib in Frameworks */,
 				F65C05C11496561D0046A464 /* libformats.a in Frameworks */,
 				F65C05C21496561D0046A464 /* libmaths.a in Frameworks */,
-				F65C05E41496570D0046A464 /* Accelerate.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -160,10 +153,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F692992914CDDEF5003EF4FD /* libz.dylib in Frameworks */,
-				F692992A14CDDEF5003EF4FD /* libformats.a in Frameworks */,
 				F692992B14CDDEF5003EF4FD /* libmaths.a in Frameworks */,
-				F692992C14CDDEF5003EF4FD /* Accelerate.framework in Frameworks */,
+				F692992A14CDDEF5003EF4FD /* libformats.a in Frameworks */,
+				F692992914CDDEF5003EF4FD /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -174,7 +166,6 @@
 				F6BC22A814EA6987009149C6 /* libz.dylib in Frameworks */,
 				F6BC22A914EA6987009149C6 /* libformats.a in Frameworks */,
 				F6BC22AA14EA6987009149C6 /* libmaths.a in Frameworks */,
-				F6BC22AB14EA6987009149C6 /* Accelerate.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -190,7 +181,6 @@
 				C6A0FF2B0290797F04C91782 /* Documentation */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
 				F65C05C3149656340046A464 /* libz.dylib */,
-				F65C05E21496570D0046A464 /* Accelerate.framework */,
 			);
 			name = Fitting;
 			sourceTree = "<group>";
@@ -499,7 +489,10 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				LIBRARY_SEARCH_PATHS = (
+					"$(MACRI_SRC_ROOT)/**",
+					/usr/local/atlas/lib,
+				);
 				PREBINDING = NO;
 				PRODUCT_NAME = recovery;
 				SYMROOT = ../../build;
@@ -516,7 +509,10 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
+				LIBRARY_SEARCH_PATHS = (
+					"$(MACRI_SRC_ROOT)/**",
+					/usr/local/atlas/lib,
+				);
 				PREBINDING = NO;
 				PRODUCT_NAME = recovery;
 				SYMROOT = ../../build;
@@ -532,11 +528,14 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/../**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../**";
+				LIBRARY_SEARCH_PATHS = (
+					"$(SRCROOT)/../../**",
+					/usr/local/atlas/lib,
+				);
 				PREBINDING = NO;
 				PRODUCT_NAME = despot1;
 				SYMROOT = ../../build;
-				VALID_ARCHS = "i386 x86_64";
+				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
 		};
@@ -549,11 +548,14 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/../**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../**";
+				LIBRARY_SEARCH_PATHS = (
+					"$(SRCROOT)/../../**",
+					/usr/local/atlas/lib,
+				);
 				PREBINDING = NO;
 				PRODUCT_NAME = despot1;
 				SYMROOT = ../../build;
-				VALID_ARCHS = "i386 x86_64";
+				VALID_ARCHS = x86_64;
 			};
 			name = Release;
 		};
@@ -566,10 +568,11 @@
 				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
 				INSTALL_PATH = /usr/local/bin;
 				LIBRARY_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				OTHER_LDFLAGS = "";
 				PREBINDING = NO;
 				PRODUCT_NAME = despot2;
 				SYMROOT = ../../build;
-				VALID_ARCHS = "i386 x86_64";
+				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
 		};
@@ -583,10 +586,11 @@
 				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
 				INSTALL_PATH = /usr/local/bin;
 				LIBRARY_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				OTHER_LDFLAGS = "";
 				PREBINDING = NO;
 				PRODUCT_NAME = despot2;
 				SYMROOT = ../../build;
-				VALID_ARCHS = "i386 x86_64";
+				VALID_ARCHS = x86_64;
 			};
 			name = Release;
 		};
@@ -603,12 +607,15 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				LIBRARY_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/lib,
+				);
 				OTHER_LDFLAGS = "";
 				PREBINDING = NO;
 				PRODUCT_NAME = mcdespot;
 				SYMROOT = ../../build;
-				VALID_ARCHS = "i386 x86_64";
+				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
 		};
@@ -624,12 +631,15 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				LIBRARY_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/lib,
+				);
 				OTHER_LDFLAGS = "";
 				PREBINDING = NO;
 				PRODUCT_NAME = mcdespot;
 				SYMROOT = ../../build;
-				VALID_ARCHS = "i386 x86_64";
+				VALID_ARCHS = x86_64;
 			};
 			name = Release;
 		};
