@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 	//void (^processSlice)(size_t slice) = ^(size_t slice)
 	{
 		// Read in data
-		fprintf(stdout, "Processing slice %ld...\n", slice);
+		fprintf(stdout, "Starting slice %ld...\n", slice);
 		double params[7] = { 0., 0., 0., 0., 0., 0., 0. };
 		
 		int sliceStart[7] = {0, 0, slice, 0, 0, 0, 0};
@@ -227,6 +227,7 @@ int main(int argc, char **argv)
 		}
 		free(T1Data);
 		free(B1Data);
+		fprintf(stdout, "Finished slice %ld.\n", slice);		
 	};
 	//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	//dispatch_apply(ssfpFiles[0][0]->nz, global_queue, processSlice);
