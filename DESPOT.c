@@ -216,7 +216,8 @@ double n2cSPGR(double alpha, double *p, double *c)
 	double M0[2] = {f_s, f_f}, S[2];
 	double A[4]  = {(-1./T1_f - k_f), k_s,
 	                k_f, (-1./T1_s - k_s)};
-	double eye[4]; matrixEyed(eye, 2);
+	double eye[4] = { 1., 0.,
+					  0., 1. };
 	arrayExp(A, A, TR, 4);
 	double sinterm[4];
 	arraySub(sinterm, eye, A, 4);
@@ -250,7 +251,13 @@ double n2cSSFP(double alpha, double *p, double *c)
 	double phase = rfPhase + dw;
 
 	int ipiv[6]; // General for all cblas ops
-	double eye[36]; matrixEyed(eye, 6);
+	double eye[36] = { 1., 0., 0., 0., 0., 0.,
+	                   0., 1., 0., 0., 0., 0.,
+					   0., 0., 1., 0., 0., 0.,
+					   0., 0., 0., 1., 0., 0.,
+					   0., 0., 0., 0., 1., 0.,
+					   0., 0., 0., 0., 0., 1. };
+	
 	double A[36] = { iT2_f,  k_s,    phase, 0.,    0.,    0.,
 					 k_f,    iT2_s,  0.,    phase, 0.,    0.,
 					 -phase, 0.,     iT2_f, k_s,   0.,    0.,
@@ -272,11 +279,13 @@ double n2cSSFP(double alpha, double *p, double *c)
 					 
 	double temp1[36], temp2[36]; // First bracket
 	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., A, 6, R, 6, 0., temp1, 6);
-	arraySub(temp1, eye, temp1, 36);
+	//arraySub(temp1, eye, temp1, 36);
+	catlas_daxpby(36, 1., eye, 1, -1., temp1, 1);
 	clapack_dgetrf(CblasRowMajor, 6, 6, temp1, 6, ipiv); // Inverse
 	clapack_dgetri(CblasRowMajor, 6, temp1, 6, ipiv);	
 	
-	arraySub(A, A, eye, 36); // Second bracket
+	//arraySub(A, A, eye, 36); // Second bracket
+	catlas_daxpby(36, -1., eye, 1, 1., A, 1);
 	// Now multiply everything together
 	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., temp1, 6, A, 6, 0., temp2, 6);
 	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., temp2, 6, invA, 6, 0., temp1, 6);
