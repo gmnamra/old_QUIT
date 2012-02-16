@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 	{
 		// Read in data
 		fprintf(stdout, "Starting slice %ld...\n", slice);
-		double params[7] = { 0., 0., 0., 0., 0., 0., 0. };
+		double params[7];
 		
 		int sliceStart[7] = {0, 0, slice, 0, 0, 0, 0};
 		int sliceDim[7] = {spgrFiles[0]->nx, spgrFiles[0]->ny, 1, 1, 1, 1, 1};
@@ -173,6 +173,7 @@ int main(int argc, char **argv)
 		{
 			if (!mask || (maskData[vox] > 0.))
 			{
+				arrayZero(params, 7);
 				for (int img = 0; img < nSPGR; img++)
 					spgrSignal[img] = (double)spgrData[img][vox];
 
@@ -204,14 +205,14 @@ int main(int argc, char **argv)
 					         nPhases, nSSFP, ssfpPhases, ssfpAngles, ssfpSignal, ssfpTR,
 							 T1, B1, params);
 				}
+				T1_sData[sliceIndex + vox]  = (float)params[0];
+				T1_fData[sliceIndex + vox]  = (float)params[1];
+				T2_sData[sliceIndex + vox]  = (float)params[2];
+				T2_fData[sliceIndex + vox]  = (float)params[3];
+				f_sData[sliceIndex + vox]   = (float)params[4];
+				tau_sData[sliceIndex + vox] = (float)params[5];
+				dwData[sliceIndex + vox]    = (float)params[6];
 			}
-			T1_sData[sliceIndex + vox]  = (float)params[0];
-			T1_fData[sliceIndex + vox]  = (float)params[1];
-			T2_sData[sliceIndex + vox]  = (float)params[2];
-			T2_fData[sliceIndex + vox]  = (float)params[3];
-			f_sData[sliceIndex + vox]   = (float)params[4];
-			tau_sData[sliceIndex + vox] = (float)params[5];
-			dwData[sliceIndex + vox]    = (float)params[6];
 		}
 		
 		// Clean up memory
