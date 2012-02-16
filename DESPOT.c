@@ -7,9 +7,11 @@
  *
  */
 
-#include "math3d.h"
 #include "DESPOT.h"
+#include "math3d.h"
 #include "stdio.h"
+#include "cblas.h"
+#include "clapack.h"
 
 /*int tests()
 {
@@ -184,6 +186,113 @@ double nSSFP(double flipAngle, double *p, double *c)
 	return ssfp;
 }
 
+// Normalised, 2 component versions
+/*	Full parameter vector is
+	0 - T1_s
+	1 - T1_f
+	2 - T2_s
+	3 - T2_f
+	4 - f_s
+	5 - tau_s
+	6 - dw
+	Relationships:
+	f_s + f_f = 1. (Only two components)
+	k_ = 1. / tau_ (Exchange is inverse of lifetime)
+	f_s / tau_s = f_f / tau_f (Exchange equilibrium)
+	Constants vector:
+	0 - TR
+	1 - B1
+	2 - Phase cycle/offset
+*/
+double n2cSPGR(double alpha, double *p, double *c)
+{
+	double T1_s = p[0], T1_f = p[1],
+		   f_s = p[4], tau_s = p[5],
+		   TR = c[0], B1 = c[1];
+	double f_f = 1. - f_s;
+	double tau_f = f_f * tau_s / f_s;
+	double k_s = 1. / tau_s, k_f = 1. / tau_f;
+	
+	double M0[2] = {f_s, f_f}, S[2];
+	double A[4]  = {(-1./T1_f - k_f), k_s,
+	                k_f, (-1./T1_s - k_s)};
+	double eye[4]; matrixEyed(eye, 2);
+	arrayExp(A, A, TR, 4);
+	double sinterm[4];
+	arraySub(sinterm, eye, A, 4);
+	arrayScale(sinterm, sinterm, sin(B1 * alpha), 4);
+	double costerm[4];
+	arrayScale(costerm, A, cos(B1 * alpha), 4);
+	arraySub(costerm, eye, costerm, 4);
+	// Inverse
+	int ipiv[2];
+	clapack_dgetrf(CblasRowMajor, 2, 2, costerm, 2, ipiv);
+	clapack_dgetri(CblasRowMajor, 2, costerm, 2, ipiv);
+	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 2, 2, 2, 1., sinterm, 2, costerm, 2, 0., A, 2);
+	cblas_dgemv(CblasRowMajor, CblasNoTrans, 2, 2, 1., A, 2, M0, 1, 0., S, 1);
+	double s = sqrt(S[0] * S[0] + S[1] * S[1]);
+	return s;
+}
+
+double n2cSSFP(double alpha, double *p, double *c)
+{
+	double T1_s = p[0], T1_f = p[1], T2_s = p[2], T2_f = p[3],
+		   f_s = p[4], tau_s = p[5], dw = p[6],
+		   TR = c[0], B1 = c[1], rfPhase = c[2];
+	double f_f = 1. - f_s;
+	double tau_f = f_f * tau_s / f_s;
+	double k_s = 1. / tau_s, k_f = 1. / tau_f;
+	
+	double iT2_f = -1./T2_f - k_f;
+	double iT2_s = -1./T2_s - k_s;
+	double iT1_f = -1./T1_f - k_f;
+	double iT1_s = -1./T1_s - k_s;
+	double phase = rfPhase + dw;
+
+	int ipiv[6]; // General for all cblas ops
+	double eye[36]; matrixEyed(eye, 6);
+	double A[36] = { iT2_f,  k_s,    phase, 0.,    0.,    0.,
+					 k_f,    iT2_s,  0.,    phase, 0.,    0.,
+					 -phase, 0.,     iT2_f, k_s,   0.,    0.,
+					 0.,     -phase, k_f,   iT2_s, 0.,    0.,
+					 0.,     0.,     0.,    0.,    iT1_f, k_s,
+					 0.,     0.,     0.,    0.,    k_f,   iT1_s };
+	double invA[36]; arrayCopy(invA, A, 36);
+	clapack_dgetrf(CblasRowMajor, 6, 6, invA, 6, ipiv); // Inverse
+	clapack_dgetri(CblasRowMajor, 6, invA, 6, ipiv);
+	arrayExp(A, A, TR, 36);
+	
+	double ca = cos(B1 * alpha), sa = sin(B1 * alpha);
+	double R[36] = { 1., 0., 0., 0., 0., 0.,
+	                 0., 1., 0., 0., 0., 0.,
+					 0., 0., ca, 0., sa, 0.,
+					 0., 0., 0., ca, 0., sa,
+					 0., 0.,-sa, 0., ca, 0.,
+					 0., 0., 0.,-sa, 0., ca };
+					 
+	double temp1[36], temp2[36]; // First bracket
+	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., A, 6, R, 6, 0., temp1, 6);
+	arraySub(temp1, eye, temp1, 36);
+	clapack_dgetrf(CblasRowMajor, 6, 6, temp1, 6, ipiv); // Inverse
+	clapack_dgetri(CblasRowMajor, 6, temp1, 6, ipiv);	
+	
+	arraySub(A, A, eye, 36); // Second bracket
+	// Now multiply everything together
+	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., temp1, 6, A, 6, 0., temp2, 6);
+	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., temp2, 6, invA, 6, 0., temp1, 6);
+	
+	double initC[6] = { 0., 0., 0., 0., f_f / (T1_f * tau_f), f_s / (T1_s * tau_s) };
+	double finalC[6];
+	
+	cblas_dgemv(CblasRowMajor, CblasNoTrans, 6, 6, 1., temp1, 6, initC, 1, 0., finalC, 1);
+	
+	double s =  sqrt(finalC[0] * finalC[0] +
+	                 finalC[1] * finalC[1] +
+				     finalC[2] * finalC[2] +
+				     finalC[3] * finalC[3]);
+	return s;
+}
+
 void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 				 double TR, double B1, double *M0, double *T1)
 {
@@ -230,7 +339,7 @@ void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAng
 		f[i] = SSFP;
 	}
 	
-	int evals = simplex(p, 3, c, nPhases, flipAngles, ssfp, nD, f, NULL, &fRes);
+	simplex(p, 3, c, nPhases, flipAngles, ssfp, nD, f, NULL, &fRes);
 	*M0 = p[0]; *T2 = p[1]; *dO = p[2];
 }
 
@@ -248,11 +357,53 @@ void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAn
 		c[i][0] = TR; c[i][1] = T1; c[i][2] = B1;
 		c[i][3] = phases[i];
 		f[i] = nSSFP;
-		arrayScale(ssfp[i], ssfp[i], 1. / arraySum(ssfp[i], nD[i]), nD[i]);
+		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
 	}
-	int contractions = regionContraction(p, 2, c, nPhases, flipAngles, ssfp, nD, true, f,
-	                                     bounds, 200, 20, 0.05, &fRes);
+	regionContraction(p, 2, c, nPhases, flipAngles, ssfp, nD, true, f,
+					  bounds, 200, 20, 0.005, &fRes);
 	*M0 = 1.; *T2 = p[0]; *dO = p[1];
+}
+
+/*
+	Params:
+	T1_s, T1_f, T2_s, T2_f,	f_s, tau_s, dw
+	Consts:
+	TR, B1, rfPhase
+*/
+void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
+			  size_t nPhases, size_t *nSSFPs, double *phases, double **ssfpAlphas, double **ssfp,
+              double ssfpTR, double T1, double B1, double *p)
+{
+	double loBounds[7] = { 0.1, 0.1, 0.001, 0.001,   0., 0.025, 0. };
+	double hiBounds[7] = { 2.5, 2.5, 0.150, 0.150, 0.45, 0.500,  1./ssfpTR };
+	double *bounds[2] =  { loBounds, hiBounds };
+
+	size_t nD[1 + nPhases];
+	eval_type *f[1 + nPhases];
+	double *alphas[1 + nPhases], *data[1 + nPhases];
+	double *c[1 + nPhases], fRes = 0.;
+	
+	nD[0]     = nSPGR;
+	f[0]      = n2cSPGR;
+	alphas[0] = spgrAlpha;
+	data[0]   = spgr;
+	c[0] = malloc(3 * sizeof(double));
+	c[0][0] = spgrTR; c[0][1] = B1; c[0][2] = 0.;
+	arrayScale(spgr, spgr, 1. / arrayMean(spgr, nSPGR), nSPGR);
+	for (int i = 0; i < nPhases; i++)
+	{
+		nD[i + 1]     = nSSFPs[i];
+		f[i + 1]      = n2cSSFP;
+		alphas[i + 1] = ssfpAlphas[i];
+		data[i + 1]   = ssfp[i];
+		c[i + 1] = malloc(3 * sizeof(double));
+		c[i + 1][0] = ssfpTR; c[i + 1][1] = B1; c[i + 1][2] = phases[i];
+		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
+	}
+	regionContraction(p, 7, c, 1 + nPhases, alphas, data, nD, true, f,
+					  bounds, 2000, 50, 0.005, &fRes);
+	for (int i = 0; i < 1 + nPhases; i++)
+		free(c[i]);
 }
 
 double calcSPGR(double *angles, double *spgrVals, int n, double TR,

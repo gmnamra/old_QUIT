@@ -526,7 +526,10 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../**";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../**",
+					/usr/local/atlas/include,
+				);
 				INSTALL_PATH = /usr/local/bin;
 				LIBRARY_SEARCH_PATHS = (
 					"$(SRCROOT)/../../**",
@@ -546,7 +549,10 @@
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../**";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../**",
+					/usr/local/atlas/include,
+				);
 				INSTALL_PATH = /usr/local/bin;
 				LIBRARY_SEARCH_PATHS = (
 					"$(SRCROOT)/../../**",
@@ -565,9 +571,15 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				HEADER_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/include,
+				);
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				LIBRARY_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/lib,
+				);
 				OTHER_LDFLAGS = "";
 				PREBINDING = NO;
 				PRODUCT_NAME = despot2;
@@ -583,9 +595,15 @@
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				HEADER_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/include,
+				);
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				LIBRARY_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/lib,
+				);
 				OTHER_LDFLAGS = "";
 				PREBINDING = NO;
 				PRODUCT_NAME = despot2;
@@ -605,7 +623,10 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				HEADER_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/include,
+				);
 				INSTALL_PATH = /usr/local/bin;
 				LIBRARY_SEARCH_PATHS = (
 					"/Users/Tobias/Code/MacRI/**",
@@ -629,7 +650,10 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
+				HEADER_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/include,
+				);
 				INSTALL_PATH = /usr/local/bin;
 				LIBRARY_SEARCH_PATHS = (
 					"/Users/Tobias/Code/MacRI/**",

@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 	int nSPGR = 0, nIR = 0;
 	double spgrTR; char **spgrFilenames;
 	double *spgrAngles;
-	double irTR, irAngle, *irTI, TIScale = 1.; char **irFilenames;
+	double irTR = 0., irAngle = 0., *irTI = NULL, TIScale = 1.; char **irFilenames;
 	char *outPrefix;
 	
 	if (argc == 1)
@@ -117,7 +117,8 @@ int main(int argc, char **argv)
 	nifti_image **SPGRFiles = (nifti_image **)malloc(nSPGR * sizeof(nifti_image *));
 	nifti_image **irFiles = (nifti_image **)malloc(nIR * sizeof(nifti_image *));
 	loadHeaders(spgrFilenames, SPGRFiles, nSPGR);
-	loadHeaders(irFilenames, irFiles, nIR);
+	if (nIR > 0)
+		loadHeaders(irFilenames, irFiles, nIR);
 	
 	if (SPGRFiles[0]->nvox != irFiles[0]->nvox)
 	{

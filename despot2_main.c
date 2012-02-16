@@ -115,9 +115,11 @@ int main(int argc, char **argv)
 		int sliceStart[7] = {0, 0, slice, 0, 0, 0, 0};
 		int sliceDim[7] = {ssfpFiles[0][0]->nx, ssfpFiles[0][0]->ny, 1, 1, 1, 1, 1};
 		float ***ssfpData = malloc(nPhases * sizeof(float **));
+		double **ssfpSignal = malloc(nPhases * sizeof(double *));
 		for (int p = 0; p < nPhases; p++)
 		{
 			ssfpData[p] = malloc(nSSFP[p] * sizeof(float *));
+			ssfpSignal[p] = malloc(nSSFP[p] * sizeof(double));
 			for (int i = 0; i < nSSFP[p]; i++)
 			{
 				ssfpData[p][i] = malloc(voxelsPerSlice * sizeof(float));
@@ -140,10 +142,9 @@ int main(int argc, char **argv)
 		{
 			if (!mask || (maskData[vox] > 0.))
 			{
-				double T1, B1, **ssfpSignal = malloc(nPhases * sizeof(double *));
+				double T1, B1; 
 				for (int p = 0; p < nPhases; p++)
 				{
-					ssfpSignal[p] = malloc(nSSFP[p] * sizeof(double));
 					for (int img = 0; img < nSSFP[p]; img++)
 						ssfpSignal[p][img] = (double)ssfpData[p][img][vox];
 				}
@@ -196,7 +197,11 @@ int main(int argc, char **argv)
 			for (int img = 0; img < nSSFP[p]; img++)
 				free(ssfpData[p][img]);
 			free(ssfpData[p]);
+			free(ssfpSignal[p]);
 		}
+		free(ssfpSignal);
+		free(T1Data);
+		free(B1Data);
 	};
 	//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	//dispatch_apply(ssfpFiles[0][0]->nz, global_queue, processSlice);
