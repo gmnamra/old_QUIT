@@ -77,14 +77,20 @@ int main(int argc, char **argv)
 	nifti_image *T1Map = NULL, *B1Map = NULL, *mask = NULL;
 	fprintf(stdout, "Reading T1 Map: %s\n", argv[7 + (nPhases * 2)]);
 	T1Map = nifti_image_read(argv[7 + (nPhases * 2)], FALSE);
+	if (!T1Map)
+		exit(EXIT_FAILURE);	
 	fprintf(stdout, "Reading B1 Map: %s\n", argv[8 + (nPhases * 2)]);
 	B1Map = nifti_image_read(argv[8 + (nPhases * 2)], FALSE);
+	if (!B1Map)
+		exit(EXIT_FAILURE);
 	if (argc == (9 + (nPhases * 2)))
 	{}
 	else if (argc == (10 + (nPhases * 2)))
 	{
 		fprintf(stdout, "Reading Mask: %s\n", argv[9 + (nPhases * 2)]);
 		mask = nifti_image_read(argv[9 + (nPhases * 2)], FALSE);
+		if (!mask)
+			exit(EXIT_FAILURE);
 	}
 	else
 	{
@@ -94,55 +100,69 @@ int main(int argc, char **argv)
 	//**************************************************************************	
 	// Read in headers / Allocate memory for slices and results
 	//**************************************************************************
-	nifti_image **spgrFiles = malloc(nSPGR * sizeof(nifti_image *));
-	loadHeaders(spgrFilenames, spgrFiles, nSPGR);
-	nifti_image ***ssfpFiles = malloc(nPhases * sizeof(nifti_image **));
+	nifti_image **spgrHeaders = malloc(nSPGR * sizeof(nifti_image *));
+	loadHeaders(spgrFilenames, spgrHeaders, nSPGR);
+	nifti_image ***ssfpHeaders = malloc(nPhases * sizeof(nifti_image **));
 	for (int p = 0; p < nPhases; p++)
 	{
-		ssfpFiles[p] = (nifti_image **)malloc(nSSFP[p] * sizeof(nifti_image *));
-		loadHeaders(ssfpFilenames[p], ssfpFiles[p], nSSFP[p]);
-		if ((p > 0) && ssfpFiles[p - 1][0]->nvox != ssfpFiles[p][0]->nvox)
+		ssfpHeaders[p] = (nifti_image **)malloc(nSSFP[p] * sizeof(nifti_image *));
+		loadHeaders(ssfpFilenames[p], ssfpHeaders[p], nSSFP[p]);
+		if ((p > 0) && ssfpHeaders[p - 1][0]->nvox != ssfpHeaders[p][0]->nvox)
 		{
 			fprintf(stderr, "Differing number of voxels in phase %d and %d headers.\n", p - 1, p);
 			exit(EXIT_FAILURE);
 		}
 	}
-	if (ssfpFiles[0][0]->nvox != spgrFiles[0]->nvox)
+	if (ssfpHeaders[0][0]->nvox != spgrHeaders[0]->nvox)
 	{
 		fprintf(stderr, "Differing number of voxels in SPGR and SSFP data.\n");
 		exit(EXIT_FAILURE);
 	}
+	int voxelsPerSlice = spgrHeaders[0]->nx * spgrHeaders[0]->ny;	
+	int totalVoxels = voxelsPerSlice * spgrHeaders[0]->nz;
+		
+	//**************************************************************************
+	// Create results files
+	// T1_s, T1_f, T2_s, T2_f,	f_s, tau_s, dw
+	// Need to write a full file of zeros first otherwise per-plane writing
+	// won't produce a complete image.
+	//**************************************************************************
+	nifti_image **resultsHeaders = malloc(7 * sizeof(nifti_image *));
+	char outName[strlen(outPrefix) + 9]; // Space for "T1" plus null
+	float *blank = calloc(totalVoxels, sizeof(float));
+	char *names[7] = { "_T1_myel", "_T1_free", "_T2_myel", "_T2_free", "_frac_my", "_tau_my", "_dw" };
 	
-	int voxelsPerSlice = spgrFiles[0]->nx * spgrFiles[0]->ny;	
-	int totalVoxels = voxelsPerSlice * spgrFiles[0]->nz;
-	/* T1_s, T1_f, T2_s, T2_f,	f_s, tau_s, dw */
-	__block float *T1_sData = malloc(totalVoxels * sizeof(float));
-	__block float *T1_fData = malloc(totalVoxels * sizeof(float));
-	__block float *T2_sData = malloc(totalVoxels * sizeof(float));
-	__block float *T2_fData = malloc(totalVoxels * sizeof(float));
-	__block float *f_sData  = malloc(totalVoxels * sizeof(float));
-	__block float *tau_sData = malloc(totalVoxels * sizeof(float));
-	__block float *dwData    = malloc(totalVoxels * sizeof(float));
+	for (int p = 0; p < 7; p++)
+	{
+		strcpy(outName, outPrefix); strcat(outName, names[p]);
+		fprintf(stdout, "Writing blank result file:%s.\n", outName);
+		resultsHeaders[p] = nifti_copy_nim_info(spgrHeaders[0]);
+		nifti_set_filenames(resultsHeaders[p], outName, FALSE, TRUE);
+		resultsHeaders[p]->data = blank;
+		nifti_image_write(resultsHeaders[p]);
+	}
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
 	fprintf(stdout, "Fitting mcDESPOT.\n");
 	
-	for (int slice = 0; slice < ssfpFiles[0][0]->nz; slice++)
+	for (int slice = 0; slice < ssfpHeaders[0][0]->nz; slice++)
 	//void (^processSlice)(size_t slice) = ^(size_t slice)
 	{
 		// Read in data
 		fprintf(stdout, "Starting slice %ld...\n", slice);
 		double params[7];
-		
+		float *resultsSlices[7];
+		for (int p = 0; p < 7; p++)
+			resultsSlices[p] = calloc(voxelsPerSlice, sizeof(float));
 		int sliceStart[7] = {0, 0, slice, 0, 0, 0, 0};
-		int sliceDim[7] = {spgrFiles[0]->nx, spgrFiles[0]->ny, 1, 1, 1, 1, 1};
+		int sliceDim[7] = {spgrHeaders[0]->nx, spgrHeaders[0]->ny, 1, 1, 1, 1, 1};
 		float **spgrData = malloc(nSPGR * sizeof(float *));
 		double *spgrSignal = malloc(nSPGR * sizeof(double));
 		for (int i = 0; i < nSPGR; i++)
 		{
 			spgrData[i] = malloc(voxelsPerSlice * sizeof(float));
-			nifti_read_subregion_image(spgrFiles[i], sliceStart, sliceDim, (void**)&(spgrData[i]));
+			nifti_read_subregion_image(spgrHeaders[i], sliceStart, sliceDim, (void**)&(spgrData[i]));
 		}
 		
 		float ***ssfpData = malloc(nPhases * sizeof(float **));
@@ -154,7 +174,7 @@ int main(int argc, char **argv)
 			for (int i = 0; i < nSSFP[p]; i++)
 			{
 				ssfpData[p][i] = malloc(voxelsPerSlice * sizeof(float));
-				nifti_read_subregion_image(ssfpFiles[p][i], sliceStart, sliceDim, (void**)&(ssfpData[p][i]));
+				nifti_read_subregion_image(ssfpHeaders[p][i], sliceStart, sliceDim, (void**)&(ssfpData[p][i]));
 			}
 		}
 		
@@ -168,12 +188,13 @@ int main(int argc, char **argv)
 		if (mask)
 			nifti_read_subregion_image(mask, sliceStart, sliceDim, (void**)&(maskData));
 		
-		int sliceIndex = slice * voxelsPerSlice;
+		bool hasVoxels = false;
 		for (int vox = 0; vox < voxelsPerSlice; vox++)
 		{
 			if (!mask || (maskData[vox] > 0.))
 			{
-				arrayZero(params, 7);
+				hasVoxels = true;
+				arraySet(params, 1., 7);
 				for (int img = 0; img < nSPGR; img++)
 					spgrSignal[img] = (double)spgrData[img][vox];
 
@@ -205,14 +226,16 @@ int main(int argc, char **argv)
 					         nPhases, nSSFP, ssfpPhases, ssfpAngles, ssfpSignal, ssfpTR,
 							 T1, B1, params);
 				}
-				T1_sData[sliceIndex + vox]  = (float)params[0];
-				T1_fData[sliceIndex + vox]  = (float)params[1];
-				T2_sData[sliceIndex + vox]  = (float)params[2];
-				T2_fData[sliceIndex + vox]  = (float)params[3];
-				f_sData[sliceIndex + vox]   = (float)params[4];
-				tau_sData[sliceIndex + vox] = (float)params[5];
-				dwData[sliceIndex + vox]    = (float)params[6];
+				for (int p = 0; p < 7; p++)
+					resultsSlices[p][vox]  = (float)params[p];
 			}
+		}
+
+		if (hasVoxels)
+		{
+			fprintf(stdout, "Finished slice %ld, writing to results files...", slice);
+			for (int p = 0; p < 7; p++)
+				nifti_write_subregion_image(resultsHeaders[p], sliceStart, sliceDim, (void **)&(resultsSlices[p]));
 		}
 		
 		// Clean up memory
@@ -225,34 +248,14 @@ int main(int argc, char **argv)
 				free(ssfpData[p][img]);
 			free(ssfpData[p]);
 			free(ssfpSignal[p]);
+			free(resultsSlices[p]);
 		}
 		free(T1Data);
-		free(B1Data);
-		fprintf(stdout, "Finished slice %ld.\n", slice);		
+		free(B1Data);	
+		fprintf(stdout, "done.\n");
 	};
 	//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	//dispatch_apply(ssfpFiles[0][0]->nz, global_queue, processSlice);
-	fprintf(stdout, "Finished fitting. Writing results files.\n");
-
-	//**************************************************************************
-	// Create results files
-	//**************************************************************************
-	nifti_image *out = nifti_copy_nim_info(ssfpFiles[0][0]);
-	char outName[strlen(outPrefix) + 4]; // Space for "T1" plus null
-	strcpy(outName, outPrefix); strcat(outName, "_T1_myel");
-	writeResult(out, outName, (void*)T1_fData);
-	strcpy(outName, outPrefix); strcat(outName, "_T1_free");
-	writeResult(out, outName, (void*)T1_sData);
-	strcpy(outName, outPrefix); strcat(outName, "_T2_myel");
-	writeResult(out, outName, (void*)T2_fData);
-	strcpy(outName, outPrefix); strcat(outName, "_T2_free");
-	writeResult(out, outName, (void*)T2_sData);
-	strcpy(outName, outPrefix); strcat(outName, "_frac_my");
-	writeResult(out, outName, (void*)f_sData);
-	strcpy(outName, outPrefix); strcat(outName, "_tau_my");
-	writeResult(out, outName, (void*)tau_sData);
-	strcpy(outName, outPrefix); strcat(outName, "_dw");
-	writeResult(out, outName, (void*)dwData);
+	//dispatch_apply(spgrHeaders[0]->nz, global_queue, processSlice);
 	fprintf(stdout, "All done.\n");
 	return EXIT_SUCCESS;
 }
