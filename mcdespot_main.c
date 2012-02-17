@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 	nifti_image **resultsHeaders = malloc(7 * sizeof(nifti_image *));
 	char outName[strlen(outPrefix) + 12];
 	float *blank = calloc(totalVoxels, sizeof(float));
-	char *names[7] = { "_T1_myel", "_T1_free", "_T2_myel", "_T2_slow", "_frac_myel", "_tau_myel", "_dw" };
+	char *names[7] = { "_T1_myel", "_T1_free", "_T2_myel", "_T2_free", "_frac_myel", "_tau_myel", "_dw" };
 	
 	for (int p = 0; p < 7; p++)
 	{
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
 
 		if (hasVoxels)
 		{
-			fprintf(stdout, "Finished slice %ld, writing to results files...", slice);
+			fprintf(stdout, "Slice %ld had pixels to process, writing to results files...", slice);
 			for (int p = 0; p < 7; p++)
 				nifti_write_subregion_image(resultsHeaders[p], sliceStart, sliceDim, (void **)&(resultsSlices[p]));
 		}
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
 		}
 		free(T1Data);
 		free(B1Data);	
-		fprintf(stdout, "done.\n");
+		fprintf(stdout, "Finished slice %ld.\n", slice);
 	};
 	//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	//dispatch_apply(spgrHeaders[0]->nz, global_queue, processSlice);
