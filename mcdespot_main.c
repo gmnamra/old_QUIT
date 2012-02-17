@@ -123,14 +123,14 @@ int main(int argc, char **argv)
 		
 	//**************************************************************************
 	// Create results files
-	// T1_s, T1_f, T2_s, T2_f,	f_s, tau_s, dw
+	// T1_m, T1_m, T2_f, T2_f,	f_m, tau_m, dw
 	// Need to write a full file of zeros first otherwise per-plane writing
 	// won't produce a complete image.
 	//**************************************************************************
 	nifti_image **resultsHeaders = malloc(7 * sizeof(nifti_image *));
-	char outName[strlen(outPrefix) + 9]; // Space for "T1" plus null
+	char outName[strlen(outPrefix) + 12];
 	float *blank = calloc(totalVoxels, sizeof(float));
-	char *names[7] = { "_T1_myel", "_T1_free", "_T2_myel", "_T2_free", "_frac_my", "_tau_my", "_dw" };
+	char *names[7] = { "_T1_myel", "_T1_free", "_T2_myel", "_T2_slow", "_frac_myel", "_tau_myel", "_dw" };
 	
 	for (int p = 0; p < 7; p++)
 	{

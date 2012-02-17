@@ -188,17 +188,17 @@ double nSSFP(double flipAngle, double *p, double *c)
 
 // Normalised, 2 component versions
 /*	Full parameter vector is
-	0 - T1_s
+	0 - T1_m
 	1 - T1_f
-	2 - T2_s
+	2 - T2_m
 	3 - T2_f
-	4 - f_s
-	5 - tau_s
+	4 - f_m
+	5 - tau_m
 	6 - dw
 	Relationships:
-	f_s + f_f = 1. (Only two components)
+	f_f + f_m = 1. (Only two components)
 	k_ = 1. / tau_ (Exchange is inverse of lifetime)
-	f_s / tau_s = f_f / tau_f (Exchange equilibrium)
+	f_f / tau_f = f_m / tau_m (Exchange equilibrium)
 	Constants vector:
 	0 - TR
 	1 - B1
@@ -206,16 +206,16 @@ double nSSFP(double flipAngle, double *p, double *c)
 */
 double n2cSPGR(double alpha, double *p, double *c)
 {
-	double T1_s = p[0], T1_f = p[1],
-		   f_s = p[4], tau_s = p[5],
+	double T1_m = p[0], T1_f = p[1],
+		   f_m = p[4], tau_m = p[5],
 		   TR = c[0], B1 = c[1];
-	double f_f = 1. - f_s;
-	double tau_f = f_f * tau_s / f_s;
-	double k_s = 1. / tau_s, k_f = 1. / tau_f;
+	double f_f = 1. - f_m;
+	double tau_f = f_f * tau_m / f_m;
+	double k_f = 1. / tau_f, k_m = 1. / tau_m;
 	
-	double M0[2] = {f_s, f_f}, S[2];
-	double A[4]  = {(-1./T1_f - k_f), k_s,
-	                k_f, (-1./T1_s - k_s)};
+	double M0[2] = {f_m, f_f}, S[2];
+	double A[4]  = {(-1./T1_m - k_m), k_f,
+	                k_m, (-1./T1_f - k_f)};
 	double eye[4] = { 1., 0.,
 					  0., 1. };
 	arrayExp(A, A, TR, 4);
@@ -237,17 +237,17 @@ double n2cSPGR(double alpha, double *p, double *c)
 
 double n2cSSFP(double alpha, double *p, double *c)
 {
-	double T1_s = p[0], T1_f = p[1], T2_s = p[2], T2_f = p[3],
-		   f_s = p[4], tau_s = p[5], dw = p[6],
+	double T1_m = p[0], T1_f = p[1], T2_m = p[2], T2_f = p[3],
+		   f_m = p[4], tau_m = p[5], dw = p[6],
 		   TR = c[0], B1 = c[1], rfPhase = c[2];
-	double f_f = 1. - f_s;
-	double tau_f = f_f * tau_s / f_s;
-	double k_s = 1. / tau_s, k_f = 1. / tau_f;
+	double f_f = 1. - f_m;
+	double tau_f = f_f * tau_m / f_m;
+	double k_f = 1. / tau_f, k_m = 1. / tau_m;
 	
+	double iT2_m = -1./T2_m - k_m;
 	double iT2_f = -1./T2_f - k_f;
-	double iT2_s = -1./T2_s - k_s;
+	double iT1_m = -1./T1_m - k_m;
 	double iT1_f = -1./T1_f - k_f;
-	double iT1_s = -1./T1_s - k_s;
 	double phase = rfPhase + dw;
 
 	int ipiv[6]; // General for all cblas ops
@@ -258,12 +258,12 @@ double n2cSSFP(double alpha, double *p, double *c)
 					   0., 0., 0., 0., 1., 0.,
 					   0., 0., 0., 0., 0., 1. };
 	
-	double A[36] = { iT2_f,  k_s,    phase, 0.,    0.,    0.,
-					 k_f,    iT2_s,  0.,    phase, 0.,    0.,
-					 -phase, 0.,     iT2_f, k_s,   0.,    0.,
-					 0.,     -phase, k_f,   iT2_s, 0.,    0.,
-					 0.,     0.,     0.,    0.,    iT1_f, k_s,
-					 0.,     0.,     0.,    0.,    k_f,   iT1_s };
+	double A[36] = { iT2_m,  k_f,    phase, 0.,    0.,    0.,
+					 k_m,    iT2_f,  0.,    phase, 0.,    0.,
+					 -phase, 0.,     iT2_m, k_f,   0.,    0.,
+					 0.,     -phase, k_m,   iT2_f, 0.,    0.,
+					 0.,     0.,     0.,    0.,    iT1_m, k_f,
+					 0.,     0.,     0.,    0.,    k_m,   iT1_f };
 	double invA[36]; arrayCopy(invA, A, 36);
 	clapack_dgetrf(CblasRowMajor, 6, 6, invA, 6, ipiv); // Inverse
 	clapack_dgetri(CblasRowMajor, 6, invA, 6, ipiv);
@@ -290,7 +290,7 @@ double n2cSSFP(double alpha, double *p, double *c)
 	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., temp1, 6, A, 6, 0., temp2, 6);
 	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., temp2, 6, invA, 6, 0., temp1, 6);
 	
-	double initC[6] = { 0., 0., 0., 0., f_f / (T1_f * tau_f), f_s / (T1_s * tau_s) };
+	double initC[6] = { 0., 0., 0., 0., f_m / (T1_m * tau_m), f_f / (T1_f * tau_f) };
 	double finalC[6];
 	
 	cblas_dgemv(CblasRowMajor, CblasNoTrans, 6, 6, 1., temp1, 6, initC, 1, 0., finalC, 1);
@@ -375,7 +375,7 @@ void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAn
 
 /*
 	Params:
-	T1_s, T1_f, T2_s, T2_f,	f_s, tau_s, dw
+	T1_m, T1_f, T2_m, T2_f,	f_m, tau_m, dw
 	Consts:
 	TR, B1, rfPhase
 */
@@ -383,8 +383,8 @@ void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 			  size_t nPhases, size_t *nSSFPs, double *phases, double **ssfpAlphas, double **ssfp,
               double ssfpTR, double T1, double B1, double *p)
 {
-	double loBounds[7] = { 0.1, 0.1, 0.001, 0.001,   0., 0.025, 0. };
-	double hiBounds[7] = { 2.5, 2.5, 0.150, 0.150, 0.45, 0.500,  1./ssfpTR };
+	double loBounds[7] = { 0.2, 0.8, 0.001, 0.05,  0.,  0.025, 0. };
+	double hiBounds[7] = { 0.9, 1.9, 0.025, 0.150, 0.5, 0.100, 1./ssfpTR };
 	double *bounds[2] =  { loBounds, hiBounds };
 
 	size_t nD[1 + nPhases];
