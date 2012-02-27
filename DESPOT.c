@@ -13,60 +13,6 @@
 #include "cblas.h"
 #include "clapack.h"
 
-/*int tests()
-{
-	double testSPGR[2], testFlips[2];
-	double spgrTR = 5, irTR = 5, irFlip = radians(5.);
-	int nReadout = 128;
-	double T1 = 1500, M0 = 10000., B1 = .8;
-
-	fprintf(stdout, "Running DESPOT1 Tests. Parameters are\n");
-	fprintf(stdout, "General - M0: %f B1: %f T1: %f\n", M0, B1, T1);
-	fprintf(stdout, "SPGR - TR: %f\n",  spgrTR);
-	fprintf(stdout, "SPGR-IR - TR: %f nReadout: %d\n", irTR, nReadout);
-	testFlips[0] = radians(5.); testFlips[1] = radians(10.);
-	testSPGR[0] = SPGR(M0, B1, testFlips[0], T1, spgrTR);
-	testSPGR[1] = SPGR(M0, B1, testFlips[1], T1, spgrTR);
-	double testIR[2], testTI[2];
-	testTI[0] = 350; testTI[1] = 450;
-	// The 0.9 is a scale factor in Sean's code
-	testIR[0] = IRSPGR(M0, B1, irFlip, T1, testTI[0] * 0.9, irTR, nReadout);
-	testIR[1] = IRSPGR(M0, B1, irFlip, T1, testTI[1] * 0.9, irTR, nReadout);
-	
-	double spgrRes = calcSPGRResiduals(testSPGR, testFlips, 2, spgrTR, B1, T1, M0);
-	double irRes   = calcIRSPGRResiduals(testSPGR, testFlips, 2, spgrTR, testIR, testTI, 2, irFlip, irTR, nReadout, B1);
-	fprintf(stdout, "Residuals - SPGR = %f, SPGR-IR = %f\n", spgrRes, irRes);
-	
-	double checkT1, checkM0, checkB1;
-	calcDESPOT1(testSPGR, testFlips, 2, spgrTR, B1, &checkT1, &checkM0);
-	fprintf(stdout, "DESPOT1 Result - T1 = %f, M0 = %f\n", checkT1, checkM0);
-	checkB1 = calcHIFI(testSPGR, testFlips, 2, spgrTR, 
-	                   testIR, testTI, 2, irFlip, irTR, nReadout);
-	calcDESPOT1(testSPGR, testFlips, 2, spgrTR, checkB1, &checkT1, &checkM0);					   
-	fprintf(stdout, "HIFI Result - T1 = %f, M0 = %f\n, B1 = %f\n", checkT1, checkM0, checkB1);
-	
-	fprintf(stdout, "\nTesting Noisy Data\n");
-	testSPGR[0] = testSPGR[0] * 0.92;
-	testSPGR[1] = testSPGR[1] * 1.07;
-	testIR[0] = testIR[0] * 1.02;
-	testIR[1] = testIR[1] * 0.93;
-	spgrRes = calcSPGRResiduals(testSPGR, testFlips, 2, spgrTR, B1, T1, M0);
-	irRes   = calcIRSPGRResiduals(testSPGR, testFlips, 2, spgrTR, testIR, testTI, 2, irFlip, irTR, nReadout, B1);
-	fprintf(stdout, "Residuals - SPGR = %f, SPGR-IR = %f\n", spgrRes, irRes);
-	calcDESPOT1(testSPGR, testFlips, 2, spgrTR, B1, &checkT1, &checkM0);
-	fprintf(stdout, "DESPOT1 Result - T1 = %f, M0 = %f\n", checkT1, checkM0);
-	checkB1 = calcHIFI(testSPGR, testFlips, 2, spgrTR, 
-	                   testIR, testTI, 2, irFlip, irTR, nReadout);
-	calcDESPOT1(testSPGR, testFlips, 2, spgrTR, checkB1, &checkT1, &checkM0);	
-	fprintf(stdout, "HIFI Result - T1 = %f, M0 = %f, B1 = %f\n", checkT1, checkM0, checkB1);
-	fprintf(stdout, "\nTests finished.\n");	
-		
-	if ((spgrRes == 0.) && (irRes == 0.))
-		return 1;
-	else
-		return 0;
-}*/
-
 double SPGR(double flipAngle, double *p, double *c)
 {
 	double M0 = p[0], T1 = p[1], B1 = p[2], TR = c[0];
@@ -171,7 +117,7 @@ double nSSFP(double flipAngle, double *p, double *c)
 	double eT1 = exp(-TR / T1);
 	double eT2 = exp(-TR / T2);
 	
-	double phase = offset + dO * (TR / 1.e3) * 2. * M_PI;
+	double phase = offset + dO * TR * 2. * M_PI;
 	double sina = sin(B1 * flipAngle);
 	double cosa = cos(B1 * flipAngle);
 	double sinp = sin(phase);
@@ -180,25 +126,25 @@ double nSSFP(double flipAngle, double *p, double *c)
 	double denom = ((1. - eT1 * cosa) * (1. - eT2 * cosp)) - 
 				   (eT2 * (eT1 - cosa) * (eT2 - cosp));
 	
-	double Mx = ((1 - eT1) * eT2 * sina * (cosp - eT2)) / denom;
-	double My = ((1.- eT1) * eT2 * sina * sinp) / denom;
+	double My = ((1 - eT1) * eT2 * sina * (cosp - eT2)) / denom;
+	double Mx = ((1.- eT1) * eT2 * sina * sinp) / denom;
 	double ssfp = M0 * sqrt(Mx*Mx + My*My);
 	return ssfp;
 }
 
 // Normalised, 2 component versions
 /*	Full parameter vector is
-	0 - T1_m
-	1 - T1_f
-	2 - T2_m
-	3 - T2_f
-	4 - f_m
-	5 - tau_m
+	0 - T1_a
+	1 - T1_b
+	2 - T2_a
+	3 - T2_b
+	4 - f_a
+	5 - tau_a
 	6 - dw
 	Relationships:
-	f_f + f_m = 1. (Only two components)
+	f_b + f_a = 1. (Only two components)
 	k_ = 1. / tau_ (Exchange is inverse of lifetime)
-	f_f / tau_f = f_m / tau_m (Exchange equilibrium)
+	f_b / tau_b = f_a / tau_a (Exchange equilibrium)
 	Constants vector:
 	0 - TR
 	1 - B1
@@ -206,22 +152,21 @@ double nSSFP(double flipAngle, double *p, double *c)
 */
 double n2cSPGR(double alpha, double *p, double *c)
 {
-	double T1_m = p[0], T1_f = p[1],
-		   f_m = p[4], tau_m = p[5],
+	double T1_a = p[0], T1_b = p[1],
+		   f_a = p[4], tau_a = p[5],
 		   TR = c[0], B1 = c[1];
-	double f_f = 1. - f_m;
-	double tau_f = f_f * tau_m / f_m;
-	double k_f = 1. / tau_f, k_m = 1. / tau_m;
+	double f_b = 1. - f_a;
+	double tau_b = f_b * tau_a / f_a;
+	double k_b = 1. / tau_b, k_a = 1. / tau_a;
 	
-	double M0[2] = {f_m, f_f}, S[2];
-	double A[4]  = {(-1./T1_m - k_m), k_f,
-	                k_m, (-1./T1_f - k_f)};
+	double M0[2] = {f_a, f_b}, S[2];
+	double A[4]  = {-(1./T1_a + k_a), k_b,
+	                k_a, -(1./T1_b + k_b)};
 	double eye[4] = { 1., 0.,
 					  0., 1. };
-	arrayExp(A, A, TR, 4);
-	double sinterm[4];
-	arraySub(sinterm, eye, A, 4);
-	arrayScale(sinterm, sinterm, sin(B1 * alpha), 4);
+	arrayScale(A, A, TR, 4);
+	matrixExp(A, 2);
+	
 	double costerm[4];
 	arrayScale(costerm, A, cos(B1 * alpha), 4);
 	arraySub(costerm, eye, costerm, 4);
@@ -229,76 +174,81 @@ double n2cSPGR(double alpha, double *p, double *c)
 	int ipiv[2];
 	clapack_dgetrf(CblasRowMajor, 2, 2, costerm, 2, ipiv);
 	clapack_dgetri(CblasRowMajor, 2, costerm, 2, ipiv);
-	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 2, 2, 2, 1., sinterm, 2, costerm, 2, 0., A, 2);
+	
+	double sinterm[4];
+	arraySub(sinterm, eye, A, 4);
+	arrayScale(sinterm, sinterm, sin(B1 * alpha), 4);
+	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 2, 2, 2, 1., costerm, 2, sinterm, 2, 0., A, 2);
 	cblas_dgemv(CblasRowMajor, CblasNoTrans, 2, 2, 1., A, 2, M0, 1, 0., S, 1);
-	double s = sqrt(S[0] * S[0] + S[1] * S[1]);
+	double s = S[0] + S[1];
 	return s;
 }
 
 double n2cSSFP(double alpha, double *p, double *c)
 {
-	double T1_m = p[0], T1_f = p[1], T2_m = p[2], T2_f = p[3],
-		   f_m = p[4], tau_m = p[5], dw = p[6],
+	double T1_a = p[0], T1_b = p[1], T2_a = p[2], T2_b = p[3],
+		   f_a = p[4], tau_a = p[5], dO = p[6],
 		   TR = c[0], B1 = c[1], rfPhase = c[2];
-	double f_f = 1. - f_m;
-	double tau_f = f_f * tau_m / f_m;
-	double k_f = 1. / tau_f, k_m = 1. / tau_m;
+	double f_b = 1. - f_a;
+	double tau_b = f_b * tau_a / f_a;
+	double k_b = 1. / tau_b, k_a = 1. / tau_a;
 	
-	double iT2_m = -1./T2_m - k_m;
-	double iT2_f = -1./T2_f - k_f;
-	double iT1_m = -1./T1_m - k_m;
-	double iT1_f = -1./T1_f - k_f;
-	double phase = rfPhase + dw;
+	double iT2_a = TR * -(1./T2_a + k_a);
+	double iT2_b = TR * -(1./T2_b + k_b);
+	double iT1_a = TR * -(1./T1_a + k_a);
+	double iT1_b = TR * -(1./T1_b + k_b);
 
-	int ipiv[6]; // General for all cblas ops
+	k_b *= TR; k_a *= TR;
+	double A[36] = { iT2_a, k_b,    0.,     0.,    0.,    0.,
+					 k_a,   iT2_b,  0.,     0.,    0.,    0.,
+					 0.,    0.,     iT2_a,  k_b,   0.,    0.,
+					 0.,    0.,     k_a,    iT2_b, 0.,    0.,
+					 0.,    0.,     0.,    0.,     iT1_a, k_b,
+					 0.,    0.,     0.,    0.,     k_a,   iT1_b };
+
+	double ca = cos(B1 * alpha), sa = sin(B1 * alpha);
+	double R_rf[36] = { 1., 0., 0., 0., 0., 0.,
+	                    0., 1., 0., 0., 0., 0.,
+					    0., 0., ca, 0., sa, 0.,
+					    0., 0., 0., ca, 0., sa,
+					    0., 0.,-sa, 0., ca, 0.,
+					    0., 0., 0.,-sa, 0., ca };
+	
+	double phase = rfPhase + (dO * TR * 2. * M_PI);
+	double cp = cos(phase), sp = sin(phase);
+	double R_ph[36] = { cp,  0., sp, 0., 0., 0.,
+						0., cp, 0., sp, 0., 0.,
+					   -sp,  0., cp, 0., 0., 0.,
+					    0.,-sp, 0., cp, 0., 0.,
+					    0., 0., 0., 0., 1., 0.,
+					    0., 0., 0., 0., 0., 1. };
+	
 	double eye[36] = { 1., 0., 0., 0., 0., 0.,
 	                   0., 1., 0., 0., 0., 0.,
 					   0., 0., 1., 0., 0., 0.,
 					   0., 0., 0., 1., 0., 0.,
 					   0., 0., 0., 0., 1., 0.,
 					   0., 0., 0., 0., 0., 1. };
-	
-	double A[36] = { iT2_m,  k_f,    phase, 0.,    0.,    0.,
-					 k_m,    iT2_f,  0.,    phase, 0.,    0.,
-					 -phase, 0.,     iT2_m, k_f,   0.,    0.,
-					 0.,     -phase, k_m,   iT2_f, 0.,    0.,
-					 0.,     0.,     0.,    0.,    iT1_m, k_f,
-					 0.,     0.,     0.,    0.,    k_m,   iT1_f };
-	double invA[36]; arrayCopy(invA, A, 36);
-	clapack_dgetrf(CblasRowMajor, 6, 6, invA, 6, ipiv); // Inverse
-	clapack_dgetri(CblasRowMajor, 6, invA, 6, ipiv);
-	arrayExp(A, A, TR, 36);
-	
-	double ca = cos(B1 * alpha), sa = sin(B1 * alpha);
-	double R[36] = { 1., 0., 0., 0., 0., 0.,
-	                 0., 1., 0., 0., 0., 0.,
-					 0., 0., ca, 0., sa, 0.,
-					 0., 0., 0., ca, 0., sa,
-					 0., 0.,-sa, 0., ca, 0.,
-					 0., 0., 0.,-sa, 0., ca };
-					 
-	double temp1[36], temp2[36]; // First bracket
+					   
+	double R[36], temp1[36], temp2[36], temp3[36]; // First bracket
+	matrixExp(A, 6);
+	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., R_ph, 6, R_rf, 6, 0., R, 6);
 	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., A, 6, R, 6, 0., temp1, 6);
-	//arraySub(temp1, eye, temp1, 36);
 	catlas_daxpby(36, 1., eye, 1, -1., temp1, 1);
+	int ipiv[6]; // General for all cblas ops
 	clapack_dgetrf(CblasRowMajor, 6, 6, temp1, 6, ipiv); // Inverse
 	clapack_dgetri(CblasRowMajor, 6, temp1, 6, ipiv);	
 	
-	//arraySub(A, A, eye, 36); // Second bracket
-	catlas_daxpby(36, -1., eye, 1, 1., A, 1);
+	arrayCopy(temp2, A, 36);
+	catlas_daxpby(36, -1., eye, 1, 1., temp2, 1);
+
 	// Now multiply everything together
-	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., temp1, 6, A, 6, 0., temp2, 6);
-	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., temp2, 6, invA, 6, 0., temp1, 6);
-	
-	double initC[6] = { 0., 0., 0., 0., f_m / (T1_m * tau_m), f_f / (T1_f * tau_f) };
+	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., temp1, 6, temp2, 6, 0., temp3, 6);
+	double initC[6] = { 0., 0., 0., 0., f_a , f_b };
 	double finalC[6];
-	
-	cblas_dgemv(CblasRowMajor, CblasNoTrans, 6, 6, 1., temp1, 6, initC, 1, 0., finalC, 1);
-	
-	double s =  sqrt(finalC[0] * finalC[0] +
-	                 finalC[1] * finalC[1] +
-				     finalC[2] * finalC[2] +
-				     finalC[3] * finalC[3]);
+	cblas_dgemv(CblasRowMajor, CblasNoTrans, 6, 6, 1., temp3, 6, initC, 1, 0., finalC, 1);
+	double s =  sqrt(pow(finalC[0] + finalC[1], 2.) +
+					 pow(finalC[2] + finalC[3], 2.));
 	return s;
 }
 
@@ -383,14 +333,14 @@ void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 			  size_t nPhases, size_t *nSSFPs, double *phases, double **ssfpAlphas, double **ssfp,
               double ssfpTR, double T1, double B1, double *p)
 {
-	double loBounds[7] = { 0.2, 0.8, 0.001, 0.05,  0.,  0.025, 0. };
-	double hiBounds[7] = { 0.9, 1.9, 0.025, 0.150, 0.5, 0.100, 1./ssfpTR };
+	double loBounds[7] = { 200., 800., 1., 50.,  0.,  25., 0. };
+	double hiBounds[7] = { 900., 1900., 25., 150., 0.5, 500., 1./ssfpTR };
 	double *bounds[2] =  { loBounds, hiBounds };
 
 	size_t nD[1 + nPhases];
 	eval_type *f[1 + nPhases];
 	double *alphas[1 + nPhases], *data[1 + nPhases];
-	double *c[1 + nPhases], fRes = 0.;
+	double *c[1 + nPhases];
 	
 	nD[0]     = nSPGR;
 	f[0]      = n2cSPGR;
@@ -410,7 +360,7 @@ void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
 	}
 	regionContraction(p, 7, c, 1 + nPhases, alphas, data, nD, true, f,
-					  bounds, 2000, 50, 0.005, &fRes);
+					  bounds, 2000, 50, 0.005, &(p[7]));
 	for (int i = 0; i < 1 + nPhases; i++)
 		free(c[i]);
 }

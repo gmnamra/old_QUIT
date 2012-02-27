@@ -13,9 +13,6 @@
 #include "nifti_tools.h"
 #include "znzlib.h"
 
-#define FALSE 0
-#define TRUE 1
-
 #define __DEBUG__ FALSE
 #define __DEBUG_THRESH__ 60000
 
@@ -123,16 +120,17 @@ int main(int argc, char **argv)
 		
 	//**************************************************************************
 	// Create results files
-	// T1_m, T1_m, T2_f, T2_f,	f_m, tau_m, dw
+	// T1_m, T1_m, T2_f, T2_f,	f_m, tau_m, dw, residue
 	// Need to write a full file of zeros first otherwise per-plane writing
 	// won't produce a complete image.
 	//**************************************************************************
-	nifti_image **resultsHeaders = malloc(7 * sizeof(nifti_image *));
+	#define NR 8
+	nifti_image **resultsHeaders = malloc(NR * sizeof(nifti_image *));
 	char outName[strlen(outPrefix) + 12];
 	float *blank = calloc(totalVoxels, sizeof(float));
-	char *names[7] = { "_T1_myel", "_T1_free", "_T2_myel", "_T2_free", "_frac_myel", "_tau_myel", "_dw" };
+	char *names[NR] = { "_T1_myel", "_T1_free", "_T2_myel", "_T2_free", "_frac_myel", "_tau_myel", "_dw", "_res" };
 	
-	for (int p = 0; p < 7; p++)
+	for (int p = 0; p < NR; p++)
 	{
 		strcpy(outName, outPrefix); strcat(outName, names[p]);
 		fprintf(stdout, "Writing blank result file:%s.\n", outName);
@@ -151,12 +149,12 @@ int main(int argc, char **argv)
 	{
 		// Read in data
 		fprintf(stdout, "Starting slice %ld...\n", slice);
-		double params[7];
-		float *resultsSlices[7];
-		for (int p = 0; p < 7; p++)
+		double params[NR];
+		float *resultsSlices[NR];
+		for (int p = 0; p < NR; p++)
 			resultsSlices[p] = calloc(voxelsPerSlice, sizeof(float));
-		int sliceStart[7] = {0, 0, slice, 0, 0, 0, 0};
-		int sliceDim[7] = {spgrHeaders[0]->nx, spgrHeaders[0]->ny, 1, 1, 1, 1, 1};
+		int sliceStart[NR] = {0, 0, slice, 0, 0, 0, 0};
+		int sliceDim[NR] = {spgrHeaders[0]->nx, spgrHeaders[0]->ny, 1, 1, 1, 1, 1};
 		float **spgrData = malloc(nSPGR * sizeof(float *));
 		double *spgrSignal = malloc(nSPGR * sizeof(double));
 		for (int i = 0; i < nSPGR; i++)
@@ -194,7 +192,7 @@ int main(int argc, char **argv)
 			if (!mask || (maskData[vox] > 0.))
 			{
 				hasVoxels = true;
-				arraySet(params, 1., 7);
+				arraySet(params, 1., NR);
 				for (int img = 0; img < nSPGR; img++)
 					spgrSignal[img] = (double)spgrData[img][vox];
 
@@ -226,7 +224,7 @@ int main(int argc, char **argv)
 					         nPhases, nSSFP, ssfpPhases, ssfpAngles, ssfpSignal, ssfpTR,
 							 T1, B1, params);
 				}
-				for (int p = 0; p < 7; p++)
+				for (int p = 0; p < NR; p++)
 					resultsSlices[p][vox]  = (float)params[p];
 			}
 		}
@@ -234,7 +232,7 @@ int main(int argc, char **argv)
 		if (hasVoxels)
 		{
 			fprintf(stdout, "Slice %ld had pixels to process, writing to results files...", slice);
-			for (int p = 0; p < 7; p++)
+			for (int p = 0; p < NR; p++)
 				nifti_write_subregion_image(resultsHeaders[p], sliceStart, sliceDim, (void **)&(resultsSlices[p]));
 		}
 		

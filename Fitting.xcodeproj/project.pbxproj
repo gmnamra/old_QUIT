@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F64E847814F2538400470C2C /* tests_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F64E847714F2538400470C2C /* tests_main.c */; };
+		F64E847914F2539500470C2C /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
+		F64E847A14F2539900470C2C /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
+		F64E847B14F2539900470C2C /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
+		F64E847C14F2539900470C2C /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
 		F65C05A3149655CE0046A464 /* despot1_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0587149655140046A464 /* despot1_main.c */; };
 		F65C05A4149655CE0046A464 /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
 		F65C05A5149655D50046A464 /* recovery_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C058A149655140046A464 /* recovery_main.c */; };
@@ -37,6 +42,20 @@
 			proxyType = 2;
 			remoteGlobalIDString = F61BFCFF14D996C900448CA7;
 			remoteInfo = tests;
+		};
+		F64E847D14F253A200470C2C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
+			remoteInfo = formats;
+		};
+		F64E847F14F253A500470C2C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
+			remoteInfo = maths;
 		};
 		F65C05B8149656140046A464 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -111,6 +130,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F64E845914F252C300470C2C /* despot_tests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot_tests; sourceTree = BUILT_PRODUCTS_DIR; };
+		F64E847714F2538400470C2C /* tests_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tests_main.c; sourceTree = "<group>"; };
 		F65C0587149655140046A464 /* despot1_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = despot1_main.c; sourceTree = SOURCE_ROOT; };
 		F65C0588149655140046A464 /* DESPOT.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = DESPOT.c; sourceTree = SOURCE_ROOT; };
 		F65C0589149655140046A464 /* DESPOT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DESPOT.h; sourceTree = SOURCE_ROOT; };
@@ -129,6 +150,16 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F64E845714F252C300470C2C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F64E847A14F2539900470C2C /* libz.dylib in Frameworks */,
+				F64E847B14F2539900470C2C /* libformats.a in Frameworks */,
+				F64E847C14F2539900470C2C /* libmaths.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F65C0595149655370046A464 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -196,6 +227,7 @@
 				F65C058B149655140046A464 /* recovery.c */,
 				F65C058C149655140046A464 /* recovery.h */,
 				F6BC22AD14EA69A3009149C6 /* mcdespot_main.c */,
+				F64E847714F2538400470C2C /* tests_main.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -207,6 +239,7 @@
 				F65C059F1496558A0046A464 /* despot1 */,
 				F692991E14CDDEC1003EF4FD /* despot2 */,
 				F6BC229D14EA6966009149C6 /* mcdespot */,
+				F64E845914F252C300470C2C /* despot_tests */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -238,6 +271,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		F64E845814F252C300470C2C /* despot_tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F64E845D14F252F800470C2C /* Build configuration list for PBXNativeTarget "despot_tests" */;
+			buildPhases = (
+				F64E845614F252C300470C2C /* Sources */,
+				F64E845714F252C300470C2C /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F64E848014F253A500470C2C /* PBXTargetDependency */,
+				F64E847E14F253A200470C2C /* PBXTargetDependency */,
+			);
+			name = despot_tests;
+			productName = despot_tests;
+			productReference = F64E845914F252C300470C2C /* despot_tests */;
+			productType = "com.apple.product-type.tool";
+		};
 		F65C0596149655370046A464 /* recovery */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F65C059B149655860046A464 /* Build configuration list for PBXNativeTarget "recovery" */;
@@ -343,6 +394,7 @@
 				F65C059E1496558A0046A464 /* despot1 */,
 				F692991D14CDDEC1003EF4FD /* despot2 */,
 				F6BC229C14EA6966009149C6 /* mcdespot */,
+				F64E845814F252C300470C2C /* despot_tests */,
 			);
 		};
 /* End PBXProject section */
@@ -372,6 +424,15 @@
 /* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F64E845614F252C300470C2C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F64E847914F2539500470C2C /* DESPOT.c in Sources */,
+				F64E847814F2538400470C2C /* tests_main.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F65C0594149655370046A464 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -412,6 +473,16 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		F64E847E14F253A200470C2C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = formats;
+			targetProxy = F64E847D14F253A200470C2C /* PBXContainerItemProxy */;
+		};
+		F64E848014F253A500470C2C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = maths;
+			targetProxy = F64E847F14F253A500470C2C /* PBXContainerItemProxy */;
+		};
 		F677E06E1496786D00180833 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = maths;
@@ -478,6 +549,58 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
 				SDKROOT = macosx10.6;
+			};
+			name = Release;
+		};
+		F64E845B14F252C400470C2C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "";
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/include,
+				);
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/lib,
+				);
+				OTHER_LDFLAGS = "";
+				PREBINDING = NO;
+				PRODUCT_NAME = despot_tests;
+				SYMROOT = ../../build;
+				VALID_ARCHS = x86_64;
+			};
+			name = Debug;
+		};
+		F64E845C14F252C400470C2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/include,
+				);
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = (
+					"/Users/Tobias/Code/MacRI/**",
+					/usr/local/atlas/lib,
+				);
+				OTHER_LDFLAGS = "";
+				PREBINDING = NO;
+				PRODUCT_NAME = despot_tests;
+				SYMROOT = ../../build;
+				VALID_ARCHS = x86_64;
 			};
 			name = Release;
 		};
@@ -682,6 +805,15 @@
 			buildConfigurations = (
 				1DEB928A08733DD80010E9CD /* Debug */,
 				1DEB928B08733DD80010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F64E845D14F252F800470C2C /* Build configuration list for PBXNativeTarget "despot_tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F64E845B14F252C400470C2C /* Debug */,
+				F64E845C14F252C400470C2C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
