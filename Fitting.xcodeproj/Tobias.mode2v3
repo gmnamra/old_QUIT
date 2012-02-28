@@ -202,7 +202,7 @@
 			<key>Content</key>
 			<dict>
 				<key>PBXProjectModuleGUID</key>
-				<string>F64E86B814F4011200470C2C</string>
+				<string>F6751C0214FD2A7F00E29B3F</string>
 				<key>PBXProjectModuleLabel</key>
 				<string>DESPOT.c</string>
 				<key>PBXSplitModuleInNavigatorKey</key>
@@ -210,35 +210,20 @@
 					<key>Split0</key>
 					<dict>
 						<key>PBXProjectModuleGUID</key>
-						<string>F64E86B914F4011200470C2C</string>
+						<string>F6751C0314FD2A7F00E29B3F</string>
 						<key>PBXProjectModuleLabel</key>
 						<string>DESPOT.c</string>
 						<key>_historyCapacity</key>
 						<integer>0</integer>
 						<key>bookmark</key>
-						<string>F6751B7C14FC092E00E29B3F</string>
+						<string>F6751C0514FD2A7F00E29B3F</string>
 						<key>history</key>
 						<array>
-							<string>F61F17CB14F572350044964E</string>
-						</array>
-					</dict>
-					<key>Split1</key>
-					<dict>
-						<key>PBXProjectModuleGUID</key>
-						<string>F6751AF414FBFAA100E29B3F</string>
-						<key>PBXProjectModuleLabel</key>
-						<string>DESPOT.c</string>
-						<key>_historyCapacity</key>
-						<integer>0</integer>
-						<key>bookmark</key>
-						<string>F6751B7D14FC092E00E29B3F</string>
-						<key>history</key>
-						<array>
-							<string>F6751AF514FBFAA100E29B3F</string>
+							<string>F6751C0414FD2A7F00E29B3F</string>
 						</array>
 					</dict>
 					<key>SplitCount</key>
-					<string>2</string>
+					<string>1</string>
 				</dict>
 				<key>StatusBarVisibility</key>
 				<true/>
@@ -271,7 +256,7 @@
 						<key>_historyCapacity</key>
 						<integer>0</integer>
 						<key>bookmark</key>
-						<string>F6751B7E14FC092E00E29B3F</string>
+						<string>F6751C0614FD2A7F00E29B3F</string>
 						<key>history</key>
 						<array>
 							<string>F61F17CA14F572350044964E</string>
@@ -290,47 +275,7 @@
 				<key>PBXModuleWindowStatusBarHidden2</key>
 				<false/>
 				<key>RubberWindowFrame</key>
-				<string>0 184 959 818 0 0 1280 1002 </string>
-			</dict>
-		</dict>
-		<dict>
-			<key>Content</key>
-			<dict>
-				<key>PBXProjectModuleGUID</key>
-				<string>F6751B2514FC004C00E29B3F</string>
-				<key>PBXProjectModuleLabel</key>
-				<string>mcdespot_main.c</string>
-				<key>PBXSplitModuleInNavigatorKey</key>
-				<dict>
-					<key>Split0</key>
-					<dict>
-						<key>PBXProjectModuleGUID</key>
-						<string>F6751B2614FC004C00E29B3F</string>
-						<key>PBXProjectModuleLabel</key>
-						<string>mcdespot_main.c</string>
-						<key>_historyCapacity</key>
-						<integer>0</integer>
-						<key>bookmark</key>
-						<string>F6751B7F14FC092E00E29B3F</string>
-						<key>history</key>
-						<array>
-							<string>F6751B4E14FC03D100E29B3F</string>
-						</array>
-					</dict>
-					<key>SplitCount</key>
-					<string>1</string>
-				</dict>
-				<key>StatusBarVisibility</key>
-				<true/>
-			</dict>
-			<key>Geometry</key>
-			<dict>
-				<key>Frame</key>
-				<string>{{0, 20}, {1226, 777}}</string>
-				<key>PBXModuleWindowStatusBarHidden2</key>
-				<false/>
-				<key>RubberWindowFrame</key>
-				<string>16 184 1226 818 0 0 1280 1002 </string>
+				<string>2 184 959 818 0 0 1280 1002 </string>
 			</dict>
 		</dict>
 	</array>
@@ -405,7 +350,7 @@
 									<key>PBXSmartGroupTreeModuleOutlineStateSelectionKey</key>
 									<array>
 										<array>
-											<integer>11</integer>
+											<integer>6</integer>
 											<integer>3</integer>
 											<integer>0</integer>
 										</array>
@@ -474,8 +419,8 @@
 									<key>PBXSmartGroupTreeModuleOutlineStateSelectionKey</key>
 									<array>
 										<array>
-											<integer>10</integer>
-											<integer>6</integer>
+											<integer>4</integer>
+											<integer>0</integer>
 										</array>
 									</array>
 									<key>PBXSmartGroupTreeModuleOutlineStateVisibleRectKey</key>
@@ -614,15 +559,14 @@
 	<integer>0</integer>
 	<key>WindowOrderList</key>
 	<array>
-		<string>F6751B2514FC004C00E29B3F</string>
 		<string>F6751A4714FBD86000E29B3F</string>
 		<string>F6751A4814FBD86000E29B3F</string>
-		<string>1C530D52069F1CE1000CFCEE</string>
-		<string>F64E84C114F2653F00470C2C</string>
-		<string>F64E86B814F4011200470C2C</string>
-		<string>/Users/Tobias/Code/MacRI/Source/Fitting/Fitting.xcodeproj</string>
 		<string>1C530D5B069F1CE1000CFCEE</string>
 		<string>1C530D54069F1CE1000CFCEE</string>
+		<string>/Users/Tobias/Code/MacRI/Source/Fitting/Fitting.xcodeproj</string>
+		<string>1C530D52069F1CE1000CFCEE</string>
+		<string>F64E84C114F2653F00470C2C</string>
+		<string>F6751C0214FD2A7F00E29B3F</string>
 	</array>
 	<key>WindowString</key>
 	<string>831 386 449 616 0 0 1280 1002 </string>
@@ -783,7 +727,7 @@
 								<key>PBXProjectModuleGUID</key>
 								<string>1CD0528F0623707200166675</string>
 								<key>PBXProjectModuleLabel</key>
-								<string>mcdespot_main.c</string>
+								<string>mathArray.c</string>
 								<key>StatusBarVisibility</key>
 								<true/>
 							</dict>

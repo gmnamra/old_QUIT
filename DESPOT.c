@@ -8,7 +8,8 @@
  */
 
 #include "DESPOT.h"
-#include "math3d.h"
+#include "mathMatrix.h"
+#include "math2d.h"
 #include "stdio.h"
 #include "cblas.h"
 #include "clapack.h"
@@ -171,15 +172,14 @@ double n2cSPGR(double alpha, double *p, double *c)
 	arrayScale(costerm, A, cos(B1 * alpha), 4);
 	arraySub(costerm, eye, costerm, 4);
 	// Inverse
-	int ipiv[2];
-	clapack_dgetrf(CblasRowMajor, 2, 2, costerm, 2, ipiv);
-	clapack_dgetri(CblasRowMajor, 2, costerm, 2, ipiv);
+	double invcterm[4];
+	inv22(invcterm, costerm);
 	
 	double sinterm[4];
 	arraySub(sinterm, eye, A, 4);
 	arrayScale(sinterm, sinterm, sin(B1 * alpha), 4);
-	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 2, 2, 2, 1., costerm, 2, sinterm, 2, 0., A, 2);
-	cblas_dgemv(CblasRowMajor, CblasNoTrans, 2, 2, 1., A, 2, M0, 1, 0., S, 1);
+	matrixMult(A, invcterm, sinterm, 2, 2, 2);
+	matrixMult(S, A, M0, 2, 2, 1);
 	double s = S[0] + S[1];
 	return s;
 }
@@ -222,7 +222,6 @@ double n2cSSFP(double alpha, double *p, double *c)
 					    0.,-sp, 0., cp, 0., 0.,
 					    0., 0., 0., 0., 1., 0.,
 					    0., 0., 0., 0., 0., 1. };
-	
 	double eye[36] = { 1., 0., 0., 0., 0., 0.,
 	                   0., 1., 0., 0., 0., 0.,
 					   0., 0., 1., 0., 0., 0.,
@@ -232,21 +231,20 @@ double n2cSSFP(double alpha, double *p, double *c)
 					   
 	double R[36], temp1[36], temp2[36], temp3[36]; // First bracket
 	matrixExp(A, 6);
-	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., R_ph, 6, R_rf, 6, 0., R, 6);
-	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., A, 6, R, 6, 0., temp1, 6);
-	catlas_daxpby(36, 1., eye, 1, -1., temp1, 1);
+	matrixMult(R, R_ph, R_rf, 6, 6, 6);
+	matrixMult(temp1, A, R, 6, 6, 6);
+	arraySub(temp1, eye, temp1, 36);
 	int ipiv[6]; // General for all cblas ops
 	clapack_dgetrf(CblasRowMajor, 6, 6, temp1, 6, ipiv); // Inverse
 	clapack_dgetri(CblasRowMajor, 6, temp1, 6, ipiv);	
 	
-	arrayCopy(temp2, A, 36);
-	catlas_daxpby(36, -1., eye, 1, 1., temp2, 1);
+	arraySub(temp2, A, eye, 36);
 
 	// Now multiply everything together
-	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 6, 6, 6, 1., temp1, 6, temp2, 6, 0., temp3, 6);
+	matrixMult(temp3, temp1, temp2, 6, 6, 6);
 	double initC[6] = { 0., 0., 0., 0., f_a , f_b };
 	double finalC[6];
-	cblas_dgemv(CblasRowMajor, CblasNoTrans, 6, 6, 1., temp3, 6, initC, 1, 0., finalC, 1);
+	matrixMult(finalC, temp3, initC, 6, 6, 1);
 	double s =  sqrt(pow(finalC[0] + finalC[1], 2.) +
 					 pow(finalC[2] + finalC[3], 2.));
 	return s;
