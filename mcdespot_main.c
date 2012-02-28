@@ -8,6 +8,7 @@
  */
 
 #include <string.h>
+#include <time.h>
 #include <dispatch/dispatch.h>
 #include "DESPOT.h"
 #include "nifti_tools.h"
@@ -187,11 +188,14 @@ int main(int argc, char **argv)
 			nifti_read_subregion_image(mask, sliceStart, sliceDim, (void**)&(maskData));
 		
 		bool hasVoxels = false;
+		size_t voxCount = 0;
+		time_t loopStart = time(NULL);
 		for (int vox = 0; vox < voxelsPerSlice; vox++)
 		{
 			if (!mask || (maskData[vox] > 0.))
 			{
 				hasVoxels = true;
+				voxCount++;
 				arraySet(params, 1., NR);
 				for (int img = 0; img < nSPGR; img++)
 					spgrSignal[img] = (double)spgrData[img][vox];
@@ -228,10 +232,11 @@ int main(int argc, char **argv)
 					resultsSlices[p][vox]  = (float)params[p];
 			}
 		}
-
+		time_t loopEnd = time(NULL);
 		if (hasVoxels)
 		{
-			fprintf(stdout, "Slice %ld had pixels to process, writing to results files...", slice);
+			fprintf(stdout, "Slice %ld had %ld voxels to process, average time per voxel was %f s. Writing to results files...", 
+			        slice, voxCount, difftime(loopEnd, loopStart) / voxCount);
 			for (int p = 0; p < NR; p++)
 				nifti_write_subregion_image(resultsHeaders[p], sliceStart, sliceDim, (void **)&(resultsSlices[p]));
 		}
