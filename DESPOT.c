@@ -357,23 +357,20 @@ void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 		c[i + 1][0] = ssfpTR; c[i + 1][1] = B1; c[i + 1][2] = phases[i];
 		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
 	}
-	size_t ctracts = regionContraction(p, 7, c, 1 + nPhases, alphas, data, nD, true, f,
-					                   bounds, 5000, 50, 100, 0.005, &(p[7]));
+	regionContraction(p, 7, c, 1 + nPhases, alphas, data, nD, true, f,
+	                  bounds, 5000, 10, 15, 0.025, &(p[7]));
 
 	// Assume that the short T2 component is the Myelin
 	// Hence swap parameters if p[2] is larger
-	//fprintf(stdout, "Finished after %ld contractions. ", ctracts);
+	//fprintf(stdout, "Finished after %ld contractions.\n", ctracts);
 	if (p[2] > p[3])
 	{
-		//fprintf(stdout, "Swapped.\n");	
 		double temp = p[2];
 		p[2] = p[3]; p[3] = temp;
 		temp = p[0]; p[0] = p[1]; p[1] = temp;
 		p[4] = 1. - p[4];
 		p[5] = p[4] * p[5] / (1. - p[4]);
 	}
-	//else
-	//	fprintf(stdout, "No swap.\n");
 	//ARR_D(bounds[0], 7);
 	//ARR_D(bounds[1], 7);
 	//ARR_D(p, 8);
