@@ -362,21 +362,21 @@ void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 
 	// Assume that the short T2 component is the Myelin
 	// Hence swap parameters if p[2] is larger
-	fprintf(stdout, "Finished after %ld contractions. ", ctracts);
+	//fprintf(stdout, "Finished after %ld contractions. ", ctracts);
 	if (p[2] > p[3])
 	{
-		fprintf(stdout, "Swapped.\n");	
+		//fprintf(stdout, "Swapped.\n");	
 		double temp = p[2];
 		p[2] = p[3]; p[3] = temp;
 		temp = p[0]; p[0] = p[1]; p[1] = temp;
 		p[4] = 1. - p[4];
 		p[5] = p[4] * p[5] / (1. - p[4]);
 	}
-	else
-		fprintf(stdout, "No swap.\n");
-	ARR_D(bounds[0], 7);
-	ARR_D(bounds[1], 7);
-	ARR_D(p, 8);
+	//else
+	//	fprintf(stdout, "No swap.\n");
+	//ARR_D(bounds[0], 7);
+	//ARR_D(bounds[1], 7);
+	//ARR_D(p, 8);
 	
 	for (int i = 0; i < 1 + nPhases; i++)
 		free(c[i]);
