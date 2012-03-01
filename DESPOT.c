@@ -191,7 +191,7 @@ double n2cSSFP(double alpha, double *p, double *c)
 		   TR = c[0], B1 = c[1], rfPhase = c[2];
 	double f_b = 1. - f_a;
 	double tau_b = f_b * tau_a / f_a;
-	double k_b = 1. / tau_b, k_a = 1. / tau_a;
+	double k_a = 1. / tau_a, k_b = 1. / tau_b;
 	
 	double iT2_a = TR * -(1./T2_a + k_a);
 	double iT2_b = TR * -(1./T2_b + k_b);
@@ -317,7 +317,7 @@ void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAn
 		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
 	}
 	regionContraction(p, 2, c, nPhases, flipAngles, ssfp, nD, true, f,
-					  bounds, 200, 20, 0.005, &fRes);
+					  bounds, 200, 20, 100, 0.005, &fRes);
 	*M0 = 1.; *T2 = p[0]; *dO = p[1];
 }
 
@@ -331,8 +331,8 @@ void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 			  size_t nPhases, size_t *nSSFPs, double *phases, double **ssfpAlphas, double **ssfp,
               double ssfpTR, double T1, double B1, double *p)
 {
-	double loBounds[7] = { 200., 800., 1., 50.,  0.,  25., 0. };
-	double hiBounds[7] = { 900., 1900., 25., 150., 0.5, 500., 1./ssfpTR };
+	double loBounds[7] = {  100.,  100.,   1.,   1.,  0.,  25.,        0. };
+	double hiBounds[7] = { 2500., 2500., 150., 150.,  1., 500., 1./ssfpTR };
 	double *bounds[2] =  { loBounds, hiBounds };
 
 	size_t nD[1 + nPhases];
@@ -357,8 +357,27 @@ void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 		c[i + 1][0] = ssfpTR; c[i + 1][1] = B1; c[i + 1][2] = phases[i];
 		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
 	}
-	regionContraction(p, 7, c, 1 + nPhases, alphas, data, nD, true, f,
-					  bounds, 2000, 50, 0.005, &(p[7]));
+	size_t ctracts = regionContraction(p, 7, c, 1 + nPhases, alphas, data, nD, true, f,
+					                   bounds, 5000, 50, 100, 0.005, &(p[7]));
+
+	// Assume that the short T2 component is the Myelin
+	// Hence swap parameters if p[2] is larger
+	fprintf(stdout, "Finished after %ld contractions. ", ctracts);
+	if (p[2] > p[3])
+	{
+		fprintf(stdout, "Swapped.\n");	
+		double temp = p[2];
+		p[2] = p[3]; p[3] = temp;
+		temp = p[0]; p[0] = p[1]; p[1] = temp;
+		p[4] = 1. - p[4];
+		p[5] = p[4] * p[5] / (1. - p[4]);
+	}
+	else
+		fprintf(stdout, "No swap.\n");
+	ARR_D(bounds[0], 7);
+	ARR_D(bounds[1], 7);
+	ARR_D(p, 8);
+	
 	for (int i = 0; i < 1 + nPhases; i++)
 		free(c[i]);
 }
