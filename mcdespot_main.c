@@ -224,6 +224,7 @@ int main(int argc, char **argv)
 				}
 				else
 				{	// Use region contraction
+					fprintf(stdout, "Vox = %d ", vox);
 					mcDESPOT(nSPGR, spgrAngles, spgrSignal, spgrTR,
 					         nPhases, nSSFP, ssfpPhases, ssfpAngles, ssfpSignal, ssfpTR,
 							 T1, B1, params);

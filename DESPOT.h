@@ -19,8 +19,12 @@ double IRSPGR(double TI, double *p, double *c);
 void IRSPGR_Jacobian(double *data, int nD, double *par, double *c, double *result);
 double SSFP(double flipAngle, double *p, double *c);
 double nSSFP(double flipAngle, double *p, double *c);
+double n1cSSFP(double alpha, double *p, double *c);
 double n2cSPGR(double alpha, double *p, double *c);
 double n2cSSFP(double alpha, double *p, double *c);
+void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA);
+void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA);
+double new2cSSFP(double alpha, double *p, double *c);
 
 
 double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,

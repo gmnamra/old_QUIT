@@ -129,10 +129,42 @@ double nSSFP(double flipAngle, double *p, double *c)
 	
 	double My = ((1 - eT1) * eT2 * sina * (cosp - eT2)) / denom;
 	double Mx = ((1.- eT1) * eT2 * sina * sinp) / denom;
+	
+	//fprintf(stdout, "MxMy: %f\t%f\n", Mx, My);
 	double ssfp = M0 * sqrt(Mx*Mx + My*My);
 	return ssfp;
 }
 
+double n1cSSFP(double alpha, double *p, double *c)
+{
+	double T2 = p[0], dO = p[1],
+		   TR = c[0], T1 = c[1], B1 = c[2], rfPhase = c[3];
+	
+	double phase = rfPhase + (dO * TR * 2. * M_PI);
+	double A[9] = { -TR / T2,    phase,       0.,
+					  -phase, -TR / T2,       0.,
+					      0.,       0., -TR / T1 };
+
+	double ca = cos(B1 * alpha), sa = sin(B1 * alpha);
+	double R_rf[9] = { 1., 0., 0.,
+					   0., ca, sa,
+					   0.,-sa, ca};
+	double eye[9] = { 1., 0., 0.,
+					  0., 1., 0.,
+					  0., 0., 1. };
+	double temp1[9], temp2[9], all[9];
+	matrixExp(A, 3);
+	matrixMult(temp1, A, R_rf, 3, 3, 3);
+	arraySub(temp1, eye, temp1, 9);
+	arraySub(temp2, eye, A, 9);
+	// Now multiply everything together
+	matrixSolve(all, temp1, temp2, 3, 3);
+	double M0[3] = { 0., 0., 1. };
+	double Mobs[3];
+	matrixMult(Mobs, all, M0, 3, 3, 1);
+	double s =  sqrt(Mobs[0]*Mobs[0] + Mobs[1]*Mobs[1]);
+	return s;
+}
 // Normalised, 2 component versions
 /*	Full parameter vector is
 	0 - T1_a
@@ -158,27 +190,23 @@ double n2cSPGR(double alpha, double *p, double *c)
 		   TR = c[0], B1 = c[1];
 	double f_b = 1. - f_a;
 	double tau_b = f_b * tau_a / f_a;
-	double k_b = 1. / tau_b, k_a = 1. / tau_a;
 	
 	double M0[2] = {f_a, f_b}, S[2];
-	double A[4]  = {-(1./T1_a + k_a), k_b,
-	                k_a, -(1./T1_b + k_b)};
+	double A[4]  = {-(TR/T1_a + TR/tau_a), TR/tau_b,
+	                TR/tau_a, -(TR/T1_b + TR/tau_b)};
 	double eye[4] = { 1., 0.,
 					  0., 1. };
-	arrayScale(A, A, TR, 4);
+	//arrayScale(A, A, TR, 4);
+	//MAT_D(A, 2, 2);
 	matrixExp(A, 2);
-	
 	double costerm[4];
 	arrayScale(costerm, A, cos(B1 * alpha), 4);
 	arraySub(costerm, eye, costerm, 4);
-	// Inverse
-	double invcterm[4];
-	inv22(invcterm, costerm);
 	
 	double sinterm[4];
 	arraySub(sinterm, eye, A, 4);
 	arrayScale(sinterm, sinterm, sin(B1 * alpha), 4);
-	matrixMult(A, invcterm, sinterm, 2, 2, 2);
+	matrixSolve(A, costerm, sinterm, 2, 2);
 	matrixMult(S, A, M0, 2, 2, 1);
 	double s = S[0] + S[1];
 	return s;
@@ -192,19 +220,17 @@ double n2cSSFP(double alpha, double *p, double *c)
 	double f_b = 1. - f_a;
 	double tau_b = f_b * tau_a / f_a;
 	double k_a = 1. / tau_a, k_b = 1. / tau_b;
-	
-	double iT2_a = TR * -(1./T2_a + k_a);
-	double iT2_b = TR * -(1./T2_b + k_b);
-	double iT1_a = TR * -(1./T1_a + k_a);
-	double iT1_b = TR * -(1./T1_b + k_b);
-
-	k_b *= TR; k_a *= TR;
-	double A[36] = { iT2_a, k_b,    0.,     0.,    0.,    0.,
-					 k_a,   iT2_b,  0.,     0.,    0.,    0.,
-					 0.,    0.,     iT2_a,  k_b,   0.,    0.,
-					 0.,    0.,     k_a,    iT2_b, 0.,    0.,
-					 0.,    0.,     0.,    0.,     iT1_a, k_b,
-					 0.,    0.,     0.,    0.,     k_a,   iT1_b };
+	double iT2_a = -(1./T2_a + k_a);
+	double iT2_b = -(1./T2_b + k_b);
+	double iT1_a = -(1./T1_a + k_a);
+	double iT1_b = -(1./T1_b + k_b);
+	double phase = rfPhase + (dO * TR * 2. * M_PI);
+	double A[36] = { iT2_a * TR, k_b * TR,    phase,     0.,    0.,    0.,
+					 k_a  * TR,  iT2_b * TR,  0.,     phase,    0.,    0.,
+					 -phase,             0.,     iT2_a * TR,  k_b * TR,   0.,    0.,
+					 0.,    -phase,     k_a * TR,    iT2_b * TR, 0.,    0.,
+					 0.,    0.,     0.,    0.,     iT1_a * TR, k_b * TR,
+					 0.,    0.,     0.,    0.,     k_a * TR,   iT1_b * TR };
 
 	double ca = cos(B1 * alpha), sa = sin(B1 * alpha);
 	double R_rf[36] = { 1., 0., 0., 0., 0., 0.,
@@ -213,15 +239,6 @@ double n2cSSFP(double alpha, double *p, double *c)
 					    0., 0., 0., ca, 0., sa,
 					    0., 0.,-sa, 0., ca, 0.,
 					    0., 0., 0.,-sa, 0., ca };
-	
-	double phase = rfPhase + (dO * TR * 2. * M_PI);
-	double cp = cos(phase), sp = sin(phase);
-	double R_ph[36] = { cp,  0., sp, 0., 0., 0.,
-						0., cp, 0., sp, 0., 0.,
-					   -sp,  0., cp, 0., 0., 0.,
-					    0.,-sp, 0., cp, 0., 0.,
-					    0., 0., 0., 0., 1., 0.,
-					    0., 0., 0., 0., 0., 1. };
 	double eye[36] = { 1., 0., 0., 0., 0., 0.,
 	                   0., 1., 0., 0., 0., 0.,
 					   0., 0., 1., 0., 0., 0.,
@@ -229,25 +246,107 @@ double n2cSSFP(double alpha, double *p, double *c)
 					   0., 0., 0., 0., 1., 0.,
 					   0., 0., 0., 0., 0., 1. };
 					   
-	double R[36], temp1[36], temp2[36], temp3[36]; // First bracket
+	double temp1[36], temp2[36], temp3[36]; // First bracket
 	matrixExp(A, 6);
-	matrixMult(R, R_ph, R_rf, 6, 6, 6);
-	matrixMult(temp1, A, R, 6, 6, 6);
+	matrixMult(temp1, A, R_rf, 6, 6, 6);
 	arraySub(temp1, eye, temp1, 36);
-	int ipiv[6]; // General for all cblas ops
-	clapack_dgetrf(CblasRowMajor, 6, 6, temp1, 6, ipiv); // Inverse
-	clapack_dgetri(CblasRowMajor, 6, temp1, 6, ipiv);	
+	arraySub(temp2, eye, A, 36);
 	
-	arraySub(temp2, A, eye, 36);
-
 	// Now multiply everything together
-	matrixMult(temp3, temp1, temp2, 6, 6, 6);
-	double initC[6] = { 0., 0., 0., 0., f_a , f_b };
-	double finalC[6];
-	matrixMult(finalC, temp3, initC, 6, 6, 1);
-	double s =  sqrt(pow(finalC[0] + finalC[1], 2.) +
-					 pow(finalC[2] + finalC[3], 2.));
+	matrixSolve(temp3, temp1, temp2, 6, 6);
+	double M0[6] = { 0., 0., 0., 0., f_a , f_b };
+	double Mobs[6];
+	matrixMult(Mobs, temp3, M0, 6, 6, 1);
+	double s =  sqrt(pow(Mobs[0] + Mobs[1], 2.) +
+					 pow(Mobs[2] + Mobs[3], 2.));
 	return s;
+}
+
+void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
+{
+	double T1_a = p[0], T1_b = p[1],
+		   f_a = p[4], tau_a = p[5],
+		   TR = c[0], B1 = c[1];
+	double f_b = 1. - f_a;
+	double tau_b = f_b * tau_a / f_a;
+	
+	double M0[2] = {f_a, f_b}, Mobs[2];
+	double A[4]  = {-(TR/T1_a + TR/tau_a), TR/tau_b,
+	                TR/tau_a, -(TR/T1_b + TR/tau_b)};
+	double eye[4] = { 1., 0.,
+					  0., 1. };
+	
+	matrixExp(A, 2);
+	double top[4], bottom[4], all[4];
+	arraySub(top, eye, A, 4);
+	for (size_t n = 0; n < nA; n++)
+	{
+		arrayScale(bottom, A, cos(B1 * alpha[n]), 4);
+		arraySub(bottom, eye, bottom, 4);
+	
+		matrixSolve(all, bottom, top, 2, 2);
+		arrayScale(all, all, sin(B1 * alpha[n]), 4);
+		matrixMult(Mobs, all, M0, 2, 2, 1);
+		signal[n] = Mobs[0] + Mobs[1];
+	}
+}
+
+void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
+{
+	double T1_a = p[0], T1_b = p[1], T2_a = p[2], T2_b = p[3],
+		   f_a = p[4], tau_a = p[5], dO = p[6],
+		   TR = c[0], B1 = c[1], rfPhase = c[2];
+	double f_b = 1. - f_a;
+	double tau_b = f_b * tau_a / f_a;
+	double eT2_a = -TR * (1./T2_a + 1./tau_a);
+	double eT2_b = -TR * (1./T2_b + 1./tau_b);
+	double eT1_a = -TR * (1./T1_a + 1./tau_a);
+	double eT1_b = -TR * (1./T1_b + 1./tau_b);
+	double k_a   = TR / tau_a;
+	double k_b   = TR / tau_b;
+	double phase = rfPhase + (dO * TR * 2. * M_PI);
+
+	double eye[36] = { 1., 0., 0., 0., 0., 0.,
+	                   0., 1., 0., 0., 0., 0.,
+					   0., 0., 1., 0., 0., 0.,
+					   0., 0., 0., 1., 0., 0.,
+					   0., 0., 0., 0., 1., 0.,
+					   0., 0., 0., 0., 0., 1. };
+	double A[36] = {  eT2_a,    k_b, phase,    0.,    0.,    0.,
+					    k_a,  eT2_b,    0., phase,    0.,    0.,
+					 -phase,     0., eT2_a,   k_b,    0.,    0.,
+					     0., -phase,   k_a, eT2_b,    0.,    0.,
+					     0.,     0.,    0.,    0., eT1_a,   k_b,
+					     0.,     0.,    0.,    0.,   k_a, eT1_b };
+	double R_rf[36] = { 1., 0., 0., 0., 0., 0.,
+	                    0., 1., 0., 0., 0., 0.,
+					    0., 0., 0., 0., 0., 0.,
+					    0., 0., 0., 0., 0., 0.,
+					    0., 0., 0., 0., 0., 0.,
+					    0., 0., 0., 0., 0., 0. };
+
+	double top[36], bottom[36], all[36];
+	double M0[6] = { 0., 0., 0., 0., f_a , f_b }, Mobs[6];
+	
+	matrixExp(A, 6);
+	// Top of matrix divide
+	arraySub(top, eye, A, 36);
+
+	for (size_t n = 0; n < nA; n++)
+	{
+		double ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
+		R_rf[14] = ca; R_rf[21] = ca; R_rf[28] = ca; R_rf[35] = ca;
+		R_rf[16] = sa; R_rf[23] = sa; R_rf[26] = -sa; R_rf[33] = -sa;
+		// Inverse bracket term (i.e. bottom of matrix divide)
+		matrixMult(bottom, A, R_rf, 6, 6, 6);
+		arraySub(bottom, eye, bottom, 36);
+		
+		// Matrix 'divide'
+		matrixSolve(all, bottom, top, 6, 6);
+		matrixMult(Mobs, all, M0, 6, 6, 1);
+		signal[n] =  sqrt(pow(Mobs[0] + Mobs[1], 2.) +
+					      pow(Mobs[2] + Mobs[3], 2.));
+	}
 }
 
 void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
@@ -331,17 +430,17 @@ void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 			  size_t nPhases, size_t *nSSFPs, double *phases, double **ssfpAlphas, double **ssfp,
               double ssfpTR, double T1, double B1, double *p)
 {
-	double loBounds[7] = {  100.,  100.,   1.,   1.,  0.,  25.,        0. };
-	double hiBounds[7] = { 2500., 2500., 150., 150.,  1., 500., 1./ssfpTR };
+	double loBounds[7] = {  100.,  250.,   1.,   1.,  0.,     1.,        0. };
+	double hiBounds[7] = { 1000., 3000.,  50., 500.,  0.45, 250., 1./ssfpTR };
 	double *bounds[2] =  { loBounds, hiBounds };
-
+	
 	size_t nD[1 + nPhases];
-	eval_type *f[1 + nPhases];
+	eval_array_type *f[1 + nPhases];
 	double *alphas[1 + nPhases], *data[1 + nPhases];
 	double *c[1 + nPhases];
 	
 	nD[0]     = nSPGR;
-	f[0]      = n2cSPGR;
+	f[0]      = a2cSPGR;
 	alphas[0] = spgrAlpha;
 	data[0]   = spgr;
 	c[0] = malloc(3 * sizeof(double));
@@ -350,31 +449,30 @@ void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 	for (int i = 0; i < nPhases; i++)
 	{
 		nD[i + 1]     = nSSFPs[i];
-		f[i + 1]      = n2cSSFP;
+		f[i + 1]      = a2cSSFP;
 		alphas[i + 1] = ssfpAlphas[i];
 		data[i + 1]   = ssfp[i];
 		c[i + 1] = malloc(3 * sizeof(double));
 		c[i + 1][0] = ssfpTR; c[i + 1][1] = B1; c[i + 1][2] = phases[i];
 		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
 	}
-	regionContraction(p, 7, c, 1 + nPhases, alphas, data, nD, true, f,
-	                  bounds, 5000, 10, 15, 0.025, &(p[7]));
-
+	size_t ctracts = regionContraction(p, 7, c, 1 + nPhases, alphas, data, nD, true, f,
+	                  bounds, 10000, 20, 20, 0.05, &(p[7]));
 	// Assume that the short T2 component is the Myelin
 	// Hence swap parameters if p[2] is larger
-	//fprintf(stdout, "Finished after %ld contractions.\n", ctracts);
-	if (p[2] > p[3])
+	/*if (p[2] > p[3])
 	{
 		double temp = p[2];
 		p[2] = p[3]; p[3] = temp;
 		temp = p[0]; p[0] = p[1]; p[1] = temp;
 		p[4] = 1. - p[4];
 		p[5] = p[4] * p[5] / (1. - p[4]);
-	}
-	//ARR_D(bounds[0], 7);
-	//ARR_D(bounds[1], 7);
-	//ARR_D(p, 8);
-	
+	}*/
+	fprintf(stdout, "Finished after %ld contractions.\n", ctracts);
+	p[6] *= 1.e3; // Convert to Hz
+	ARR_D(bounds[0], 7);
+	ARR_D(bounds[1], 7);
+	ARR_D(p, 8);	
 	for (int i = 0; i < 1 + nPhases; i++)
 		free(c[i]);
 }

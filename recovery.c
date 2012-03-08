@@ -74,7 +74,7 @@ double calcRecovery(double *vals, double* TR, int n, double *M0out, double *T1ou
 								recovery_dMzdalpha};
 	double finalRes;
 	MATH_LEVENBERG_DEBUG = 0;
-	levMar(par, n_par, NULL, TR, vals, n, &recovery_Mz, gradients, &finalRes);
+	//levMar(par, n_par, NULL, TR, vals, n, &recovery_Mz, gradients, &finalRes);
 	*M0out = par[0];
 	*T1out = par[1];
 	*alpha = par[2];
