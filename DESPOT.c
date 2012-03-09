@@ -11,8 +11,6 @@
 #include "mathMatrix.h"
 #include "math2d.h"
 #include "stdio.h"
-#include "cblas.h"
-#include "clapack.h"
 
 double SPGR(double flipAngle, double *p, double *c)
 {
@@ -349,6 +347,139 @@ void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 	}
 }
 
+// Normalised, 3 component versions
+/*	Full parameter vector is
+	0 - T1_a
+	1 - T1_b
+	2 - T1_c
+	3 - T2_a
+	4 - T2_b
+	5 - T2_c
+	6 - f_a
+	7 - f_b
+	8 - tau_a
+	9 - tau_b
+	10 - dw
+	Relationships:
+	f_b + f_a = 1. (Only two components)
+	k_ = 1. / tau_ (Exchange is inverse of lifetime)
+	f_b / tau_b = f_a / tau_a (Exchange equilibrium)
+	Constants vector:
+	0 - TR
+	1 - B1
+	2 - Phase cycle/offset
+*/
+void a3cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
+{
+	double T1_a = p[0], T1_b = p[1], T1_c = p[2],
+		   f_a = p[6], f_b = p[7],
+		   tau_a = p[8], tau_b = p[9],
+		   TR = c[0], B1 = c[1];
+	double f_c = 1. - f_a - f_b;
+	double tau_c = f_c * tau_b / f_a;
+	
+	double M0[3] = {f_a, f_b, f_c}, Mobs[3];
+	double eT1_a = -TR * (1. / T1_a + 1 / tau_a);
+	double eT1_b = -TR * (1. / T1_b + 1 / tau_b);
+	double eT1_c = -TR * (1. / T1_c + 1 / tau_c);
+	double k_a = TR / tau_a;
+	double k_b = TR / tau_b;
+	double k_c = TR / tau_c;
+	double A[9]  = { eT1_a,   k_b,   k_c,
+	                   k_a, eT1_b,   k_c,
+					   k_a,   k_b, eT1_c }; 
+	double eye[9] = { 1., 0., 0.,
+					  0., 1., 0.,
+					  0., 0., 1. };
+	
+	matrixExp(A, 3);
+	double top[9], bottom[9], all[9];
+	arraySub(top, eye, A, 9);
+	for (size_t n = 0; n < nA; n++)
+	{
+		arrayScale(bottom, A, cos(B1 * alpha[n]), 9);
+		arraySub(bottom, eye, bottom, 9);
+	
+		matrixSolve(all, bottom, top, 3, 3);
+		arrayScale(all, all, sin(B1 * alpha[n]), 9);
+		matrixMult(Mobs, all, M0, 3, 3, 1);
+		signal[n] = Mobs[0] + Mobs[1] + Mobs[2];
+	}
+}
+
+void a3cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
+{
+	double T1_a = p[0], T1_b = p[1], T1_c = p[2],
+	       T2_a = p[3], T2_b = p[4], T2_c = p[5],
+		   f_a = p[6], f_b = p[7],
+		   tau_a = p[8], tau_b = p[9], dO = p[10],
+		   TR = c[0], B1 = c[1], rfPhase = c[2];
+		   
+	double f_c = 1. - f_a - f_b;
+	double tau_c = f_b * tau_a / f_a;
+	double eT2_a = -TR * (1./T2_a + 1./tau_a);
+	double eT2_b = -TR * (1./T2_b + 1./tau_b);
+	double eT2_c = -TR * (1./T2_c + 1./tau_c);	
+	double eT1_a = -TR * (1./T1_a + 1./tau_a);
+	double eT1_b = -TR * (1./T1_b + 1./tau_b);
+	double eT1_c = -TR * (1./T1_c + 1./tau_c);
+	double k_a   = TR / tau_a;
+	double k_b   = TR / tau_b;
+	double k_c   = TR / tau_c;
+	double phase = rfPhase + (dO * TR * 2. * M_PI);
+
+	double eye[81] = { 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+	                   0., 1., 0., 0., 0., 0., 0., 0., 0.,
+					   0., 0., 1., 0., 0., 0., 0., 0., 0.,
+					   0., 0., 0., 1., 0., 0., 0., 0., 0.,
+					   0., 0., 0., 0., 1., 0., 0., 0., 0.,
+					   0., 0., 0., 0., 0., 1., 0., 0., 0.,
+					   0., 0., 0., 0., 0., 0., 1., 0., 0.,
+					   0., 0., 0., 0., 0., 0., 0., 1., 0.,
+					   0., 0., 0., 0., 0., 0., 0., 0., 1. };
+	double A[81] = {  eT2_a,    k_b,    k_c, phase,    0.,    0.,    0.,    0.,    0.,
+					    k_a,  eT2_b,    k_c,    0., phase,    0.,    0.,    0.,    0.,
+					    k_a,    k_b,  eT2_c,    0.,    0., phase,    0.,    0.,    0.,
+					 -phase,     0.,     0., eT2_a,   k_b,   k_c,    0.,    0.,    0.,
+					     0., -phase,     0.,   k_a, eT2_b,   k_c,    0.,    0.,    0.,
+					     0.,     0., -phase,   k_a,   k_b, eT2_c,    0.,    0.,    0.,
+					     0.,     0.,     0.,    0.,    0.,    0., eT1_a,   k_b,   k_c,
+					     0.,     0.,     0.,    0.,    0.,    0.,   k_a, eT1_b,   k_c,
+					     0.,     0.,     0.,    0.,    0.,    0.,   k_a,   k_b, eT1_c };
+	double R[81] = { 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+				     0., 1., 0., 0., 0., 0., 0., 0., 0.,
+					 0., 0., 1., 0., 0., 0., 0., 0., 0.,
+					 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+					 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+					 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+					 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+					 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+					 0., 0., 0., 0., 0., 0., 0., 0., 0. };
+
+	double top[81], bottom[81], all[81];
+	double M0[9] = { 0., 0., 0., 0., 0., 0., f_a , f_b, f_c }, Mobs[9];
+	
+	matrixExp(A, 9);
+	// Top of matrix divide
+	arraySub(top, eye, A, 81);
+
+	for (size_t n = 0; n < nA; n++)
+	{
+		double ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
+		R[30] = ca; R[40] = ca; R[50] = ca; R[60] = ca; R[70] = ca; R[80] = ca;
+		R[33] = sa; R[43] = sa; R[53] = sa; R[57] = -sa; R[67] = -sa; R[77] = -sa;
+		// Inverse bracket term (i.e. bottom of matrix divide)
+		matrixMult(bottom, A, R, 9, 9, 9);
+		arraySub(bottom, eye, bottom, 81);
+		
+		// Matrix 'divide'
+		matrixSolve(all, bottom, top, 9, 9);
+		matrixMult(Mobs, all, M0, 9, 9, 1);
+		signal[n] =  sqrt(pow(Mobs[0] + Mobs[1] + Mobs[2], 2.) +
+					      pow(Mobs[3] + Mobs[4] + Mobs[5], 2.));
+	}
+}
+
 void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 				 double TR, double B1, double *M0, double *T1)
 {
@@ -402,7 +533,7 @@ void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAng
 void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAngles, double **ssfp,
 					 double TR, double T1, double B1, double *M0, double *T2, double *dO)
 {
-	double loBounds[2] = {1., 150. / TR}; // A T2 of 0. causes nasty maths
+	/*double loBounds[2] = {1., 150. / TR}; // A T2 of 0. causes nasty maths
 	double hiBounds[2] = {300., 100. / TR};
 	double *bounds[2] = {loBounds, hiBounds}; 
 	double p[2] = {*T2, *dO}, *c[nPhases], fRes = 0.;
@@ -416,8 +547,8 @@ void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAn
 		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
 	}
 	regionContraction(p, 2, c, nPhases, flipAngles, ssfp, nD, true, f,
-					  bounds, 200, 20, 100, 0.005, &fRes);
-	*M0 = 1.; *T2 = p[0]; *dO = p[1];
+					  bounds, 200, 20, 100, 0.005, 0., &fRes);
+	*M0 = 1.; *T2 = p[0]; *dO = p[1];*/
 }
 
 /*
@@ -433,6 +564,9 @@ void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 	double loBounds[7] = {  100.,  250.,   1.,   1.,  0.,     1.,        0. };
 	double hiBounds[7] = { 1000., 3000.,  50., 500.,  0.45, 250., 1./ssfpTR };
 	double *bounds[2] =  { loBounds, hiBounds };
+	bool loConstraint[7] = { true, true, true, true, true, true, false };
+	bool hiConstraint[7] = { false, false, false, false, true, false, false };
+	bool *constraints[2] = { loConstraint, hiConstraint };
 	
 	size_t nD[1 + nPhases];
 	eval_array_type *f[1 + nPhases];
@@ -456,23 +590,14 @@ void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 		c[i + 1][0] = ssfpTR; c[i + 1][1] = B1; c[i + 1][2] = phases[i];
 		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
 	}
-	size_t ctracts = regionContraction(p, 7, c, 1 + nPhases, alphas, data, nD, true, f,
-	                  bounds, 10000, 20, 20, 0.05, &(p[7]));
-	// Assume that the short T2 component is the Myelin
-	// Hence swap parameters if p[2] is larger
-	/*if (p[2] > p[3])
-	{
-		double temp = p[2];
-		p[2] = p[3]; p[3] = temp;
-		temp = p[0]; p[0] = p[1]; p[1] = temp;
-		p[4] = 1. - p[4];
-		p[5] = p[4] * p[5] / (1. - p[4]);
-	}*/
-	fprintf(stdout, "Finished after %ld contractions.\n", ctracts);
-	p[6] *= 1.e3; // Convert to Hz
-	ARR_D(bounds[0], 7);
-	ARR_D(bounds[1], 7);
-	ARR_D(p, 8);	
+	regionContraction(p, 7, c, 1 + nPhases, alphas, data, nD, true, f,
+	                  bounds, constraints, 10000, 25, 20, 0.05, 0.02, &(p[7]));
+	//fprintf(stdout, "Finished after %ld contractions.\n", ctracts);
+	p[6] = fmod(p[6], 1./ssfpTR); // Bring it back to one cycle
+	p[6] *= 1.e3; // Convert off-resonance to Hz
+	//ARR_D(bounds[0], 7);
+	//ARR_D(bounds[1], 7);
+	//ARR_D(p, 8);	
 	for (int i = 0; i < 1 + nPhases; i++)
 		free(c[i]);
 }

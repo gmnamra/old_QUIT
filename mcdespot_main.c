@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 	char outName[strlen(outPrefix) + 12];
 	float *blank = calloc(totalVoxels, sizeof(float));
 	char *names[NR] = { "_T1_myel", "_T1_free", "_T2_myel", "_T2_free", "_frac_myel", "_tau_myel", "_dw", "_res" };
-	
+	float **resultsSlices = malloc(NR * sizeof(float*));
 	for (int p = 0; p < NR; p++)
 	{
 		strcpy(outName, outPrefix); strcat(outName, names[p]);
@@ -139,25 +139,21 @@ int main(int argc, char **argv)
 		nifti_set_filenames(resultsHeaders[p], outName, FALSE, TRUE);
 		resultsHeaders[p]->data = blank;
 		nifti_image_write(resultsHeaders[p]);
+		resultsSlices[p] = malloc(voxelsPerSlice * sizeof(float));
 	}
+
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
 	fprintf(stdout, "Fitting mcDESPOT.\n");
 	
-	for (int slice = 0; slice < ssfpHeaders[0][0]->nz; slice++)
-	//void (^processSlice)(size_t slice) = ^(size_t slice)
+	for (size_t slice = 0; slice < ssfpHeaders[0][0]->nz; slice++)
 	{
 		// Read in data
 		fprintf(stdout, "Starting slice %ld...\n", slice);
-		double params[NR];
-		float *resultsSlices[NR];
-		for (int p = 0; p < NR; p++)
-			resultsSlices[p] = calloc(voxelsPerSlice, sizeof(float));
-		int sliceStart[NR] = {0, 0, slice, 0, 0, 0, 0};
+		int sliceStart[NR] = {0, 0, (int)slice, 0, 0, 0, 0};
 		int sliceDim[NR] = {spgrHeaders[0]->nx, spgrHeaders[0]->ny, 1, 1, 1, 1, 1};
 		float **spgrData = malloc(nSPGR * sizeof(float *));
-		double *spgrSignal = malloc(nSPGR * sizeof(double));
 		for (int i = 0; i < nSPGR; i++)
 		{
 			spgrData[i] = malloc(voxelsPerSlice * sizeof(float));
@@ -165,10 +161,8 @@ int main(int argc, char **argv)
 		}
 		
 		float ***ssfpData = malloc(nPhases * sizeof(float **));
-		double **ssfpSignal = malloc(nPhases * sizeof(double *));
 		for (int p = 0; p < nPhases; p++)
 		{
-			ssfpSignal[p] = malloc(nSSFP[p] * sizeof(double));
 			ssfpData[p] = malloc(nSSFP[p] * sizeof(float *));
 			for (int i = 0; i < nSSFP[p]; i++)
 			{
@@ -187,21 +181,26 @@ int main(int argc, char **argv)
 		if (mask)
 			nifti_read_subregion_image(mask, sliceStart, sliceDim, (void**)&(maskData));
 		
-		bool hasVoxels = false;
-		size_t voxCount = 0;
+		__block bool hasVoxels = false;
+		__block size_t voxCount = 0;
 		time_t loopStart = time(NULL);
-		for (int vox = 0; vox < voxelsPerSlice; vox++)
+		//for (int vox = 0; vox < voxelsPerSlice; vox++)
+		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
+			double params[NR];
+			arraySet(params, 0., NR);
 			if (!mask || (maskData[vox] > 0.))
 			{
 				hasVoxels = true;
 				voxCount++;
-				arraySet(params, 1., NR);
+				double spgrSignal[nSPGR];
 				for (int img = 0; img < nSPGR; img++)
 					spgrSignal[img] = (double)spgrData[img][vox];
-
+				
+				double *ssfpSignal[nPhases];
 				for (int p = 0; p < nPhases; p++)
 				{
+					ssfpSignal[p] = malloc(nSSFP[p] * sizeof(double));
 					for (int img = 0; img < nSSFP[p]; img++)
 						ssfpSignal[p][img] = (double)ssfpData[p][img][vox];
 				}
@@ -209,30 +208,22 @@ int main(int argc, char **argv)
 				double T1 = (double)T1Data[vox];
 				double B1 = (double)B1Data[vox];
 				if (mode == 0)
-				{	// Use phase cycle with highest intensity to bootstrap simplex
-					/*double *pSigs = malloc(nPhases * sizeof(double));
-					for (int p = 0; p < nPhases; p++)
-						pSigs[p] = ssfpSignal[p][0];
-					size_t *ind = malloc(nPhases * sizeof(double));
-					arraySort(pSigs, nPhases, ind);
-					size_t hi = ind[nPhases - 1];
-					classicDESPOT2(ssfpAngles[hi], ssfpSignal[hi], nSSFP[hi], ssfpTR, T1, B1, &M0, &T2);
-					simplexDESPOT2(nPhases, nSSFP, ssfpPhases, ssfpAngles, ssfpSignal, ssfpTR, T1, B1, &M0, &T2, &dO);
-					
-					free(ind);
-					free(pSigs);*/
+				{
 				}
 				else
 				{	// Use region contraction
-					fprintf(stdout, "Vox = %d ", vox);
 					mcDESPOT(nSPGR, spgrAngles, spgrSignal, spgrTR,
 					         nPhases, nSSFP, ssfpPhases, ssfpAngles, ssfpSignal, ssfpTR,
 							 T1, B1, params);
 				}
-				for (int p = 0; p < NR; p++)
-					resultsSlices[p][vox]  = (float)params[p];
+				for (size_t p = 0; p < nPhases; p++)
+					free(ssfpSignal[p]);
 			}
-		}
+			for (int p = 0; p < NR; p++)
+				resultsSlices[p][vox]  = (float)params[p];
+		};
+		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		time_t loopEnd = time(NULL);
 		if (hasVoxels)
 		{
@@ -245,21 +236,17 @@ int main(int argc, char **argv)
 		// Clean up memory
 		for (int img = 0; img < nSPGR; img++)
 			free(spgrData[img]);
-		free(spgrSignal);
 		for (int p = 0; p < nPhases; p++)
 		{
 			for (int img = 0; img < nSSFP[p]; img++)
 				free(ssfpData[p][img]);
 			free(ssfpData[p]);
-			free(ssfpSignal[p]);
-			free(resultsSlices[p]);
 		}
 		free(T1Data);
 		free(B1Data);	
 		fprintf(stdout, "Finished slice %ld.\n", slice);
 	};
-	//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	//dispatch_apply(spgrHeaders[0]->nz, global_queue, processSlice);
+
 	fprintf(stdout, "All done.\n");
 	return EXIT_SUCCESS;
 }
