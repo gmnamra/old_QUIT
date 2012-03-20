@@ -133,7 +133,7 @@
 		F64E845914F252C300470C2C /* despot_tests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot_tests; sourceTree = BUILT_PRODUCTS_DIR; };
 		F64E847714F2538400470C2C /* tests_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tests_main.c; sourceTree = "<group>"; };
 		F65C0587149655140046A464 /* despot1_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = despot1_main.c; sourceTree = SOURCE_ROOT; };
-		F65C0588149655140046A464 /* DESPOT.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = DESPOT.c; sourceTree = SOURCE_ROOT; };
+		F65C0588149655140046A464 /* DESPOT.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = DESPOT.c; sourceTree = SOURCE_ROOT; wrapsLines = 0; };
 		F65C0589149655140046A464 /* DESPOT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DESPOT.h; sourceTree = SOURCE_ROOT; };
 		F65C058A149655140046A464 /* recovery_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = recovery_main.c; sourceTree = SOURCE_ROOT; };
 		F65C058B149655140046A464 /* recovery.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = recovery.c; sourceTree = SOURCE_ROOT; };

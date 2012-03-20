@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SchemeUserState</key>
+	<dict>
+		<key>despot1.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>7</integer>
+		</dict>
+		<key>despot2.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>3</integer>
+		</dict>
+		<key>despot_tests.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>9</integer>
+		</dict>
+		<key>mcdespot.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>0</integer>
+		</dict>
+		<key>recovery.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>8</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>F64E845814F252C300470C2C</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>F65C0596149655370046A464</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>F65C059E1496558A0046A464</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>F692991D14CDDEC1003EF4FD</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>F6BC229C14EA6966009149C6</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>
