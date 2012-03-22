@@ -752,7 +752,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_X86_VECTOR_INSTRUCTIONS = sse4.2;
+				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_OPTIMIZATION_LEVEL = 3;

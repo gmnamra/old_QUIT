@@ -145,8 +145,11 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	fprintf(stdout, "Fitting mcDESPOT.\n");
-	
+    time_t allStart = time(NULL);
+    struct tm *localStart = localtime(&allStart);
+    char theTime[1024];
+    strftime(theTime, 1024, "%H:%M:%S", localStart);
+	fprintf(stdout, "Started processing at %s.\n", theTime);
 	for (size_t slice = 0; slice < ssfpHeaders[0][0]->nz; slice++)
 	{
 		// Read in data
@@ -183,7 +186,7 @@ int main(int argc, char **argv)
 		
 		__block bool hasVoxels = false;
 		__block size_t voxCount = 0;
-		time_t loopStart = time(NULL);
+		clock_t loopStart = clock();
 		//for (int vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
@@ -224,15 +227,18 @@ int main(int argc, char **argv)
 		};
 		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
-		time_t loopEnd = time(NULL);
+		
+        clock_t loopEnd = clock();
+        fprintf(stdout, "Finished slice %ld", slice);
 		if (hasVoxels)
 		{
-			fprintf(stdout, "Slice %ld had %ld voxels to process, average time per voxel was %f s. Writing to results files...", 
-			        slice, voxCount, difftime(loopEnd, loopStart) / voxCount);
+			fprintf(stdout, ", had %ld unmasked voxels, average time per voxel was %f s. Writing to results files...", 
+			        voxCount, (float)(loopEnd - loopStart) / (float)(voxCount * CLOCKS_PER_SEC));
 			for (int p = 0; p < NR; p++)
 				nifti_write_subregion_image(resultsHeaders[p], sliceStart, sliceDim, (void **)&(resultsSlices[p]));
+            fprintf(stdout, "done");
 		}
-		
+		fprintf(stdout, ".\n");
 		// Clean up memory
 		for (int img = 0; img < nSPGR; img++)
 			free(spgrData[img]);
@@ -243,11 +249,13 @@ int main(int argc, char **argv)
 			free(ssfpData[p]);
 		}
 		free(T1Data);
-		free(B1Data);	
-		fprintf(stdout, "Finished slice %ld.\n", slice);
+		free(B1Data);
 	};
-
-	fprintf(stdout, "All done.\n");
+    
+    time_t allEnd = time(NULL);
+    struct tm *localEnd = localtime(&allEnd);
+    strftime(theTime, 1024, "%H:%M:%S", localEnd);
+	fprintf(stdout, "Finished processing at %s. Run-time was %f s.\n", theTime, difftime(allEnd, allStart));
 	return EXIT_SUCCESS;
 }
 
