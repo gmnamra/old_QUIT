@@ -8,7 +8,10 @@
  */
 
 #include <string.h>
+#include <time.h>
+#include <stdbool.h>
 #include <dispatch/dispatch.h>
+#include <libkern/OSAtomic.h>
 #include "DESPOT.h"
 #include "nifti_tools.h"
 #include "znzlib.h"
@@ -19,19 +22,18 @@
 #define __DEBUG__ FALSE
 #define __DEBUG_THRESH__ 60000
 
-char *usage = "Usage is: despot1 [Output Prefix] [SPGR input file] [SPGR TR] <[SPGR-IR input file] [Flip Angle] [TR] [PE Readout Step count] [Inversion Mode]>\n\
-\n\
-Input File format:\n\
-1st line - single integer (N) specifying number of files.\n\
-N lines  - Path to file, space, parameter. For the SPGR files\n\
-		    this is the flip angle in degrees, for the SPGR-IR files this\n\
-		    is the TI in ms.\n\
-\n\
-Inversion Modes: 0 = 1.5T scanner (readout pulses div 2 + 2)\n\
-                 1 = 3.0T scanner 1 (scale TI times by 0.9, readout pulses div 2 + 2)\n\
-                 2 = 3.0T scanner 2 (scale TI times by 0.84, readout pulses + 2)\n\
-				 3 = Varian MPRAGE Sequence (Use raw segment TR from input file, TR, pulses ignored)\n";
-
+char *usage = "Usage is: despot1 [options] output_prefix spgr_input \n\
+\
+Options:\n\
+	-m file  : Mask input with specified file.\n\
+	-h file  : Use HIFI mode with specified SPGR-IR data.\n\
+	-z       : Output .nii.gz files.\n\
+	-i 0-3 N : Specify the scanner Inversion mode:\n\
+	           0 (Default) Use raw segment TR from input file\n\
+			   1 = 1.5T scanner, readout pulses div 2 + 2\n\
+	           2 = 3T scanner, scale TI times by 0.9, readout pulses div 2 + 2\n\
+	           3 = 3T scanner, scale TI times by 0.84, readout pulses + 2)\n\
+			   1,2 & 3 MUST be followed by the PE Readout Step Count\n";
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -41,93 +43,138 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	int nSPGR = 0, nIR = 0;
-	double spgrTR; char **spgrFilenames;
-	double *spgrAngles;
-	double irTR = 0., irAngle = 0., *irTI = NULL, TIScale = 1.; char **irFilenames;
-	char *outPrefix;
+	int nSPGR = 0, nIR = 0, nReadout = 0;
+	char *spgrFilename = NULL, *irFilename = NULL, *maskFilename = NULL,
+	     *outPrefix = NULL, *outExt = ".nii";
+	double spgrTR = 0., *spgrAngles = NULL;
+	double irTR = 0., irAngle = 0., *irTI = NULL, TIScale = 1.;
+	nifti_image *spgrFile = NULL, *irFile = NULL, *maskFile = NULL;
 	
-	if (argc == 1)
+	if (argc < 3)
 	{
 		fprintf(stderr, "%s", usage);
 		exit(EXIT_FAILURE);
 	}
 	
-	if ((argc != 4) && (argc != 5) && (argc != 9) && (argc != 10))
+	int thisArg = 1;
+	while ((thisArg < argc) && (argv[thisArg][0] =='-'))
 	{
-		fprintf(stderr, "Incorrect number of arguments (= %d) specified, should be 3 for DESPOT1 and 8 for DESPOT1-HIFI (+1 if masked).\n",
-				argc - 1); // Subtract off filename
-		fprintf(stderr, "%s", usage);
-		exit(EXIT_FAILURE);
-	}
-	
-	outPrefix = argv[1];
-	nSPGR = readRecordFile(argv[2], "sd", &spgrFilenames, &spgrAngles);
-	for (int i = 0; i < nSPGR; i++)
-		spgrAngles[i] = radians(spgrAngles[i]);
-	spgrTR = atof(argv[3]);
-	fprintf(stdout, "Specified %d SPGR files with TR=%f ms.\n", nSPGR, spgrTR);
-	
-	if (argc >= 9)
-	{
-		nIR = readRecordFile(argv[4], "sd", &irFilenames, &irTI);
-		irAngle = radians(atof(argv[5]));
-		double irStepTR = atof(argv[6]);
-		int nReadout = atoi(argv[7]);
-		int invMode = atoi(argv[8]);
-		switch (invMode)
+		switch (argv[thisArg][1])
 		{
-			case 0:
-				TIScale = 1.0;
-				nReadout = (nReadout / 2) + 2;
-				irTR = nReadout * irStepTR;
+			case 'm':
+				maskFilename = argv[++thisArg];
 				break;
-			case 1:
-				TIScale = 0.9; // From Sean's code
-				nReadout = (nReadout / 2) + 2;
-				irTR = nReadout * irStepTR;
+			case 'h':
+				irFilename = argv[++thisArg];
 				break;
-			case 2:
-				TIScale = 0.84; // From Sean's code
-				nReadout = nReadout + 2;
-				irTR = nReadout * irStepTR;
-				break;
-			case 3:
-				TIScale = 1.0;
-				irTR = 0.;
-				break;
+			case 'z':
+				outExt = ".nii.gz";
+				break; 
+			case 'i':
+				switch (atoi(argv[++thisArg]))
+				{
+					case 1:
+						TIScale = 1.0;
+						nReadout = (atoi(argv[++thisArg]) / 2) + 2;
+						break;
+					case 2:
+						TIScale = 0.9; // From Sean's code
+						nReadout = (atoi(argv[++thisArg]) / 2) + 2;
+						break;
+					case 3:
+						TIScale = 0.84; // From Sean's code
+						nReadout = atoi(argv[++thisArg]) + 2;
+						break;
+					case 0:
+						TIScale = 1.0;
+						nReadout = 0;
+						break;
+					default:
+						fprintf(stderr, "Inversion mode must be 0 - 3\n");
+						exit(EXIT_FAILURE);
+						break;
+				}
 			default:
-				fprintf(stderr, "Inversion mode must be 0, 1, or 2\n");
+				fprintf(stderr, "Undefined command line option\n%s", usage);
 				exit(EXIT_FAILURE);
 				break;
 		}
-		for (int i = 0; i < nIR; i++)
-			irTI[i] = irTI[i] * TIScale;
-		fprintf(stdout, "Specified %d SPGR-IR files with flip angle: %f degrees and (calculated first) TR: %f\n", nIR, degrees(irAngle), irTR + irTI[0]);
+		++thisArg;
 	}
+	outPrefix = argv[thisArg]; thisArg++;
+	spgrFilename = argv[thisArg]; thisArg++;
 	
-	nifti_image *mask = NULL;
-	if (argc == 5)
-		mask = nifti_image_read(argv[4], FALSE);
-	if (argc == 10)
-		mask = nifti_image_read(argv[9], FALSE);
-	//**************************************************************************	
-	// Read in headers / Allocate memory for slices and results
-	//**************************************************************************
-	nifti_image **SPGRFiles = (nifti_image **)malloc(nSPGR * sizeof(nifti_image *));
-	nifti_image **irFiles = (nifti_image **)malloc(nIR * sizeof(nifti_image *));
-	loadHeaders(spgrFilenames, SPGRFiles, nSPGR);
-	if (nIR > 0)
-		loadHeaders(irFilenames, irFiles, nIR);
-	
-	if (SPGRFiles[0]->nvox != irFiles[0]->nvox)
+	if (thisArg != argc)
 	{
-		fprintf(stderr, "SPGR and IR-SPGR files have different number of voxels (%ld and %ld)\n", SPGRFiles[0]->nvox, irFiles[0]->nvox);
+		fprintf(stderr, "Unexpected number of command-line options.\n%s", usage);
 		exit(EXIT_FAILURE);
 	}
 	
-	int voxelsPerSlice = SPGRFiles[0]->nx * SPGRFiles[0]->ny;	
-	int totalVoxels = voxelsPerSlice * SPGRFiles[0]->nz;
+	fprintf(stdout, "Reading headers.\n");
+	spgrFile = nifti_image_read(spgrFilename, FALSE);
+	nSPGR = spgrFile->nt;
+	spgrAngles = malloc(nSPGR * sizeof(double));
+	fprintf(stdout, "Enter SPGR TR (ms):");
+	fscanf(stdin, "%lf", &spgrTR);
+	fprintf(stdout, "Enter SPGR Flip Angles (degrees):");
+	fgetArray(stdin, 'd', nSPGR, spgrAngles);
+	
+	fprintf(stdout, "SPGR TR=%f ms. ", spgrTR);
+	ARR_D(spgrAngles, nSPGR);
+	for (int i = 0; i < nSPGR; i++)
+		spgrAngles[i] = radians(spgrAngles[i]);
+
+	//**************************************************************************	
+	// Gather IR-SPGR Data
+	//**************************************************************************	
+	if (irFilename)
+	{
+		irFile = nifti_image_read(irFilename, FALSE);
+		nIR = irFile->nt;
+		irTI = malloc(nIR * sizeof(double));
+		fprintf(stdout, "Enter IR-SPGR Flip Angle (degrees):");
+		fscanf(stdin, "%lf", &irAngle);
+		irAngle = radians(irAngle);
+		if (nReadout > 0)
+		{
+			fprintf(stdout, "Enter IR-SPGR TR (ms):");
+			fscanf(stdin, "%lf", &irTR);
+			irTR = irTR * nReadout;
+			fprintf(stdout, "Enter IR-SPGR TI times (ms):");
+			fgetArray(stdin, 'd', nIR, irTI);
+			for (int i = 0; i < nIR; i++)
+				irTI[i] = irTI[i] * TIScale;
+		}
+		else
+		{
+			fprintf(stdout, "Enter IR-SPGR TI times (ms):");
+			fgetArray(stdin, 'd', nIR, irTI);
+			fprintf(stdout, "Enter first scan Segment TR (ms):");
+			fscanf(stdin, "%lf", &irTR);
+			irTR -= irTI[0]; // Subtract off TI to get 
+		}
+
+		fprintf(stdout, "Specified %d SPGR-IR images with flip angle: %f degrees, TR = %f (ms) ", nIR, degrees(irAngle), irTR);
+		ARR_D(irTI, nIR);
+	}
+	
+	if (maskFilename)
+		maskFile = nifti_image_read(maskFilename, FALSE);
+	else
+		fprintf(stdout, "No mask file specified.\n");
+
+	//**************************************************************************	
+	// Allocate memory for slices and results
+	//**************************************************************************	
+	int voxelsPerSlice = spgrFile->nx * spgrFile->ny;	
+	int totalVoxels = voxelsPerSlice * spgrFile->nz;
+	__block int voxCount;
+	float *SPGRData = malloc(nSPGR * voxelsPerSlice * sizeof(float));
+	float *irData = NULL, *maskData = NULL;
+	if (irFile)
+		irData = malloc(nIR * voxelsPerSlice * sizeof(float));
+	if (maskFile)
+		maskData = malloc(voxelsPerSlice * sizeof(float));	
 	__block float *T1Data = (float *)malloc(totalVoxels * sizeof(float));
 	__block float *M0Data = (float *)malloc(totalVoxels * sizeof(float));
 	__block float *B1Data = (float *)malloc(totalVoxels * sizeof(float));
@@ -135,56 +182,67 @@ int main(int argc, char **argv)
 	__block float *M0Smooth = (float *)malloc(totalVoxels * sizeof(float));
 	__block float *B1Smooth = (float *)malloc(totalVoxels * sizeof(float));
 	int kernelSize = 15;
-	__block float *gaussKernel = matrixGaussianf(kernelSize, kernelSize, 3., 3.);
+	float *gaussKernel = matrixGaussianf(kernelSize, kernelSize, 3., 3.);
 	fprintf(stdout, "Smoothing kernel is a gaussian, %d pixels wide/high.\n", kernelSize);
+	
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	if (nIR > 0)
-		fprintf(stdout, "Fitting DESPOT1-HIFI.\n");
-	else
+	if (nIR == 0)
 		fprintf(stdout, "Fitting classic DESPOT1.\n");
-	
-	//for (int slice = 0; slice < SPGRFiles[0]->nz; slice++)
-	void (^processSlice)(size_t slice) = ^(size_t slice)
+	else
 	{
-		// Read in data
-		fprintf(stdout, "Processing slice %ld...\n", slice);
-		double T1 = 0., M0 = 0., B1 = 1.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
-		
-		int sliceStart[7] = {0, 0, slice, 0, 0, 0, 0};
-		int sliceDim[7] = {SPGRFiles[0]->nx, SPGRFiles[0]->ny, 1, 1, 1, 1, 1};
-		float *SPGRData[nSPGR];
-		for (int i = 0; i < nSPGR; i++)
-			SPGRData[i] = malloc(voxelsPerSlice * sizeof(float));
-		float *irData[nIR];
-		for (int i = 0; i < nIR; i++)
-			irData[i] = malloc(voxelsPerSlice * sizeof(float));
-		float *maskData;
-		if (mask)
-			maskData = malloc(voxelsPerSlice * sizeof(float));
-		
-		for (int img = 0; img < nSPGR; img++)
-			nifti_read_subregion_image(SPGRFiles[img], sliceStart, sliceDim, (void**)&(SPGRData[img]));
-		for (int img = 0; img < nIR; img++)
-			nifti_read_subregion_image(irFiles[img], sliceStart, sliceDim, (void**)&(irData[img]));
-		if (mask)
-			nifti_read_subregion_image(mask, sliceStart, sliceDim, (void**)&(maskData));
-		
-		int sliceIndex = slice * voxelsPerSlice;	
-		for (int vox = 0; vox < voxelsPerSlice; vox++)
+		if (totalVoxels != (irFile->nx * irFile->ny * irFile->nz))
 		{
-			if (!mask || (maskData[vox] > 0.))
+			fprintf(stderr, "SPGR and IR-SPGR files have different number of voxels (%ld and %ld)\n", spgrFile->nvox, irFile->nvox);
+			exit(EXIT_FAILURE);
+		}
+		fprintf(stdout, "Fitting DESPOT1-HIFI.\n");
+	}
+
+	for (int slice = 0; slice < spgrFile->nz; slice++)
+	{
+		clock_t loopStart, loopEnd;
+		// Read in data
+		fprintf(stdout, "Processing slice %d...\n", slice);
+		int sliceStart[7] = {0, 0, slice, 0, 0, 0, 0};
+		int sliceDim[7] = {spgrFile->nx, spgrFile->ny, 1, 1, 1, 1, 1};
+		if (maskFile)
+		{
+			if (maskFile->datatype == DT_FLOAT)
+				nifti_read_subregion_image(maskFile, sliceStart, sliceDim, (void**)&(maskData));
+			else
 			{
+				nifti_read_subregion_image(maskFile, sliceStart, sliceDim, &(maskFile->data));
+				arrayConvert(maskData, maskFile->data, DT_FLOAT, maskFile->datatype, voxelsPerSlice);
+			}
+		}			
+		sliceDim[3] = nSPGR;
+		nifti_read_subregion_image(spgrFile, sliceStart, sliceDim, (void**)&(SPGRData));
+		if (nIR > 0)
+		{
+			sliceDim[3] = nIR;
+			nifti_read_subregion_image(irFile, sliceStart, sliceDim, (void**)&(irData));
+		}
+		
+		loopStart = clock();
+		voxCount = 0;
+		int sliceIndex = slice * voxelsPerSlice;
+		void (^processVoxel)(size_t vox) = ^(size_t vox)
+		{
+			double T1 = 0., M0 = 0., B1 = 1.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
+			if ((!maskFile) || (maskData[vox] > 0.))
+			{
+				OSAtomicAdd32(1, &voxCount);
 				double spgrs[nSPGR];
 				for (int img = 0; img < nSPGR; img++)
-					spgrs[img] = (double)SPGRData[img][vox];		
+					spgrs[img] = (double)SPGRData[voxelsPerSlice * img + vox];		
 				calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
 				if (nIR > 0)
 				{
 					double irs[nIR];
 					for (int img = 0; img < nIR; img++)
-						irs[img] = (double)irData[img][vox];
+						irs[img] = (double)irData[voxelsPerSlice * img + vox];
 					B1 = 1.;
 					calcHIFI(spgrAngles, spgrs, nSPGR, spgrTR,
 							 irTI, irs, nIR, irAngle, irTR,
@@ -196,29 +254,41 @@ int main(int argc, char **argv)
 				T1 = clamp(T1, 0., 3.e3);
 				B1 = clamp(B1, 0., 2.);
 			}
-			else
-			{
-				M0 = 0.; T1 = 0.; B1 = 0.;
-			}
-
-						
 			T1Data[sliceIndex + vox] = (float)T1;
 			M0Data[sliceIndex + vox] = (float)M0;
 			B1Data[sliceIndex + vox] = (float)B1;
+		};
+		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+		
+        loopEnd = clock();
+        fprintf(stdout, "Finished first pass through slice %d", slice);
+		if (voxCount)
+		{
+			fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s.\n", 
+			        voxCount, (loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC));
 		}
+		else
+			fprintf(stdout, ", no unmasked voxels.\n");
 		
 		if (nIR > 0)
 		{
+			fprintf(stdout, "Smoothing...");
 			matrixConvolvef(&(B1Smooth[sliceIndex]), &(B1Data[sliceIndex]),
-						   SPGRFiles[0]->nx, SPGRFiles[0]->ny,
+						   spgrFile->nx, spgrFile->ny,
 						   gaussKernel, kernelSize, kernelSize);
-			for (int vox = 0; vox < voxelsPerSlice; vox++)
+			fprintf(stdout, "done. Re-fitting with smoothed B1 parameter.\n");
+			loopStart = clock();
+			voxCount = 0;
+			void (^processVoxel)(size_t vox) = ^(size_t vox)
 			{
-				if (!mask || (maskData[vox] > 0))
+				double T1 = 0., M0 = 0., B1 = 1.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
+				if (!maskFile || (maskData[vox] > 0))
 				{
+					OSAtomicAdd32(1, &voxCount);
 					double spgrs[nSPGR];
 					for (int img = 0; img < nSPGR; img++)
-						spgrs[img] = (double)SPGRData[img][vox];
+						spgrs[img] = (double)SPGRData[voxelsPerSlice * img + vox];
 					B1 = (double)B1Smooth[sliceIndex + vox];
 					calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
 					// Sanity check
@@ -232,37 +302,45 @@ int main(int argc, char **argv)
 
 				T1Smooth[sliceIndex + vox] = T1;
 				M0Smooth[sliceIndex + vox] = M0;
+			};
+			dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+			dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+			
+			loopEnd = clock();
+	        fprintf(stdout, "Finished second pass through slice %d", slice);
+			if (voxCount)
+			{
+				fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s.\n", 
+			    	    voxCount, (loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC));
 			}
-		};
-		
-		// Clean up memory
-		for (int i = 0; i < nSPGR; i++)
-			free(SPGRData[i]);
-		for (int i = 0; i < nIR; i++)
-			free(irData[i]);
-	};
-	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	dispatch_apply(SPGRFiles[0]->nz, global_queue, processSlice);
-	fprintf(stdout, "Finished fitting. Writing results files.\n");
+			else
+				fprintf(stdout, ", no unmasked voxels.\n");
+			}
+	}
+	// Clean up memory
+	free(SPGRData);
+	free(irData);
 
 	//**************************************************************************
 	// Create results files
 	//**************************************************************************
-	nifti_image *out = nifti_copy_nim_info(SPGRFiles[0]);
+	fprintf(stdout, "Finished fitting. Writing results files.\n");
+	int outDims[8] = {3, spgrFile->nx, spgrFile->ny, spgrFile->nz, 1, 1, 1, 1};
+	nifti_image *out = nifti_copy_orientation(spgrFile, outDims, DT_FLOAT);
 	char outName[strlen(outPrefix) + 4]; // Space for "T1" plus null
-	strcpy(outName, outPrefix); strcat(outName, "_M0");
+	strcpy(outName, outPrefix); strcat(outName, "_M0"); strcat(outName, outExt);
 	writeResult(out, outName, (void*)M0Data);
-	strcpy(outName, outPrefix); strcat(outName, "_T1");
+	strcpy(outName, outPrefix); strcat(outName, "_T1"); strcat(outName, outExt);
 	writeResult(out, outName, (void*)T1Data);
 	if (nIR > 0)
 	{
-		strcpy(outName, outPrefix); strcat(outName, "_B1");
+		strcpy(outName, outPrefix); strcat(outName, "_B1"); strcat(outName, outExt);
 		writeResult(out, outName, (void*)B1Data);
-		strcpy(outName, outPrefix); strcat(outName, "_SmoothB1");
+		strcpy(outName, outPrefix); strcat(outName, "_SmoothB1"); strcat(outName, outExt);
 		writeResult(out, outName, (void*)B1Smooth);		
-		strcpy(outName, outPrefix); strcat(outName, "_SmoothM0");
+		strcpy(outName, outPrefix); strcat(outName, "_SmoothM0"); strcat(outName, outExt);
 		writeResult(out, outName, (void*)M0Smooth);
-		strcpy(outName, outPrefix); strcat(outName, "_SmoothT1");
+		strcpy(outName, outPrefix); strcat(outName, "_SmoothT1"); strcat(outName, outExt);
 		writeResult(out, outName, (void*)T1Smooth);
 	}
 	fprintf(stdout, "All done.\n");

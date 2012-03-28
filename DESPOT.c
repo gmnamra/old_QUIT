@@ -48,9 +48,9 @@ double IRSPGR(double TI, double *p, double *c)
 	
 	double irEfficiency = cos(B1 * M_PI) - 1;
 
-	double fullRepTime = TI + TR;
+	double fullTR = TI + TR;
 	double eTI = exp(-TI / T1);
-	double eFull = exp(-fullRepTime / T1);
+	double eFull = exp(-fullTR / T1);
 
 	double irspgr = fabs(M0 * sin(B1 * flipAngle) *
 					       (1. + irEfficiency * eTI + eFull));
@@ -559,7 +559,7 @@ void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAn
 */
 void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
 			  size_t nPhases, size_t *nSSFPs, double *phases, double **ssfpAlphas, double **ssfp,
-              double ssfpTR, double T1, double B1, double *p)
+              double ssfpTR, double B1, double *p)
 {
 	double loBounds[7] = {  100.,  250.,   1.,   1.,  0.,     1.,        0. };
 	double hiBounds[7] = { 1000., 3000.,  50., 500.,  0.45, 250., 1./ssfpTR };
