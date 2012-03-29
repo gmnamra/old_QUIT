@@ -551,57 +551,6 @@ void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAn
 	*M0 = 1.; *T2 = p[0]; *dO = p[1];*/
 }
 
-/*
-	Params:
-	T1_m, T1_f, T2_m, T2_f,	f_m, tau_m, dw
-	Consts:
-	TR, B1, rfPhase
-*/
-void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
-			  size_t nPhases, size_t *nSSFPs, double *phases, double **ssfpAlphas, double **ssfp,
-              double ssfpTR, double B1, double *p)
-{
-	double loBounds[7] = {  100.,  250.,   1.,   1.,  0.,     1.,        0. };
-	double hiBounds[7] = { 1000., 3000.,  50., 500.,  0.45, 250., 1./ssfpTR };
-	double *bounds[2] =  { loBounds, hiBounds };
-	bool loConstraint[7] = { true, true, true, true, true, true, false };
-	bool hiConstraint[7] = { false, false, false, false, true, false, false };
-	bool *constraints[2] = { loConstraint, hiConstraint };
-	
-	size_t nD[1 + nPhases];
-	eval_array_type *f[1 + nPhases];
-	double *alphas[1 + nPhases], *data[1 + nPhases];
-	double *c[1 + nPhases];
-	
-	nD[0]     = nSPGR;
-	f[0]      = a2cSPGR;
-	alphas[0] = spgrAlpha;
-	data[0]   = spgr;
-	c[0] = malloc(3 * sizeof(double));
-	c[0][0] = spgrTR; c[0][1] = B1; c[0][2] = 0.;
-	arrayScale(spgr, spgr, 1. / arrayMean(spgr, nSPGR), nSPGR);
-	for (int i = 0; i < nPhases; i++)
-	{
-		nD[i + 1]     = nSSFPs[i];
-		f[i + 1]      = a2cSSFP;
-		alphas[i + 1] = ssfpAlphas[i];
-		data[i + 1]   = ssfp[i];
-		c[i + 1] = malloc(3 * sizeof(double));
-		c[i + 1][0] = ssfpTR; c[i + 1][1] = B1; c[i + 1][2] = phases[i];
-		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
-	}
-	regionContraction(p, 7, c, 1 + nPhases, alphas, data, nD, true, f,
-	                  bounds, constraints, 10000, 25, 20, 0.05, 0.02, &(p[7]));
-	//fprintf(stdout, "Finished after %ld contractions.\n", ctracts);
-	p[6] = fmod(p[6], 1./ssfpTR); // Bring it back to one cycle
-	p[6] *= 1.e3; // Convert off-resonance to Hz
-	//ARR_D(bounds[0], 7);
-	//ARR_D(bounds[1], 7);
-	//ARR_D(p, 8);	
-	for (int i = 0; i < 1 + nPhases; i++)
-		free(c[i]);
-}
-
 double calcSPGR(double *angles, double *spgrVals, int n, double TR,
                 double *M0, double *T1, double *B1)
 {

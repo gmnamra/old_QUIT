@@ -38,9 +38,6 @@ void simplexDESPOT2(size_t nP, size_t *nD, double *phases, double **flipAngles, 
 					double TR, double T1, double B1, double *M0, double *T2, double *domega);
 void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAngles, double **ssfp,
 					 double TR, double T1, double B1, double *M0, double *T2, double *dO);
-void mcDESPOT(size_t nSPGR, double *spgrAlpha, double *spgr, double spgrTR,
-			  size_t nPhases, size_t *nSSFPs, double *phases, double **ssfpAlphas, double **ssfp,
-              double ssfpTR, double B1, double *p);
 double calcSPGR(double *angles, double *spgrVals, int n, double TR,
                 double *M0, double *T1, double *B1);
 double calcIR(double *TI, double *irVals, int nIR,

@@ -25,7 +25,10 @@ char *usage = "Usage is: mcdespot [options] output_prefix spgr_file ssfp_file1 (
 Options:\n\
 	-m file  : Mask input with specified file.\n\
 	-z       : Output .nii.gz files.\n\
-	-b file  : B1 Map file.\n";
+	-B1 file : B1 Map file.\n\
+	-b 3     : Boundaries suitable for 3T (default)\n\
+	   7     : Boundaries suitable for 7T\n\
+	   u     : User specified boundaries from stdin.\n";
 
 //******************************************************************************
 // Main
@@ -38,7 +41,17 @@ int main(int argc, char **argv)
 	char *outPrefix = NULL, *outExt = ".nii";
 	size_t nSPGR, nPhases, *nSSFP;
 	double spgrTR, *spgrAngles,
-		   ssfpTR, *ssfpPhases, **ssfpAngles;
+		   ssfpTR, *ssfpPhases, **ssfpAngles, loBounds[7], hiBounds[7],
+		   lo3Bounds[7] = { 200.,  500.,  2.,  40., 0.0,   50., 0. },
+		   hi3Bounds[7] = { 700., 2500., 40., 200., 0.4, 2000., 0. },
+		   lo7Bounds[7] = {  200.,  500.,   2.,  40., 0.,   50., 0. },
+		   hi7Bounds[7] = { 1500., 5000., 100., 400., 1., 2000., 0. },
+		   **bounds = malloc(2 * sizeof(double *));
+	bounds[0] = loBounds; bounds[1] = hiBounds;
+	bool loConstraint[7] = { true, true, true, true, true, true, false };
+	bool hiConstraint[7] = { true, true, true, true, true, true, false };
+	bool **constraints = malloc(2 * sizeof(bool *));
+	constraints[0] = loConstraint; constraints[1] = hiConstraint;
 	nifti_image *spgrFile = NULL, *maskFile = NULL, *B1File, **ssfpFiles = NULL;
 	
 	if (argc < 3)
@@ -50,23 +63,41 @@ int main(int argc, char **argv)
 	int thisArg = 1;
 	while ((thisArg < argc) && (argv[thisArg][0] =='-'))
 	{
-		switch (argv[thisArg][1])
-		{
-			case 'm':
-				fprintf(stdout, "Reading Mask from: %s\n", argv[++thisArg]);
-				maskFile = nifti_image_read(argv[thisArg], FALSE);
-				break;
-			case 'b':
-				fprintf(stdout, "Reading B1 Map from: %s\n", argv[++thisArg]);
-				B1File = nifti_image_read(argv[thisArg], FALSE);
-				break;
-			case 'z':
-				outExt = ".nii.gz";
-				break; 
-			default:
-				fprintf(stderr, "Undefined command line option\n%s", usage);
-				exit(EXIT_FAILURE);
-				break;
+		if (strcmp(argv[thisArg], "-m") == 0) {
+			fprintf(stdout, "Reading Mask from: %s\n", argv[++thisArg]);
+			maskFile = nifti_image_read(argv[thisArg], FALSE);
+		} else if (strcmp(argv[thisArg], "-B1") == 0) {
+			fprintf(stdout, "Reading B1 Map from: %s\n", argv[++thisArg]);
+			B1File = nifti_image_read(argv[thisArg], FALSE);
+		} else if (strcmp(argv[thisArg], "-z") == 0) {
+			outExt = ".nii.gz";
+		} else if (strcmp(argv[thisArg], "-b") == 0) {
+			switch (*argv[++thisArg])
+			{
+				case '3':
+					fprintf(stdout, "Using 3T boundaries.\n");
+					arrayCopy(loBounds, lo3Bounds, 7);
+					arrayCopy(hiBounds, hi3Bounds, 7);
+					break;
+				case '7':
+					fprintf(stdout, "Using 7T boundaries.\n");
+					arrayCopy(loBounds, lo7Bounds, 7);
+					arrayCopy(hiBounds, hi7Bounds, 7);
+					break;
+				case 'u':
+					fprintf(stdout, "Enter low boundaries (6 values):");
+					fgetArray(stdin, 'd', 6, loBounds);
+					fprintf(stdout, "Enter high boundaries (6 values):");
+					fgetArray(stdin, 'd', 6, hiBounds);
+					break;
+				default:
+					fprintf(stdout, "Unknown boundaries type '%c'.\n", argv[thisArg][0]);
+					exit(EXIT_FAILURE);
+					break;
+			}
+		} else {
+			fprintf(stderr, "Undefined command line option\n%s", usage);
+			exit(EXIT_FAILURE);
 		}
 		++thisArg;
 	}
@@ -167,6 +198,24 @@ int main(int argc, char **argv)
 	}
 
 	//**************************************************************************
+	// Set up functions and angles together for regionContraction
+	//**************************************************************************
+	size_t *nD = malloc((1 + nPhases) * sizeof(size_t));
+	eval_array_type **f = malloc((1 + nPhases) * sizeof(eval_array_type *));
+	double **angles = malloc((1 + nPhases) * sizeof(double *));
+
+	loBounds[6] = 0.; hiBounds[6] = 1. / ssfpTR;
+	nD[0] = nSPGR;
+	f[0]      = a2cSPGR;
+	angles[0] = spgrAngles;
+	for (int p = 0; p < nPhases; p++)
+	{
+		nD[p + 1] = nSSFP[p];
+		f[p + 1]      = a2cSSFP;
+		angles[p + 1] = ssfpAngles[p];
+	}
+	
+	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
 	time_t allStart = time(NULL);
@@ -212,28 +261,46 @@ int main(int argc, char **argv)
 			{
 				OSAtomicAdd32(1, &voxCount);
 				
-				double spgrSignal[nSPGR];
-				for (int img = 0; img < nSPGR; img++)
-					spgrSignal[img] = (double)spgrData[voxelsPerSlice * img + vox];
-				
-				double *ssfpSignal[nPhases];
-				for (int p = 0; p < nPhases; p++)
-				{
-					ssfpSignal[p] = malloc(nSSFP[p] * sizeof(double));
-					for (int img = 0; img < nSSFP[p]; img++)
-						ssfpSignal[p][img] = (double)ssfpData[p][voxelsPerSlice * img + vox];
-				}
-				
 				double B1 = 1.;
 				if (B1File)
 					B1 = (double)B1Data[vox];
-
-				mcDESPOT(nSPGR, spgrAngles, spgrSignal, spgrTR,
-						 nPhases, nSSFP, ssfpPhases, ssfpAngles,
-						 ssfpSignal, ssfpTR, B1, params);
 				
+				// Constants need to be set up here because B1 changes per-voxels
+				double *signals[1 + nPhases], *consts[1 + nPhases];
+				
+				signals[0] = malloc(nSPGR * sizeof(double));
+				for (int img = 0; img < nSPGR; img++)
+					signals[0][img] = (double)spgrData[voxelsPerSlice * img + vox];
+				arrayScale(signals[0], signals[0], 1. / arrayMean(signals[0], nSPGR), nSPGR);
+				consts[0] = malloc(2 * sizeof(double));
+				consts[0][0] = spgrTR; consts[0][1] = B1;
+								
 				for (int p = 0; p < nPhases; p++)
-					free(ssfpSignal[p]);
+				{
+					signals[p + 1] = malloc(nSSFP[p] * sizeof(double));
+					for (int img = 0; img < nSSFP[p]; img++)
+						signals[p + 1][img] = (double)ssfpData[p][voxelsPerSlice * img + vox];
+					arrayScale(signals[p + 1], signals[p + 1], 1. / arrayMean(signals[p + 1], nSSFP[p]), nSSFP[p]);
+					
+					consts[p + 1] = malloc(3 * sizeof(double));
+					consts[p + 1][0] = ssfpTR; consts[p + 1][1] = B1; consts[p + 1][2] = ssfpPhases[p];
+				}
+
+				// Store residual in final parameter
+				regionContraction(params, 7, consts, 1 + nPhases, angles,
+				                  signals, nD, true, f, bounds, constraints,
+								  5000, 25, 20, 0.1, 0.025, &(params[7]));
+				params[6] = fmod(params[6], 1./ssfpTR); 
+				if (params[6] < 0)           // Bring B0 back to one cycle
+					params[6] += 1./ssfpTR;  // And correct for signed modulus in C
+				params[6] *= 1.e3;           // Finally convert to Hz
+				
+				// Clean up memory
+				for (int p = 0; p < 1 + nPhases; p++)
+				{
+					free(signals[p]);
+					free(consts[p]);
+				}
 			}
 			for (int p = 0; p < NR; p++)
 				resultsSlices[p][vox]  = (float)params[p];
