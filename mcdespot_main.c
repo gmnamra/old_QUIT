@@ -11,7 +11,14 @@
 #include <time.h>
 #include <stdbool.h>
 #include <dispatch/dispatch.h>
-#include <libkern/OSAtomic.h>
+
+#ifdef __APPLE__
+	#include <libkern/OSAtomic.h>
+	#define AtomicAdd OSAtomicAdd32
+#else
+	#define AtomicAdd(x, y) (*y)++
+#endif
+
 #include "DESPOT.h"
 #include "nifti_tools.h"
 #include "znzlib.h"
@@ -179,7 +186,7 @@ int main(int argc, char **argv)
 	// Need to write a full file of zeros first otherwise per-plane writing
 	// won't produce a complete image.
 	//**************************************************************************
-	const int NR = 8;
+	#define NR 8
 	nifti_image **resultsHeaders = malloc(NR * sizeof(nifti_image *));
 	int outDims[8] = {3, spgrFile->nx, spgrFile->ny, spgrFile->nz, 1, 1, 1, 1};
 	float *blank = calloc(totalVoxels, sizeof(float));
@@ -259,7 +266,7 @@ int main(int argc, char **argv)
 			arraySet(params, 0., NR);
 			if (!maskFile || (maskData[vox] > 0.))
 			{
-				OSAtomicAdd32(1, &voxCount);
+				AtomicAdd(1, &voxCount);
 				
 				double B1 = 1.;
 				if (B1File)
