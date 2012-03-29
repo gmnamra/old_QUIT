@@ -646,15 +646,9 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../**",
-					/usr/local/atlas/include,
-				);
+				HEADER_SEARCH_PATHS = "../../**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = (
-					"$(SRCROOT)/../../**",
-					/usr/local/atlas/lib,
-				);
+				LIBRARY_SEARCH_PATHS = "../../**";
 				PRODUCT_NAME = despot1;
 				SYMROOT = ../../build;
 				VALID_ARCHS = x86_64;
@@ -665,18 +659,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../**",
-					/usr/local/atlas/include,
-				);
+				HEADER_SEARCH_PATHS = "../../**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = (
-					"$(SRCROOT)/../../**",
-					/usr/local/atlas/lib,
-				);
+				LIBRARY_SEARCH_PATHS = "../../**";
 				PRODUCT_NAME = despot1;
 				SYMROOT = ../../build;
 				VALID_ARCHS = x86_64;

@@ -42,7 +42,8 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "NO"
+      useCustomWorkingDirectory = "YES"
+      customWorkingDirectory = "/Users/Tobias/MR_Data/NIfTI/DESPOT/20120326"
       buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
@@ -58,35 +59,23 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "phantom"
+            argument = "-h irspgr_fa10"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "spgrs.txt"
+            argument = "-m mask_brain"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "8.464000"
+            argument = "-z"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "ir-spgrs.txt"
+            argument = "brain"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "5"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "7.112000"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "3"
+            argument = "spgr"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
