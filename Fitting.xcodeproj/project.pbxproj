@@ -678,15 +678,9 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = (
-					"/Users/Tobias/Code/MacRI/**",
-					/usr/local/atlas/include,
-				);
+				HEADER_SEARCH_PATHS = "../../**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = (
-					"/Users/Tobias/Code/MacRI/**",
-					/usr/local/atlas/lib,
-				);
+				LIBRARY_SEARCH_PATHS = "../../**";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = despot2;
 				SYMROOT = ../../build;
@@ -701,15 +695,9 @@
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = (
-					"/Users/Tobias/Code/MacRI/**",
-					/usr/local/atlas/include,
-				);
+				HEADER_SEARCH_PATHS = "../../**";
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = (
-					"/Users/Tobias/Code/MacRI/**",
-					/usr/local/atlas/lib,
-				);
+				LIBRARY_SEARCH_PATHS = "../../**";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = despot2;
 				SYMROOT = ../../build;
