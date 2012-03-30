@@ -87,13 +87,13 @@ void IRSPGR_Jacobian(double *data, int nD, double *p, double *c, double *result)
 
 double SSFP(double flipAngle, double *p, double *c)
 {
-	double M0 = p[0], T2 = p[1], dO = p[2];
+	double M0 = p[0], T2 = p[1], B0 = p[2];
 	double TR = c[0], T1 = c[1], B1 = c[2], offset = c[3];
 	
 	double eT1 = exp(-TR / T1);
 	double eT2 = exp(-TR / T2);
 	
-	double phase = offset + dO * (TR / 1.e3) * 2. * M_PI;
+	double phase = offset + B0 * (TR / 1.e3) * 2. * M_PI;
 	double sina = sin(B1 * flipAngle);
 	double cosa = cos(B1 * flipAngle);
 	double sinp = sin(phase);
@@ -108,61 +108,6 @@ double SSFP(double flipAngle, double *p, double *c)
 	return ssfp;
 }
 
-double nSSFP(double flipAngle, double *p, double *c)
-{
-	double M0 = 1., T2 = p[0], dO = p[1];
-	double TR = c[0], T1 = c[1], B1 = c[2], offset = c[3];
-	
-	double eT1 = exp(-TR / T1);
-	double eT2 = exp(-TR / T2);
-	
-	double phase = offset + dO * TR * 2. * M_PI;
-	double sina = sin(B1 * flipAngle);
-	double cosa = cos(B1 * flipAngle);
-	double sinp = sin(phase);
-	double cosp = cos(phase);
-	
-	double denom = ((1. - eT1 * cosa) * (1. - eT2 * cosp)) - 
-				   (eT2 * (eT1 - cosa) * (eT2 - cosp));
-	
-	double My = ((1 - eT1) * eT2 * sina * (cosp - eT2)) / denom;
-	double Mx = ((1.- eT1) * eT2 * sina * sinp) / denom;
-	
-	//fprintf(stdout, "MxMy: %f\t%f\n", Mx, My);
-	double ssfp = M0 * sqrt(Mx*Mx + My*My);
-	return ssfp;
-}
-
-double n1cSSFP(double alpha, double *p, double *c)
-{
-	double T2 = p[0], dO = p[1],
-		   TR = c[0], T1 = c[1], B1 = c[2], rfPhase = c[3];
-	
-	double phase = rfPhase + (dO * TR * 2. * M_PI);
-	double A[9] = { -TR / T2,    phase,       0.,
-					  -phase, -TR / T2,       0.,
-					      0.,       0., -TR / T1 };
-
-	double ca = cos(B1 * alpha), sa = sin(B1 * alpha);
-	double R_rf[9] = { 1., 0., 0.,
-					   0., ca, sa,
-					   0.,-sa, ca};
-	double eye[9] = { 1., 0., 0.,
-					  0., 1., 0.,
-					  0., 0., 1. };
-	double temp1[9], temp2[9], all[9];
-	matrixExp(A, 3);
-	matrixMult(temp1, A, R_rf, 3, 3, 3);
-	arraySub(temp1, eye, temp1, 9);
-	arraySub(temp2, eye, A, 9);
-	// Now multiply everything together
-	matrixSolve(all, temp1, temp2, 3, 3);
-	double M0[3] = { 0., 0., 1. };
-	double Mobs[3];
-	matrixMult(Mobs, all, M0, 3, 3, 1);
-	double s =  sqrt(Mobs[0]*Mobs[0] + Mobs[1]*Mobs[1]);
-	return s;
-}
 // Normalised, 2 component versions
 /*	Full parameter vector is
 	0 - T1_a
@@ -194,8 +139,6 @@ double n2cSPGR(double alpha, double *p, double *c)
 	                TR/tau_a, -(TR/T1_b + TR/tau_b)};
 	double eye[4] = { 1., 0.,
 					  0., 1. };
-	//arrayScale(A, A, TR, 4);
-	//MAT_D(A, 2, 2);
 	matrixExp(A, 2);
 	double costerm[4];
 	arrayScale(costerm, A, cos(B1 * alpha), 4);
@@ -258,6 +201,42 @@ double n2cSSFP(double alpha, double *p, double *c)
 	double s =  sqrt(pow(Mobs[0] + Mobs[1], 2.) +
 					 pow(Mobs[2] + Mobs[3], 2.));
 	return s;
+}
+
+void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
+{
+	double T2 = p[0], B0 = p[1],
+		   TR = c[0], T1 = c[1], B1 = c[2], rfPhase = c[3];
+	
+	double phase = rfPhase + (B0 * TR * 2. * M_PI);
+	double A[9] = { -TR / T2,    phase,       0.,
+					  -phase, -TR / T2,       0.,
+					      0.,       0., -TR / T1 };
+
+	double R_rf[9] = { 1., 0., 0.,
+					   0., 0., 0.,
+					   0., 0., 0.};
+	double eye[9] = { 1., 0., 0.,
+					  0., 1., 0.,
+					  0., 0., 1. };
+	double temp1[9], temp2[9], all[9];
+	matrixExp(A, 3);
+	arraySub(temp2, eye, A, 9);
+	
+	for (size_t n = 0; n < nA; n++)
+	{
+		double ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
+		R_rf[4] = R_rf[8] = ca;
+		R_rf[5] = sa;
+		R_rf[7] = -sa;
+		matrixMult(temp1, A, R_rf, 3, 3, 3);
+		arraySub(temp1, eye, temp1, 9);
+		matrixSolve(all, temp1, temp2, 3, 3);
+		double M0[3] = { 0., 0., 1. };
+		double Mobs[3];
+		matrixMult(Mobs, all, M0, 3, 3, 1);
+		signal[n] = sqrt(Mobs[0]*Mobs[0] + Mobs[1]*Mobs[1]);
+	}
 }
 
 void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
@@ -496,9 +475,10 @@ void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 }
 
 void classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
-                    double TR, double T1, double B1, double *M0, double *T2)
+                    double TR, double T1, double B1, double *p)
 {
 	// As above, linearise, then least-squares
+	// p[0] = M0, p[1] = T2
 	double X[n], Y[n], slope, inter;
 	for (int i = 0; i < n; i++)
 	{
@@ -507,70 +487,63 @@ void classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
 	}
 	linearLeastSquares(X, Y, n, &slope, &inter);
 	double eT1 = exp(-TR / T1);
-	*T2 = -TR / log((eT1 - slope) / (1. - slope * eT1));
-	double eT2 = exp(-TR / (*T2));
-	*M0 = inter * (1. - eT1 * eT2) / (1. - eT1);
+	p[1] = -TR / log((eT1 - slope) / (1. - slope * eT1));
+	double eT2 = exp(-TR / p[1]);
+	p[0] = inter * (1. - eT1 * eT2) / (1. - eT1);
 }
 
-void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAngles, double **ssfp,
-					double TR, double T1, double B1, double *M0, double *T2, double *dO)
+void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **angles, double **ssfp,
+					double TR, double T1, double B1, double *p)
 {
 	// Gather together all the data
-	double p[3] = {*M0, *T2, *dO}, *c[nPhases], fRes = 0.;
+	double *init[4], *c[nPhases], fRes = 0.;
 	eval_type *f[nPhases];
 	for (int i = 0; i < nPhases; i++)
 	{
 		c[i] = malloc(4 * sizeof(double));
-		c[i][0] = TR; c[i][1] = T1; c[i][2] = B1;
-		c[i][3] = phases[i];
+		c[i][0] = TR; c[i][1] = T1; c[i][2] = B1; c[i][3] = phases[i];
 		f[i] = SSFP;
 	}
 	
-	simplex(p, 3, c, nPhases, flipAngles, ssfp, nD, f, NULL, &fRes);
-	*M0 = p[0]; *T2 = p[1]; *dO = p[2];
+	// Use different phases and guesses at B0 to get initial starting location
+	for (int i = 0; i < 4; i++)
+		init[i] = malloc(3 * sizeof(double));
+	classicDESPOT2(angles[0], ssfp[0], nD[0], TR, T1, B1, init[0]);
+	classicDESPOT2(angles[0], ssfp[0], nD[0], TR, T1, B1, init[1]);
+	classicDESPOT2(angles[1], ssfp[1], nD[1], TR, T1, B1, init[2]);
+	classicDESPOT2(angles[1], ssfp[1], nD[1], TR, T1, B1, init[3]);
+	init[0][2] = 0.; init[1][2] = 1. / (2. * TR);
+	init[2][2] = 0.; init[3][2] = 1. / (2. * TR);
+	
+	simplex(p, 3, c, nPhases, angles, ssfp, nD, f, init, &fRes);
 }
 
 void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAngles, double **ssfp,
-					 double TR, double T1, double B1, double *M0, double *T2, double *dO)
+					 double TR, double T1, double B1, double *p)
 {
-	/*double loBounds[2] = {1., 150. / TR}; // A T2 of 0. causes nasty maths
-	double hiBounds[2] = {300., 100. / TR};
-	double *bounds[2] = {loBounds, hiBounds}; 
-	double p[2] = {*T2, *dO}, *c[nPhases], fRes = 0.;
-	eval_type *f[nPhases];
+	double loBounds[2] = {   1.,     0. };
+	double hiBounds[2] = { 500., 1./TR };
+	double *bounds[2] =  { loBounds, hiBounds };
+	bool loConstraints[2] = { true, false };
+	bool hiConstraints[2] = { true, false };
+	bool *constraints[2] = { loConstraints, hiConstraints };
+	double *c[nPhases], fRes = 0.;
+	eval_array_type *f[nPhases];
 	for (int i = 0; i < nPhases; i++)
 	{
 		c[i] = malloc(4 * sizeof(double));
-		c[i][0] = TR; c[i][1] = T1; c[i][2] = B1;
-		c[i][3] = phases[i];
-		f[i] = nSSFP;
+		c[i][0] = TR; c[i][1] = T1; c[i][2] = B1; c[i][3] = phases[i];
+		f[i] = a1cSSFP;
 		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
 	}
 	regionContraction(p, 2, c, nPhases, flipAngles, ssfp, nD, true, f,
-					  bounds, 200, 20, 100, 0.005, 0., &fRes);
-	*M0 = 1.; *T2 = p[0]; *dO = p[1];*/
-}
-
-double calcSPGR(double *angles, double *spgrVals, int n, double TR,
-                double *M0, double *T1, double *B1)
-{
-	double par[3] = {*M0, *T1, *B1};
-	double res = 0;
-	levMar(par, 3, &TR, angles, spgrVals, n, SPGR, SPGR_Jacobian, &res);
-	*M0 = par[0]; *T1 = par[1]; *B1 = par[2];
-	return res;
-}
-
-double calcIR(double *TI, double *irVals, int nIR,
-              double alpha, double TR,
-			  double *M0, double *T1, double *B1)
-{
-	double par[3] = {*M0, *T1, *B1};
-	double con[2] = {alpha, TR};
-	double res = 0;
-	levMar(par, 3, con, TI, irVals, nIR, IRSPGR, IRSPGR_Jacobian, &res);
-	*M0 = par[0]; *T1 = par[1]; *B1 = par[2];
-	return res;
+					  bounds, constraints, 4000, 25, 15, 0.05, 0.1, &fRes);
+	p[1] = fmod(p[1], 1./TR); // Bring B0 back to one cycle 
+	if (p[1] >  .5/TR)        // Move into range -pi/2 to +pi/2
+		p[1] -= 1./TR;
+	if (p[1] < -.5/TR)
+		p[1] += 1./TR;
+	p[1] *= 1.e3;             // Finally convert to Hz
 }
 
 double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,

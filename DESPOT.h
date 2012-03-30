@@ -18,14 +18,11 @@ void SPGR_Jacobian(double *angles, int nD, double *p, double *c, double *result)
 double IRSPGR(double TI, double *p, double *c);
 void IRSPGR_Jacobian(double *data, int nD, double *par, double *c, double *result);
 double SSFP(double flipAngle, double *p, double *c);
-double nSSFP(double flipAngle, double *p, double *c);
-double n1cSSFP(double alpha, double *p, double *c);
 double n2cSPGR(double alpha, double *p, double *c);
 double n2cSSFP(double alpha, double *p, double *c);
+void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA);
 void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA);
 void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA);
-double new2cSSFP(double alpha, double *p, double *c);
-
 
 double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 				double *TI, double *irVals, int nIR, double irFlipAngle, double irTR,
@@ -33,14 +30,9 @@ double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 				 double TR, double B1, double *M0, double *T1);
 void classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
-                    double TR, double T1, double B1, double *M0, double *T2);
-void simplexDESPOT2(size_t nP, size_t *nD, double *phases, double **flipAngles, double **ssfp,
-					double TR, double T1, double B1, double *M0, double *T2, double *domega);
+                    double TR, double T1, double B1, double *p);
+void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **angles, double **ssfp,
+					double TR, double T1, double B1, double *p);
 void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAngles, double **ssfp,
-					 double TR, double T1, double B1, double *M0, double *T2, double *dO);
-double calcSPGR(double *angles, double *spgrVals, int n, double TR,
-                double *M0, double *T1, double *B1);
-double calcIR(double *TI, double *irVals, int nIR,
-              double alpha, double TR,
-			  double *M0, double *T1, double *B1);
+					 double TR, double T1, double B1, double *p);
 #endif

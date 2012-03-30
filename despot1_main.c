@@ -16,12 +16,6 @@
 #include "nifti_tools.h"
 #include "znzlib.h"
 
-#define FALSE 0
-#define TRUE 1
-
-#define __DEBUG__ FALSE
-#define __DEBUG_THRESH__ 60000
-
 char *usage = "Usage is: despot1 [options] output_prefix spgr_input \n\
 \
 Options:\n\
@@ -43,18 +37,17 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	int nSPGR = 0, nIR = 0, nReadout = 0;
-	char *spgrFilename = NULL, *irFilename = NULL, *maskFilename = NULL,
-	     *outPrefix = NULL, *outExt = ".nii";
-	double spgrTR = 0., *spgrAngles = NULL;
-	double irTR = 0., irAngle = 0., *irTI = NULL, TIScale = 1.;
-	nifti_image *spgrFile = NULL, *irFile = NULL, *maskFile = NULL;
-	
 	if (argc < 3)
 	{
 		fprintf(stderr, "%s", usage);
 		exit(EXIT_FAILURE);
 	}
+	
+	int nSPGR = 0, nIR = 0, nReadout = 0;
+	char *irFilename = NULL, *outPrefix = NULL, *outExt = ".nii";
+	double spgrTR = 0., *spgrAngles = NULL;
+	double irTR = 0., irAngle = 0., *irTI = NULL, TIScale = 1.;
+	nifti_image *spgrFile = NULL, *irFile = NULL, *maskFile = NULL;
 	
 	int thisArg = 1;
 	while ((thisArg < argc) && (argv[thisArg][0] =='-'))
@@ -62,7 +55,7 @@ int main(int argc, char **argv)
 		switch (argv[thisArg][1])
 		{
 			case 'm':
-				maskFilename = argv[++thisArg];
+				maskFile = nifti_image_read(argv[++thisArg], FALSE);
 				break;
 			case 'h':
 				irFilename = argv[++thisArg];
@@ -102,16 +95,8 @@ int main(int argc, char **argv)
 		++thisArg;
 	}
 	outPrefix = argv[thisArg]; thisArg++;
-	spgrFilename = argv[thisArg]; thisArg++;
-	
-	if (thisArg != argc)
-	{
-		fprintf(stderr, "Unexpected number of command-line options.\n%s", usage);
-		exit(EXIT_FAILURE);
-	}
-	
 	fprintf(stdout, "Reading headers.\n");
-	spgrFile = nifti_image_read(spgrFilename, FALSE);
+	spgrFile = nifti_image_read(argv[thisArg], FALSE);
 	nSPGR = spgrFile->nt;
 	spgrAngles = malloc(nSPGR * sizeof(double));
 	fprintf(stdout, "Enter SPGR TR (ms):");
@@ -157,11 +142,6 @@ int main(int argc, char **argv)
 		fprintf(stdout, "Specified %d SPGR-IR images with flip angle: %f degrees, TR = %f (ms) ", nIR, degrees(irAngle), irTR);
 		ARR_D(irTI, nIR);
 	}
-	
-	if (maskFilename)
-		maskFile = nifti_image_read(maskFilename, FALSE);
-	else
-		fprintf(stdout, "No mask file specified.\n");
 
 	//**************************************************************************	
 	// Allocate memory for slices and results
@@ -344,5 +324,5 @@ int main(int argc, char **argv)
 		writeResult(out, outName, (void*)T1Smooth);
 	}
 	fprintf(stdout, "All done.\n");
-	return EXIT_SUCCESS;
+	exit(EXIT_SUCCESS);
 }

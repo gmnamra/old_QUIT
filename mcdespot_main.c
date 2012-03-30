@@ -24,9 +24,6 @@
 #include "znzlib.h"
 #include "mathArray.h"
 
-#define __DEBUG__ FALSE
-#define __DEBUG_THRESH__ 60000
-
 char *usage = "Usage is: mcdespot [options] output_prefix spgr_file ssfp_file1 (ssfp_fileN)\n\
 \
 Options:\n\
@@ -45,6 +42,12 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
+	if (argc < 4)
+	{
+		fprintf(stderr, "%s", usage);
+		exit(EXIT_FAILURE);
+	}
+	
 	char *outPrefix = NULL, *outExt = ".nii";
 	size_t nSPGR, nPhases, *nSSFP;
 	double spgrTR, *spgrAngles,
@@ -60,13 +63,7 @@ int main(int argc, char **argv)
 	bool **constraints = malloc(2 * sizeof(bool *));
 	constraints[0] = loConstraint; constraints[1] = hiConstraint;
 	nifti_image *spgrFile = NULL, *maskFile = NULL, *B1File, **ssfpFiles = NULL;
-	
-	if (argc < 3)
-	{
-		fprintf(stderr, "%s", usage);
-		exit(EXIT_FAILURE);
-	}
-	
+		
 	int thisArg = 1;
 	while ((thisArg < argc) && (argv[thisArg][0] =='-'))
 	{
@@ -121,9 +118,6 @@ int main(int argc, char **argv)
 	fscanf(stdin, "%lf", &spgrTR);
 	fprintf(stdout, "Enter %zu SPGR Flip Angles (degrees):", nSPGR);
 	fgetArray(stdin, 'd', nSPGR, spgrAngles);
-	
-	fprintf(stdout, "SPGR TR=%f ms. ", spgrTR);
-	ARR_D(spgrAngles, nSPGR);
 	arrayApply(spgrAngles, spgrAngles, radians, nSPGR);
 
 	//**************************************************************************
@@ -138,7 +132,7 @@ int main(int argc, char **argv)
 	fprintf(stdout, "Enter SSFP TR (ms):");
 	fscanf(stdin, "%lf", &ssfpTR);
 	fprintf(stdout, "Enter %zu Phase-Cycling Patterns (degrees):", nPhases);
-	fgetArray(stdin, 'd', nPhases, ssfpPhases);
+	fgetArray(stdin, 'd', nPhases, ssfpPhases); fprintf(stdout, "\n");
 	arrayApply(ssfpPhases, ssfpPhases, radians, nPhases);
 	for (int p = 0; p < nPhases; p++)
 	{
@@ -153,10 +147,8 @@ int main(int argc, char **argv)
 		nSSFP[p] = ssfpFiles[p]->nt;
 		ssfpAngles[p] = malloc(nSSFP[p] * sizeof(double));
 		fprintf(stdout, "Enter %zu Angles (degrees) for Pattern %d:", nSSFP[p], p);
-		fgetArray(stdin, 'd', nSSFP[p], ssfpAngles[p]);
+		fgetArray(stdin, 'd', nSSFP[p], ssfpAngles[p]); fprintf(stdout, "\n");
 		arrayApply(ssfpAngles[p], ssfpAngles[p], radians, nSSFP[p]);
-		fprintf(stdout, "Specified pattern %d with phase %f deg.\n", p, degrees(ssfpPhases[p]));
-		ARR_D(ssfpAngles[p], nSSFP[p]);
 	}
 	if ((spgrFile->nx * spgrFile->ny * spgrFile->nz) !=
 	    (ssfpFiles[0]->nx * ssfpFiles[0]->ny * ssfpFiles[0]->nz))
@@ -166,7 +158,7 @@ int main(int argc, char **argv)
 	}
 	
 	//**************************************************************************	
-	// Allocate memory for slices and results
+	// Allocate memory for slices
 	//**************************************************************************
 	int voxelsPerSlice = spgrFile->nx * spgrFile->ny;	
 	int totalVoxels = voxelsPerSlice * spgrFile->nz;
@@ -193,15 +185,15 @@ int main(int argc, char **argv)
 	float **resultsSlices = malloc(NR * sizeof(float*));
 	char *names[NR] = { "_T1_myel", "_T1_free", "_T2_myel", "_T2_free", "_frac_myel", "_tau_myel", "_dw", "_res" };
 	char outName[strlen(outPrefix) + 18];
-	for (int p = 0; p < NR; p++)
+	for (int r = 0; r < NR; r++)
 	{
-		strcpy(outName, outPrefix); strcat(outName, names[p]); strcat(outName, outExt);
+		strcpy(outName, outPrefix); strcat(outName, names[r]); strcat(outName, outExt);
 		fprintf(stdout, "Writing blank result file:%s.\n", outName);
-		resultsHeaders[p] = nifti_copy_orientation(spgrFile, outDims, DT_FLOAT);
-		nifti_set_filenames(resultsHeaders[p], outName, FALSE, TRUE);
-		resultsHeaders[p]->data = blank;
-		nifti_image_write(resultsHeaders[p]);
-		resultsSlices[p] = malloc(voxelsPerSlice * sizeof(float));
+		resultsHeaders[r] = nifti_copy_orientation(spgrFile, outDims, DT_FLOAT);
+		nifti_set_filenames(resultsHeaders[r], outName, FALSE, TRUE);
+		resultsHeaders[r]->data = blank;
+		nifti_image_write(resultsHeaders[r]);
+		resultsSlices[r] = malloc(voxelsPerSlice * sizeof(float));
 	}
 
 	//**************************************************************************
@@ -234,8 +226,8 @@ int main(int argc, char **argv)
 	{
 		// Read in data
 		fprintf(stdout, "Starting slice %zu...\n", slice);
-		int sliceStart[NR] = {0, 0, (int)slice, 0, 0, 0, 0};
-		int sliceDim[NR] = {spgrFile->nx, spgrFile->ny, 1, 1, 1, 1, 1};
+		int sliceStart[7] = {0, 0, (int)slice, 0, 0, 0, 0};
+		int sliceDim[7] = {spgrFile->nx, spgrFile->ny, 1, 1, 1, 1, 1};
 		
 		if (B1File)
 			nifti_read_subregion_image(B1File, sliceStart, sliceDim, (void**)&(B1Data));
@@ -331,13 +323,13 @@ int main(int argc, char **argv)
     struct tm *localEnd = localtime(&allEnd);
     strftime(theTime, 1024, "%H:%M:%S", localEnd);
 	fprintf(stdout, "Finished processing at %s. Run-time was %f s.\n", theTime, difftime(allEnd, allStart));
-	return EXIT_SUCCESS;
-	
+
 	// Clean up memory
 	free(spgrData);
 	for (int p = 0; p < nPhases; p++)
 		free(ssfpData[p]);
 	free(B1Data);
 	free(maskData);
+	exit(EXIT_SUCCESS);
 }
 
