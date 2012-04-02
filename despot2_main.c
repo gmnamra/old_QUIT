@@ -11,15 +11,18 @@
 #include <time.h>
 #include <stdbool.h>
 #include <dispatch/dispatch.h>
+
 #ifdef __APPLE__
 	#include <libkern/OSAtomic.h>
 	#define AtomicAdd OSAtomicAdd32
 #else
 	#define AtomicAdd(x, y) (*y)++
 #endif
+
 #include "DESPOT.h"
 #include "nifti_tools.h"
 #include "znzlib.h"
+#include "mathArray.h"
 
 char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_file1 [ssfp_fileN] \n\
 \
@@ -172,8 +175,8 @@ int main(int argc, char **argv)
 		
 		__block int voxCount = 0;
 		clock_t loopStart = clock();
-		for (size_t vox = 0; vox < voxelsPerSlice; vox++)
-		//void (^processVoxel)(size_t vox) = ^(size_t vox)
+		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
+		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
 			double params[NR];
 			arraySet(params, 0., NR);
@@ -194,18 +197,22 @@ int main(int argc, char **argv)
 						signals[p][img] = (double)ssfpData[p][voxelsPerSlice * img + vox];
 				}
 
-				if (nPhases == 1)
-					classicDESPOT2(ssfpAngles[0], signals[0], nSSFP[0], ssfpTR, T1, B1, params);
-				else
-				{
-					// Find the phase with highest mean
-					double means[nPhases];
-					size_t indxs[nPhases];
+				// Find the phase with highest mean, then classic DESPOT2
+				double means[nPhases];
+				size_t indxs[nPhases];
+				for (int p = 0; p < nPhases; p++)
+					means[p] = arrayMean(signals[p], nSSFP[p]);
+				arrayIndexSort(means, indxs, SORT_DESCEND, nPhases);
+				classicDESPOT2(ssfpAngles[indxs[0]], signals[indxs[0]],
+				               nSSFP[indxs[0]], ssfpTR, T1, B1, params);
+					
+				if (params[1] > 0) // Only bother if we got a sensible guess from classic DESPOT
+				{	// Try fits with different B0 start and take lowest res
 					double *consts[nPhases];
-					eval_array_type *fs[nPhases];					
+					eval_array_type *fs[nPhases];
+					
 					for (int p = 0; p < nPhases; p++)
 					{
-						means[p] = arrayMean(signals[p], nSSFP[p]);
 						arrayScale(signals[p], signals[p], 1. / means[p], nSSFP[p]);
 						
 						consts[p] = arrayAlloc(4);
@@ -216,17 +223,33 @@ int main(int argc, char **argv)
 						
 						fs[p] = &a1cSSFP;
 					}
-					arrayIndexSort(means, indxs, SORT_DESCEND, nPhases);
-					// Do classic DESPOT2 on the highest mean (shouldn't be a signal null)
-					classicDESPOT2(ssfpAngles[indxs[0]], signals[indxs[0]], nSSFP[indxs[0]], ssfpTR, T1, B1, params);
-					// Now do a local fit to all the data including off-resonance
 					extern int MATH_DEBUG;
 					MATH_DEBUG = 1;
-					if ((params[0] > 0.) && (params[1] > 0.))
-						levMar(&(params[1]), 2, consts, ssfpAngles, signals, fs, NULL, nSSFP, nPhases, true, &(params[3]));
-					//contractDESPOT2(nPhases, nSSFP, ssfpPhases, ssfpAngles, signals,
-					//			    ssfpTR, T1, B1, params + 1); // Skip M0
+					double res = DBL_MAX;
+					double T2guess = params[1];
+					for (int i = 0; i < 10; i++)
+					{
+						double tempParams[2] = { T2guess, i / (10. * ssfpTR) }, tempRes;
+						levMar(tempParams, 2, consts, ssfpAngles, signals, fs, NULL, nSSFP, nPhases, true, &tempRes);
+						if (tempRes < res)
+						{
+							res = tempRes;
+							params[1] = tempParams[0];
+							params[2] = tempParams[1];
+						}
+					}
+					params[3] = res;
 				}
+				if (params[0] < 0.) params[0] = 0.;
+				if (params[1] < 0.) params[1] = 0.;
+				if (params[1] > 250.) params[1] = 250.;
+				params[2] = fmod(params[2], 1./ssfpTR);
+				if (params[2] < -.5/ssfpTR)           
+					params[2] += 1./ssfpTR;
+				if (params[2] >  .5/ssfpTR)
+					params[2] -= 1./ssfpTR;
+				params[2] *= 1.e3;           // Convert B0 to Hz
+				params[3] = indxs[0];
 				
 				// Clean up memory
 				for (int p = 0; p < nPhases; p++)
@@ -235,8 +258,8 @@ int main(int argc, char **argv)
 			for (int p = 0; p < NR; p++)
 				resultsSlices[p][vox]  = (float)params[p];
 		};
-		//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-		//dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		
         clock_t loopEnd = clock();
         fprintf(stdout, "Finished slice %zu", slice);
