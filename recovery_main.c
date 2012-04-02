@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 	
 	char *outPrefix = argv[1];
 	char **imageNames;
-	double *TRs, *scales;
+	float *TRs, *scales;
 	int nImgs = readRecordFile(argv[2], "sdd", &imageNames, &TRs, &scales);
 	nifti_image **headers = (nifti_image **)malloc(nImgs * sizeof(nifti_image *));
 	loadHeaders(imageNames, headers, nImgs);
@@ -52,13 +52,13 @@ int main(int argc, char **argv)
 		fprintf(stdout, "Processing slice %ld...\n", slice);
 		for (int vox = 0; vox < voxelsPerSlice; vox++)
 		{
-			double vals[nImgs];
-			double M0 = 0., T1 = 0., alpha = 0., residual = 0.;			
+			float vals[nImgs];
+			float M0 = 0., T1 = 0., alpha = 0., residual = 0.;			
 			for (int img = 0; img < nImgs; img++)
 			{
 				float d = data[img][vox];
-				double s = scales[img];
-				double r = d * s;
+				float s = scales[img];
+				float r = d * s;
 				vals[img] = r;
 			}
 			

@@ -10,69 +10,69 @@
 #include "recovery.h"
 #include "mathUtil.h"
 
-inline double saturation_Mz(const double TR, const double* par, const double *c)
+inline float saturation_Mz(const float TR, const float* par, const float *c)
 {
-	double M0 = par[0];
-	double T1 = par[1];
-	double val = M0 * (1. - exp(-TR / T1));
+	float M0 = par[0];
+	float T1 = par[1];
+	float val = M0 * (1. - exp(-TR / T1));
 	return val;
 }
 
-inline double inversion_Mz(const double TR, const double *par, const double *c)
+inline float inversion_Mz(const float TR, const float *par, const float *c)
 {
-	double M0 = par[0];
-	double T1 = par[1];
-	double val = M0 * (1. - 2. * exp(-TR / T1));
+	float M0 = par[0];
+	float T1 = par[1];
+	float val = M0 * (1. - 2. * exp(-TR / T1));
 	return val;
 }
 
-inline double recovery_Mz(const double TR, const double *par, const double *c)
+inline float recovery_Mz(const float TR, const float *par, const float *c)
 {
-	double M0 = par[0];
-	double T1 = par[1];
-	double alpha = par[2];
-	double val = M0 * (1. - alpha * (exp(-TR / T1)));
+	float M0 = par[0];
+	float T1 = par[1];
+	float alpha = par[2];
+	float val = M0 * (1. - alpha * (exp(-TR / T1)));
 	return val;
 }
 
-inline double recovery_dMzdM0(const double TR, const double *par, const double *c)
+inline float recovery_dMzdM0(const float TR, const float *par, const float *c)
 {
-	//double M0 = par[0];
-	double T1 = par[1];
-	double alpha = par[2];
-	double val = (1. - alpha * (exp(-TR / T1)));
+	//float M0 = par[0];
+	float T1 = par[1];
+	float alpha = par[2];
+	float val = (1. - alpha * (exp(-TR / T1)));
 	return val;
 }
 
-inline double recovery_dMzdT1(const double TR, const double *par, const double *c)
+inline float recovery_dMzdT1(const float TR, const float *par, const float *c)
 {
-	double M0 = par[0];
-	double T1 = par[1];
-	double alpha = par[2];
-	double val = - M0 * alpha * TR * (exp(-TR / T1)) / (T1 * T1);
+	float M0 = par[0];
+	float T1 = par[1];
+	float alpha = par[2];
+	float val = - M0 * alpha * TR * (exp(-TR / T1)) / (T1 * T1);
 	return val;
 }
 
-inline double recovery_dMzdalpha(const double TR, const double *par, const double *c)
+inline float recovery_dMzdalpha(const float TR, const float *par, const float *c)
 {
-	double M0 = par[0];
-	double T1 = par[1];
-	//double alpha = par[2];
-	double val = - M0 * (exp(-TR / T1));
+	float M0 = par[0];
+	float T1 = par[1];
+	//float alpha = par[2];
+	float val = - M0 * (exp(-TR / T1));
 	return val;
 }
 
 extern int MATH_LEVENBERG_DEBUG;
-double calcRecovery(double *vals, double* TR, int n, double *M0out, double *T1out, double *alpha)
+float calcRecovery(float *vals, float* TR, int n, float *M0out, float *T1out, float *alpha)
 {
 	// Initial guesses of M0 and T1
 	// First value should be close to last Mz, T1 is just a guess
 	int n_par = 3;
-	double par[3] = {1.2 * vals[n - 1], 1200., 1.}; 
+	float par[3] = {1.2 * vals[n - 1], 1200., 1.}; 
 	eval_type *gradients[3] = { recovery_dMzdM0,
 	                            recovery_dMzdT1,
 								recovery_dMzdalpha};
-	double finalRes;
+	float finalRes;
 	MATH_LEVENBERG_DEBUG = 0;
 	//levMar(par, n_par, NULL, TR, vals, n, &recovery_Mz, gradients, &finalRes);
 	*M0out = par[0];

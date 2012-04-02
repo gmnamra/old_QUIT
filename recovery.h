@@ -12,10 +12,10 @@
 
 #include <math.h>
 
-double recovery_Mz(const double TR, const double *par, const double *c);
-double recovery_dMzdM0(const double TR, const double *par, const double *c);
-double recovery_dMzdalpha(const double TR, const double *par, const double *c);
-double recovery_dMzdT1(const double TR, const double *par, const double *c);
-double calcRecovery(double *vals, double* TR, int n, double *M0out, double *T1out, double *alpha);
+float recovery_Mz(const float TR, const float *par, const float *c);
+float recovery_dMzdM0(const float TR, const float *par, const float *c);
+float recovery_dMzdalpha(const float TR, const float *par, const float *c);
+float recovery_dMzdT1(const float TR, const float *par, const float *c);
+float calcRecovery(float *vals, float* TR, int n, float *M0out, float *T1out, float *alpha);
 
 #endif

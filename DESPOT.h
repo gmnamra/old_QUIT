@@ -13,26 +13,26 @@
 #include "mathArray.h"
 #include "mathOptimisers.h"
 int tests();
-double SPGR(double flipAngle, double *p, double *c);
-void SPGR_Jacobian(double *angles, int nD, double *p, double *c, double *result);
-double IRSPGR(double TI, double *p, double *c);
-void IRSPGR_Jacobian(double *data, int nD, double *par, double *c, double *result);
-double SSFP(double flipAngle, double *p, double *c);
-double n2cSPGR(double alpha, double *p, double *c);
-double n2cSSFP(double alpha, double *p, double *c);
-void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA);
-void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA);
-void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA);
+float SPGR(float flipAngle, float *p, float *c);
+void SPGR_Jacobian(float *angles, int nD, float *p, float *c, float *result);
+float IRSPGR(float TI, float *p, float *c);
+void IRSPGR_Jacobian(float *data, int nD, float *par, float *c, float *result);
+float SSFP(float flipAngle, float *p, float *c);
+float n2cSPGR(float alpha, float *p, float *c);
+float n2cSSFP(float alpha, float *p, float *c);
+void a1cSSFP(float *alpha, float *p, float *c, float *signal, size_t nA);
+void a2cSPGR(float *alpha, float *p, float *c, float *signal, size_t nA);
+void a2cSSFP(float *alpha, float *p, float *c, float *signal, size_t nA);
 
-double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
-				double *TI, double *irVals, int nIR, double irFlipAngle, double irTR,
-				double *M0, double *T1, double *B1);
-void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
-				 double TR, double B1, double *M0, double *T1);
-void classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
-                    double TR, double T1, double B1, double *p);
-void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **angles, double **ssfp,
-					double TR, double T1, double B1, double *p);
-void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAngles, double **ssfp,
-					 double TR, double T1, double B1, double *p);
+float calcHIFI(float *flipAngles, float *spgrVals, int nSPGR, float spgrTR,
+				float *TI, float *irVals, int nIR, float irFlipAngle, float irTR,
+				float *M0, float *T1, float *B1);
+void calcDESPOT1(float *flipAngles, float *spgrVals, int n,
+				 float TR, float B1, float *M0, float *T1);
+void classicDESPOT2(float *flipAngles, float *ssfpVals, int n,
+                    float TR, float T1, float B1, float *p);
+void simplexDESPOT2(size_t nPhases, size_t *nD, float *phases, float **angles, float **ssfp,
+					float TR, float T1, float B1, float *p);
+void contractDESPOT2(size_t nPhases, size_t *nD, float *phases, float **flipAngles, float **ssfp,
+					 float TR, float T1, float B1, float *p);
 #endif

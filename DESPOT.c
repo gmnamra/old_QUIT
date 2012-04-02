@@ -12,99 +12,99 @@
 #include "math2d.h"
 #include "stdio.h"
 
-double SPGR(double flipAngle, double *p, double *c)
+float SPGR(float flipAngle, float *p, float *c)
 {
-	double M0 = p[0], T1 = p[1], B1 = p[2], TR = c[0];
-	double e1 = exp(-TR / T1);
-	double spgr = M0 * (1. - e1) * sin(flipAngle * B1) /
+	float M0 = p[0], T1 = p[1], B1 = p[2], TR = c[0];
+	float e1 = exp(-TR / T1);
+	float spgr = M0 * (1. - e1) * sin(flipAngle * B1) /
 				      (1. - e1 * cos(flipAngle * B1));
 	return spgr;
 }
 
-void SPGR_Jacobian(double *angles, int nD, double *p, double *c, double *result)
+void SPGR_Jacobian(float *angles, int nD, float *p, float *c, float *result)
 {
-	double M0 = p[0], T1 = p[1], B1 = p[2], TR = c[0];
-	double eTR = exp(-TR / T1);
+	float M0 = p[0], T1 = p[1], B1 = p[2], TR = c[0];
+	float eTR = exp(-TR / T1);
 	for (int d = 0; d < nD; d++)
 	{
-		double alpha = angles[d];
+		float alpha = angles[d];
 		
-		double denom = (1. - eTR * cos(B1 * alpha));
+		float denom = (1. - eTR * cos(B1 * alpha));
 		
-		double dMzM0 = (1 - eTR * sin(B1 * alpha)) / denom;
-		double dMzT1 = (M0 * TR * sin(B1 * alpha) * eTR * (cos(B1 * alpha) - 1.)) /
+		float dMzM0 = (1 - eTR * sin(B1 * alpha)) / denom;
+		float dMzT1 = (M0 * TR * sin(B1 * alpha) * eTR * (cos(B1 * alpha) - 1.)) /
 		               (T1 * T1 * denom * denom);
-		double dMzB1 = (M0 * B1 * eTR * (1. - eTR + cos(B1 * alpha))) / (denom * denom);
+		float dMzB1 = (M0 * B1 * eTR * (1. - eTR + cos(B1 * alpha))) / (denom * denom);
 		result[0 * nD + d] = dMzM0;
 		result[1 * nD + d] = dMzT1;
 		result[2 * nD + d] = dMzB1;
 	}
 }
 
-double IRSPGR(double TI, double *p, double *c)
+float IRSPGR(float TI, float *p, float *c)
 {
-	double M0 = p[0], T1 = p[1], B1 = p[2];
-	double flipAngle = c[0], TR = c[1];
+	float M0 = p[0], T1 = p[1], B1 = p[2];
+	float flipAngle = c[0], TR = c[1];
 	
-	double irEfficiency = cos(B1 * M_PI) - 1;
+	float irEfficiency = cos(B1 * M_PI) - 1;
 
-	double fullTR = TI + TR;
-	double eTI = exp(-TI / T1);
-	double eFull = exp(-fullTR / T1);
+	float fullTR = TI + TR;
+	float eTI = exp(-TI / T1);
+	float eFull = exp(-fullTR / T1);
 
-	double irspgr = fabs(M0 * sin(B1 * flipAngle) *
+	float irspgr = fabs(M0 * sin(B1 * flipAngle) *
 					       (1. + irEfficiency * eTI + eFull));
 	return irspgr;
 }
 
-void IRSPGR_Jacobian(double *data, int nD, double *p, double *c, double *result)
+void IRSPGR_Jacobian(float *data, int nD, float *p, float *c, float *result)
 {
-	double M0 = p[0], T1 = p[1], B1 = p[2];
-	double alpha = c[0], TR = c[1], nReadout = c[2];
+	float M0 = p[0], T1 = p[1], B1 = p[2];
+	float alpha = c[0], TR = c[1], nReadout = c[2];
 	
 	for (int d = 0; d < nD; d++)
 	{
-		double TI = data[d];
-		double irEff = cos(B1 * M_PI) - 1;
+		float TI = data[d];
+		float irEff = cos(B1 * M_PI) - 1;
 		
-		double fullTR = TI + (nReadout * TR);
-		double eTI = exp(-TI / T1);
-		double eTR = exp(-fullTR / T1);
+		float fullTR = TI + (nReadout * TR);
+		float eTI = exp(-TI / T1);
+		float eTR = exp(-fullTR / T1);
 		
-		double dMzM0 = sin(B1 * alpha) * (1. + eTR + irEff * eTI);
-		double dMzT1 = (M0 * sin(B1 * alpha) / (T1 * T1)) *
+		float dMzM0 = sin(B1 * alpha) * (1. + eTR + irEff * eTI);
+		float dMzT1 = (M0 * sin(B1 * alpha) / (T1 * T1)) *
 					   (fullTR * eTR + TI * irEff * eTI);
-		double b1 = M0 * alpha * cos(B1 * alpha) *
+		float b1 = M0 * alpha * cos(B1 * alpha) *
 					   (1 + eTR + irEff * eTI);
-		double b2 =    M0 * sin(B1 * alpha) *
+		float b2 =    M0 * sin(B1 * alpha) *
 					   (M_PI * sin(B1 * M_PI) * eTI);
-		double dMzB1 = b1 - b2;
+		float dMzB1 = b1 - b2;
 		result[0 * nD + d] = dMzM0;
 		result[1 * nD + d] = dMzT1;
 		result[2 * nD + d] = dMzB1;
 	}
 }
 
-double SSFP(double flipAngle, double *p, double *c)
+float SSFP(float flipAngle, float *p, float *c)
 {
-	double M0 = p[0], T2 = p[1], B0 = p[2];
-	double TR = c[0], T1 = c[1], B1 = c[2], offset = c[3];
+	float M0 = p[0], T2 = p[1], B0 = p[2];
+	float TR = c[0], T1 = c[1], B1 = c[2], offset = c[3];
 	
-	double eT1 = exp(-TR / T1);
-	double eT2 = exp(-TR / T2);
+	float eT1 = exp(-TR / T1);
+	float eT2 = exp(-TR / T2);
 	
-	double phase = offset + B0 * (TR / 1.e3) * 2. * M_PI;
-	double sina = sin(B1 * flipAngle);
-	double cosa = cos(B1 * flipAngle);
-	double sinp = sin(phase);
-	double cosp = cos(phase);
+	float phase = offset + B0 * (TR / 1.e3) * 2. * M_PI;
+	float sina = sin(B1 * flipAngle);
+	float cosa = cos(B1 * flipAngle);
+	float sinp = sin(phase);
+	float cosp = cos(phase);
 	
-	double denom = ((1. - eT1 * cosa) * (1. - eT2 * cosp)) - 
+	float denom = ((1. - eT1 * cosa) * (1. - eT2 * cosp)) - 
 				   (eT2 * (eT1 - cosa) * (eT2 - cosp));
 	
-	double Mx = ((1 - eT1) * eT2 * sina * (cosp - eT2)) / denom;
-	double My = ((1.- eT1) * eT2 * sina * sinp) / denom;
-	double ssfp = M0 * sqrt(Mx*Mx + My*My);
+	float Mx = ((1 - eT1) * eT2 * sina * (cosp - eT2)) / denom;
+	float My = ((1.- eT1) * eT2 * sina * sinp) / denom;
+	float ssfp = M0 * sqrt(Mx*Mx + My*My);
 	return ssfp;
 }
 
@@ -126,68 +126,68 @@ double SSFP(double flipAngle, double *p, double *c)
 	1 - B1
 	2 - Phase cycle/offset
 */
-double n2cSPGR(double alpha, double *p, double *c)
+float n2cSPGR(float alpha, float *p, float *c)
 {
-	double T1_a = p[0], T1_b = p[1],
+	float T1_a = p[0], T1_b = p[1],
 		   f_a = p[4], tau_a = p[5],
 		   TR = c[0], B1 = c[1];
-	double f_b = 1. - f_a;
-	double tau_b = f_b * tau_a / f_a;
+	float f_b = 1. - f_a;
+	float tau_b = f_b * tau_a / f_a;
 	
-	double M0[2] = {f_a, f_b}, S[2];
-	double A[4]  = {-(TR/T1_a + TR/tau_a), TR/tau_b,
+	float M0[2] = {f_a, f_b}, S[2];
+	float A[4]  = {-(TR/T1_a + TR/tau_a), TR/tau_b,
 	                TR/tau_a, -(TR/T1_b + TR/tau_b)};
-	double eye[4] = { 1., 0.,
+	float eye[4] = { 1., 0.,
 					  0., 1. };
 	matrixExp(A, 2);
-	double costerm[4];
+	float costerm[4];
 	arrayScale(costerm, A, cos(B1 * alpha), 4);
 	arraySub(costerm, eye, costerm, 4);
 	
-	double sinterm[4];
+	float sinterm[4];
 	arraySub(sinterm, eye, A, 4);
 	arrayScale(sinterm, sinterm, sin(B1 * alpha), 4);
 	matrixSolve(A, costerm, sinterm, 2, 2);
 	matrixMult(S, A, M0, 2, 2, 1);
-	double s = S[0] + S[1];
+	float s = S[0] + S[1];
 	return s;
 }
 
-double n2cSSFP(double alpha, double *p, double *c)
+float n2cSSFP(float alpha, float *p, float *c)
 {
-	double T1_a = p[0], T1_b = p[1], T2_a = p[2], T2_b = p[3],
+	float T1_a = p[0], T1_b = p[1], T2_a = p[2], T2_b = p[3],
 		   f_a = p[4], tau_a = p[5], dO = p[6],
 		   TR = c[0], B1 = c[1], rfPhase = c[2];
-	double f_b = 1. - f_a;
-	double tau_b = f_b * tau_a / f_a;
-	double k_a = 1. / tau_a, k_b = 1. / tau_b;
-	double iT2_a = -(1./T2_a + k_a);
-	double iT2_b = -(1./T2_b + k_b);
-	double iT1_a = -(1./T1_a + k_a);
-	double iT1_b = -(1./T1_b + k_b);
-	double phase = rfPhase + (dO * TR * 2. * M_PI);
-	double A[36] = { iT2_a * TR, k_b * TR,    phase,     0.,    0.,    0.,
+	float f_b = 1. - f_a;
+	float tau_b = f_b * tau_a / f_a;
+	float k_a = 1. / tau_a, k_b = 1. / tau_b;
+	float iT2_a = -(1./T2_a + k_a);
+	float iT2_b = -(1./T2_b + k_b);
+	float iT1_a = -(1./T1_a + k_a);
+	float iT1_b = -(1./T1_b + k_b);
+	float phase = rfPhase + (dO * TR * 2. * M_PI);
+	float A[36] = { iT2_a * TR, k_b * TR,    phase,     0.,    0.,    0.,
 					 k_a  * TR,  iT2_b * TR,  0.,     phase,    0.,    0.,
 					 -phase,             0.,     iT2_a * TR,  k_b * TR,   0.,    0.,
 					 0.,    -phase,     k_a * TR,    iT2_b * TR, 0.,    0.,
 					 0.,    0.,     0.,    0.,     iT1_a * TR, k_b * TR,
 					 0.,    0.,     0.,    0.,     k_a * TR,   iT1_b * TR };
 
-	double ca = cos(B1 * alpha), sa = sin(B1 * alpha);
-	double R_rf[36] = { 1., 0., 0., 0., 0., 0.,
+	float ca = cos(B1 * alpha), sa = sin(B1 * alpha);
+	float R_rf[36] = { 1., 0., 0., 0., 0., 0.,
 	                    0., 1., 0., 0., 0., 0.,
 					    0., 0., ca, 0., sa, 0.,
 					    0., 0., 0., ca, 0., sa,
 					    0., 0.,-sa, 0., ca, 0.,
 					    0., 0., 0.,-sa, 0., ca };
-	double eye[36] = { 1., 0., 0., 0., 0., 0.,
+	float eye[36] = { 1., 0., 0., 0., 0., 0.,
 	                   0., 1., 0., 0., 0., 0.,
 					   0., 0., 1., 0., 0., 0.,
 					   0., 0., 0., 1., 0., 0.,
 					   0., 0., 0., 0., 1., 0.,
 					   0., 0., 0., 0., 0., 1. };
 					   
-	double temp1[36], temp2[36], temp3[36]; // First bracket
+	float temp1[36], temp2[36], temp3[36]; // First bracket
 	matrixExp(A, 6);
 	matrixMult(temp1, A, R_rf, 6, 6, 6);
 	arraySub(temp1, eye, temp1, 36);
@@ -195,66 +195,66 @@ double n2cSSFP(double alpha, double *p, double *c)
 	
 	// Now multiply everything together
 	matrixSolve(temp3, temp1, temp2, 6, 6);
-	double M0[6] = { 0., 0., 0., 0., f_a , f_b };
-	double Mobs[6];
+	float M0[6] = { 0., 0., 0., 0., f_a , f_b };
+	float Mobs[6];
 	matrixMult(Mobs, temp3, M0, 6, 6, 1);
-	double s =  sqrt(pow(Mobs[0] + Mobs[1], 2.) +
+	float s =  sqrt(pow(Mobs[0] + Mobs[1], 2.) +
 					 pow(Mobs[2] + Mobs[3], 2.));
 	return s;
 }
 
-void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
+void a1cSSFP(float *alpha, float *p, float *c, float *signal, size_t nA)
 {
-	double T2 = p[0], B0 = p[1],
+	float T2 = p[0], B0 = p[1],
 		   TR = c[0], T1 = c[1], B1 = c[2], rfPhase = c[3];
 	
-	double phase = rfPhase + (B0 * TR * 2. * M_PI);
-	double A[9] = { -TR / T2,    phase,       0.,
+	float phase = rfPhase + (B0 * TR * 2. * M_PI);
+	float A[9] = { -TR / T2,    phase,       0.,
 					  -phase, -TR / T2,       0.,
 					      0.,       0., -TR / T1 };
 
-	double R_rf[9] = { 1., 0., 0.,
+	float R_rf[9] = { 1., 0., 0.,
 					   0., 0., 0.,
 					   0., 0., 0.};
-	double eye[9] = { 1., 0., 0.,
+	float eye[9] = { 1., 0., 0.,
 					  0., 1., 0.,
 					  0., 0., 1. };
-	double temp1[9], temp2[9], all[9];
+	float temp1[9], temp2[9], all[9];
 	matrixExp(A, 3);
 	arraySub(temp2, eye, A, 9);
 	
 	for (size_t n = 0; n < nA; n++)
 	{
-		double ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
+		float ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
 		R_rf[4] = R_rf[8] = ca;
 		R_rf[5] = sa;
 		R_rf[7] = -sa;
 		matrixMult(temp1, A, R_rf, 3, 3, 3);
 		arraySub(temp1, eye, temp1, 9);
 		matrixSolve(all, temp1, temp2, 3, 3);
-		double M0[3] = { 0., 0., 1. };
-		double Mobs[3];
+		float M0[3] = { 0., 0., 1. };
+		float Mobs[3];
 		matrixMult(Mobs, all, M0, 3, 3, 1);
 		signal[n] = sqrt(Mobs[0]*Mobs[0] + Mobs[1]*Mobs[1]);
 	}
 }
 
-void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
+void a2cSPGR(float *alpha, float *p, float *c, float *signal, size_t nA)
 {
-	double T1_a = p[0], T1_b = p[1],
+	float T1_a = p[0], T1_b = p[1],
 		   f_a = p[4], tau_a = p[5],
 		   TR = c[0], B1 = c[1];
-	double f_b = 1. - f_a;
-	double tau_b = f_b * tau_a / f_a;
+	float f_b = 1. - f_a;
+	float tau_b = f_b * tau_a / f_a;
 	
-	double M0[2] = {f_a, f_b}, Mobs[2];
-	double A[4]  = {-(TR/T1_a + TR/tau_a), TR/tau_b,
+	float M0[2] = {f_a, f_b}, Mobs[2];
+	float A[4]  = {-(TR/T1_a + TR/tau_a), TR/tau_b,
 	                TR/tau_a, -(TR/T1_b + TR/tau_b)};
-	double eye[4] = { 1., 0.,
+	float eye[4] = { 1., 0.,
 					  0., 1. };
 	
 	matrixExp(A, 2);
-	double top[4], bottom[4], all[4];
+	float top[4], bottom[4], all[4];
 	arraySub(top, eye, A, 4);
 	for (size_t n = 0; n < nA; n++)
 	{
@@ -268,42 +268,42 @@ void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
 	}
 }
 
-void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
+void a2cSSFP(float *alpha, float *p, float *c, float *signal, size_t nA)
 {
-	double T1_a = p[0], T1_b = p[1], T2_a = p[2], T2_b = p[3],
+	float T1_a = p[0], T1_b = p[1], T2_a = p[2], T2_b = p[3],
 		   f_a = p[4], tau_a = p[5], dO = p[6],
 		   TR = c[0], B1 = c[1], rfPhase = c[2];
-	double f_b = 1. - f_a;
-	double tau_b = f_b * tau_a / f_a;
-	double eT2_a = -TR * (1./T2_a + 1./tau_a);
-	double eT2_b = -TR * (1./T2_b + 1./tau_b);
-	double eT1_a = -TR * (1./T1_a + 1./tau_a);
-	double eT1_b = -TR * (1./T1_b + 1./tau_b);
-	double k_a   = TR / tau_a;
-	double k_b   = TR / tau_b;
-	double phase = rfPhase + (dO * TR * 2. * M_PI);
+	float f_b = 1. - f_a;
+	float tau_b = f_b * tau_a / f_a;
+	float eT2_a = -TR * (1./T2_a + 1./tau_a);
+	float eT2_b = -TR * (1./T2_b + 1./tau_b);
+	float eT1_a = -TR * (1./T1_a + 1./tau_a);
+	float eT1_b = -TR * (1./T1_b + 1./tau_b);
+	float k_a   = TR / tau_a;
+	float k_b   = TR / tau_b;
+	float phase = rfPhase + (dO * TR * 2. * M_PI);
 
-	double eye[36] = { 1., 0., 0., 0., 0., 0.,
+	float eye[36] = { 1., 0., 0., 0., 0., 0.,
 	                   0., 1., 0., 0., 0., 0.,
 					   0., 0., 1., 0., 0., 0.,
 					   0., 0., 0., 1., 0., 0.,
 					   0., 0., 0., 0., 1., 0.,
 					   0., 0., 0., 0., 0., 1. };
-	double A[36] = {  eT2_a,    k_b, phase,    0.,    0.,    0.,
+	float A[36] = {  eT2_a,    k_b, phase,    0.,    0.,    0.,
 					    k_a,  eT2_b,    0., phase,    0.,    0.,
 					 -phase,     0., eT2_a,   k_b,    0.,    0.,
 					     0., -phase,   k_a, eT2_b,    0.,    0.,
 					     0.,     0.,    0.,    0., eT1_a,   k_b,
 					     0.,     0.,    0.,    0.,   k_a, eT1_b };
-	double R_rf[36] = { 1., 0., 0., 0., 0., 0.,
+	float R_rf[36] = { 1., 0., 0., 0., 0., 0.,
 	                    0., 1., 0., 0., 0., 0.,
 					    0., 0., 0., 0., 0., 0.,
 					    0., 0., 0., 0., 0., 0.,
 					    0., 0., 0., 0., 0., 0.,
 					    0., 0., 0., 0., 0., 0. };
 
-	double top[36], bottom[36], all[36];
-	double M0[6] = { 0., 0., 0., 0., f_a , f_b }, Mobs[6];
+	float top[36], bottom[36], all[36];
+	float M0[6] = { 0., 0., 0., 0., f_a , f_b }, Mobs[6];
 	
 	matrixExp(A, 6);
 	// Top of matrix divide
@@ -311,7 +311,7 @@ void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 
 	for (size_t n = 0; n < nA; n++)
 	{
-		double ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
+		float ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
 		R_rf[14] = ca; R_rf[21] = ca; R_rf[28] = ca; R_rf[35] = ca;
 		R_rf[16] = sa; R_rf[23] = sa; R_rf[26] = -sa; R_rf[33] = -sa;
 		// Inverse bracket term (i.e. bottom of matrix divide)
@@ -348,31 +348,31 @@ void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 	1 - B1
 	2 - Phase cycle/offset
 */
-void a3cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
+void a3cSPGR(float *alpha, float *p, float *c, float *signal, size_t nA)
 {
-	double T1_a = p[0], T1_b = p[1], T1_c = p[2],
+	float T1_a = p[0], T1_b = p[1], T1_c = p[2],
 		   f_a = p[6], f_b = p[7],
 		   tau_a = p[8], tau_b = p[9],
 		   TR = c[0], B1 = c[1];
-	double f_c = 1. - f_a - f_b;
-	double tau_c = f_c * tau_b / f_a;
+	float f_c = 1. - f_a - f_b;
+	float tau_c = f_c * tau_b / f_a;
 	
-	double M0[3] = {f_a, f_b, f_c}, Mobs[3];
-	double eT1_a = -TR * (1. / T1_a + 1 / tau_a);
-	double eT1_b = -TR * (1. / T1_b + 1 / tau_b);
-	double eT1_c = -TR * (1. / T1_c + 1 / tau_c);
-	double k_a = TR / tau_a;
-	double k_b = TR / tau_b;
-	double k_c = TR / tau_c;
-	double A[9]  = { eT1_a,   k_b,   k_c,
+	float M0[3] = {f_a, f_b, f_c}, Mobs[3];
+	float eT1_a = -TR * (1. / T1_a + 1 / tau_a);
+	float eT1_b = -TR * (1. / T1_b + 1 / tau_b);
+	float eT1_c = -TR * (1. / T1_c + 1 / tau_c);
+	float k_a = TR / tau_a;
+	float k_b = TR / tau_b;
+	float k_c = TR / tau_c;
+	float A[9]  = { eT1_a,   k_b,   k_c,
 	                   k_a, eT1_b,   k_c,
 					   k_a,   k_b, eT1_c }; 
-	double eye[9] = { 1., 0., 0.,
+	float eye[9] = { 1., 0., 0.,
 					  0., 1., 0.,
 					  0., 0., 1. };
 	
 	matrixExp(A, 3);
-	double top[9], bottom[9], all[9];
+	float top[9], bottom[9], all[9];
 	arraySub(top, eye, A, 9);
 	for (size_t n = 0; n < nA; n++)
 	{
@@ -386,28 +386,28 @@ void a3cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
 	}
 }
 
-void a3cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
+void a3cSSFP(float *alpha, float *p, float *c, float *signal, size_t nA)
 {
-	double T1_a = p[0], T1_b = p[1], T1_c = p[2],
+	float T1_a = p[0], T1_b = p[1], T1_c = p[2],
 	       T2_a = p[3], T2_b = p[4], T2_c = p[5],
 		   f_a = p[6], f_b = p[7],
 		   tau_a = p[8], tau_b = p[9], dO = p[10],
 		   TR = c[0], B1 = c[1], rfPhase = c[2];
 		   
-	double f_c = 1. - f_a - f_b;
-	double tau_c = f_b * tau_a / f_a;
-	double eT2_a = -TR * (1./T2_a + 1./tau_a);
-	double eT2_b = -TR * (1./T2_b + 1./tau_b);
-	double eT2_c = -TR * (1./T2_c + 1./tau_c);	
-	double eT1_a = -TR * (1./T1_a + 1./tau_a);
-	double eT1_b = -TR * (1./T1_b + 1./tau_b);
-	double eT1_c = -TR * (1./T1_c + 1./tau_c);
-	double k_a   = TR / tau_a;
-	double k_b   = TR / tau_b;
-	double k_c   = TR / tau_c;
-	double phase = rfPhase + (dO * TR * 2. * M_PI);
+	float f_c = 1. - f_a - f_b;
+	float tau_c = f_b * tau_a / f_a;
+	float eT2_a = -TR * (1./T2_a + 1./tau_a);
+	float eT2_b = -TR * (1./T2_b + 1./tau_b);
+	float eT2_c = -TR * (1./T2_c + 1./tau_c);	
+	float eT1_a = -TR * (1./T1_a + 1./tau_a);
+	float eT1_b = -TR * (1./T1_b + 1./tau_b);
+	float eT1_c = -TR * (1./T1_c + 1./tau_c);
+	float k_a   = TR / tau_a;
+	float k_b   = TR / tau_b;
+	float k_c   = TR / tau_c;
+	float phase = rfPhase + (dO * TR * 2. * M_PI);
 
-	double eye[81] = { 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+	float eye[81] = { 1., 0., 0., 0., 0., 0., 0., 0., 0.,
 	                   0., 1., 0., 0., 0., 0., 0., 0., 0.,
 					   0., 0., 1., 0., 0., 0., 0., 0., 0.,
 					   0., 0., 0., 1., 0., 0., 0., 0., 0.,
@@ -416,7 +416,7 @@ void a3cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 					   0., 0., 0., 0., 0., 0., 1., 0., 0.,
 					   0., 0., 0., 0., 0., 0., 0., 1., 0.,
 					   0., 0., 0., 0., 0., 0., 0., 0., 1. };
-	double A[81] = {  eT2_a,    k_b,    k_c, phase,    0.,    0.,    0.,    0.,    0.,
+	float A[81] = {  eT2_a,    k_b,    k_c, phase,    0.,    0.,    0.,    0.,    0.,
 					    k_a,  eT2_b,    k_c,    0., phase,    0.,    0.,    0.,    0.,
 					    k_a,    k_b,  eT2_c,    0.,    0., phase,    0.,    0.,    0.,
 					 -phase,     0.,     0., eT2_a,   k_b,   k_c,    0.,    0.,    0.,
@@ -425,7 +425,7 @@ void a3cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 					     0.,     0.,     0.,    0.,    0.,    0., eT1_a,   k_b,   k_c,
 					     0.,     0.,     0.,    0.,    0.,    0.,   k_a, eT1_b,   k_c,
 					     0.,     0.,     0.,    0.,    0.,    0.,   k_a,   k_b, eT1_c };
-	double R[81] = { 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+	float R[81] = { 1., 0., 0., 0., 0., 0., 0., 0., 0.,
 				     0., 1., 0., 0., 0., 0., 0., 0., 0.,
 					 0., 0., 1., 0., 0., 0., 0., 0., 0.,
 					 0., 0., 0., 0., 0., 0., 0., 0., 0.,
@@ -435,8 +435,8 @@ void a3cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 					 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 					 0., 0., 0., 0., 0., 0., 0., 0., 0. };
 
-	double top[81], bottom[81], all[81];
-	double M0[9] = { 0., 0., 0., 0., 0., 0., f_a , f_b, f_c }, Mobs[9];
+	float top[81], bottom[81], all[81];
+	float M0[9] = { 0., 0., 0., 0., 0., 0., f_a , f_b, f_c }, Mobs[9];
 	
 	matrixExp(A, 9);
 	// Top of matrix divide
@@ -444,7 +444,7 @@ void a3cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 
 	for (size_t n = 0; n < nA; n++)
 	{
-		double ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
+		float ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
 		R[30] = ca; R[40] = ca; R[50] = ca; R[60] = ca; R[70] = ca; R[80] = ca;
 		R[33] = sa; R[43] = sa; R[53] = sa; R[57] = -sa; R[67] = -sa; R[77] = -sa;
 		// Inverse bracket term (i.e. bottom of matrix divide)
@@ -459,11 +459,11 @@ void a3cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 	}
 }
 
-void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
-				 double TR, double B1, double *M0, double *T1)
+void calcDESPOT1(float *flipAngles, float *spgrVals, int n,
+				 float TR, float B1, float *M0, float *T1)
 {
 	// Linearise the data, then least-squares
-	double X[n], Y[n], slope, inter;
+	float X[n], Y[n], slope, inter;
 	for (int i = 0; i < n; i++)
 	{
 		X[i] = spgrVals[i] / tan(flipAngles[i] * B1);
@@ -474,40 +474,40 @@ void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 	*M0 = inter / (1. - slope);
 }
 
-void classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
-                    double TR, double T1, double B1, double *p)
+void classicDESPOT2(float *flipAngles, float *ssfpVals, int n,
+                    float TR, float T1, float B1, float *p)
 {
 	// As above, linearise, then least-squares
 	// p[0] = M0, p[1] = T2
-	double X[n], Y[n], slope, inter;
+	float X[n], Y[n], slope, inter;
 	for (int i = 0; i < n; i++)
 	{
 		X[i] = ssfpVals[i] / tan(flipAngles[i] * B1);
 		Y[i] = ssfpVals[i] / sin(flipAngles[i] * B1);
 	}
 	linearLeastSquares(X, Y, n, &slope, &inter);
-	double eT1 = exp(-TR / T1);
+	float eT1 = exp(-TR / T1);
 	p[1] = -TR / log((eT1 - slope) / (1. - slope * eT1));
-	double eT2 = exp(-TR / p[1]);
+	float eT2 = exp(-TR / p[1]);
 	p[0] = inter * (1. - eT1 * eT2) / (1. - eT1);
 }
 
-void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **angles, double **ssfp,
-					double TR, double T1, double B1, double *p)
+void simplexDESPOT2(size_t nPhases, size_t *nD, float *phases, float **angles, float **ssfp,
+					float TR, float T1, float B1, float *p)
 {
 	// Gather together all the data
-	double *init[4], *c[nPhases], fRes = 0.;
+	float *init[4], *c[nPhases], fRes = 0.;
 	eval_type *f[nPhases];
 	for (int i = 0; i < nPhases; i++)
 	{
-		c[i] = malloc(4 * sizeof(double));
+		c[i] = malloc(4 * sizeof(float));
 		c[i][0] = TR; c[i][1] = T1; c[i][2] = B1; c[i][3] = phases[i];
 		f[i] = SSFP;
 	}
 	
 	// Use different phases and guesses at B0 to get initial starting location
 	for (int i = 0; i < 4; i++)
-		init[i] = malloc(3 * sizeof(double));
+		init[i] = malloc(3 * sizeof(float));
 	classicDESPOT2(angles[0], ssfp[0], nD[0], TR, T1, B1, init[0]);
 	classicDESPOT2(angles[0], ssfp[0], nD[0], TR, T1, B1, init[1]);
 	classicDESPOT2(angles[1], ssfp[1], nD[1], TR, T1, B1, init[2]);
@@ -518,20 +518,20 @@ void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **angles,
 	simplex(p, 3, c, nPhases, angles, ssfp, nD, f, init, &fRes);
 }
 
-void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAngles, double **ssfp,
-					 double TR, double T1, double B1, double *p)
+void contractDESPOT2(size_t nPhases, size_t *nD, float *phases, float **flipAngles, float **ssfp,
+					 float TR, float T1, float B1, float *p)
 {
-	double loBounds[2] = {   1.,     0. };
-	double hiBounds[2] = { 500., 1./TR };
-	double *bounds[2] =  { loBounds, hiBounds };
+	float loBounds[2] = {   1.,     0. };
+	float hiBounds[2] = { 500., 1./TR };
+	float *bounds[2] =  { loBounds, hiBounds };
 	bool loConstraints[2] = { true, false };
 	bool hiConstraints[2] = { true, false };
 	bool *constraints[2] = { loConstraints, hiConstraints };
-	double *c[nPhases], fRes = 0.;
+	float *c[nPhases], fRes = 0.;
 	eval_array_type *f[nPhases];
 	for (int i = 0; i < nPhases; i++)
 	{
-		c[i] = malloc(4 * sizeof(double));
+		c[i] = malloc(4 * sizeof(float));
 		c[i][0] = TR; c[i][1] = T1; c[i][2] = B1; c[i][3] = phases[i];
 		f[i] = a1cSSFP;
 		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
@@ -546,32 +546,32 @@ void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAn
 	p[1] *= 1.e3;             // Finally convert to Hz
 }
 
-double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
-				double *TI, double *irVals, int nIR, double irFlipAngle, double irTR,
-				double *M0, double *T1, double *B1)
+float calcHIFI(float *flipAngles, float *spgrVals, int nSPGR, float spgrTR,
+				float *TI, float *irVals, int nIR, float irFlipAngle, float irTR,
+				float *M0, float *T1, float *B1)
 {
 	// Golden Section Search to find B1	
 	// From www.mae.wvu.edu/~smirnov/nr/c10-1.pdf
-	double R = 0.61803399; // Golden ratio - 1
-	double C = 1 - R;
-	double precision = 0.001;	
+	float R = 0.61803399; // Golden ratio - 1
+	float C = 1 - R;
+	float precision = 0.001;	
 	
 	// Set up initial bracket using some guesses
-	double B1_0 = 0.3; double B1_3 = 1.8; double B1_1, B1_2;
+	float B1_0 = 0.3; float B1_3 = 1.8; float B1_1, B1_2;
 	
 	// Assemble parameters
-	double par[3] = { *M0, *T1, B1_1 };
-	double spgrConstants[1] = { spgrTR };
-	double irConstants[2] = { irFlipAngle, irTR };
-	double spgrRes[nSPGR], irRes[nIR];
+	float par[3] = { *M0, *T1, B1_1 };
+	float spgrConstants[1] = { spgrTR };
+	float irConstants[2] = { irFlipAngle, irTR };
+	float spgrRes[nSPGR], irRes[nIR];
 	
 	par[2] = B1_0;
 	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-	double res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, &SPGR, spgrRes, false) +
+	float res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, &SPGR, spgrRes, false) +
 	              calcResiduals(par, irConstants, TI, irVals, nIR, &IRSPGR, irRes, false);
 	par[2] = B1_3;
 	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-	double res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
+	float res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
 	              calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes, false);
 	
 	if (res1 < res2)

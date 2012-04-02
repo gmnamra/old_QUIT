@@ -50,13 +50,13 @@ int main(int argc, char **argv)
 	
 	char *outPrefix = NULL, *outExt = ".nii";
 	size_t nSPGR, nPhases, *nSSFP;
-	double spgrTR, *spgrAngles,
+	float spgrTR, *spgrAngles,
 		   ssfpTR, *ssfpPhases, **ssfpAngles, loBounds[7], hiBounds[7],
 		   lo3Bounds[7] = { 200.,  500.,  2.,  40., 0.0,   50., 0. },
 		   hi3Bounds[7] = { 700., 2500., 40., 200., 0.4, 2000., 0. },
 		   lo7Bounds[7] = {  200.,  500.,   2.,  40., 0.,   50., 0. },
 		   hi7Bounds[7] = { 1500., 5000., 100., 400., 1., 2000., 0. },
-		   **bounds = malloc(2 * sizeof(double *));
+		   **bounds = malloc(2 * sizeof(float *));
 	bounds[0] = loBounds; bounds[1] = hiBounds;
 	bool loConstraint[7] = { true, true, true, true, true, true, false };
 	bool hiConstraint[7] = { true, true, true, true, true, true, false };
@@ -90,9 +90,9 @@ int main(int argc, char **argv)
 					break;
 				case 'u':
 					fprintf(stdout, "Enter low boundaries (6 values):");
-					fgetArray(stdin, 'd', 6, loBounds);
+					fgetArray(stdin, 'f', 6, loBounds);
 					fprintf(stdout, "Enter high boundaries (6 values):");
-					fgetArray(stdin, 'd', 6, hiBounds);
+					fgetArray(stdin, 'f', 6, hiBounds);
 					break;
 				default:
 					fprintf(stdout, "Unknown boundaries type '%c'.\n", argv[thisArg][0]);
@@ -113,11 +113,11 @@ int main(int argc, char **argv)
 	fprintf(stdout, "Reading SPGR header from %s.\n", argv[thisArg]);
 	spgrFile = nifti_image_read(argv[thisArg], FALSE); thisArg++;
 	nSPGR = spgrFile->nt;
-	spgrAngles = malloc(nSPGR * sizeof(double));
+	spgrAngles = malloc(nSPGR * sizeof(float));
 	fprintf(stdout, "Enter SPGR TR (ms):");
-	fscanf(stdin, "%lf", &spgrTR);
+	fscanf(stdin, "%f", &spgrTR);
 	fprintf(stdout, "Enter %zu SPGR Flip Angles (degrees):", nSPGR);
-	fgetArray(stdin, 'd', nSPGR, spgrAngles);
+	fgetArray(stdin, 'f', nSPGR, spgrAngles);
 	arrayApply(spgrAngles, spgrAngles, radians, nSPGR);
 
 	//**************************************************************************
@@ -125,14 +125,14 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	nPhases    = argc - thisArg;
 	nSSFP      = malloc(nPhases * sizeof(int));
-	ssfpPhases = malloc(nPhases * sizeof(double));
-	ssfpAngles = malloc(nPhases * sizeof(double *));
+	ssfpPhases = malloc(nPhases * sizeof(float));
+	ssfpAngles = malloc(nPhases * sizeof(float *));
 	ssfpFiles  = malloc(nPhases * sizeof(nifti_image *));
 	fprintf(stdout, "Specified %zu phase cycling patterns.\n", nPhases);
 	fprintf(stdout, "Enter SSFP TR (ms):");
-	fscanf(stdin, "%lf", &ssfpTR);
+	fscanf(stdin, "%f", &ssfpTR);
 	fprintf(stdout, "Enter %zu Phase-Cycling Patterns (degrees):", nPhases);
-	fgetArray(stdin, 'd', nPhases, ssfpPhases); fprintf(stdout, "\n");
+	fgetArray(stdin, 'f', nPhases, ssfpPhases); fprintf(stdout, "\n");
 	arrayApply(ssfpPhases, ssfpPhases, radians, nPhases);
 	for (int p = 0; p < nPhases; p++)
 	{
@@ -145,9 +145,9 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 		nSSFP[p] = ssfpFiles[p]->nt;
-		ssfpAngles[p] = malloc(nSSFP[p] * sizeof(double));
+		ssfpAngles[p] = malloc(nSSFP[p] * sizeof(float));
 		fprintf(stdout, "Enter %zu Angles (degrees) for Pattern %d:", nSSFP[p], p);
-		fgetArray(stdin, 'd', nSSFP[p], ssfpAngles[p]); fprintf(stdout, "\n");
+		fgetArray(stdin, 'f', nSSFP[p], ssfpAngles[p]); fprintf(stdout, "\n");
 		arrayApply(ssfpAngles[p], ssfpAngles[p], radians, nSSFP[p]);
 	}
 	if ((spgrFile->nx * spgrFile->ny * spgrFile->nz) !=
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	size_t *nD = malloc((1 + nPhases) * sizeof(size_t));
 	eval_array_type **f = malloc((1 + nPhases) * sizeof(eval_array_type *));
-	double **angles = malloc((1 + nPhases) * sizeof(double *));
+	float **angles = malloc((1 + nPhases) * sizeof(float *));
 
 	loBounds[6] = 0.; hiBounds[6] = 1. / ssfpTR;
 	nD[0] = nSPGR;
@@ -254,34 +254,34 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
-			double params[NR];
+			float params[NR];
 			arraySet(params, 0., NR);
 			if (!maskFile || (maskData[vox] > 0.))
 			{
 				AtomicAdd(1, &voxCount);
 				
-				double B1 = 1.;
+				float B1 = 1.;
 				if (B1File)
-					B1 = (double)B1Data[vox];
+					B1 = (float)B1Data[vox];
 				
 				// Constants need to be set up here because B1 changes per-voxels
-				double *signals[1 + nPhases], *consts[1 + nPhases];
+				float *signals[1 + nPhases], *consts[1 + nPhases];
 				
-				signals[0] = malloc(nSPGR * sizeof(double));
+				signals[0] = malloc(nSPGR * sizeof(float));
 				for (int img = 0; img < nSPGR; img++)
-					signals[0][img] = (double)spgrData[voxelsPerSlice * img + vox];
+					signals[0][img] = (float)spgrData[voxelsPerSlice * img + vox];
 				arrayScale(signals[0], signals[0], 1. / arrayMean(signals[0], nSPGR), nSPGR);
-				consts[0] = malloc(2 * sizeof(double));
+				consts[0] = malloc(2 * sizeof(float));
 				consts[0][0] = spgrTR; consts[0][1] = B1;
 								
 				for (int p = 0; p < nPhases; p++)
 				{
-					signals[p + 1] = malloc(nSSFP[p] * sizeof(double));
+					signals[p + 1] = malloc(nSSFP[p] * sizeof(float));
 					for (int img = 0; img < nSSFP[p]; img++)
-						signals[p + 1][img] = (double)ssfpData[p][voxelsPerSlice * img + vox];
+						signals[p + 1][img] = (float)ssfpData[p][voxelsPerSlice * img + vox];
 					arrayScale(signals[p + 1], signals[p + 1], 1. / arrayMean(signals[p + 1], nSSFP[p]), nSSFP[p]);
 					
-					consts[p + 1] = malloc(3 * sizeof(double));
+					consts[p + 1] = malloc(3 * sizeof(float));
 					consts[p + 1][0] = ssfpTR; consts[p + 1][1] = B1; consts[p + 1][2] = ssfpPhases[p];
 				}
 
@@ -289,9 +289,11 @@ int main(int argc, char **argv)
 				regionContraction(params, 7, consts, 1 + nPhases, angles,
 				                  signals, nD, true, f, bounds, constraints,
 								  5000, 25, 20, 0.1, 0.025, &(params[7]));
-				params[6] = fmod(params[6], 1./ssfpTR); 
-				if (params[6] < 0)           // Bring B0 back to one cycle
+				params[6] = fmod(params[6], 1./ssfpTR); // Bring B0 back to one cycle 
+				if (params[6] < -.5/ssfpTR)
 					params[6] += 1./ssfpTR;  // And correct for signed modulus in C
+				if (params[6] > .5/ssfpTR)
+					params[6] -= 1./ssfpTR;
 				params[6] *= 1.e3;           // Finally convert to Hz
 				
 				// Clean up memory
