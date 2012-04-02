@@ -7,76 +7,28 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F64E847814F2538400470C2C /* tests_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F64E847714F2538400470C2C /* tests_main.c */; };
-		F64E847914F2539500470C2C /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
-		F64E847A14F2539900470C2C /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
-		F64E847B14F2539900470C2C /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
-		F64E847C14F2539900470C2C /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
 		F65C05A3149655CE0046A464 /* despot1_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0587149655140046A464 /* despot1_main.c */; };
 		F65C05A4149655CE0046A464 /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
-		F65C05A5149655D50046A464 /* recovery_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C058A149655140046A464 /* recovery_main.c */; };
-		F65C05A6149655D50046A464 /* recovery.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C058B149655140046A464 /* recovery.c */; };
-		F65C05BF149656190046A464 /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
-		F65C05C0149656190046A464 /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
 		F65C05C11496561D0046A464 /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
-		F65C05C21496561D0046A464 /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
-		F65C05C4149656340046A464 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
 		F65C05C5149656390046A464 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
-		F692991814CDDEA4003EF4FD /* despot2_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F692991714CDDEA4003EF4FD /* despot2_main.c */; };
-		F692992914CDDEF5003EF4FD /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
-		F692992A14CDDEF5003EF4FD /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
-		F692992B14CDDEF5003EF4FD /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
-		F692994114CDE3BC003EF4FD /* despot2_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F692991714CDDEA4003EF4FD /* despot2_main.c */; };
-		F692994E14CDE3F4003EF4FD /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
+		F68272B91529B9E40099B493 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F68272B41529B9CE0099B493 /* libMaths.a */; };
 		F6BC22A814EA6987009149C6 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
 		F6BC22A914EA6987009149C6 /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
-		F6BC22AA14EA6987009149C6 /* libmaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05BE149656150046A464 /* libmaths.a */; };
 		F6BC22AC14EA698E009149C6 /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
 		F6BC22AE14EA69A3009149C6 /* mcdespot_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6BC22AD14EA69A3009149C6 /* mcdespot_main.c */; };
+		F6BFFF5F1529A81000D76BAE /* despot2_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F692991714CDDEA4003EF4FD /* despot2_main.c */; };
+		F6BFFF601529A81000D76BAE /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
+		F6BFFF611529A82000D76BAE /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
+		F6BFFF621529A82400D76BAE /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		F61BFD0A14D996E700448CA7 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F61BFCFF14D996C900448CA7;
-			remoteInfo = tests;
-		};
-		F64E847D14F253A200470C2C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D;
-			remoteInfo = formats;
-		};
-		F64E847F14F253A500470C2C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D;
-			remoteInfo = maths;
-		};
 		F65C05B8149656140046A464 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = D2AAC046055464E500DB518D;
 			remoteInfo = formats;
-		};
-		F65C05BD149656150046A464 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = D2AAC046055464E500DB518D;
-			remoteInfo = maths;
-		};
-		F677E06D1496786D00180833 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D;
-			remoteInfo = maths;
 		};
 		F677E06F1496786D00180833 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -85,40 +37,26 @@
 			remoteGlobalIDString = D2AAC045055464E500DB518D;
 			remoteInfo = formats;
 		};
-		F677E0711496787400180833 /* PBXContainerItemProxy */ = {
+		F68272B31529B9CE0099B493 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D;
-			remoteInfo = maths;
+			containerPortal = F68272AA1529B9CD0099B493 /* Maths.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F68272691529B72C0099B493;
+			remoteInfo = Maths;
 		};
-		F677E0731496787400180833 /* PBXContainerItemProxy */ = {
+		F68272B51529B9CE0099B493 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D;
-			remoteInfo = formats;
+			containerPortal = F68272AA1529B9CD0099B493 /* Maths.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F68272911529B8F00099B493;
+			remoteInfo = maths_tests;
 		};
-		F692992214CDDEE5003EF4FD /* PBXContainerItemProxy */ = {
+		F68272B71529B9DF0099B493 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
+			containerPortal = F68272AA1529B9CD0099B493 /* Maths.xcodeproj */;
 			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D;
-			remoteInfo = maths;
-		};
-		F692992414CDDEE5003EF4FD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D;
-			remoteInfo = formats;
-		};
-		F6BC22A114EA6971009149C6 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F65C05AB149656130046A464 /* maths.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D;
-			remoteInfo = maths;
+			remoteGlobalIDString = F68272681529B72C0099B493;
+			remoteInfo = Maths;
 		};
 		F6BC22A314EA6981009149C6 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -127,10 +65,28 @@
 			remoteGlobalIDString = D2AAC045055464E500DB518D;
 			remoteInfo = formats;
 		};
+		F6BFFF641529A82C00D76BAE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F65C05A8149656130046A464 /* formats.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
+			remoteInfo = formats;
+		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		F6BFFF531529A7D400D76BAE /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
-		F64E845914F252C300470C2C /* despot_tests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot_tests; sourceTree = BUILT_PRODUCTS_DIR; };
 		F64E847714F2538400470C2C /* tests_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tests_main.c; sourceTree = "<group>"; };
 		F65C0587149655140046A464 /* despot1_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = despot1_main.c; sourceTree = SOURCE_ROOT; };
 		F65C0588149655140046A464 /* DESPOT.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = DESPOT.c; sourceTree = SOURCE_ROOT; wrapsLines = 0; };
@@ -138,55 +94,23 @@
 		F65C058A149655140046A464 /* recovery_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = recovery_main.c; sourceTree = SOURCE_ROOT; };
 		F65C058B149655140046A464 /* recovery.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = recovery.c; sourceTree = SOURCE_ROOT; };
 		F65C058C149655140046A464 /* recovery.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = recovery.h; sourceTree = SOURCE_ROOT; };
-		F65C0597149655370046A464 /* recovery */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = recovery; sourceTree = BUILT_PRODUCTS_DIR; };
 		F65C059F1496558A0046A464 /* despot1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot1; sourceTree = BUILT_PRODUCTS_DIR; };
 		F65C05A8149656130046A464 /* formats.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = formats.xcodeproj; path = /Users/Tobias/Code/MacRI/formats.xcodeproj; sourceTree = "<absolute>"; };
-		F65C05AB149656130046A464 /* maths.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = maths.xcodeproj; path = /Users/Tobias/Code/MacRI/maths.xcodeproj; sourceTree = "<absolute>"; };
 		F65C05C3149656340046A464 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
+		F68272AA1529B9CD0099B493 /* Maths.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Maths.xcodeproj; path = ../Common/Maths.xcodeproj; sourceTree = "<group>"; };
 		F692991714CDDEA4003EF4FD /* despot2_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = despot2_main.c; sourceTree = SOURCE_ROOT; };
-		F692991E14CDDEC1003EF4FD /* despot2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot2; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6BC229D14EA6966009149C6 /* mcdespot */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mcdespot; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6BC22AD14EA69A3009149C6 /* mcdespot_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mcdespot_main.c; sourceTree = "<group>"; };
+		F6BFFF551529A7D400D76BAE /* despot2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot2; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		F64E845714F252C300470C2C /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				F64E847A14F2539900470C2C /* libz.dylib in Frameworks */,
-				F64E847B14F2539900470C2C /* libformats.a in Frameworks */,
-				F64E847C14F2539900470C2C /* libmaths.a in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		F65C0595149655370046A464 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				F65C05BF149656190046A464 /* libformats.a in Frameworks */,
-				F65C05C0149656190046A464 /* libmaths.a in Frameworks */,
-				F65C05C4149656340046A464 /* libz.dylib in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		F65C059D1496558A0046A464 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				F65C05C5149656390046A464 /* libz.dylib in Frameworks */,
 				F65C05C11496561D0046A464 /* libformats.a in Frameworks */,
-				F65C05C21496561D0046A464 /* libmaths.a in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		F692991C14CDDEC1003EF4FD /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				F692992B14CDDEF5003EF4FD /* libmaths.a in Frameworks */,
-				F692992A14CDDEF5003EF4FD /* libformats.a in Frameworks */,
-				F692992914CDDEF5003EF4FD /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -196,7 +120,16 @@
 			files = (
 				F6BC22A814EA6987009149C6 /* libz.dylib in Frameworks */,
 				F6BC22A914EA6987009149C6 /* libformats.a in Frameworks */,
-				F6BC22AA14EA6987009149C6 /* libmaths.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6BFFF521529A7D400D76BAE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F68272B91529B9E40099B493 /* libMaths.a in Frameworks */,
+				F6BFFF621529A82400D76BAE /* libformats.a in Frameworks */,
+				F6BFFF611529A82000D76BAE /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -206,8 +139,8 @@
 		08FB7794FE84155DC02AAC07 /* Fitting */ = {
 			isa = PBXGroup;
 			children = (
+				F68272AA1529B9CD0099B493 /* Maths.xcodeproj */,
 				F65C05A8149656130046A464 /* formats.xcodeproj */,
-				F65C05AB149656130046A464 /* maths.xcodeproj */,
 				08FB7795FE84155DC02AAC07 /* Source */,
 				C6A0FF2B0290797F04C91782 /* Documentation */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
@@ -235,11 +168,9 @@
 		1AB674ADFE9D54B511CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F65C0597149655370046A464 /* recovery */,
 				F65C059F1496558A0046A464 /* despot1 */,
-				F692991E14CDDEC1003EF4FD /* despot2 */,
 				F6BC229D14EA6966009149C6 /* mcdespot */,
-				F64E845914F252C300470C2C /* despot_tests */,
+				F6BFFF551529A7D400D76BAE /* despot2 */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -259,11 +190,11 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		F65C05BA149656150046A464 /* Products */ = {
+		F68272AB1529B9CD0099B493 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F65C05BE149656150046A464 /* libmaths.a */,
-				F61BFD0B14D996E700448CA7 /* tests */,
+				F68272B41529B9CE0099B493 /* libMaths.a */,
+				F68272B61529B9CE0099B493 /* maths_tests */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -271,42 +202,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		F64E845814F252C300470C2C /* despot_tests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = F64E845D14F252F800470C2C /* Build configuration list for PBXNativeTarget "despot_tests" */;
-			buildPhases = (
-				F64E845614F252C300470C2C /* Sources */,
-				F64E845714F252C300470C2C /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				F64E848014F253A500470C2C /* PBXTargetDependency */,
-				F64E847E14F253A200470C2C /* PBXTargetDependency */,
-			);
-			name = despot_tests;
-			productName = despot_tests;
-			productReference = F64E845914F252C300470C2C /* despot_tests */;
-			productType = "com.apple.product-type.tool";
-		};
-		F65C0596149655370046A464 /* recovery */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = F65C059B149655860046A464 /* Build configuration list for PBXNativeTarget "recovery" */;
-			buildPhases = (
-				F65C0594149655370046A464 /* Sources */,
-				F65C0595149655370046A464 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				F677E0721496787400180833 /* PBXTargetDependency */,
-				F677E0741496787400180833 /* PBXTargetDependency */,
-			);
-			name = recovery;
-			productName = recovery;
-			productReference = F65C0597149655370046A464 /* recovery */;
-			productType = "com.apple.product-type.tool";
-		};
 		F65C059E1496558A0046A464 /* despot1 */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F65C05A7149655F30046A464 /* Build configuration list for PBXNativeTarget "despot1" */;
@@ -317,30 +212,11 @@
 			buildRules = (
 			);
 			dependencies = (
-				F677E06E1496786D00180833 /* PBXTargetDependency */,
 				F677E0701496786D00180833 /* PBXTargetDependency */,
 			);
 			name = despot1;
 			productName = despot1;
 			productReference = F65C059F1496558A0046A464 /* despot1 */;
-			productType = "com.apple.product-type.tool";
-		};
-		F692991D14CDDEC1003EF4FD /* despot2 */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = F692992D14CDDF6A003EF4FD /* Build configuration list for PBXNativeTarget "despot2" */;
-			buildPhases = (
-				F692991B14CDDEC1003EF4FD /* Sources */,
-				F692991C14CDDEC1003EF4FD /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				F692992314CDDEE5003EF4FD /* PBXTargetDependency */,
-				F692992514CDDEE5003EF4FD /* PBXTargetDependency */,
-			);
-			name = despot2;
-			productName = despot2;
-			productReference = F692991E14CDDEC1003EF4FD /* despot2 */;
 			productType = "com.apple.product-type.tool";
 		};
 		F6BC229C14EA6966009149C6 /* mcdespot */ = {
@@ -353,12 +229,30 @@
 			buildRules = (
 			);
 			dependencies = (
-				F6BC22A214EA6971009149C6 /* PBXTargetDependency */,
 				F6BC22A414EA6981009149C6 /* PBXTargetDependency */,
 			);
 			name = mcdespot;
 			productName = mcdespot;
 			productReference = F6BC229D14EA6966009149C6 /* mcdespot */;
+			productType = "com.apple.product-type.tool";
+		};
+		F6BFFF541529A7D400D76BAE /* despot2 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6BFFF5C1529A7D400D76BAE /* Build configuration list for PBXNativeTarget "despot2" */;
+			buildPhases = (
+				F6BFFF511529A7D400D76BAE /* Sources */,
+				F6BFFF521529A7D400D76BAE /* Frameworks */,
+				F6BFFF531529A7D400D76BAE /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F68272B81529B9DF0099B493 /* PBXTargetDependency */,
+				F6BFFF651529A82C00D76BAE /* PBXTargetDependency */,
+			);
+			name = despot2;
+			productName = despot2;
+			productReference = F6BFFF551529A7D400D76BAE /* despot2 */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -387,29 +281,20 @@
 					ProjectRef = F65C05A8149656130046A464 /* formats.xcodeproj */;
 				},
 				{
-					ProductGroup = F65C05BA149656150046A464 /* Products */;
-					ProjectRef = F65C05AB149656130046A464 /* maths.xcodeproj */;
+					ProductGroup = F68272AB1529B9CD0099B493 /* Products */;
+					ProjectRef = F68272AA1529B9CD0099B493 /* Maths.xcodeproj */;
 				},
 			);
 			projectRoot = "";
 			targets = (
-				F65C0596149655370046A464 /* recovery */,
 				F65C059E1496558A0046A464 /* despot1 */,
-				F692991D14CDDEC1003EF4FD /* despot2 */,
 				F6BC229C14EA6966009149C6 /* mcdespot */,
-				F64E845814F252C300470C2C /* despot_tests */,
+				F6BFFF541529A7D400D76BAE /* despot2 */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		F61BFD0B14D996E700448CA7 /* tests */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = tests;
-			remoteRef = F61BFD0A14D996E700448CA7 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
 		F65C05B9149656140046A464 /* libformats.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
@@ -417,50 +302,29 @@
 			remoteRef = F65C05B8149656140046A464 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		F65C05BE149656150046A464 /* libmaths.a */ = {
+		F68272B41529B9CE0099B493 /* libMaths.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
-			path = libmaths.a;
-			remoteRef = F65C05BD149656150046A464 /* PBXContainerItemProxy */;
+			path = libMaths.a;
+			remoteRef = F68272B31529B9CE0099B493 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		F68272B61529B9CE0099B493 /* maths_tests */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = maths_tests;
+			remoteRef = F68272B51529B9CE0099B493 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
-		F64E845614F252C300470C2C /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				F64E847914F2539500470C2C /* DESPOT.c in Sources */,
-				F64E847814F2538400470C2C /* tests_main.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		F65C0594149655370046A464 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				F65C05A5149655D50046A464 /* recovery_main.c in Sources */,
-				F65C05A6149655D50046A464 /* recovery.c in Sources */,
-				F692991814CDDEA4003EF4FD /* despot2_main.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		F65C059C1496558A0046A464 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				F65C05A3149655CE0046A464 /* despot1_main.c in Sources */,
 				F65C05A4149655CE0046A464 /* DESPOT.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		F692991B14CDDEC1003EF4FD /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				F692994E14CDE3F4003EF4FD /* DESPOT.c in Sources */,
-				F692994114CDE3BC003EF4FD /* despot2_main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -473,58 +337,37 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F6BFFF511529A7D400D76BAE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6BFFF5F1529A81000D76BAE /* despot2_main.c in Sources */,
+				F6BFFF601529A81000D76BAE /* DESPOT.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		F64E847E14F253A200470C2C /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = formats;
-			targetProxy = F64E847D14F253A200470C2C /* PBXContainerItemProxy */;
-		};
-		F64E848014F253A500470C2C /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = maths;
-			targetProxy = F64E847F14F253A500470C2C /* PBXContainerItemProxy */;
-		};
-		F677E06E1496786D00180833 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = maths;
-			targetProxy = F677E06D1496786D00180833 /* PBXContainerItemProxy */;
-		};
 		F677E0701496786D00180833 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = formats;
 			targetProxy = F677E06F1496786D00180833 /* PBXContainerItemProxy */;
 		};
-		F677E0721496787400180833 /* PBXTargetDependency */ = {
+		F68272B81529B9DF0099B493 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			name = maths;
-			targetProxy = F677E0711496787400180833 /* PBXContainerItemProxy */;
-		};
-		F677E0741496787400180833 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = formats;
-			targetProxy = F677E0731496787400180833 /* PBXContainerItemProxy */;
-		};
-		F692992314CDDEE5003EF4FD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = maths;
-			targetProxy = F692992214CDDEE5003EF4FD /* PBXContainerItemProxy */;
-		};
-		F692992514CDDEE5003EF4FD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = formats;
-			targetProxy = F692992414CDDEE5003EF4FD /* PBXContainerItemProxy */;
-		};
-		F6BC22A214EA6971009149C6 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = maths;
-			targetProxy = F6BC22A114EA6971009149C6 /* PBXContainerItemProxy */;
+			name = Maths;
+			targetProxy = F68272B71529B9DF0099B493 /* PBXContainerItemProxy */;
 		};
 		F6BC22A414EA6981009149C6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = formats;
 			targetProxy = F6BC22A314EA6981009149C6 /* PBXContainerItemProxy */;
+		};
+		F6BFFF651529A82C00D76BAE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = formats;
+			targetProxy = F6BFFF641529A82C00D76BAE /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -533,12 +376,19 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_X86_VECTOR_INSTRUCTIONS = sse4.2;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "../../**";
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "../../**";
+				LLVM_LTO = NO;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				SYMROOT = ../../build;
+				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
 		};
@@ -546,109 +396,26 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_X86_VECTOR_INSTRUCTIONS = sse4.2;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_UNROLL_LOOPS = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "../../**";
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "../../**";
+				LLVM_LTO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
-			};
-			name = Release;
-		};
-		F64E845B14F252C400470C2C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = NO;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "";
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = (
-					"/Users/Tobias/Code/MacRI/**",
-					/usr/local/atlas/include,
-				);
-				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = (
-					"/Users/Tobias/Code/MacRI/**",
-					/usr/local/atlas/lib,
-				);
-				OTHER_LDFLAGS = "";
-				PRODUCT_NAME = despot_tests;
 				SYMROOT = ../../build;
 				VALID_ARCHS = x86_64;
-			};
-			name = Debug;
-		};
-		F64E845C14F252C400470C2C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = (
-					"/Users/Tobias/Code/MacRI/**",
-					/usr/local/atlas/include,
-				);
-				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = (
-					"/Users/Tobias/Code/MacRI/**",
-					/usr/local/atlas/lib,
-				);
-				OTHER_LDFLAGS = "";
-				PRODUCT_NAME = despot_tests;
-				SYMROOT = ../../build;
-				VALID_ARCHS = x86_64;
-			};
-			name = Release;
-		};
-		F65C0599149655370046A464 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = NO;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
-				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = (
-					"$(MACRI_SRC_ROOT)/**",
-					/usr/local/atlas/lib,
-				);
-				PRODUCT_NAME = recovery;
-				SYMROOT = ../../build;
-				VALID_ARCHS = "i386 x86_64";
-			};
-			name = Debug;
-		};
-		F65C059A149655370046A464 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "$(MACRI_SRC_ROOT)/**";
-				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = (
-					"$(MACRI_SRC_ROOT)/**",
-					/usr/local/atlas/lib,
-				);
-				PRODUCT_NAME = recovery;
-				SYMROOT = ../../build;
-				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Release;
 		};
 		F65C05A11496558A0046A464 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = NO;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "../../**";
-				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "../../**";
 				PRODUCT_NAME = despot1;
 				SYMROOT = ../../build;
 				VALID_ARCHS = x86_64;
@@ -658,48 +425,7 @@
 		F65C05A21496558A0046A464 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
-				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "../../**";
-				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "../../**";
 				PRODUCT_NAME = despot1;
-				SYMROOT = ../../build;
-				VALID_ARCHS = x86_64;
-			};
-			name = Release;
-		};
-		F692992014CDDEC2003EF4FD /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = NO;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "../../**";
-				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "../../**";
-				OTHER_LDFLAGS = "";
-				PRODUCT_NAME = despot2;
-				SYMROOT = ../../build;
-				VALID_ARCHS = x86_64;
-			};
-			name = Debug;
-		};
-		F692992114CDDEC2003EF4FD /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "../../**";
-				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "../../**";
-				OTHER_LDFLAGS = "";
-				PRODUCT_NAME = despot2;
 				SYMROOT = ../../build;
 				VALID_ARCHS = x86_64;
 			};
@@ -708,43 +434,32 @@
 		F6BC229F14EA6967009149C6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				COPY_PHASE_STRIP = NO;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PRECOMPILE_PREFIX_HEADER = NO;
-				GCC_PREFIX_HEADER = "";
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
-				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
-				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = mcdespot;
-				SYMROOT = ../../build;
-				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
 		};
 		F6BC22A014EA6967009149C6 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
-				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_PRECOMPILE_PREFIX_HEADER = NO;
-				GCC_PREFIX_HEADER = "";
-				GCC_UNROLL_LOOPS = YES;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
-				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = "/Users/Tobias/Code/MacRI/**";
-				LLVM_LTO = NO;
-				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = mcdespot;
-				SYMROOT = ../../build;
-				VALID_ARCHS = x86_64;
+			};
+			name = Release;
+		};
+		F6BFFF5D1529A7D400D76BAE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F6BFFF5E1529A7D400D76BAE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
 		};
@@ -760,24 +475,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F64E845D14F252F800470C2C /* Build configuration list for PBXNativeTarget "despot_tests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				F64E845B14F252C400470C2C /* Debug */,
-				F64E845C14F252C400470C2C /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		F65C059B149655860046A464 /* Build configuration list for PBXNativeTarget "recovery" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				F65C0599149655370046A464 /* Debug */,
-				F65C059A149655370046A464 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		F65C05A7149655F30046A464 /* Build configuration list for PBXNativeTarget "despot1" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -787,20 +484,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F692992D14CDDF6A003EF4FD /* Build configuration list for PBXNativeTarget "despot2" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				F692992014CDDEC2003EF4FD /* Debug */,
-				F692992114CDDEC2003EF4FD /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		F6BC22B014EA69A3009149C6 /* Build configuration list for PBXNativeTarget "mcdespot" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F6BC229F14EA6967009149C6 /* Debug */,
 				F6BC22A014EA6967009149C6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F6BFFF5C1529A7D400D76BAE /* Build configuration list for PBXNativeTarget "despot2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6BFFF5D1529A7D400D76BAE /* Debug */,
+				F6BFFF5E1529A7D400D76BAE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
