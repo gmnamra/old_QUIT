@@ -13,7 +13,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F692991D14CDDEC1003EF4FD"
+               BlueprintIdentifier = "F6BFFF541529A7D400D76BAE"
                BuildableName = "despot2"
                BlueprintName = "despot2"
                ReferencedContainer = "container:Fitting.xcodeproj">
@@ -31,7 +31,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F692991D14CDDEC1003EF4FD"
+            BlueprintIdentifier = "F6BFFF541529A7D400D76BAE"
             BuildableName = "despot2"
             BlueprintName = "despot2"
             ReferencedContainer = "container:Fitting.xcodeproj">
@@ -42,7 +42,8 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "NO"
+      useCustomWorkingDirectory = "YES"
+      customWorkingDirectory = "/Users/Tobias/MR_Data/NIfTI/DESPOT/20120326"
       buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
@@ -50,7 +51,7 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F692991D14CDDEC1003EF4FD"
+            BlueprintIdentifier = "F6BFFF541529A7D400D76BAE"
             BuildableName = "despot2"
             BlueprintName = "despot2"
             ReferencedContainer = "container:Fitting.xcodeproj">
@@ -58,63 +59,27 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "head_c"
+            argument = "-m mask_slice"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "4"
+            argument = "-B1 despot1_B1"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "ssfp_180.txt"
+            argument = "despot2"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "180"
+            argument = "despot1_T1"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "ssfp_0.txt"
-            isEnabled = "YES">
+            argument = "ssfp_180"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "ssfp_90.txt"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "90"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "ssfp_270.txt"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "270"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "2.964000"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "1"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "head_T1.nii"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "head_B1.nii"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "mask.nii"
+            argument = "ssfp_90"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
@@ -130,7 +95,7 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F692991D14CDDEC1003EF4FD"
+            BlueprintIdentifier = "F6BFFF541529A7D400D76BAE"
             BuildableName = "despot2"
             BlueprintName = "despot2"
             ReferencedContainer = "container:Fitting.xcodeproj">
