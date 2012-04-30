@@ -39,6 +39,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
+	fprintf(stdout, "YAH");
 	if (argc < 4)
 	{
 		fprintf(stderr, "%s", usage);
@@ -47,7 +48,7 @@ int main(int argc, char **argv)
 
 	char *outPrefix = NULL, *outExt = ".nii";
 	size_t nPhases, *nSSFP = NULL;
-	float ssfpTR, *ssfpPhases = NULL, **ssfpAngles = NULL;
+	double ssfpTR, *ssfpPhases = NULL, **ssfpAngles = NULL;
 	nifti_image *maskFile = NULL, *B1File = NULL, *T1File = NULL, **ssfpFiles = NULL;
 	
 	int thisArg = 1;
@@ -76,14 +77,14 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	nPhases    = argc - thisArg;
 	nSSFP      = malloc(nPhases * sizeof(size_t));
-	ssfpPhases = malloc(nPhases * sizeof(float));
-	ssfpAngles = malloc(nPhases * sizeof(float *));
+	ssfpPhases = malloc(nPhases * sizeof(double));
+	ssfpAngles = malloc(nPhases * sizeof(double *));
 	ssfpFiles  = malloc(nPhases * sizeof(nifti_image *));
 	fprintf(stdout, "Specified %zu phase cycling patterns.\n", nPhases);
 	fprintf(stdout, "Enter SSFP TR (ms):");
-	fscanf(stdin, "%f", &ssfpTR);
+	fscanf(stdin, "%lf", &ssfpTR);
 	fprintf(stdout, "Enter %zu Phase-Cycling Patterns (degrees):", nPhases);
-	fgetArray(stdin, 'f', nPhases, ssfpPhases); fprintf(stdout, "\n");
+	fgetArray(stdin, 'd', nPhases, ssfpPhases); fprintf(stdout, "\n");
 	arrayApply(ssfpPhases, ssfpPhases, radians, nPhases);
 	for (size_t p = 0; p < nPhases; p++)
 	{
@@ -97,9 +98,9 @@ int main(int argc, char **argv)
 		}
 		int temp = ssfpFiles[p]->nt;
 		nSSFP[p] = temp;
-		ssfpAngles[p] = malloc(nSSFP[p] * sizeof(float));
+		ssfpAngles[p] = malloc(nSSFP[p] * sizeof(double));
 		fprintf(stdout, "Enter %zu Angles (degrees) for Pattern %zu:", nSSFP[p], p);
-		fgetArray(stdin, 'f', nSSFP[p], ssfpAngles[p]); fprintf(stdout, "\n");
+		fgetArray(stdin, 'd', nSSFP[p], ssfpAngles[p]); fprintf(stdout, "\n");
 		arrayApply(ssfpAngles[p], ssfpAngles[p], radians, nSSFP[p]);
 	}
 	
@@ -179,78 +180,91 @@ int main(int argc, char **argv)
 		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
-			float params[NR];
+			double params[NR];
 			arraySet(params, 0., NR);
 			if (!maskFile || ((maskData[vox] > 0.) && (T1Data[vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				AtomicAdd(1, &voxCount);
 				
-				float B1 = 1.;
+				// Constants need to be set up here because B1 changes per-voxel
+				double B1 = 1.;
 				if (B1File)
-					B1 = (float)B1Data[vox];
-				float T1 = (float)T1Data[vox];
-				// Constants need to be set up here because B1 changes per-voxels
-				float *signals[nPhases];
+					B1 = (double)B1Data[vox];
+				double T1 = (double)T1Data[vox];
+				double *signals[nPhases], *consts[nPhases];
+				eval_array_type *fs[nPhases];
+								
 				for (int p = 0; p < nPhases; p++)
 				{
-					signals[p] = malloc(nSSFP[p] * sizeof(float));
+					signals[p] = malloc(nSSFP[p] * sizeof(double));
 					for (int img = 0; img < nSSFP[p]; img++)
-						signals[p][img] = (float)ssfpData[p][voxelsPerSlice * img + vox];
+						signals[p][img] = (double)ssfpData[p][voxelsPerSlice * img + vox];
+					consts[p] = arrayAlloc(4);
+					consts[p][0] = ssfpTR;
+					consts[p][1] = T1;
+					consts[p][2] = B1;
+					consts[p][3] = ssfpPhases[p];
+					
+					fs[p] = &a1cSSFP;
 				}
 
-				// Find the phase with highest mean, then classic DESPOT2
-				float means[nPhases];
-				size_t indxs[nPhases];
+				// Find the phase that gives lowest residual from classic DESPOT2
+				params[3] = NUM_MAX; // 3 = residual
 				for (int p = 0; p < nPhases; p++)
-					means[p] = arrayMean(signals[p], nSSFP[p]);
-				arrayIndexSort(means, indxs, SORT_DESCEND, nPhases);
-				classicDESPOT2(ssfpAngles[indxs[0]], signals[indxs[0]],
-				               nSSFP[indxs[0]], ssfpTR, T1, B1, params);
+				{
+					double tempParams[2];
+					classicDESPOT2(ssfpAngles[p], signals[p],
+				                   nSSFP[p], ssfpTR, T1, B1, tempParams);
+					double tempRes = calcAResiduals(tempParams, consts[p], ssfpAngles[p], signals[p], nSSFP[p], a1cSSFP, NULL, FALSE);
 					
-				if (params[1] > 0) // Only bother if we got a sensible guess from classic DESPOT
-				{	// Try fits with different B0 start and take lowest res
-					float *consts[nPhases];
-					eval_array_type *fs[nPhases];
+					if (tempRes < params[3])
+					{
+						params[3] = tempRes;
+						arrayCopy(params, tempParams, 2);
+					}
+				}
+				
+				if (nPhases > 1)
+				{
+					// If classic DESPOT gives rubbish, just try a really short T2
+					if (params[1] < 1.)
+						params[1] = 1.;
 					
 					for (int p = 0; p < nPhases; p++)
-					{
-						arrayScale(signals[p], signals[p], 1. / means[p], nSSFP[p]);
-						
-						consts[p] = arrayAlloc(4);
-						consts[p][0] = ssfpTR;
-						consts[p][1] = T1;
-						consts[p][2] = B1;
-						consts[p][3] = ssfpPhases[p];
-						
-						fs[p] = &a1cSSFP;
-					}
+						arrayScale(signals[p], signals[p], 1. / arrayMean(signals[p], nSSFP[p]), nSSFP[p]);
+					// Try fits with different B0 start and take lowest res
 					extern int MATH_DEBUG;
 					MATH_DEBUG = 0;
-					float res = FLT_MAX;
-					float T2guess = params[1];
-					for (int i = 0; i < 10; i++)
+					double T2guess = params[1];
+					for (int i = 0; i < 20; i++)
 					{
-						float tempParams[2] = { T2guess, i / (10. * ssfpTR) }, tempRes;
-						levMar(tempParams, 2, consts, ssfpAngles, signals, fs, NULL, nSSFP, nPhases, true, &tempRes);
-						if (tempRes < res)
+						double tempParams[2] = { T2guess, (2 * M_PI) * i / 20. }, tempRes;
+						double loBounds[2] = {1., -INFINITY};
+						double *hiBounds = NULL;
+						extern int MATH_DEBUG;
+						//MATH_DEBUG = 1;
+						levMar(tempParams, 2, consts, ssfpAngles, signals, fs,
+							   NULL, nSSFP, nPhases, loBounds, hiBounds,
+							   true, &tempRes);
+						//MATH_DEBUG = 0;
+						if (tempRes < params[3])
 						{
-							res = tempRes;
+							params[3] = tempRes;
 							params[1] = tempParams[0];
 							params[2] = tempParams[1];
 						}
 					}
-					params[3] = res;
 				}
+								
 				if (params[0] < 0.) params[0] = 0.;
-				if (params[1] < 0.) params[1] = 0.;
-				if (params[1] > 250.) params[1] = 250.;
-				params[2] = fmod(params[2], 1./ssfpTR);
-				if (params[2] < -.5/ssfpTR)           
-					params[2] += 1./ssfpTR;
-				if (params[2] >  .5/ssfpTR)
-					params[2] -= 1./ssfpTR;
-				params[2] *= 1.e3;           // Convert B0 to Hz
-				params[3] = indxs[0];
+				if (params[1] < 1.) params[1] = 1.;
+				if (params[1] > 150.) params[1] = 150.;
+				params[2] = fabs(fmod(params[2], 2 * M_PI));
+				/*if (params[2] < -M_PI)
+					params[2] += 2 * M_PI;
+				if (params[2] >  M_PI)
+					params[2] -= 2 * M_PI;*/
+				//params[2] *= 1.e3;           // Convert B0 to Hz
 				
 				// Clean up memory
 				for (int p = 0; p < nPhases; p++)
@@ -267,7 +281,7 @@ int main(int argc, char **argv)
 		if (voxCount > 0)
 		{
 			fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s. Writing to results files...", 
-			        voxCount, (loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC));
+			        voxCount, (loopEnd - loopStart) / ((double)voxCount * CLOCKS_PER_SEC));
 			for (int p = 0; p < NR; p++)
 				nifti_write_subregion_image(resultsHeaders[p], sliceStart, sliceDim, (void **)&(resultsSlices[p]));
             fprintf(stdout, "done");
