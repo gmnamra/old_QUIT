@@ -43,7 +43,7 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
       useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "/Users/Tobias/MR_Data/NIfTI/DESPOT/20120326"
+      customWorkingDirectory = "/Users/Tobias/MR_Data/NIfTI/DESPOT/PD_20120423"
       buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
@@ -59,27 +59,27 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-m mask_slice"
+            argument = "-m head_mask"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-B1 despot1_B1"
+            argument = "-B1 head_B1"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "despot2"
+            argument = "headnew"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "despot1_T1"
+            argument = "head_T1"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "ssfp_180"
-            isEnabled = "NO">
+            argument = "mge3d_50_ssfp_0_01"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "ssfp_90"
+            argument = "mge3d_50_ssfp_0_02"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

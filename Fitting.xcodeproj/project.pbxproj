@@ -20,6 +20,7 @@
 		F6BFFF601529A81000D76BAE /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F65C0588149655140046A464 /* DESPOT.c */; };
 		F6BFFF611529A82000D76BAE /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05C3149656340046A464 /* libz.dylib */; };
 		F6BFFF621529A82400D76BAE /* libformats.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F65C05B9149656140046A464 /* libformats.a */; };
+		F6D49255152DD8BF00C81EB8 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F68272B41529B9CE0099B493 /* libMaths.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,6 +73,13 @@
 			remoteGlobalIDString = D2AAC045055464E500DB518D;
 			remoteInfo = formats;
 		};
+		F6D49256152DD8F600C81EB8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F68272AA1529B9CD0099B493 /* Maths.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F68272681529B72C0099B493;
+			remoteInfo = Maths;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -109,6 +117,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6D49255152DD8BF00C81EB8 /* libMaths.a in Frameworks */,
 				F65C05C5149656390046A464 /* libz.dylib in Frameworks */,
 				F65C05C11496561D0046A464 /* libformats.a in Frameworks */,
 			);
@@ -212,6 +221,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				F6D49257152DD8F600C81EB8 /* PBXTargetDependency */,
 				F677E0701496786D00180833 /* PBXTargetDependency */,
 			);
 			name = despot1;
@@ -368,6 +378,11 @@
 			isa = PBXTargetDependency;
 			name = formats;
 			targetProxy = F6BFFF641529A82C00D76BAE /* PBXContainerItemProxy */;
+		};
+		F6D49257152DD8F600C81EB8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Maths;
+			targetProxy = F6D49256152DD8F600C81EB8 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
