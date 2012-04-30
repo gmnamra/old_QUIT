@@ -39,7 +39,6 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	fprintf(stdout, "YAH");
 	if (argc < 4)
 	{
 		fprintf(stderr, "%s", usage);
@@ -124,12 +123,12 @@ int main(int argc, char **argv)
 	// Need to write a full file of zeros first otherwise per-plane writing
 	// won't produce a complete image.
 	//**************************************************************************
-	#define NR 4
+	#define NR 3
 	nifti_image **resultsHeaders = malloc(NR * sizeof(nifti_image *));
 	int outDims[8] = {3, ssfpFiles[0]->nx, ssfpFiles[0]->ny, ssfpFiles[0]->nz, 1, 1, 1, 1};
 	float *blank = calloc(totalVoxels, sizeof(float));
 	float **resultsSlices = malloc(NR * sizeof(float*));
-	char *names[NR] = { "_M0", "_T2", "_B0", "_res" };
+	char *names[NR] = { "_T2", "_B0", "_res" };
 	char outName[strlen(outPrefix) + 12];
 	for (int r = 0; r < NR; r++)
 	{
@@ -199,6 +198,7 @@ int main(int argc, char **argv)
 					signals[p] = malloc(nSSFP[p] * sizeof(double));
 					for (int img = 0; img < nSSFP[p]; img++)
 						signals[p][img] = (double)ssfpData[p][voxelsPerSlice * img + vox];
+					arrayScale(signals[p], signals[p], 1. / arrayMean(signals[p], nSSFP[p]), nSSFP[p]);
 					consts[p] = arrayAlloc(4);
 					consts[p][0] = ssfpTR;
 					consts[p][1] = T1;
@@ -207,64 +207,15 @@ int main(int argc, char **argv)
 					
 					fs[p] = &a1cSSFP;
 				}
-
-				// Find the phase that gives lowest residual from classic DESPOT2
-				params[3] = NUM_MAX; // 3 = residual
-				for (int p = 0; p < nPhases; p++)
-				{
-					double tempParams[2];
-					classicDESPOT2(ssfpAngles[p], signals[p],
-				                   nSSFP[p], ssfpTR, T1, B1, tempParams);
-					double tempRes = calcAResiduals(tempParams, consts[p], ssfpAngles[p], signals[p], nSSFP[p], a1cSSFP, NULL, FALSE);
-					
-					if (tempRes < params[3])
-					{
-						params[3] = tempRes;
-						arrayCopy(params, tempParams, 2);
-					}
-				}
 				
-				if (nPhases > 1)
-				{
-					// If classic DESPOT gives rubbish, just try a really short T2
-					if (params[1] < 1.)
-						params[1] = 1.;
-					
-					for (int p = 0; p < nPhases; p++)
-						arrayScale(signals[p], signals[p], 1. / arrayMean(signals[p], nSSFP[p]), nSSFP[p]);
-					// Try fits with different B0 start and take lowest res
-					extern int MATH_DEBUG;
-					MATH_DEBUG = 0;
-					double T2guess = params[1];
-					for (int i = 0; i < 20; i++)
-					{
-						double tempParams[2] = { T2guess, (2 * M_PI) * i / 20. }, tempRes;
-						double loBounds[2] = {1., -INFINITY};
-						double *hiBounds = NULL;
-						extern int MATH_DEBUG;
-						//MATH_DEBUG = 1;
-						levMar(tempParams, 2, consts, ssfpAngles, signals, fs,
-							   NULL, nSSFP, nPhases, loBounds, hiBounds,
-							   true, &tempRes);
-						//MATH_DEBUG = 0;
-						if (tempRes < params[3])
-						{
-							params[3] = tempRes;
-							params[1] = tempParams[0];
-							params[2] = tempParams[1];
-						}
-					}
-				}
-								
-				if (params[0] < 0.) params[0] = 0.;
-				if (params[1] < 1.) params[1] = 1.;
-				if (params[1] > 150.) params[1] = 150.;
-				params[2] = fabs(fmod(params[2], 2 * M_PI));
-				/*if (params[2] < -M_PI)
-					params[2] += 2 * M_PI;
-				if (params[2] >  M_PI)
-					params[2] -= 2 * M_PI;*/
-				//params[2] *= 1.e3;           // Convert B0 to Hz
+				double loBounds[2] = { 1., 0. };
+				double hiBounds[2] = { 150., 2. * M_PI };
+				double *bounds[2] = { loBounds, hiBounds };
+				bool loC[2] = { TRUE, FALSE }, hiC[2] = { FALSE, FALSE };
+				bool *constrained[2] = { loC, hiC };
+				
+				regionContraction(params, 2, consts, nPhases, ssfpAngles, signals, nSSFP, TRUE, fs, bounds, constrained, 2000, 20, 10, 0.05, 0.05, &(params[2]));												
+				params[1] = fabs(fmod(params[1], 2 * M_PI));
 				
 				// Clean up memory
 				for (int p = 0; p < nPhases; p++)
