@@ -45,8 +45,8 @@ int main(int argc, char **argv)
 	
 	int nSPGR = 0, nIR = 0, nReadout = 0;
 	char *irFilename = NULL, *outPrefix = NULL, *outExt = ".nii";
-	float spgrTR = 0., *spgrAngles = NULL;
-	float irTR = 0., irAngle = 0., *irTI = NULL, TIScale = 1.;
+	double spgrTR = 0., *spgrAngles = NULL;
+	double irTR = 0., irAngle = 0., *irTI = NULL, TIScale = 1.;
 	nifti_image *spgrFile = NULL, *irFile = NULL, *maskFile = NULL;
 	
 	int thisArg = 1;
@@ -98,11 +98,11 @@ int main(int argc, char **argv)
 	fprintf(stdout, "Reading headers.\n");
 	spgrFile = nifti_image_read(argv[thisArg], FALSE);
 	nSPGR = spgrFile->nt;
-	spgrAngles = malloc(nSPGR * sizeof(float));
+	spgrAngles = malloc(nSPGR * sizeof(double));
 	fprintf(stdout, "Enter SPGR TR (ms):");
-	fscanf(stdin, "%f", &spgrTR);
+	fscanf(stdin, "%lf", &spgrTR);
 	fprintf(stdout, "Enter SPGR Flip Angles (degrees):");
-	fgetArray(stdin, 'f', nSPGR, spgrAngles);
+	fgetArray(stdin, 'd', nSPGR, spgrAngles);
 	
 	fprintf(stdout, "SPGR TR=%f ms. ", spgrTR);
 	ARR_D(spgrAngles, nSPGR);
@@ -116,26 +116,26 @@ int main(int argc, char **argv)
 	{
 		irFile = nifti_image_read(irFilename, FALSE);
 		nIR = irFile->nt;
-		irTI = malloc(nIR * sizeof(float));
+		irTI = malloc(nIR * sizeof(double));
 		fprintf(stdout, "Enter IR-SPGR Flip Angle (degrees):");
-		fscanf(stdin, "%f", &irAngle);
+		fscanf(stdin, "%lf", &irAngle);
 		irAngle = radians(irAngle);
 		if (nReadout > 0)
 		{
 			fprintf(stdout, "Enter IR-SPGR TR (ms):");
-			fscanf(stdin, "%f", &irTR);
+			fscanf(stdin, "%lf", &irTR);
 			irTR = irTR * nReadout;
 			fprintf(stdout, "Enter IR-SPGR TI times (ms):");
-			fgetArray(stdin, 'f', nIR, irTI);
+			fgetArray(stdin, 'd', nIR, irTI);
 			for (int i = 0; i < nIR; i++)
 				irTI[i] = irTI[i] * TIScale;
 		}
 		else
 		{
 			fprintf(stdout, "Enter IR-SPGR TI times (ms):");
-			fgetArray(stdin, 'f', nIR, irTI);
+			fgetArray(stdin, 'd', nIR, irTI);
 			fprintf(stdout, "Enter first scan Segment TR (ms):");
-			fscanf(stdin, "%f", &irTR);
+			fscanf(stdin, "%lf", &irTR);
 			irTR -= irTI[0]; // Subtract off TI to get 
 		}
 
@@ -155,12 +155,12 @@ int main(int argc, char **argv)
 		irData = malloc(nIR * voxelsPerSlice * sizeof(float));
 	if (maskFile)
 		maskData = malloc(voxelsPerSlice * sizeof(float));	
-	__block float *T1Data = (float *)malloc(totalVoxels * sizeof(float));
-	__block float *M0Data = (float *)malloc(totalVoxels * sizeof(float));
-	__block float *B1Data = (float *)malloc(totalVoxels * sizeof(float));
-	__block float *T1Smooth = (float *)malloc(totalVoxels * sizeof(float));
-	__block float *M0Smooth = (float *)malloc(totalVoxels * sizeof(float));
-	__block float *B1Smooth = (float *)malloc(totalVoxels * sizeof(float));
+	__block float *T1Data = malloc(totalVoxels * sizeof(float));
+	__block float *M0Data = malloc(totalVoxels * sizeof(float));
+	__block float *B1Data = malloc(totalVoxels * sizeof(float));
+	__block float *T1Smooth = malloc(totalVoxels * sizeof(float));
+	__block float *M0Smooth = malloc(totalVoxels * sizeof(float));
+	__block float *B1Smooth = malloc(totalVoxels * sizeof(float));
 	int kernelSize = 15;
 	float *gaussKernel = matrixGaussianf(kernelSize, kernelSize, 3., 3.);
 	fprintf(stdout, "Smoothing kernel is a gaussian, %d pixels wide/high.\n", kernelSize);
@@ -210,19 +210,19 @@ int main(int argc, char **argv)
 		int sliceIndex = slice * voxelsPerSlice;
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
-			float T1 = 0., M0 = 0., B1 = 1.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
+			double T1 = 0., M0 = 0., B1 = 1.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
 			if ((!maskFile) || (maskData[vox] > 0.))
 			{
 				OSAtomicAdd32(1, &voxCount);
-				float spgrs[nSPGR];
+				double spgrs[nSPGR];
 				for (int img = 0; img < nSPGR; img++)
-					spgrs[img] = (float)SPGRData[voxelsPerSlice * img + vox];		
+					spgrs[img] = (double)SPGRData[voxelsPerSlice * img + vox];		
 				calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
 				if (nIR > 0)
 				{
-					float irs[nIR];
+					double irs[nIR];
 					for (int img = 0; img < nIR; img++)
-						irs[img] = (float)irData[voxelsPerSlice * img + vox];
+						irs[img] = (double)irData[voxelsPerSlice * img + vox];
 					B1 = 1.;
 					calcHIFI(spgrAngles, spgrs, nSPGR, spgrTR,
 							 irTI, irs, nIR, irAngle, irTR,
@@ -262,13 +262,13 @@ int main(int argc, char **argv)
 			voxCount = 0;
 			void (^processVoxel)(size_t vox) = ^(size_t vox)
 			{
-				float T1 = 0., M0 = 0., B1 = 1.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
+				double T1 = 0., M0 = 0., B1 = 1.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
 				if (!maskFile || (maskData[vox] > 0))
 				{
 					OSAtomicAdd32(1, &voxCount);
-					float spgrs[nSPGR];
+					double spgrs[nSPGR];
 					for (int img = 0; img < nSPGR; img++)
-						spgrs[img] = (float)SPGRData[voxelsPerSlice * img + vox];
+						spgrs[img] = (double)SPGRData[voxelsPerSlice * img + vox];
 					B1 = (float)B1Smooth[sliceIndex + vox];
 					calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
 					// Sanity check
