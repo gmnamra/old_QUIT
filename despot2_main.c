@@ -16,7 +16,7 @@
 	#include <libkern/OSAtomic.h>
 	#define AtomicAdd OSAtomicAdd32
 #else
-	#define AtomicAdd(x, y) (*y)++
+	#define AtomicAdd(x, y) (*y) += x
 #endif
 
 #include "DESPOT.h"
@@ -215,7 +215,7 @@ int main(int argc, char **argv)
 				bool *constrained[2] = { loC, hiC };
 				
 				regionContraction(params, 2, consts, nPhases, ssfpAngles, signals, nSSFP, TRUE, fs, bounds, constrained, 2000, 20, 10, 0.05, 0.05, &(params[2]));												
-				params[1] = fabs(fmod(params[1], 2 * M_PI));
+				params[1] = (fmod(params[1], 2 * M_PI));
 				
 				// Clean up memory
 				for (int p = 0; p < nPhases; p++)
