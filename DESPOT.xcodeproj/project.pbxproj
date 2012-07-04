@@ -1,0 +1,664 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		F64CA28C15A1A4E900F72707 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
+		F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
+		F64CA28E15A1A4EE00F72707 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
+		F64CA28F15A1A4F100F72707 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
+		F64CA29015A1A4F500F72707 /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
+		F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
+		F64CA29215A1BF5600F72707 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
+		F64CA29315A1BF5700F72707 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
+		F64CA29415A1BF5900F72707 /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
+		F64CA29515A1BF5C00F72707 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
+		F6E1F8DF1591E20E00DA918F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
+		F6E1F9141591FFF200DA918F /* phasemap_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E1F9051591FDDC00DA918F /* phasemap_main.c */; };
+		F6E1F9151591FFFF00DA918F /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
+		F6E1F9181592000C00DA918F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
+		F6E1F9191592001C00DA918F /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
+		F6E1F91A1592001C00DA918F /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
+		F6E1F91B1592001C00DA918F /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
+		F6E4A2921590DB2F00DA4001 /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.c */; };
+		F6E4A2971590DB5300DA4001 /* despot1_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2931590DB4D00DA4001 /* despot1_main.c */; };
+		F6E4A2981590DB5800DA4001 /* despot2_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2941590DB4D00DA4001 /* despot2_main.c */; };
+		F6E4A2991590DB5800DA4001 /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.c */; };
+		F6E4A29A1590DB6000DA4001 /* mcdespot_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */; };
+		F6E4A29B1590DB6000DA4001 /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.c */; };
+		F6E4A29C1590DB6500DA4001 /* threshold_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2961590DB4D00DA4001 /* threshold_main.c */; };
+		F6E4A2A91590DB9600DA4001 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
+		F6E4A2AA1590DB9600DA4001 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
+		F6E4A2AB1590DB9600DA4001 /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
+		F6E4A2AC1590DC2700DA4001 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
+		F6E4A2AD1590DC4500DA4001 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
+		F6E4A2AE1590DC4500DA4001 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
+		F6E4A2AF1590DC4500DA4001 /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F6E1F8DC1591E0F200DA918F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6E4A20C1590D1FA00DA4001;
+			remoteInfo = Maths;
+		};
+		F6E1F9161592000600DA918F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6E4A20C1590D1FA00DA4001;
+			remoteInfo = Maths;
+		};
+		F6E4A2A41590DB7800DA4001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F6E4A20D1590D1FA00DA4001;
+			remoteInfo = Maths;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F6E1F9081591FFD200DA918F /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		F6E4A2591590DA9100DA4001 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		F6E4A2681590DAA400DA4001 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		F6E4A2761590DAB500DA4001 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		F6E4A2841590DAC400DA4001 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		F6E1F8DE1591E20E00DA918F /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
+		F6E1F9051591FDDC00DA918F /* phasemap_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = phasemap_main.c; sourceTree = SOURCE_ROOT; };
+		F6E1F90A1591FFD200DA918F /* phasemap */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = phasemap; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6E4A25B1590DA9100DA4001 /* despot1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot1; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6E4A26A1590DAA400DA4001 /* despot2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot2; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6E4A2781590DAB500DA4001 /* mcdespot */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mcdespot; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6E4A2861590DAC400DA4001 /* threshold */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = threshold; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6E4A2901590DB2F00DA4001 /* DESPOT.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = DESPOT.c; sourceTree = SOURCE_ROOT; };
+		F6E4A2911590DB2F00DA4001 /* DESPOT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DESPOT.h; sourceTree = SOURCE_ROOT; };
+		F6E4A2931590DB4D00DA4001 /* despot1_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = despot1_main.c; sourceTree = SOURCE_ROOT; };
+		F6E4A2941590DB4D00DA4001 /* despot2_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = despot2_main.c; sourceTree = SOURCE_ROOT; };
+		F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = mcdespot_main.c; sourceTree = SOURCE_ROOT; };
+		F6E4A2961590DB4D00DA4001 /* threshold_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = threshold_main.c; sourceTree = SOURCE_ROOT; };
+		F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Maths.xcodeproj; path = ../Maths/Maths.xcodeproj; sourceTree = "<group>"; };
+		F6E4A2A61590DB9600DA4001 /* libfslio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfslio.a; path = "../nifticlib-2.0.0/lib/libfslio.a"; sourceTree = "<group>"; };
+		F6E4A2A71590DB9600DA4001 /* libniftiio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libniftiio.a; path = "../nifticlib-2.0.0/lib/libniftiio.a"; sourceTree = "<group>"; };
+		F6E4A2A81590DB9600DA4001 /* libznz.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libznz.a; path = "../nifticlib-2.0.0/lib/libznz.a"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F6E1F9071591FFD200DA918F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6E1F9191592001C00DA918F /* libfslio.a in Frameworks */,
+				F6E1F91A1592001C00DA918F /* libniftiio.a in Frameworks */,
+				F6E1F91B1592001C00DA918F /* libznz.a in Frameworks */,
+				F6E1F9181592000C00DA918F /* libz.dylib in Frameworks */,
+				F6E1F9151591FFFF00DA918F /* libMaths.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6E4A2581590DA9100DA4001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F64CA29515A1BF5C00F72707 /* libMaths.a in Frameworks */,
+				F64CA29415A1BF5900F72707 /* libznz.a in Frameworks */,
+				F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */,
+				F64CA29215A1BF5600F72707 /* libfslio.a in Frameworks */,
+				F64CA29315A1BF5700F72707 /* libniftiio.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6E4A2671590DAA400DA4001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F64CA28C15A1A4E900F72707 /* libMaths.a in Frameworks */,
+				F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */,
+				F64CA28F15A1A4F100F72707 /* libniftiio.a in Frameworks */,
+				F64CA28E15A1A4EE00F72707 /* libfslio.a in Frameworks */,
+				F64CA29015A1A4F500F72707 /* libznz.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6E4A2751590DAB500DA4001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6E4A2AD1590DC4500DA4001 /* libfslio.a in Frameworks */,
+				F6E4A2AE1590DC4500DA4001 /* libniftiio.a in Frameworks */,
+				F6E4A2AF1590DC4500DA4001 /* libznz.a in Frameworks */,
+				F6E4A2AC1590DC2700DA4001 /* libMaths.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6E4A2831590DAC400DA4001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6E1F8DF1591E20E00DA918F /* libz.dylib in Frameworks */,
+				F6E4A2A91590DB9600DA4001 /* libfslio.a in Frameworks */,
+				F6E4A2AA1590DB9600DA4001 /* libniftiio.a in Frameworks */,
+				F6E4A2AB1590DB9600DA4001 /* libznz.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		F6E4A2361590D9B000DA4001 = {
+			isa = PBXGroup;
+			children = (
+				F6E1F8DE1591E20E00DA918F /* libz.dylib */,
+				F6E4A2A61590DB9600DA4001 /* libfslio.a */,
+				F6E4A2A71590DB9600DA4001 /* libniftiio.a */,
+				F6E4A2A81590DB9600DA4001 /* libznz.a */,
+				F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */,
+				F6E4A2441590D9B000DA4001 /* DESPOT */,
+				F6E4A2421590D9B000DA4001 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F6E4A2421590D9B000DA4001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F6E4A25B1590DA9100DA4001 /* despot1 */,
+				F6E4A26A1590DAA400DA4001 /* despot2 */,
+				F6E4A2781590DAB500DA4001 /* mcdespot */,
+				F6E4A2861590DAC400DA4001 /* threshold */,
+				F6E1F90A1591FFD200DA918F /* phasemap */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F6E4A2441590D9B000DA4001 /* DESPOT */ = {
+			isa = PBXGroup;
+			children = (
+				F6E4A2931590DB4D00DA4001 /* despot1_main.c */,
+				F6E4A2941590DB4D00DA4001 /* despot2_main.c */,
+				F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */,
+				F6E4A2961590DB4D00DA4001 /* threshold_main.c */,
+				F6E4A2901590DB2F00DA4001 /* DESPOT.c */,
+				F6E4A2911590DB2F00DA4001 /* DESPOT.h */,
+				F6E1F9051591FDDC00DA918F /* phasemap_main.c */,
+			);
+			path = DESPOT;
+			sourceTree = "<group>";
+		};
+		F6E4A29E1590DB7800DA4001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F6E4A2A51590DB7800DA4001 /* libMaths.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F6E1F9091591FFD200DA918F /* phasemap */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6E1F9111591FFD200DA918F /* Build configuration list for PBXNativeTarget "phasemap" */;
+			buildPhases = (
+				F6E1F9061591FFD200DA918F /* Sources */,
+				F6E1F9071591FFD200DA918F /* Frameworks */,
+				F6E1F9081591FFD200DA918F /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F6E1F9171592000600DA918F /* PBXTargetDependency */,
+			);
+			name = phasemap;
+			productName = phasemap;
+			productReference = F6E1F90A1591FFD200DA918F /* phasemap */;
+			productType = "com.apple.product-type.tool";
+		};
+		F6E4A25A1590DA9100DA4001 /* despot1 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6E4A2641590DA9100DA4001 /* Build configuration list for PBXNativeTarget "despot1" */;
+			buildPhases = (
+				F6E4A2571590DA9100DA4001 /* Sources */,
+				F6E4A2581590DA9100DA4001 /* Frameworks */,
+				F6E4A2591590DA9100DA4001 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = despot1;
+			productName = despot1;
+			productReference = F6E4A25B1590DA9100DA4001 /* despot1 */;
+			productType = "com.apple.product-type.tool";
+		};
+		F6E4A2691590DAA400DA4001 /* despot2 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6E4A2711590DAA400DA4001 /* Build configuration list for PBXNativeTarget "despot2" */;
+			buildPhases = (
+				F6E4A2661590DAA400DA4001 /* Sources */,
+				F6E4A2671590DAA400DA4001 /* Frameworks */,
+				F6E4A2681590DAA400DA4001 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = despot2;
+			productName = despot2;
+			productReference = F6E4A26A1590DAA400DA4001 /* despot2 */;
+			productType = "com.apple.product-type.tool";
+		};
+		F6E4A2771590DAB500DA4001 /* mcdespot */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6E4A27F1590DAB500DA4001 /* Build configuration list for PBXNativeTarget "mcdespot" */;
+			buildPhases = (
+				F6E4A2741590DAB500DA4001 /* Sources */,
+				F6E4A2751590DAB500DA4001 /* Frameworks */,
+				F6E4A2761590DAB500DA4001 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F6E1F8DD1591E0F200DA918F /* PBXTargetDependency */,
+			);
+			name = mcdespot;
+			productName = mcdespot;
+			productReference = F6E4A2781590DAB500DA4001 /* mcdespot */;
+			productType = "com.apple.product-type.tool";
+		};
+		F6E4A2851590DAC400DA4001 /* threshold */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6E4A28D1590DAC500DA4001 /* Build configuration list for PBXNativeTarget "threshold" */;
+			buildPhases = (
+				F6E4A2821590DAC400DA4001 /* Sources */,
+				F6E4A2831590DAC400DA4001 /* Frameworks */,
+				F6E4A2841590DAC400DA4001 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = threshold;
+			productName = threshold;
+			productReference = F6E4A2861590DAC400DA4001 /* threshold */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F6E4A2381590D9B000DA4001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0430;
+			};
+			buildConfigurationList = F6E4A23B1590D9B000DA4001 /* Build configuration list for PBXProject "DESPOT" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = F6E4A2361590D9B000DA4001;
+			productRefGroup = F6E4A2421590D9B000DA4001 /* Products */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = F6E4A29E1590DB7800DA4001 /* Products */;
+					ProjectRef = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				F6E4A25A1590DA9100DA4001 /* despot1 */,
+				F6E4A2691590DAA400DA4001 /* despot2 */,
+				F6E4A2771590DAB500DA4001 /* mcdespot */,
+				F6E4A2851590DAC400DA4001 /* threshold */,
+				F6E1F9091591FFD200DA918F /* phasemap */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		F6E4A2A51590DB7800DA4001 /* libMaths.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libMaths.a;
+			remoteRef = F6E4A2A41590DB7800DA4001 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F6E1F9061591FFD200DA918F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6E1F9141591FFF200DA918F /* phasemap_main.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6E4A2571590DA9100DA4001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6E4A2971590DB5300DA4001 /* despot1_main.c in Sources */,
+				F6E4A2921590DB2F00DA4001 /* DESPOT.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6E4A2661590DAA400DA4001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6E4A2981590DB5800DA4001 /* despot2_main.c in Sources */,
+				F6E4A2991590DB5800DA4001 /* DESPOT.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6E4A2741590DAB500DA4001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6E4A29A1590DB6000DA4001 /* mcdespot_main.c in Sources */,
+				F6E4A29B1590DB6000DA4001 /* DESPOT.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6E4A2821590DAC400DA4001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6E4A29C1590DB6500DA4001 /* threshold_main.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F6E1F8DD1591E0F200DA918F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Maths;
+			targetProxy = F6E1F8DC1591E0F200DA918F /* PBXContainerItemProxy */;
+		};
+		F6E1F9171592000600DA918F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Maths;
+			targetProxy = F6E1F9161592000600DA918F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		F6E1F9121591FFD200DA918F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F6E1F9131591FFD200DA918F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		F6E4A2491590D9B000DA4001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"../nifticlib-2.0.0/include",
+					../Maths,
+				);
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		F6E4A24A1590D9B000DA4001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"../nifticlib-2.0.0/include",
+					../Maths,
+				);
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		F6E4A2621590DA9100DA4001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F6E4A2631590DA9100DA4001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		F6E4A2721590DAA400DA4001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F6E4A2731590DAA400DA4001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		F6E4A2801590DAB500DA4001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F6E4A2811590DAB500DA4001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		F6E4A28E1590DAC500DA4001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F6E4A28F1590DAC500DA4001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F6E1F9111591FFD200DA918F /* Build configuration list for PBXNativeTarget "phasemap" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6E1F9121591FFD200DA918F /* Debug */,
+				F6E1F9131591FFD200DA918F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F6E4A23B1590D9B000DA4001 /* Build configuration list for PBXProject "DESPOT" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6E4A2491590D9B000DA4001 /* Debug */,
+				F6E4A24A1590D9B000DA4001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F6E4A2641590DA9100DA4001 /* Build configuration list for PBXNativeTarget "despot1" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6E4A2621590DA9100DA4001 /* Debug */,
+				F6E4A2631590DA9100DA4001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F6E4A2711590DAA400DA4001 /* Build configuration list for PBXNativeTarget "despot2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6E4A2721590DAA400DA4001 /* Debug */,
+				F6E4A2731590DAA400DA4001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F6E4A27F1590DAB500DA4001 /* Build configuration list for PBXNativeTarget "mcdespot" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6E4A2801590DAB500DA4001 /* Debug */,
+				F6E4A2811590DAB500DA4001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F6E4A28D1590DAC500DA4001 /* Build configuration list for PBXNativeTarget "threshold" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6E4A28E1590DAC500DA4001 /* Debug */,
+				F6E4A28F1590DAC500DA4001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F6E4A2381590D9B000DA4001 /* Project object */;
+}
