@@ -65,17 +65,17 @@ int main(int argc, const char * argv[])
 					ndims, nx, ny, nz, nvol, nvox);
 	if (volume >= nvol)
 		volume = nvol - 1;
-	if (xl >= nx) xl = nx - 1;
-	if (xh >= nx) xh = nx - 1;
-	if (yl >= ny) yl = ny - 1;
-	if (yh >= ny) yh = ny - 1;
-	if (zl >= nz) zl = nz - 1;
-	if (zh >= nz) zh = nz - 1;
+	if (xl >= nx) xl = nx;
+	if (xh >= nx) xh = nx;
+	if (yl >= ny) yl = ny;
+	if (yh >= ny) yh = ny;
+	if (zl >= nz) zl = nz;
+	if (zh >= nz) zh = nz;
 	fprintf(stdout, "x %d %d y %d %d z %d %d\n", xl, xh,
 	                                             yl, yh,
 												 zl, zh);
 	double ***data = FslGetVolumeAsScaledDouble(inHdr, volume);
-	unsigned char *mask = malloc(nvox * sizeof(unsigned char));
+	float *mask = calloc(sizeof(float), nvox);
 	double thresh = atof(argv[thisArg + 1]);
 	fprintf(stdout, "Threshold is %f.\n", thresh);
 	
@@ -83,18 +83,18 @@ int main(int argc, const char * argv[])
 	{	for (size_t y = yl; y < yh; y++)
 		{	for (size_t x = xl; x < xh; x++)
 			{
-				mask[z * ny * nx + y * nx + x] = 0;
 				if (data[z][y][x] >= thresh)
-					mask[z * ny * nx + y * nx + x] = 1;
+					mask[(z*ny + y)*nx + x] = 1;
 			}
 		}
 	}
 	
-	FSLIO *outHdr = FslOpen(argv[thisArg + 2], "w");// FSL_TYPE_NIFTI_GZ);
+	FSLIO *outHdr = FslOpen(argv[thisArg + 2], "wb");// FSL_TYPE_NIFTI_GZ);
 	FslCloneHeader(outHdr, inHdr);
 	FslSetDim(outHdr, nx, ny, nz, 1);
-	FslSetDataType(outHdr, NIFTI_TYPE_UINT8);
+	FslSetDataType(outHdr, NIFTI_TYPE_FLOAT32);
 	FslWriteHeader(outHdr);
+	FslSeekVolume(outHdr, 0);
 	FslWriteVolumes(outHdr, mask, 1);
 	FslClose(inHdr);
 	FslClose(outHdr);
