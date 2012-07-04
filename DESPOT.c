@@ -8,8 +8,8 @@
  */
 
 #include "DESPOT.h"
-#include "mathMatrix.h"
-#include "math2d.h"
+#include "mathsMatrix.h"
+#include "maths2d.h"
 #include "stdio.h"
 
 double SPGR(double flipAngle, double *p, double *c)
@@ -87,13 +87,13 @@ void IRSPGR_Jacobian(double *data, int nD, double *p, double *c, double *result)
 
 void aSSFP(double *flipAngle, double *p, double *c, double *ssfp, size_t nA)
 {
-	double M0 = p[0], T2 = p[1], B0 = p[2];
-	double TR = c[0], T1 = c[1], B1 = c[2], offset = c[3];
+	double M0 = p[0], T2 = p[1];
+	double TR = c[0], T1 = c[1], B0 = c[2], B1 = c[3], offset = c[4];
 	
 	double eT1 = exp(-TR / T1);
 	double eT2 = exp(-TR / T2);
 	
-	double phase = offset + B0 * (TR / 1.e3) * 2. * M_PI;
+	double phase = offset + B0 * TR * M_2_PI;
 	double sinp = sin(phase);
 	double cosp = cos(phase);
 	
@@ -160,8 +160,8 @@ double n2cSPGR(double alpha, double *p, double *c)
 double n2cSSFP(double alpha, double *p, double *c)
 {
 	double T1_a = p[0], T1_b = p[1], T2_a = p[2], T2_b = p[3],
-		   f_a = p[4], tau_a = p[5], dO = p[6],
-		   TR = c[0], B1 = c[1], rfPhase = c[2];
+		   f_a = p[4], tau_a = p[5],
+		   TR = c[0], B0 = c[1], B1 = c[2], rfPhase = c[3];
 	double f_b = 1. - f_a;
 	double tau_b = f_b * tau_a / f_a;
 	double k_a = 1. / tau_a, k_b = 1. / tau_b;
@@ -169,7 +169,7 @@ double n2cSSFP(double alpha, double *p, double *c)
 	double iT2_b = -(1./T2_b + k_b);
 	double iT1_a = -(1./T1_a + k_a);
 	double iT1_b = -(1./T1_b + k_b);
-	double phase = rfPhase + (dO * TR * 2. * M_PI);
+	double phase = rfPhase + (B0 * TR * M_2_PI);
 	double A[36] = { iT2_a * TR, k_b * TR,    phase,     0.,    0.,    0.,
 					 k_a  * TR,  iT2_b * TR,  0.,     phase,    0.,    0.,
 					 -phase,             0.,     iT2_a * TR,  k_b * TR,   0.,    0.,
@@ -209,10 +209,10 @@ double n2cSSFP(double alpha, double *p, double *c)
 
 void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 {
-	double T2 = p[0], B0 = p[1],
-		   TR = c[0], T1 = c[1], B1 = c[2], rfPhase = c[3];
+	double T2 = p[0],
+		   TR = c[0], M0 = c[1], T1 = c[2], B0 = c[3], B1 = c[4], rfPhase = c[5];
 	
-	double phase = rfPhase + (B0);
+	double phase = rfPhase + (B0 * TR * M_2_PI);
 	double A[9] = { -TR / T2,    phase,       0.,
 					  -phase, -TR / T2,       0.,
 					      0.,       0., -TR / T1 };
@@ -236,9 +236,9 @@ void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 		matrixMult(temp1, A, R_rf, 3, 3, 3);
 		arraySub(temp1, eye, temp1, 9);
 		matrixSolve(all, temp1, temp2, 3, 3);
-		double M0[3] = { 0., 0., 1. };
+		double M0_z[3] = { 0., 0., M0 };
 		double Mobs[3];
-		matrixMult(Mobs, all, M0, 3, 3, 1);
+		matrixMult(Mobs, all, M0_z, 3, 3, 1);
 		signal[n] = sqrt(Mobs[0]*Mobs[0] + Mobs[1]*Mobs[1]);
 	}
 }
@@ -463,19 +463,20 @@ void a3cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 	}
 }
 
-void calcDESPOT1(double *flipAngles, double *spgrVals, int n,
-				 double TR, double B1, double *M0, double *T1)
+double calcDESPOT1(double *flipAngles, double *spgrVals, int n,
+				   double TR, double B1, double *M0, double *T1)
 {
 	// Linearise the data, then least-squares
-	double X[n], Y[n], slope, inter;
+	double X[n], Y[n], slope, inter, res;
 	for (int i = 0; i < n; i++)
 	{
 		X[i] = spgrVals[i] / tan(flipAngles[i] * B1);
 		Y[i] = spgrVals[i] / sin(flipAngles[i] * B1);
 	}
-	linearLeastSquares(X, Y, n, &slope, &inter, NULL);	
+	linearLeastSquares(X, Y, n, &slope, &inter, &res);	
 	*T1 = -TR / log(slope);
 	*M0 = inter / (1. - slope);
+	return res;
 }
 
 double classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
@@ -565,12 +566,11 @@ double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 	double B1_0 = 0.3; double B1_3 = 1.8; double B1_1, B1_2;
 	
 	// Assemble parameters
-	double par[3] = { *M0, *T1, B1_1 };
+	double par[3] = { *M0, *T1, B1_0 };
 	double spgrConstants[1] = { spgrTR };
 	double irConstants[2] = { irFlipAngle, irTR };
 	double spgrRes[nSPGR], irRes[nIR];
 	
-	par[2] = B1_0;
 	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
 	double res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, &SPGR, spgrRes, false) +
 	              calcResiduals(par, irConstants, TI, irVals, nIR, &IRSPGR, irRes, false);

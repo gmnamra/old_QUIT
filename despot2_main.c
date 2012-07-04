@@ -10,6 +10,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdbool.h>
+#include <getopt.h>
 #include <dispatch/dispatch.h>
 
 #ifdef __APPLE__
@@ -20,15 +21,16 @@
 #endif
 
 #include "DESPOT.h"
-#include "nifti_tools.h"
-#include "znzlib.h"
-#include "mathArray.h"
+#include "FSLIO.h"
+#include "mathsArray.h"
 
-char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_file1 [ssfp_fileN] \n\
+char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_180_file [additional ssfp files] \n\
 \
 Options:\n\
 	-m file  : Mask input with specified file.\n\
-	-B1 file : B1 Map File.\n\
+	--B0 file : B0 Map File.\n\
+	--B1 file : B1 Map File.\n\
+	--M0 file : M0 Map File.\n\
 	-z       : Output .nii.gz files.\n";
 
 //******************************************************************************
@@ -46,99 +48,128 @@ int main(int argc, char **argv)
 	}
 
 	char *outPrefix = NULL, *outExt = ".nii";
-	size_t nPhases, *nSSFP = NULL;
-	double ssfpTR, *ssfpPhases = NULL, **ssfpAngles = NULL;
-	nifti_image *maskFile = NULL, *B1File = NULL, *T1File = NULL, **ssfpFiles = NULL;
+	size_t nPhases;
+	double ssfpTR, *ssfpPhases = NULL, *ssfpAngles = NULL;
+	FSLIO *maskFile = NULL, *B0File = NULL, *B1File = NULL, *M0File = NULL, *T1File = NULL, **ssfpFiles = NULL;
 	
-	int thisArg = 1;
-	while ((thisArg < argc) && (argv[thisArg][0] =='-'))
+	static struct option long_options[] =
 	{
-		if (strcmp(argv[thisArg], "-m") == 0) {
-			fprintf(stdout, "Reading Mask from: %s\n", argv[++thisArg]);
-			maskFile = nifti_image_read(argv[thisArg], FALSE);
-		} else if (strcmp(argv[thisArg], "-B1") == 0) {
-			fprintf(stdout, "Reading B1 Map from: %s\n", argv[++thisArg]);
-			B1File = nifti_image_read(argv[thisArg], FALSE);
-		} else if (strcmp(argv[thisArg], "-z") == 0) {
-			outExt = ".nii.gz";
-		} else {
-			fprintf(stderr, "Undefined command line option\n%s", usage);
-			exit(EXIT_FAILURE);
+		{"B0", required_argument, 0, '0'},
+		{"B1", required_argument, 0, '1'},
+		{"M0", required_argument, 0, 'M'},
+		{0, 0, 0, 0}
+	};
+	
+	int indexptr = 0, c;
+	while ((c = getopt_long(argc, argv, "m:z", long_options, &indexptr)) != -1)
+	{
+		switch (c)
+		{
+			case 'm':
+				maskFile = FslOpen(optarg, "rb");
+				break;
+			case '0':
+				B0File = FslOpen(optarg, "rb");
+				break;
+			case '1':
+				B1File = FslOpen(optarg, "rb");
+				break;
+			case 'M':
+				M0File = FslOpen(optarg, "rb");
+				break;
+			case 'z':
+				outExt = ".nii.gz";
+				break;
 		}
-		++thisArg;
 	}
-	fprintf(stdout, "Output prefix will be: %s\n", argv[thisArg]);
-	outPrefix = argv[thisArg++];
-	fprintf(stdout, "Reading T1 Map from: %s\n", argv[thisArg]);
-	T1File = nifti_image_read(argv[thisArg++], FALSE);
+	
+	fprintf(stdout, "Output prefix will be: %s\n", argv[optind]);
+	outPrefix = argv[optind++];
+	fprintf(stdout, "Reading T1 Map from: %s\n", argv[optind]);
+	T1File = FslOpen(argv[optind++], "rb");
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	nPhases    = argc - thisArg;
-	nSSFP      = malloc(nPhases * sizeof(size_t));
-	ssfpPhases = malloc(nPhases * sizeof(double));
-	ssfpAngles = malloc(nPhases * sizeof(double *));
+	nPhases    = argc - optind;
+	if (nPhases < 1)
+	{
+		fprintf(stderr, "Must have at least the 180 degree phase-cycling pattern to process.\n");
+		exit(EXIT_FAILURE);
+	}
 	ssfpFiles  = malloc(nPhases * sizeof(nifti_image *));
-	fprintf(stdout, "Specified %zu phase cycling patterns.\n", nPhases);
+	ssfpPhases = malloc(nPhases * sizeof(double));
+	ssfpPhases[0] = M_PI;
+	if (nPhases > 1)
+		fprintf(stdout, "Enter %zu Phase-Cycling Patterns (degrees):", nPhases - 1);
+	fgetArray(stdin, 'd', nPhases - 1, ssfpPhases + 1); fprintf(stdout, "\n");
+	arrayApply(ssfpPhases, ssfpPhases, radians, nPhases);
 	fprintf(stdout, "Enter SSFP TR (ms):");
 	fscanf(stdin, "%lf", &ssfpTR);
-	fprintf(stdout, "Enter %zu Phase-Cycling Patterns (degrees):", nPhases);
-	fgetArray(stdin, 'd', nPhases, ssfpPhases); fprintf(stdout, "\n");
-	arrayApply(ssfpPhases, ssfpPhases, radians, nPhases);
-	for (size_t p = 0; p < nPhases; p++)
+
+	ssfpFiles[0] = FslOpen(argv[optind++], "rb");
+	size_t nx = ssfpFiles[0]->niftiptr->nx;
+	size_t ny = ssfpFiles[0]->niftiptr->ny;
+	size_t nz = ssfpFiles[0]->niftiptr->nz;
+	size_t nSSFP = ssfpFiles[0]->niftiptr->nt;	
+
+	ssfpAngles = malloc(nSSFP * sizeof(double));
+	fprintf(stdout, "Enter %zu SSFP flip angles (degrees) :", nSSFP);
+	fgetArray(stdin, 'd', nSSFP, ssfpAngles); fprintf(stdout, "\n");
+	arrayApply(ssfpAngles, ssfpAngles, radians, nSSFP);	
+
+	for (size_t p = 1; p < nPhases; p++)
 	{
-		fprintf(stdout, "Reading SSFP header from %s.\n", argv[thisArg]);
-		ssfpFiles[p] = nifti_image_read(argv[thisArg], FALSE); thisArg++;
-		if ((p > 0) && (ssfpFiles[p - 1]->nx * ssfpFiles[p - 1]->ny * ssfpFiles[p - 1]->nz) != 
-		               (ssfpFiles[0]->nx * ssfpFiles[0]->ny * ssfpFiles[0]->nz))
+		fprintf(stdout, "Reading %f SSFP header from %s.\n", degrees(ssfpPhases[p]), argv[optind]);
+		ssfpFiles[p] = FslOpen(argv[optind++], "rb");
+		if (!FslCheckDims(ssfpFiles[0], ssfpFiles[p]))
 		{
-			fprintf(stderr, "Differing number of voxels in phase %lu and %zu headers.\n", p - 1, p);
+			fprintf(stderr, "Image %s has differing dimensions.\n", argv[optind - 1]);
 			exit(EXIT_FAILURE);
 		}
-		int temp = ssfpFiles[p]->nt;
-		nSSFP[p] = temp;
-		ssfpAngles[p] = malloc(nSSFP[p] * sizeof(double));
-		fprintf(stdout, "Enter %zu Angles (degrees) for Pattern %zu:", nSSFP[p], p);
-		fgetArray(stdin, 'd', nSSFP[p], ssfpAngles[p]); fprintf(stdout, "\n");
-		arrayApply(ssfpAngles[p], ssfpAngles[p], radians, nSSFP[p]);
+		if (ssfpFiles[p]->niftiptr->nt != nSSFP)
+		{
+			fprintf(stderr, "Image %s has wrong number of flip angles.\n", argv[optind - 1]);
+			exit(EXIT_FAILURE);
+		}
 	}
-	
 	//**************************************************************************	
 	// Allocate memory for slices
 	//**************************************************************************
-	int voxelsPerSlice = ssfpFiles[0]->nx * ssfpFiles[0]->ny;	
-	int totalVoxels = voxelsPerSlice * ssfpFiles[0]->nz;
-	float *maskData, *B1Data, *T1Data, **ssfpData;
+	int voxelsPerSlice = nx * ny;
+	int totalVoxels = voxelsPerSlice * nz;
+	float *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *M0Data = NULL, *T1Data = NULL, **ssfpData = NULL;
 	ssfpData = malloc(nPhases * sizeof(float *));
 	for (int p = 0; p < nPhases; p++)
-		ssfpData[p] = malloc(nSSFP[p] * voxelsPerSlice * sizeof(float));
+		ssfpData[p] = malloc(nSSFP * voxelsPerSlice * sizeof(float));
 	if (maskFile)
 		maskData = malloc(voxelsPerSlice * sizeof(float));
+	if (B0File)
+		B0Data = malloc(voxelsPerSlice * sizeof(float));
 	if (B1File)
 		B1Data = malloc(voxelsPerSlice * sizeof(float));
+	if (M0File)
+		M0Data = malloc(voxelsPerSlice * sizeof(float));
 	T1Data = malloc(voxelsPerSlice * sizeof(float));	
 	//**************************************************************************
 	// Create results files
-	// T2, B0, residue
+	// T2, residue
 	// Need to write a full file of zeros first otherwise per-plane writing
 	// won't produce a complete image.
 	//**************************************************************************
 	#define NR 3
-	nifti_image **resultsHeaders = malloc(NR * sizeof(nifti_image *));
-	int outDims[8] = {3, ssfpFiles[0]->nx, ssfpFiles[0]->ny, ssfpFiles[0]->nz, 1, 1, 1, 1};
-	float *blank = calloc(totalVoxels, sizeof(float));
-	float **resultsSlices = malloc(NR * sizeof(float*));
-	char *names[NR] = { "_T2", "_B0", "_res" };
-	char outName[strlen(outPrefix) + 12];
+	FSLIO **resultsHeaders = malloc(NR * sizeof(FSLIO *));
+	float **resultsData = malloc(NR * sizeof(float*));
+	char *names[NR] = { "_d2_M0", "_T2", "_d2_res" };
+	char outName[strlen(outPrefix) + 15];
 	for (int r = 0; r < NR; r++)
 	{
 		strcpy(outName, outPrefix); strcat(outName, names[r]); strcat(outName, outExt);
-		fprintf(stdout, "Writing blank result file:%s.\n", outName);
-		resultsHeaders[r] = nifti_copy_orientation(ssfpFiles[0], outDims, DT_FLOAT);
-		nifti_set_filenames(resultsHeaders[r], outName, FALSE, TRUE);
-		resultsHeaders[r]->data = blank;
-		nifti_image_write(resultsHeaders[r]);
-		resultsSlices[r] = malloc(voxelsPerSlice * sizeof(float));
+		fprintf(stdout, "Writing result header:%s.\n", outName);
+		resultsHeaders[r] = FslOpen(outName, "wb");
+		FslCloneHeader(resultsHeaders[r], ssfpFiles[0]);
+		FslSetDim(resultsHeaders[r], nx, ny, nz, 1);
+		FslSetDataType(resultsHeaders[r], DTYPE_FLOAT);
+		resultsData[r] = malloc(totalVoxels * sizeof(float));
 	}
 	//**************************************************************************
 	// Do the fitting
@@ -148,32 +179,24 @@ int main(int argc, char **argv)
 	char theTime[1024];
 	strftime(theTime, 1024, "%H:%M:%S", localStart);
 	fprintf(stdout, "Started processing at %s.\n", theTime);
-	for (size_t slice = 0; slice < ssfpFiles[0]->nz; slice++)
+	for (size_t slice = 0; slice < nz; slice++)
 	{
 		// Read in data
 		fprintf(stdout, "Starting slice %zu...\n", slice);
-		int sliceStart[7] = {0, 0, (int)slice, 0, 0, 0, 0};
-		int sliceDim[7] = {ssfpFiles[0]->nx, ssfpFiles[0]->ny, 1, 1, 1, 1, 1};
 		
+		FslReadSliceSeries(T1File, (void *)T1Data, slice, 1);
+		if (B0File)
+			FslReadSliceSeries(B0File, (void *)B0Data, slice, 1);
 		if (B1File)
-			nifti_read_subregion_image(B1File, sliceStart, sliceDim, (void **)&B1Data);
+			FslReadSliceSeries(B1File, (void *)B1Data, slice, 1);
+		if (M0File)
+			FslReadSliceSeries(M0File, (void *)M0Data, slice, 1);
 		if (maskFile)
-		{
-			if (maskFile->datatype == DT_FLOAT)
-				nifti_read_subregion_image(maskFile, sliceStart, sliceDim, (void **)&maskData);
-			else
-			{
-				nifti_read_subregion_image(maskFile, sliceStart, sliceDim, &(maskFile->data));
-				arrayConvert(maskData, maskFile->data, DT_FLOAT, maskFile->datatype, voxelsPerSlice);
-			}
-		}
-		nifti_read_subregion_image(T1File, sliceStart, sliceDim, (void **)&T1Data);
+			FslReadSliceSeries(maskFile, (void *)maskData, slice, 1);
 		for (int p = 0; p < nPhases; p++)
-		{
-			sliceDim[3] = nSSFP[p];
-			nifti_read_subregion_image(ssfpFiles[p], sliceStart, sliceDim, (void **)&(ssfpData[p]));
-		}
+			FslReadSliceSeries(ssfpFiles[p], (void *)ssfpData[p], slice, nSSFP);
 		
+		int sliceOffset = slice * voxelsPerSlice;
 		__block int voxCount = 0;
 		clock_t loopStart = clock();
 		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
@@ -185,44 +208,62 @@ int main(int argc, char **argv)
 			{	// Zero T1 causes zero-pivot error.
 				AtomicAdd(1, &voxCount);
 				
-				// Constants need to be set up here because B1 changes per-voxel
-				double B1 = 1.;
-				if (B1File)
-					B1 = (double)B1Data[vox];
-				double T1 = (double)T1Data[vox];
-				double *signals[nPhases], *consts[nPhases];
-				eval_array_type *fs[nPhases];
-								
+				// Gather signals. 180 Phase data is required to be the first file passed into program
+				double *signals[nPhases];
 				for (int p = 0; p < nPhases; p++)
 				{
-					signals[p] = malloc(nSSFP[p] * sizeof(double));
-					for (int img = 0; img < nSSFP[p]; img++)
+					signals[p] = malloc(nSSFP * sizeof(double));
+					for (int img = 0; img < nSSFP; img++)
 						signals[p][img] = (double)ssfpData[p][voxelsPerSlice * img + vox];
-					arrayScale(signals[p], signals[p], 1. / arrayMean(signals[p], nSSFP[p]), nSSFP[p]);
-					consts[p] = arrayAlloc(4);
-					consts[p][0] = ssfpTR;
-					consts[p][1] = T1;
-					consts[p][2] = B1;
-					consts[p][3] = ssfpPhases[p];
-					
-					fs[p] = &a1cSSFP;
 				}
-				
-				double loBounds[2] = { 1., 0. };
-				double hiBounds[2] = { 150., 2. * M_PI };
-				double *bounds[2] = { loBounds, hiBounds };
-				bool loC[2] = { TRUE, FALSE }, hiC[2] = { FALSE, FALSE };
-				bool *constrained[2] = { loC, hiC };
-				
-				regionContraction(params, 2, consts, nPhases, ssfpAngles, signals, nSSFP, TRUE, fs, bounds, constrained, 2000, 20, 10, 0.05, 0.05, &(params[2]));												
-				params[1] = (fmod(params[1], 2 * M_PI));
-				
+				// Some constants set up here because they change per-voxel
+				double T1 = (double)T1Data[vox];
+				double B0 = 0, B1 = 1., M0 = 1;
+				if (B0File)
+					B0 = (double)B0Data[vox];
+				if (B1File)
+					B1 = (double)B1Data[vox];
+				if (M0File)
+					M0 = (double)M0Data[vox];				
+				// Run classic DESPOT2 on 180 phase data
+				params[2] = classicDESPOT2(ssfpAngles, signals[0], nSSFP, ssfpTR, T1, B1, params);
+				params[0] = clamp(params[0], 0, 1.e7);
+				params[1] = clamp(params[1], 0.001, 0.250);
+				if (nPhases > 1)
+				{
+					double *xData[nPhases], *consts[nPhases];
+					size_t dSize[nPhases];
+					eval_array_type *fs[nPhases];
+					
+					for (int p = 0; p < nPhases; p++)
+					{
+						xData[p] = ssfpAngles;
+						dSize[p] = nSSFP;
+						consts[p] = arrayAlloc(5);
+						consts[p][0] = ssfpTR;
+						consts[p][1] = M0;
+						consts[p][2] = T1;
+						consts[p][3] = B0;
+						consts[p][4] = B1;
+						consts[p][5] = ssfpPhases[p];
+						
+						fs[p] = &a1cSSFP;
+					}
+					
+					double loBounds[1] = { 0.010 };
+					double hiBounds[1] = { 0.250 };
+					//double *bounds[2] = { loBounds, hiBounds };
+					//bool loC[1] = { TRUE }, hiC[1] = { TRUE };
+					//bool *constrained[2] = { loC, hiC };
+					levMar(params + 1, 1, consts, xData, signals, fs, NULL, dSize, nPhases, loBounds, hiBounds, false, params + 2);
+					//regionContraction(params + 1, 1, consts, nPhases, xData, signals, dSize, TRUE, fs, bounds, constrained, 2000, 10, 10, 0.05, 0.05, &(params[2]));												
+				}
 				// Clean up memory
 				for (int p = 0; p < nPhases; p++)
 					free(signals[p]);
 			}
 			for (int p = 0; p < NR; p++)
-				resultsSlices[p][vox]  = (float)params[p];
+				resultsData[p][sliceOffset + vox]  = (float)params[p];
 		};
 		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
@@ -231,11 +272,8 @@ int main(int argc, char **argv)
         fprintf(stdout, "Finished slice %zu", slice);
 		if (voxCount > 0)
 		{
-			fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s. Writing to results files...", 
+			fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s.", 
 			        voxCount, (loopEnd - loopStart) / ((double)voxCount * CLOCKS_PER_SEC));
-			for (int p = 0; p < NR; p++)
-				nifti_write_subregion_image(resultsHeaders[p], sliceStart, sliceDim, (void **)&(resultsSlices[p]));
-            fprintf(stdout, "done");
 		}
 		fprintf(stdout, ".\n");
 	}
@@ -244,10 +282,20 @@ int main(int argc, char **argv)
     strftime(theTime, 1024, "%H:%M:%S", localEnd);
 	fprintf(stdout, "Finished processing at %s. Run-time was %f s.\n", theTime, difftime(allEnd, allStart));
 	
+	for (size_t r = 0; r < NR; r++)
+	{
+		FslWriteHeader(resultsHeaders[r]);
+		FslWriteVolumes(resultsHeaders[r], resultsData[r], 1);
+		FslClose(resultsHeaders[r]);
+	}
 	// Clean up memory
 	for (int p = 0; p < nPhases; p++)
 		free(ssfpData[p]);
-	free(B1Data);
-	free(maskData);
+	if (B0Data)
+		free(B0Data);
+	if (B1Data)
+		free(B1Data);
+	if (maskData)
+		free(maskData);
 	exit(EXIT_SUCCESS);
 }
