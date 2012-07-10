@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F6FA56BE15AC1B5B006A347A /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6FA56BD15AC1B5B006A347A /* main.c */; };
-		F6FA56C015AC1B5B006A347A /* procparse.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = F6FA56BF15AC1B5B006A347A /* procparse.1 */; };
+		F6B6672415AC5D880078252F /* procpar.c in Sources */ = {isa = PBXBuildFile; fileRef = F6B6672315AC5D880078252F /* procpar.c */; };
+		F6FA56C715AC1B8E006A347A /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6FA56C615AC1B8E006A347A /* main.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -18,16 +18,17 @@
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
-				F6FA56C015AC1B5B006A347A /* procparse.1 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F6B6672315AC5D880078252F /* procpar.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = procpar.c; sourceTree = SOURCE_ROOT; };
+		F6B6672615AC5D980078252F /* procpar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = procpar.h; sourceTree = SOURCE_ROOT; };
 		F6FA56B915AC1B5B006A347A /* procparse */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = procparse; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6FA56BD15AC1B5B006A347A /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		F6FA56BF15AC1B5B006A347A /* procparse.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = procparse.1; sourceTree = "<group>"; };
+		F6FA56C615AC1B8E006A347A /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = SOURCE_ROOT; };
+		F6FA56C815AC1BC9006A347A /* uthash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = uthash.h; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,8 +61,10 @@
 		F6FA56BC15AC1B5B006A347A /* procparse */ = {
 			isa = PBXGroup;
 			children = (
-				F6FA56BD15AC1B5B006A347A /* main.c */,
-				F6FA56BF15AC1B5B006A347A /* procparse.1 */,
+				F6FA56C815AC1BC9006A347A /* uthash.h */,
+				F6FA56C615AC1B8E006A347A /* main.c */,
+				F6B6672615AC5D980078252F /* procpar.h */,
+				F6B6672315AC5D880078252F /* procpar.c */,
 			);
 			path = procparse;
 			sourceTree = "<group>";
@@ -116,7 +119,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6FA56BE15AC1B5B006A347A /* main.c in Sources */,
+				F6FA56C715AC1B8E006A347A /* main.c in Sources */,
+				F6B6672415AC5D880078252F /* procpar.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -201,6 +205,7 @@
 				F6FA56C515AC1B5B006A347A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
