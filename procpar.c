@@ -47,18 +47,20 @@ par_t *readPar(FILE *in)
 	
 	switch (par.subtype)
 	{
-		case 1: // Real
-		case 3:	// Delay
-		case 5:	// Frequency
-		case 6: // Pulse
+		case PAR_REAL: case PAR_DELAY: case PAR_FREQ: case PAR_PULSE:
+		{
 			par.vals = malloc(par.nvals * sizeof(double));
+			double inVal;
 			for (size_t i = 0; i < par.nvals; i++)
-				fscanf(in, "%lf", (int *)(par.vals) + i);
+			{
+				fscanf(in, "%lf", &inVal);
+				((double *)par.vals)[i] = inVal;
+			}
 			if (feof(in))
 				return NULL;
-			break;
-		case 2:	// String
-		case 4: // Flag
+		}
+		break;
+		case PAR_STRING: case PAR_FLAG:
 			par.vals = malloc(par.nvals * sizeof(char *));
 			char nextString[MAXSTR];
 			for (size_t i = 0; i < par.nvals; i++)
@@ -78,14 +80,20 @@ par_t *readPar(FILE *in)
 					strcpy(((char **)par.vals)[i], nextQuote);
 				}
 			}
-			break;
-		case 7: // Integer
+		break;
+		case PAR_INT:
+		{
 			par.vals = malloc(par.nvals * sizeof(int));
+			int inVal;
 			for (size_t i = 0; i < par.nvals; i++)
-				fscanf(in, "%d", (int *)(par.vals) + i);
+			{
+				fscanf(in, "%d", &inVal);
+				((int *)par.vals)[i] = inVal;	
+			}
 			if (feof(in))
 				return NULL;
-			break;
+		}
+		break;
 	}
 	
 	if (fscanf(in, "%d ", &(par.nallowed)) == EOF)
@@ -94,15 +102,21 @@ par_t *readPar(FILE *in)
 	{
 		switch (par.subtype)
 		{
-			case 1: // Real
+			case PAR_REAL: case PAR_DELAY: case PAR_FREQ: case PAR_PULSE:
+			{
 				par.allowed = malloc(par.nallowed * sizeof(double));
+				double inVal;
 				for (size_t i = 0; i < par.nallowed; i++)
-					fscanf(in, "%lf", (int *)(par.allowed) + i);
+				{
+					fscanf(in, "%lf", &inVal);
+					((double *)par.allowed)[i] = inVal;
+				}
 				if (feof(in))
 					return NULL;
-				break;
-			case 2:	// String
-			case 4: // Flag
+			}
+			break;
+			case PAR_STRING: case PAR_FLAG:
+			{
 				par.allowed = malloc(par.nallowed * sizeof(char *));
 				char restOfLine[MAXSTR];
 				fgets(restOfLine, MAXSTR, in);
@@ -124,17 +138,21 @@ par_t *readPar(FILE *in)
 					lastQuote = nextQuote;
 					nextQuote = strtok(NULL, "\" ");
 				}
-				break;
-			case 3:	// Delay
-			case 5:	// Frequency
-			case 6: // Pulse
-			case 7: // Integer
+			}
+			break;
+			case PAR_INT: // Integer
+			{
 				par.allowed = malloc(par.nallowed * sizeof(int));
+				int inVal;
 				for (size_t i = 0; i < par.nallowed; i++)
-					fscanf(in, "%d", (int *)(par.allowed) + i);
+				{
+					fscanf(in, "%d", &inVal);
+					((int *)par.allowed)[i] = inVal;
+				}
 				if (feof(in))
 					return NULL;
-				break;
+			}
+			break;
 		}
 	}
 	
@@ -164,17 +182,13 @@ void fprintVals(FILE* f, par_t *p)
 	{
 		switch (p->subtype)
 		{
-			case 1: // Real
+			case PAR_REAL: case PAR_DELAY: case PAR_FREQ: case PAR_PULSE:
 				fprintf(f, "%g ", ((double*)p->vals)[i]);
 				break;
-			case 2:	// String
-			case 4: // Flag			
+			case PAR_STRING: case PAR_FLAG:
 				fprintf(f, "\"%s\"\n", ((char **)p->vals)[i]);
 				break;
-			case 3:	// Delay
-			case 5:	// Frequency
-			case 6: // Pulse
-			case 7: // Integer
+			case PAR_INT:
 				fprintf(f, "%d ", ((int *)p->vals)[i]);
 				break;	
 		}
@@ -189,17 +203,13 @@ void fprintAllowedVals(FILE *f, par_t *p)
 	{
 		switch (p->subtype)
 		{
-			case 1: // Real
+			case PAR_REAL: case PAR_DELAY: case PAR_FREQ: case PAR_PULSE:
 				fprintf(f, "%g ", ((double*)p->allowed)[i]);
 				break;
-			case 2:	// String
-			case 4: // Flag
+			case PAR_STRING: case PAR_FLAG:
 				fprintf(f, "\"%s\" ", ((char **)p->allowed)[i]);
 				break;
-			case 3:	// Delay
-			case 5:	// Frequency
-			case 6: // Pulse
-			case 7: // Integer
+			case PAR_INT:
 				fprintf(f, "%d ", ((int *)p->allowed)[i]);
 				break;	
 		}
@@ -207,26 +217,26 @@ void fprintAllowedVals(FILE *f, par_t *p)
 	fprintf(f, "\n");
 }
 
-const char *parTypeStr(par_t *par)
+const char *parTypeStr(int subtype)
 {
-	switch (par->subtype)
+	switch (subtype)
 	{
-		case 1:
+		case PAR_REAL:
     		return "real";
-		case 2:
+		case PAR_STRING:
 			return "string";
-		case 3:
+		case PAR_DELAY:
 			return "delay";
-		case 4:
+		case PAR_FLAG:
 			return "flag";
-		case 5:
+		case PAR_FREQ:
 			return "frequency";
-		case 6:
+		case PAR_PULSE:
 			return "pulse";
-		case 7:
+		case PAR_INT:
 			return "integer";
 		default:
-			return "UNKNOWN";
+			return "INVALID";
 	}
 }
 
@@ -287,8 +297,18 @@ double *realVals(par_t *pars, char *name, int *nvals)
 	HASH_FIND_STR(pars, name, p);
 	if (p)
 	{
-		*nvals = p->nvals;
-		return (double *)p->vals;
+		if ((p->subtype == PAR_REAL) ||
+		    (p->subtype == PAR_DELAY) ||
+			(p->subtype == PAR_FREQ) ||
+			(p->subtype == PAR_PULSE))
+		{
+			if (nvals)
+				*nvals = p->nvals;
+			return (double *)p->vals;
+		}
+		fprintf(stderr, "Parameter %s is of type %s, not %s, %s, %s or %s.\n",
+		        name, parTypeStr(p->subtype), parTypeStr(PAR_REAL),
+				parTypeStr(PAR_DELAY), parTypeStr(PAR_FREQ), parTypeStr(PAR_PULSE));
 	}
 	else
 		fprintf(stderr, "Parameter %s not found.\n", name);
@@ -301,8 +321,14 @@ int *intVals(par_t *pars, char *name, int *nvals)
 	HASH_FIND_STR(pars, name, p);
 	if (p)
 	{
-		*nvals = p->nvals;
-		return (int *)p->vals;
+		if (p->subtype == PAR_INT)
+		{
+			if (nvals)
+				*nvals = p->nvals;
+			return (int *)p->vals;
+		}
+		fprintf(stderr, "Parameter %s is of type %s, not %s.\n",
+		        p->name, parTypeStr(p->subtype), parTypeStr(PAR_INT));
 	}
 	else
 		fprintf(stderr, "Parameter %s not found.\n", name);
@@ -315,8 +341,15 @@ char **stringVals(par_t *pars, char *name, int *nvals)
 	HASH_FIND_STR(pars, name, p);
 	if (p)
 	{
-		*nvals = p->nvals;
-		return (char **)p->vals;
+		if ((p->subtype == PAR_STRING) || (p->subtype == PAR_FLAG))
+		{
+			if (nvals)
+				*nvals = p->nvals;
+			return (char **)p->vals;
+		}
+		fprintf(stderr, "Parameter %s is of type %s, not %s or %s.\n",
+		        name, parTypeStr(p->subtype),
+				parTypeStr(PAR_STRING), parTypeStr(PAR_FLAG));
 	}
 	else
 		fprintf(stderr, "Parameter %s not found.\n", name);
