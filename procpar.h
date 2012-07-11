@@ -14,6 +14,12 @@
 
 #define MAXSTR 1024
 
+enum PAR_TYPES
+{
+	TYPE_REAL = 1,
+	TYPE_STRING
+};
+
 enum PAR_SUBTYPES
 {
 	PAR_REAL = 1,
@@ -46,18 +52,17 @@ typedef struct par_s
 } par_t;
 
 par_t *readProcpar(const char *filename);
+void  freeProcpar(par_t *p);
 par_t *readPar(FILE *in);
 void fprintPar(FILE *f, par_t *p);
 void fprintVals(FILE *f, par_t *p);
 void fprintAllowedVals(FILE *f, par_t *p);
-const char *parTypeStr(int subtype);
-
+const char *parTypeStr(int type);
+const char *parSubTypeStr(int subtype);
 double realVal(par_t *pars, char *name, int i);
-int    intVal(par_t *pars, char *name, int i);
 char   *stringVal(par_t *pars, char*name, int i);
 
 double *realVals(par_t *pars, char *name, int *nvals);
-int    *intVals(par_t *pars, char *name, int *nvals);
 char   **stringVals(par_t *pars, char *name, int *nvals);
 
 #endif

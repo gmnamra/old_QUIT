@@ -22,7 +22,18 @@ par_t *readProcpar(const char *filename)
 	return pars;
 }
 
-
+void freeProcpar(par_t *p)
+{
+	par_t *current, *tmp;
+	HASH_ITER(hh, p, current, tmp)
+	{
+		free(current->vals);
+		if (current->nallowed > 0)
+			free(current->allowed);
+		HASH_DEL(p, current); 
+	}
+	p = NULL;
+}
 
 par_t *readPar(FILE *in)
 {
@@ -45,9 +56,11 @@ par_t *readPar(FILE *in)
 	if (fscanf(in, "%d ", &(par.nvals)) == EOF)
 		return NULL;
 	
-	switch (par.subtype)
+	switch (par.type)
 	{
-		case PAR_REAL: case PAR_DELAY: case PAR_FREQ: case PAR_PULSE:
+		// Even ints have to be read as reals (doubles) because VnmrJ doesn't
+		// output them as ints.
+		case TYPE_REAL:
 		{
 			par.vals = malloc(par.nvals * sizeof(double));
 			double inVal;
@@ -60,7 +73,7 @@ par_t *readPar(FILE *in)
 				return NULL;
 		}
 		break;
-		case PAR_STRING: case PAR_FLAG:
+		case TYPE_STRING:
 			par.vals = malloc(par.nvals * sizeof(char *));
 			char nextString[MAXSTR];
 			for (size_t i = 0; i < par.nvals; i++)
@@ -81,28 +94,15 @@ par_t *readPar(FILE *in)
 				}
 			}
 		break;
-		case PAR_INT:
-		{
-			par.vals = malloc(par.nvals * sizeof(int));
-			int inVal;
-			for (size_t i = 0; i < par.nvals; i++)
-			{
-				fscanf(in, "%d", &inVal);
-				((int *)par.vals)[i] = inVal;	
-			}
-			if (feof(in))
-				return NULL;
-		}
-		break;
 	}
 	
 	if (fscanf(in, "%d ", &(par.nallowed)) == EOF)
 		return NULL;
 	if (par.nallowed > 0)
 	{
-		switch (par.subtype)
+		switch (par.type)
 		{
-			case PAR_REAL: case PAR_DELAY: case PAR_FREQ: case PAR_PULSE:
+			case TYPE_REAL:
 			{
 				par.allowed = malloc(par.nallowed * sizeof(double));
 				double inVal;
@@ -115,7 +115,7 @@ par_t *readPar(FILE *in)
 					return NULL;
 			}
 			break;
-			case PAR_STRING: case PAR_FLAG:
+			case TYPE_STRING:
 			{
 				par.allowed = malloc(par.nallowed * sizeof(char *));
 				char restOfLine[MAXSTR];
@@ -138,19 +138,6 @@ par_t *readPar(FILE *in)
 					lastQuote = nextQuote;
 					nextQuote = strtok(NULL, "\" ");
 				}
-			}
-			break;
-			case PAR_INT: // Integer
-			{
-				par.allowed = malloc(par.nallowed * sizeof(int));
-				int inVal;
-				for (size_t i = 0; i < par.nallowed; i++)
-				{
-					fscanf(in, "%d", &inVal);
-					((int *)par.allowed)[i] = inVal;
-				}
-				if (feof(in))
-					return NULL;
 			}
 			break;
 		}
@@ -180,20 +167,17 @@ void fprintVals(FILE* f, par_t *p)
 {
 	for (size_t i = 0; i < p->nvals; i++)
 	{
-		switch (p->subtype)
+		switch (p->type)
 		{
-			case PAR_REAL: case PAR_DELAY: case PAR_FREQ: case PAR_PULSE:
+			case TYPE_REAL:
 				fprintf(f, "%g ", ((double*)p->vals)[i]);
 				break;
-			case PAR_STRING: case PAR_FLAG:
+			case TYPE_STRING:
 				fprintf(f, "\"%s\"\n", ((char **)p->vals)[i]);
-				break;
-			case PAR_INT:
-				fprintf(f, "%d ", ((int *)p->vals)[i]);
 				break;	
 		}
 	}
-	if (p->subtype != 2 && p->subtype != 4)
+	if (p->type == TYPE_REAL)
 		fprintf(f, "\n");
 }
 
@@ -201,23 +185,34 @@ void fprintAllowedVals(FILE *f, par_t *p)
 {
 	for (size_t i = 0; i < p->nallowed; i++)
 	{
-		switch (p->subtype)
+		switch (p->type)
 		{
-			case PAR_REAL: case PAR_DELAY: case PAR_FREQ: case PAR_PULSE:
+			case TYPE_REAL:
 				fprintf(f, "%g ", ((double*)p->allowed)[i]);
 				break;
-			case PAR_STRING: case PAR_FLAG:
+			case TYPE_STRING:
 				fprintf(f, "\"%s\" ", ((char **)p->allowed)[i]);
-				break;
-			case PAR_INT:
-				fprintf(f, "%d ", ((int *)p->allowed)[i]);
 				break;	
 		}
 	}
 	fprintf(f, "\n");
 }
 
-const char *parTypeStr(int subtype)
+const char *parTypeStr(int type)
+{
+	switch (type)
+	{
+		case TYPE_REAL:
+		    return "real";
+		case TYPE_STRING:
+			return "string";
+		default:
+			return "INVALID";
+	    break;
+	}
+}
+
+const char *parSubTypeStr(int subtype)
 {
 	switch (subtype)
 	{
@@ -257,23 +252,6 @@ double realVal(par_t *pars, char *name, int i)
 	return 0;
 }
 
-int intVal(par_t *pars, char *name, int i)
-{
-	par_t *p;
-	HASH_FIND_STR(pars, name, p);
-	if (p)
-	{
-		if (i < p->nvals)
-			return ((int *)p->vals)[i];
-		else
-			fprintf(stderr, "Tried to access element %d of parameter %s, only %d values.\n",
-		    	            i, name, p->nvals);
-	}
-	else
-		fprintf(stderr, "Parameter %s not found.\n", name);
-	return 0;
-}
-
 char *stringVal(par_t *pars, char*name, int i)
 {
 	par_t *p;
@@ -297,38 +275,13 @@ double *realVals(par_t *pars, char *name, int *nvals)
 	HASH_FIND_STR(pars, name, p);
 	if (p)
 	{
-		if ((p->subtype == PAR_REAL) ||
-		    (p->subtype == PAR_DELAY) ||
-			(p->subtype == PAR_FREQ) ||
-			(p->subtype == PAR_PULSE))
+		if (p->type == TYPE_REAL)
 		{
 			if (nvals)
 				*nvals = p->nvals;
 			return (double *)p->vals;
 		}
-		fprintf(stderr, "Parameter %s is of type %s, not %s, %s, %s or %s.\n",
-		        name, parTypeStr(p->subtype), parTypeStr(PAR_REAL),
-				parTypeStr(PAR_DELAY), parTypeStr(PAR_FREQ), parTypeStr(PAR_PULSE));
-	}
-	else
-		fprintf(stderr, "Parameter %s not found.\n", name);
-	return NULL;
-}
-
-int *intVals(par_t *pars, char *name, int *nvals)
-{
-	par_t *p;
-	HASH_FIND_STR(pars, name, p);
-	if (p)
-	{
-		if (p->subtype == PAR_INT)
-		{
-			if (nvals)
-				*nvals = p->nvals;
-			return (int *)p->vals;
-		}
-		fprintf(stderr, "Parameter %s is of type %s, not %s.\n",
-		        p->name, parTypeStr(p->subtype), parTypeStr(PAR_INT));
+		fprintf(stderr, "Parameter %s is not a real.\n", name);
 	}
 	else
 		fprintf(stderr, "Parameter %s not found.\n", name);
@@ -341,15 +294,13 @@ char **stringVals(par_t *pars, char *name, int *nvals)
 	HASH_FIND_STR(pars, name, p);
 	if (p)
 	{
-		if ((p->subtype == PAR_STRING) || (p->subtype == PAR_FLAG))
+		if (p->type == TYPE_STRING)
 		{
 			if (nvals)
 				*nvals = p->nvals;
 			return (char **)p->vals;
 		}
-		fprintf(stderr, "Parameter %s is of type %s, not %s or %s.\n",
-		        name, parTypeStr(p->subtype),
-				parTypeStr(PAR_STRING), parTypeStr(PAR_FLAG));
+		fprintf(stderr, "Parameter %s is not a string.\n", name);
 	}
 	else
 		fprintf(stderr, "Parameter %s not found.\n", name);
