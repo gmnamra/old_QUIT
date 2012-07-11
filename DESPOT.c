@@ -209,8 +209,8 @@ double n2cSSFP(double alpha, double *p, double *c)
 
 void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 {
-	double T2 = p[0],
-		   TR = c[0], M0 = c[1], T1 = c[2], B0 = c[3], B1 = c[4], rfPhase = c[5];
+	double M0 = p[0], T2 = p[1],
+		   TR = c[0], T1 = c[1], B0 = c[2], B1 = c[3], rfPhase = c[4];
 	
 	double phase = rfPhase + (B0 * TR * M_2_PI);
 	double A[9] = { -TR / T2,    phase,       0.,
@@ -243,15 +243,51 @@ void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 	}
 }
 
+void a1cSSFPB0(double *alpha, double *p, double *c, double *signal, size_t nA)
+{
+	double M0 = p[0], T2 = p[1], B0 = p[2],
+		   TR = c[0], T1 = c[1], B1 = c[3], rfPhase = c[4];
+	
+	double phase = rfPhase + (B0 * TR * M_2_PI);
+	double A[9] = { -TR / T2,    phase,       0.,
+					  -phase, -TR / T2,       0.,
+					      0.,       0., -TR / T1 };
+	
+	double R_rf[9] = { 1., 0., 0.,
+					   0., 0., 0.,
+					   0., 0., 0.};
+	double eye[9] = { 1., 0., 0.,
+					  0., 1., 0.,
+					  0., 0., 1. };
+	double temp1[9], temp2[9], all[9];
+	matrixExp(A, 3);
+	arraySub(temp2, eye, A, 9);
+	
+	for (size_t n = 0; n < nA; n++)
+	{
+		double ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
+		R_rf[4] = R_rf[8] = ca;
+		R_rf[5] = sa;
+		R_rf[7] = -sa;
+		matrixMult(temp1, A, R_rf, 3, 3, 3);
+		arraySub(temp1, eye, temp1, 9);
+		matrixSolve(all, temp1, temp2, 3, 3);
+		double M0_z[3] = { 0., 0., M0 };
+		double Mobs[3];
+		matrixMult(Mobs, all, M0_z, 3, 3, 1);
+		signal[n] = sqrt(Mobs[0]*Mobs[0] + Mobs[1]*Mobs[1]);
+	}
+}
+
 void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
 {
 	double T1_a = p[0], T1_b = p[1],
 		   f_a = p[4], tau_a = p[5],
-		   TR = c[0], B1 = c[1];
+		   TR = c[0], M0 = c[1], B1 = c[2];
 	double f_b = 1. - f_a;
 	double tau_b = f_b * tau_a / f_a;
 	
-	double M0[2] = {f_a, f_b}, Mobs[2];
+	double M0v[2] = {M0 * f_a, M0 * f_b}, Mobs[2];
 	double A[4]  = {-(TR/T1_a + TR/tau_a), TR/tau_b,
 	                TR/tau_a, -(TR/T1_b + TR/tau_b)};
 	double eye[4] = { 1., 0.,
@@ -267,7 +303,7 @@ void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
 	
 		matrixSolve(all, bottom, top, 2, 2);
 		arrayScale(all, all, sin(B1 * alpha[n]), 4);
-		matrixMult(Mobs, all, M0, 2, 2, 1);
+		matrixMult(Mobs, all, M0v, 2, 2, 1);
 		signal[n] = Mobs[0] + Mobs[1];
 	}
 }
@@ -275,8 +311,8 @@ void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
 void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 {
 	double T1_a = p[0], T1_b = p[1], T2_a = p[2], T2_b = p[3],
-		   f_a = p[4], tau_a = p[5], dO = p[6],
-		   TR = c[0], B1 = c[1], rfPhase = c[2];
+		   f_a = p[4], tau_a = p[5],
+		   TR = c[0], M0 = c[1], B0 = c[2], B1 = c[3], rfPhase = c[4];
 	double f_b = 1. - f_a;
 	double tau_b = f_b * tau_a / f_a;
 	double eT2_a = -TR * (1./T2_a + 1./tau_a);
@@ -285,7 +321,7 @@ void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 	double eT1_b = -TR * (1./T1_b + 1./tau_b);
 	double k_a   = TR / tau_a;
 	double k_b   = TR / tau_b;
-	double phase = rfPhase + (dO * TR * 2. * M_PI);
+	double phase = rfPhase + (B0 * TR * 2. * M_PI);
 
 	double eye[36] = { 1., 0., 0., 0., 0., 0.,
 	                   0., 1., 0., 0., 0., 0.,
@@ -307,7 +343,7 @@ void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 					    0., 0., 0., 0., 0., 0. };
 
 	double top[36], bottom[36], all[36];
-	double M0[6] = { 0., 0., 0., 0., f_a , f_b }, Mobs[6];
+	double M0v[6] = { 0., 0., 0., 0., M0 * f_a , M0 * f_b }, Mobs[6];
 	
 	matrixExp(A, 6);
 	// Top of matrix divide
@@ -324,7 +360,7 @@ void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 		
 		// Matrix 'divide'
 		matrixSolve(all, bottom, top, 6, 6);
-		matrixMult(Mobs, all, M0, 6, 6, 1);
+		matrixMult(Mobs, all, M0v, 6, 6, 1);
 		signal[n] =  sqrt(pow(Mobs[0] + Mobs[1], 2.) +
 					      pow(Mobs[2] + Mobs[3], 2.));
 	}

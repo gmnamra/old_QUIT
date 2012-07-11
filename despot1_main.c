@@ -15,7 +15,7 @@
 #include <libkern/OSAtomic.h>
 #include "DESPOT.h"
 #include "fslio.h"
-
+#include "procpar.h"
 char *usage = "Usage is: despot1 [options] spgr_input output_prefix \n\
 \
 Options:\n\
@@ -46,11 +46,11 @@ int main(int argc, char **argv)
 	
 	int nSPGR = 0, nIR = 0, nReadout = 0, invMode = 0;
 	short nx, ny, nz, nv;
-	char *outPrefix = NULL, *outExt = ".nii";
+	char *outPrefix = NULL, *outExt = ".nii", *irPath = NULL, procpar[MAXSTR];
 	double spgrTR = 0., *spgrAngles = NULL;
 	double irTR = 0., irAngle = 0., *irTI = NULL, TIScale = 1.;
 	FSLIO *spgrFile = NULL, *irFile = NULL, *maskFile = NULL;
-	
+	par_t *pars;
 	
 	static struct option long_options[] =
 	{
@@ -65,8 +65,9 @@ int main(int argc, char **argv)
 		switch (c)
 		{
 			case 'h':
-				fprintf(stdout, "Opening IR file: %s\n", optarg);
-				irFile = FslOpen(optarg, "rb");
+				irPath = optarg;
+				fprintf(stdout, "Opening IR file: %s\n", irPath);
+				irFile = FslOpen(irPath, "rb");
 				break;
 			case 'i':
 				invMode = atoi(optarg);
@@ -113,27 +114,36 @@ int main(int argc, char **argv)
 			break;
 	}
 	fprintf(stdout, "Opening SPGR file: %s\n", argv[optind]);
-	spgrFile = FslOpen(argv[optind++], "rb");
-	fprintf(stdout, "Ouput prefix will be: %s\n", argv[optind]);
-	outPrefix = argv[optind++];
+	spgrFile = FslOpen(argv[optind], "rb");
+	FslGetDim(spgrFile, &nx, &ny, &nz, &nv);
+	nSPGR = nv;
+	spgrAngles = malloc(nSPGR * sizeof(double));
+	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
+	pars = readProcpar(procpar);
+	if (pars)
+	{
+		spgrTR = realVal(pars, "tr", 0);
+		arrayCopy(spgrAngles, realVals(pars, "flip1", NULL), nSPGR);
+		freeProcpar(pars);
+	}
+	else
+	{
+		fprintf(stdout, "Enter SPGR TR (s):");
+		fscanf(stdin, "%lf", &spgrTR);
+		fprintf(stdout, "Enter SPGR Flip Angles (degrees):");
+		fgetArray(stdin, 'd', nSPGR, spgrAngles);
+	}
+	fprintf(stdout, "SPGR TR=%f ms. ", spgrTR);
+	ARR_D(spgrAngles, nSPGR);
+	arrayApply(spgrAngles, spgrAngles, radians, nSPGR);
+		
+	fprintf(stdout, "Ouput prefix will be: %s\n", argv[++optind]);
+	outPrefix = argv[optind];
 	if (irFile && !FslCheckDims(spgrFile, irFile))
 	{
 		fprintf(stderr, "Dimensions of SPGR & IR-SPGR files do not match.\n");
 		exit(EXIT_FAILURE);
 	}
-	FslGetDim(spgrFile, &nx, &ny, &nz, &nv);
-	nSPGR = nv;
-	spgrAngles = malloc(nSPGR * sizeof(double));
-	fprintf(stdout, "Enter SPGR TR (s):");
-	fscanf(stdin, "%lf", &spgrTR);
-	fprintf(stdout, "Enter SPGR Flip Angles (degrees):");
-	fgetArray(stdin, 'd', nSPGR, spgrAngles);
-	
-	fprintf(stdout, "SPGR TR=%f ms. ", spgrTR);
-	ARR_D(spgrAngles, nSPGR);
-	for (int i = 0; i < nSPGR; i++)
-		spgrAngles[i] = radians(spgrAngles[i]);
-
 	//**************************************************************************	
 	// Gather IR-SPGR Data
 	//**************************************************************************	
@@ -141,28 +151,39 @@ int main(int argc, char **argv)
 	{
 		nIR = irFile->niftiptr->nt;
 		irTI = malloc(nIR * sizeof(double));
-		fprintf(stdout, "Enter IR-SPGR Flip Angle (degrees):");
-		fscanf(stdin, "%lf", &irAngle);
-		irAngle = radians(irAngle);
-		if (nReadout > 0)
+		snprintf(procpar, MAXSTR, "%s.procpar", irPath);
+		pars = readProcpar(procpar);
+		if (pars)
 		{
-			fprintf(stdout, "Enter IR-SPGR TR (s):");
-			fscanf(stdin, "%lf", &irTR);
-			irTR = irTR * nReadout;
-			fprintf(stdout, "Enter IR-SPGR TI times (s):");
-			fgetArray(stdin, 'd', nIR, irTI);
-			for (int i = 0; i < nIR; i++)
-				irTI[i] = irTI[i] * TIScale;
+			irAngle = radians(realVal(pars, "flip1", 0));
+			arrayCopy(irTI, realVals(pars, "ti", NULL), nIR);
+			irTR = realVal(pars, "trseg", 0) - irTI[0];
+			freeProcpar(pars);
 		}
-		else
-		{
-			fprintf(stdout, "Enter IR-SPGR TI times (s):");
-			fgetArray(stdin, 'd', nIR, irTI);
-			fprintf(stdout, "Enter first scan Segment TR (s):");
-			fscanf(stdin, "%lf", &irTR);
-			irTR -= irTI[0]; // Subtract off TI to get 
+		else	
+		{	
+			fprintf(stdout, "Enter IR-SPGR Flip Angle (degrees):");
+			fscanf(stdin, "%lf", &irAngle);
+			irAngle = radians(irAngle);
+			if (nReadout > 0)
+			{
+				fprintf(stdout, "Enter IR-SPGR TR (s):");
+				fscanf(stdin, "%lf", &irTR);
+				irTR = irTR * nReadout;
+				fprintf(stdout, "Enter IR-SPGR TI times (s):");
+				fgetArray(stdin, 'd', nIR, irTI);
+				for (int i = 0; i < nIR; i++)
+					irTI[i] = irTI[i] * TIScale;
+			}
+			else
+			{
+				fprintf(stdout, "Enter IR-SPGR TI times (s):");
+				fgetArray(stdin, 'd', nIR, irTI);
+				fprintf(stdout, "Enter first scan Segment TR (s):");
+				fscanf(stdin, "%lf", &irTR);
+				irTR -= irTI[0]; // Subtract off TI to get 
+			}
 		}
-
 		fprintf(stdout, "Specified %d SPGR-IR images with flip angle: %f degrees, TR = %f (s) ", nIR, degrees(irAngle), irTR);
 		ARR_D(irTI, nIR);
 	}

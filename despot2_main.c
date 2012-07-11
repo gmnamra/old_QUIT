@@ -21,8 +21,9 @@
 #endif
 
 #include "DESPOT.h"
-#include "FSLIO.h"
+#include "fslio.h"
 #include "mathsArray.h"
+#include "procpar.h"
 
 char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_180_file [additional ssfp files] \n\
 \
@@ -32,7 +33,24 @@ Options:\n\
 	--B1 file : B1 Map File.\n\
 	--M0 file : M0 Map File.\n\
 	-z       : Output .nii.gz files.\n";
-
+//******************************************************************************
+// SIGINT interrupt handler - for ensuring data gets saved even on a ctrl-c
+//******************************************************************************
+#define NR 4
+FSLIO *resultsHeaders[NR];
+float *resultsData[NR];
+void int_handler(int sig);
+void int_handler(int sig)
+{
+	fprintf(stdout, "Processing terminated. Writing currently processed data.\n");
+	for (size_t r = 0; r < NR; r++)
+	{
+		FslWriteHeader(resultsHeaders[r]);
+		FslWriteVolumes(resultsHeaders[r], resultsData[r], 1);
+		FslClose(resultsHeaders[r]);
+	}
+	exit(EXIT_FAILURE);
+}
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -51,6 +69,8 @@ int main(int argc, char **argv)
 	size_t nPhases;
 	double ssfpTR, *ssfpPhases = NULL, *ssfpAngles = NULL;
 	FSLIO *maskFile = NULL, *B0File = NULL, *B1File = NULL, *M0File = NULL, *T1File = NULL, **ssfpFiles = NULL;
+	char procpar[MAXSTR];
+	par_t *pars;
 	
 	static struct option long_options[] =
 	{
@@ -99,37 +119,62 @@ int main(int argc, char **argv)
 	ssfpFiles  = malloc(nPhases * sizeof(nifti_image *));
 	ssfpPhases = malloc(nPhases * sizeof(double));
 	ssfpPhases[0] = M_PI;
-	if (nPhases > 1)
-		fprintf(stdout, "Enter %zu Phase-Cycling Patterns (degrees):", nPhases - 1);
-	fgetArray(stdin, 'd', nPhases - 1, ssfpPhases + 1); fprintf(stdout, "\n");
-	arrayApply(ssfpPhases, ssfpPhases, radians, nPhases);
-	fprintf(stdout, "Enter SSFP TR (ms):");
-	fscanf(stdin, "%lf", &ssfpTR);
-
-	ssfpFiles[0] = FslOpen(argv[optind++], "rb");
+	ssfpFiles[0] = FslOpen(argv[optind], "rb");
 	size_t nx = ssfpFiles[0]->niftiptr->nx;
 	size_t ny = ssfpFiles[0]->niftiptr->ny;
 	size_t nz = ssfpFiles[0]->niftiptr->nz;
-	size_t nSSFP = ssfpFiles[0]->niftiptr->nt;	
-
-	ssfpAngles = malloc(nSSFP * sizeof(double));
-	fprintf(stdout, "Enter %zu SSFP flip angles (degrees) :", nSSFP);
-	fgetArray(stdin, 'd', nSSFP, ssfpAngles); fprintf(stdout, "\n");
-	arrayApply(ssfpAngles, ssfpAngles, radians, nSSFP);	
+	size_t nSSFP = ssfpFiles[0]->niftiptr->nt;
+	ssfpAngles = malloc(nSSFP * sizeof(double));	
+	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
+	pars = readProcpar(procpar);
+	if (pars)
+	{
+		int check;
+		fprintf(stdout, "Reading SSFP 180 parameters from procpar.\n");
+		arrayCopy(ssfpAngles, realVals(pars, "flip1", &check), nSSFP);		
+		if (check != nSSFP)
+		{
+			fprintf(stderr, "flip1 and nvols do not match.\n");
+			exit(EXIT_FAILURE);
+		}
+		ssfpTR = realVal(pars, "tr", 0);
+		fprintf(stdout, "TR (s): %f, Angles (deg) = ", ssfpTR);
+		arrayPrint(stdout, ssfpAngles, nSSFP); fprintf(stdout, "\n");
+		arrayApply(ssfpAngles, ssfpAngles, radians, nSSFP);
+		freeProcpar(pars);
+	}
+	else
+	{
+		fprintf(stdout, "Enter %zu SSFP flip angles (degrees) :", nSSFP);
+		fgetArray(stdin, 'd', nSSFP, ssfpAngles); fprintf(stdout, "\n");
+		arrayApply(ssfpAngles, ssfpAngles, radians, nSSFP);
+		fprintf(stdout, "Enter SSFP TR (ms):");
+		fscanf(stdin, "%lf", &ssfpTR);		
+	}
 
 	for (size_t p = 1; p < nPhases; p++)
 	{
-		fprintf(stdout, "Reading %f SSFP header from %s.\n", degrees(ssfpPhases[p]), argv[optind]);
-		ssfpFiles[p] = FslOpen(argv[optind++], "rb");
+		fprintf(stdout, "Reading %f SSFP header from %s.\n", degrees(ssfpPhases[p]), argv[++optind]);
+		ssfpFiles[p] = FslOpen(argv[optind], "rb");
 		if (!FslCheckDims(ssfpFiles[0], ssfpFiles[p]))
 		{
-			fprintf(stderr, "Image %s has differing dimensions.\n", argv[optind - 1]);
+			fprintf(stderr, "Image %s has differing dimensions.\n", argv[optind]);
 			exit(EXIT_FAILURE);
 		}
 		if (ssfpFiles[p]->niftiptr->nt != nSSFP)
 		{
-			fprintf(stderr, "Image %s has wrong number of flip angles.\n", argv[optind - 1]);
+			fprintf(stderr, "Image %s has wrong number of flip angles.\n", argv[optind]);
 			exit(EXIT_FAILURE);
+		}
+		snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
+		pars = readProcpar(procpar);
+		if (pars)
+			ssfpPhases[p] = radians(realVal(pars, "rfphase", 0));
+		else
+		{
+			fprintf(stdout, "Enter phase-cycling (degrees):");
+			fscanf(stdin, "%lf", ssfpPhases + p);
+			ssfpPhases[p] = radians(ssfpPhases[p]);	
 		}
 	}
 	//**************************************************************************	
@@ -156,10 +201,7 @@ int main(int argc, char **argv)
 	// Need to write a full file of zeros first otherwise per-plane writing
 	// won't produce a complete image.
 	//**************************************************************************
-	#define NR 3
-	FSLIO **resultsHeaders = malloc(NR * sizeof(FSLIO *));
-	float **resultsData = malloc(NR * sizeof(float*));
-	char *names[NR] = { "_d2_M0", "_T2", "_d2_res" };
+	char *names[NR] = { "_d2_M0", "_T2", "_d2_B0", "_d2_res" };
 	char outName[strlen(outPrefix) + 15];
 	for (int r = 0; r < NR; r++)
 	{
@@ -171,6 +213,8 @@ int main(int argc, char **argv)
 		FslSetDataType(resultsHeaders[r], DTYPE_FLOAT);
 		resultsData[r] = malloc(totalVoxels * sizeof(float));
 	}
+	// Now register the SIGINT handler so we can ctrl-c and still get data
+	signal(SIGINT, int_handler);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -226,14 +270,19 @@ int main(int argc, char **argv)
 				if (M0File)
 					M0 = (double)M0Data[vox];				
 				// Run classic DESPOT2 on 180 phase data
-				params[2] = classicDESPOT2(ssfpAngles, signals[0], nSSFP, ssfpTR, T1, B1, params);
-				params[0] = clamp(params[0], 0, 1.e7);
-				params[1] = clamp(params[1], 0.001, 0.250);
-				if (nPhases > 1)
+				if (nPhases == 1)
+				{
+					params[3] = classicDESPOT2(ssfpAngles, signals[0], nSSFP, ssfpTR, T1, B1, params);
+					params[0] = clamp(params[0], 0, 1.e7);
+					params[1] = clamp(params[1], 0.001, 0.250);
+					params[2] = 0.;
+				}
+				else if (nPhases > 1)
 				{
 					double *xData[nPhases], *consts[nPhases];
 					size_t dSize[nPhases];
 					eval_array_type *fs[nPhases];
+					int nP;
 					
 					for (int p = 0; p < nPhases; p++)
 					{
@@ -241,22 +290,29 @@ int main(int argc, char **argv)
 						dSize[p] = nSSFP;
 						consts[p] = arrayAlloc(5);
 						consts[p][0] = ssfpTR;
-						consts[p][1] = M0;
-						consts[p][2] = T1;
-						consts[p][3] = B0;
-						consts[p][4] = B1;
-						consts[p][5] = ssfpPhases[p];
-						
-						fs[p] = &a1cSSFP;
+						consts[p][1] = T1;
+						consts[p][2] = B0;
+						consts[p][3] = B1;
+						consts[p][4] = ssfpPhases[p];						
+						if (B0File)
+						{
+							nP = 2;
+							fs[p] = &a1cSSFP;
+						}
+						else
+						{
+							nP = 3;
+							fs[p] = &a1cSSFPB0;
+						}
 					}
 					
-					double loBounds[1] = { 0.010 };
-					double hiBounds[1] = { 0.250 };
-					//double *bounds[2] = { loBounds, hiBounds };
-					//bool loC[1] = { TRUE }, hiC[1] = { TRUE };
-					//bool *constrained[2] = { loC, hiC };
-					levMar(params + 1, 1, consts, xData, signals, fs, NULL, dSize, nPhases, loBounds, hiBounds, false, params + 2);
-					//regionContraction(params + 1, 1, consts, nPhases, xData, signals, dSize, TRUE, fs, bounds, constrained, 2000, 10, 10, 0.05, 0.05, &(params[2]));												
+					double loBounds[3] = { 0.,   0.010, -1. / ssfpTR };
+					double hiBounds[3] = { 1.e6, 0.250,  1. / ssfpTR };
+					double *bounds[2] = { loBounds, hiBounds };
+					bool loC[3] = { TRUE, TRUE, FALSE }, hiC[3] = { FALSE, TRUE, FALSE };
+					bool *constrained[2] = { loC, hiC };
+					//levMar(params + 1, 1, consts, xData, signals, fs, NULL, dSize, nPhases, loBounds, hiBounds, false, params + 2);
+					regionContraction(params, nP, consts, nPhases, xData, signals, dSize, false, fs, bounds, constrained, 5000, 20, 10, 0.05, 0.05, params + 3);
 				}
 				// Clean up memory
 				for (int p = 0; p < nPhases; p++)

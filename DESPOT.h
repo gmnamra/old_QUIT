@@ -21,6 +21,7 @@ void aSSFP(double *flipAngle, double *p, double *c, double *ssfp, size_t nA);
 double n2cSPGR(double alpha, double *p, double *c);
 double n2cSSFP(double alpha, double *p, double *c);
 void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA);
+void a1cSSFPB0(double *alpha, double *p, double *c, double *signal, size_t nA);
 void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA);
 void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA);
 
