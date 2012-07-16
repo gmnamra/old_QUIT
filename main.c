@@ -73,13 +73,34 @@ bool comparePars(par_t *par, par_t *cmpPar)
 	return true;
 }
 
+void listMatchingPars(par_t *pars, char **patterns, int n);
+void listMatchingPars(par_t *pars, char **patterns, int n)
+{
+	for (int i = 0; i < n; i++)
+	{
+		fprintf(stdout, "Listing parameter names containing \"%s\":\n", patterns[i]);
+		par_t *current, *tmp;
+		int matched = 0;
+		HASH_ITER(hh, pars, current, tmp)
+		{
+			if (strstr(current->name, patterns[i]))
+			{
+				fprintf(stdout, "%s\n", current->name);
+				matched++;
+			}
+		}
+		fprintf(stdout, "Found %d matches.\n\n", matched);
+	}
+}
+
 int main(int argc, char **argv)
 {
-	static int fullPrint, all;
+	static int fullPrint = false, all = false, list = false;
 	static struct option long_options[] =
 	{
 		{"full", no_argument, &fullPrint, true},
 		{"all",  no_argument, &all, true},
+		{"list", no_argument, &list, true},
 		{"cmp",  required_argument, 0, 'c'},
 		{0, 0, 0, 0}
 	};
@@ -101,53 +122,100 @@ int main(int argc, char **argv)
 	procparFile = argv[optind++];
 	fprintf(stdout, "Reading procpar file: %s\n", procparFile);
 	pars = readProcpar(procparFile);
+	if (!pars)
+		exit(EXIT_FAILURE);
 	if (cmpFile)
 	{
 		fprintf(stdout, "Reading comparison procpar file: %s\n", cmpFile);
 		cmpPars = readProcpar(cmpFile);
+		if (!cmpPars)
+			exit(EXIT_FAILURE);
 	}
 	
 	par_t *par, *cmpPar, *tmp;
 	
 	if (optind < argc)
 	{
-		fprintf(stdout, "Searching for %d parameters.\n", argc - optind);
-		for (int i = optind; i < argc; i++)
+		if (list)
+			listMatchingPars(pars, argv + optind, (argc - optind));
+		else
 		{
-			HASH_FIND_STR(pars, argv[i], par);
-			if (cmpFile)
+			fprintf(stdout, "Searching for %d parameters.\n", argc - optind);
+			for (int i = optind; i < argc; i++)
 			{
-				HASH_FIND_STR(cmpPars, par->name, cmpPar);
-				if (cmpPar)
-					comparePars(par, cmpPar);
+				HASH_FIND_STR(pars, argv[i], par);
+				if (cmpFile)
+				{
+					HASH_FIND_STR(cmpPars, par->name, cmpPar);
+					if (cmpPar)
+						comparePars(par, cmpPar);
+					else
+						fprintf(stdout, "Parameter %s present in %s but not %s.\n",
+								par->name, procparFile, cmpFile);
+				}
 				else
-					fprintf(stdout, "Parameter %s present in %s but not %s.\n",
-							par->name, procparFile, cmpFile);
+					fprintPar(stdout, par);
 			}
-			else
-				fprintPar(stdout, par);
 		}
 	}
 	else if (all)
 	{
-		fprintf(stdout, "Searching all parameters in %s.\n", procparFile);
-		HASH_ITER(hh, pars, par, tmp)
+		if (list)
 		{
-			if (cmpFile)
+			fprintf(stdout, "Listing all parameter names.\n");
+			HASH_ITER(hh, pars, par, tmp)
+				fprintf(stdout, "%s\n", par->name);
+		}
+		else
+		{
+			fprintf(stdout, "Searching all parameters in %s.\n", procparFile);
+			HASH_ITER(hh, pars, par, tmp)
 			{
-				HASH_FIND_STR(cmpPars, par->name, cmpPar);
-				if (cmpPar)
-					comparePars(par, cmpPar);
+				if (cmpFile)
+				{
+					HASH_FIND_STR(cmpPars, par->name, cmpPar);
+					if (cmpPar)
+						comparePars(par, cmpPar);
+					else
+						fprintf(stdout, "Parameter %s present in %s but not %s.\n",
+								par->name, procparFile, cmpFile);
+				}
 				else
-					fprintf(stdout, "Parameter %s present in %s but not %s.\n",
-					        par->name, procparFile, cmpFile);
+					fprintPar(stdout, par);
 			}
-			else
-				fprintPar(stdout, par);
-		}		
+		}
 	}
 	else
-		fprintf(stdout, "No parameters specified.\n");
+	{
+		char *search = malloc(MAXSTR * sizeof(char));
+		par_t *par;
+		while (true)
+		{
+			fprintf(stdout, "Enter parameter name (. to exit): ");
+			fscanf(stdin, "%s", search);
+			if (strcmp(search, ".") == 0)
+				break;
+			if (list)
+			{
+				char **patterns = &search;
+				listMatchingPars(pars, patterns, 1);
+			}
+			else
+			{
+				HASH_FIND_STR(pars, search, par);
+				if (!par)
+					fprintf(stdout, "%s not found.\n", search);
+				else if (fullPrint)
+					fprintPar(stdout, par);
+				else
+				{
+					fprintf(stdout, "Type: %s with %d values\n", parTypeStr(par->type), par->nvals);
+					fprintVals(stdout, par);
+				}
+			}
+		}
+		free(search);
+	}
 	
     return EXIT_SUCCESS;
 }
