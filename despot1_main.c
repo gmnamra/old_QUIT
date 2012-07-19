@@ -252,7 +252,7 @@ int main(int argc, char **argv)
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
 			if ((!maskFile) || (maskData[vox] > 0.))
 			{
-				OSAtomicAdd32(1, &voxCount);
+				AtomicAdd(1, &voxCount);
 				double spgrs[nSPGR];
 				for (int img = 0; img < nSPGR; img++)
 					spgrs[img] = (double)SPGRData[voxelsPerSlice * img + vox];
