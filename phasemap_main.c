@@ -13,11 +13,14 @@
 #include <getopt.h>
 
 #include "fslio.h"
+#include "procpar.h"
 
-char *usage = "Usage is: phasemap input_1 te1 input_2 te2 output_file\n\
-\
+char *usage = "Usage is: phasemap input_1 input_2 output_file\n\
+\n\
+Echo times will be read from procpar if present.\n\
 Options:\n\
-	--mask mask_file : Mask input with specified file\n";
+	--mask mask_file : Mask input with specified file\n\
+	--phasetime T    : Calculate the phase accumulated in time T\n";
 	
 int main(int argc, char** argv)
 {
@@ -33,11 +36,15 @@ int main(int argc, char** argv)
 	static struct option long_options[] =
 	{
 		{"mask", required_argument, 0, 'm'},
+		{"phasetime", required_argument, 0, 'p'},
 		{0, 0, 0, 0}
 	};
 	
 	int indexptr = 0, c;
 	FSLIO *maskHdr = NULL;
+	char procpar[MAXSTR];
+	par_t *pars;
+	double TE1, TE2, deltaTE, phasetime = 0.;
 	
 	while ((c = getopt_long(argc, argv, "", long_options, &indexptr)) != -1)
 	{
@@ -46,23 +53,36 @@ int main(int argc, char** argv)
 			case 'm':
 				maskHdr = FslOpen(optarg, "rb");
 				break;
-		
+			case 'p':
+				phasetime = atof(optarg);
+				break;
 		}
 	}
 	
 	fprintf(stdout, "Opening input file 1 %s...\n", argv[optind]);
-	FSLIO *in1 = FslOpen(argv[optind++], "rb");
-	double TE1 = atof(argv[optind++]);
-	fprintf(stdout, "Read TE1: %f\n", TE1);
-	fprintf(stdout, "Opening input file 2 %s...\n", argv[optind]);
-	FSLIO *in2 = FslOpen(argv[optind++], "rb");
-	double TE2 = atof(argv[optind++]);
-	fprintf(stdout, "Read TE2: %f\n", TE2);
-	FSLIO *out = FslOpen(argv[optind++], "wb");
-	
-	if (optind != argc)
+	FSLIO *in1 = FslOpen(argv[optind], "rb");
+	strncpy(procpar, argv[optind], MAXSTR);
+	strcat(procpar, ".procpar");
+	if ((pars = readProcpar(procpar)))
+		TE1 = realVal(pars, "te", 0);
+	else {
+		fprintf(stdout, "Enter TE1 (seconds): ");
+		fscanf(stdin, "%lf", &TE1);
+	}
+	fprintf(stdout, "Opening input file 2 %s...\n", argv[++optind]);
+	FSLIO *in2 = FslOpen(argv[optind], "rb");
+	strncpy(procpar, argv[optind], MAXSTR);
+	strcat(procpar, ".procpar");
+	if ((pars = readProcpar(procpar)))
+		TE2 = realVal(pars, "te", 0);
+	else {
+		fprintf(stdout, "Enter TE2 (seconds): ");
+		fscanf(stdin, "%lf", &TE2);
+	}
+
+	FSLIO *out = FslOpen(argv[++optind], "wb");
+	if (optind != argc - 1)
 		fprintf(stderr, "Error during argument processing.\n");
-	
 	if (TE2 < TE1)
 	{	// Swap them
 		fprintf(stdout, "TE2 < TE1, swapping.\n");
@@ -73,7 +93,7 @@ int main(int argc, char** argv)
 		TE2 = TE1;
 		TE1 = tmpTE;
 	}
-	double deltaTE = TE2 - TE1;
+	deltaTE = TE2 - TE1;
 	fprintf(stdout, "Delta TE = %f s\n", deltaTE);
 	short nx, ny, nz, nvol;
 	FslGetDim(in1, &nx, &ny, &nz, &nvol);
@@ -96,7 +116,7 @@ int main(int argc, char** argv)
 	if (maskHdr)
 	{
 		fprintf(stdout, "Reading mask.\n");
-		FslGetVolumeAsScaledDouble(maskHdr, 0);
+		mask = FslGetVolumeAsScaledDouble(maskHdr, 0);
 	}
 	
 	fprintf(stdout, "Processing...");
@@ -104,10 +124,17 @@ int main(int argc, char** argv)
 	{	for (size_t y = 0; y < ny; y++)
 		{	for (size_t x = 0; x < nx; x++)
 			{
-				if (!mask || mask[z][y][x])
+				if (!mask || mask[z][y][x] > 0.)
 				{
 					double deltaPhase = data2[z][y][x] - data1[z][y][x];
-					B0[z][y][x] = deltaPhase / (M_2_PI * deltaTE);
+					B0[z][y][x] = deltaPhase / (2 * M_PI * deltaTE);
+					if (phasetime > 0.)
+					{
+						double ph = fmod(B0[z][y][x] * 2 * M_PI * phasetime, 2 * M_PI);
+						if (ph > M_PI) ph -= (2 * M_PI);
+						if (ph < -M_PI) ph += (2 * M_PI);
+						B0[z][y][x] = ph;
+					}
 				}
 			}
 		}

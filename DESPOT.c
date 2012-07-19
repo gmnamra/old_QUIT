@@ -93,7 +93,7 @@ void aSSFP(double *flipAngle, double *p, double *c, double *ssfp, size_t nA)
 	double eT1 = exp(-TR / T1);
 	double eT2 = exp(-TR / T2);
 	
-	double phase = offset + B0 * TR * M_2_PI;
+	double phase = offset + B0 * TR * 2. * M_PI;
 	double sinp = sin(phase);
 	double cosp = cos(phase);
 	
@@ -169,7 +169,7 @@ double n2cSSFP(double alpha, double *p, double *c)
 	double iT2_b = -(1./T2_b + k_b);
 	double iT1_a = -(1./T1_a + k_a);
 	double iT1_b = -(1./T1_b + k_b);
-	double phase = rfPhase + (B0 * TR * M_2_PI);
+	double phase = rfPhase + (B0 * TR * 2. * M_PI);
 	double A[36] = { iT2_a * TR, k_b * TR,    phase,     0.,    0.,    0.,
 					 k_a  * TR,  iT2_b * TR,  0.,     phase,    0.,    0.,
 					 -phase,             0.,     iT2_a * TR,  k_b * TR,   0.,    0.,
@@ -212,7 +212,7 @@ void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 	double M0 = p[0], T2 = p[1],
 		   TR = c[0], T1 = c[1], B0 = c[2], B1 = c[3], rfPhase = c[4];
 	
-	double phase = rfPhase + (B0 * TR * M_2_PI);
+	double phase = rfPhase + (B0 * TR * 2. * M_PI);
 	double A[9] = { -TR / T2,    phase,       0.,
 					  -phase, -TR / T2,       0.,
 					      0.,       0., -TR / T1 };
@@ -248,7 +248,7 @@ void a1cSSFPB0(double *alpha, double *p, double *c, double *signal, size_t nA)
 	double M0 = p[0], T2 = p[1], B0 = p[2],
 		   TR = c[0], T1 = c[1], B1 = c[3], rfPhase = c[4];
 	
-	double phase = rfPhase + (B0 * TR * M_2_PI);
+	double phase = rfPhase + (B0 * TR * 2. * M_PI);
 	double A[9] = { -TR / T2,    phase,       0.,
 					  -phase, -TR / T2,       0.,
 					      0.,       0., -TR / T1 };

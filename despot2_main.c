@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 
 	for (size_t p = 1; p < nPhases; p++)
 	{
-		fprintf(stdout, "Reading %f SSFP header from %s.\n", degrees(ssfpPhases[p]), argv[++optind]);
+		fprintf(stdout, "Reading SSFP header from %s.\n", argv[++optind]);
 		ssfpFiles[p] = FslOpen(argv[optind], "rb");
 		if (!FslCheckDims(ssfpFiles[0], ssfpFiles[p]))
 		{
@@ -306,13 +306,16 @@ int main(int argc, char **argv)
 						}
 					}
 					
-					double loBounds[3] = { 0.,   0.010, -1. / ssfpTR };
-					double hiBounds[3] = { 1.e6, 0.250,  1. / ssfpTR };
+					double loBounds[3] = { 1.e5, 0.005, -.5 / ssfpTR };
+					double hiBounds[3] = { 1.e6, 0.100,  .5 / ssfpTR };
 					double *bounds[2] = { loBounds, hiBounds };
-					bool loC[3] = { TRUE, TRUE, FALSE }, hiC[3] = { FALSE, TRUE, FALSE };
+					bool loC[3] = { FALSE, TRUE, FALSE }, hiC[3] = { FALSE, FALSE, FALSE };
 					bool *constrained[2] = { loC, hiC };
 					//levMar(params + 1, 1, consts, xData, signals, fs, NULL, dSize, nPhases, loBounds, hiBounds, false, params + 2);
-					regionContraction(params, nP, consts, nPhases, xData, signals, dSize, false, fs, bounds, constrained, 5000, 20, 10, 0.05, 0.05, params + 3);
+					regionContraction(params, nP, consts, nPhases, xData, signals, dSize, false, fs, bounds, constrained, 10000, 20, 10, 0.05, 0.05, params + 3);
+					params[3] = fmod(params[2] * 2 * M_PI, 2 * M_PI);
+					if (params[3] > M_PI) params[3] -= (2 * M_PI);
+					if (params[3] < -M_PI) params[3] += (2 * M_PI);
 				}
 				// Clean up memory
 				for (int p = 0; p < nPhases; p++)
