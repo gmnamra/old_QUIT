@@ -12,7 +12,12 @@
 #include <stdbool.h>
 #include <getopt.h>
 #include <dispatch/dispatch.h>
-#include <libkern/OSAtomic.h>
+#ifdef __APPLE__
+	#include <libkern/OSAtomic.h>
+	#define AtomicAdd OSAtomicAdd32
+#else
+	#define AtomicAdd(x, y) (*y) += x
+#endif
 #include "DESPOT.h"
 #include "fslio.h"
 #include "procpar.h"
