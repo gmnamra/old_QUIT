@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		F6B6672415AC5D880078252F /* procpar.c in Sources */ = {isa = PBXBuildFile; fileRef = F6B6672315AC5D880078252F /* procpar.c */; };
+		F6DB54D615ADD81700208C11 /* procpar.c in Sources */ = {isa = PBXBuildFile; fileRef = F6B6672315AC5D880078252F /* procpar.c */; };
+		F6DB54D715ADD82000208C11 /* procpar.h in Headers */ = {isa = PBXBuildFile; fileRef = F6B6672615AC5D980078252F /* procpar.h */; };
 		F6FA56C715AC1B8E006A347A /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6FA56C615AC1B8E006A347A /* main.c */; };
 /* End PBXBuildFile section */
 
@@ -26,12 +28,20 @@
 /* Begin PBXFileReference section */
 		F6B6672315AC5D880078252F /* procpar.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = procpar.c; sourceTree = SOURCE_ROOT; };
 		F6B6672615AC5D980078252F /* procpar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = procpar.h; sourceTree = SOURCE_ROOT; };
+		F6DB54D215ADD80E00208C11 /* libprocpar.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libprocpar.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6FA56B915AC1B5B006A347A /* procparse */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = procparse; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6FA56C615AC1B8E006A347A /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = SOURCE_ROOT; };
 		F6FA56C815AC1BC9006A347A /* uthash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = uthash.h; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F6DB54CF15ADD80E00208C11 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F6FA56B615AC1B5B006A347A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -54,6 +64,7 @@
 			isa = PBXGroup;
 			children = (
 				F6FA56B915AC1B5B006A347A /* procparse */,
+				F6DB54D215ADD80E00208C11 /* libprocpar.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -71,7 +82,35 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXHeadersBuildPhase section */
+		F6DB54D015ADD80E00208C11 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6DB54D715ADD82000208C11 /* procpar.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
 /* Begin PBXNativeTarget section */
+		F6DB54D115ADD80E00208C11 /* procpar */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6DB54D315ADD80E00208C11 /* Build configuration list for PBXNativeTarget "procpar" */;
+			buildPhases = (
+				F6DB54CE15ADD80E00208C11 /* Sources */,
+				F6DB54CF15ADD80E00208C11 /* Frameworks */,
+				F6DB54D015ADD80E00208C11 /* Headers */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = procpar;
+			productName = procpar;
+			productReference = F6DB54D215ADD80E00208C11 /* libprocpar.a */;
+			productType = "com.apple.product-type.library.static";
+		};
 		F6FA56B815AC1B5B006A347A /* procparse */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F6FA56C315AC1B5B006A347A /* Build configuration list for PBXNativeTarget "procparse" */;
@@ -110,11 +149,20 @@
 			projectRoot = "";
 			targets = (
 				F6FA56B815AC1B5B006A347A /* procparse */,
+				F6DB54D115ADD80E00208C11 /* procpar */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F6DB54CE15ADD80E00208C11 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6DB54D615ADD81700208C11 /* procpar.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F6FA56B515AC1B5B006A347A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -127,6 +175,22 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		F6DB54D415ADD80E00208C11 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				EXECUTABLE_PREFIX = lib;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F6DB54D515ADD80E00208C11 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				EXECUTABLE_PREFIX = lib;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		F6FA56C115AC1B5B006A347A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -189,6 +253,14 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F6DB54D315ADD80E00208C11 /* Build configuration list for PBXNativeTarget "procpar" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6DB54D415ADD80E00208C11 /* Debug */,
+				F6DB54D515ADD80E00208C11 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
 		F6FA56B315AC1B5B006A347A /* Build configuration list for PBXProject "procparse" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
