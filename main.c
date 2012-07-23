@@ -93,6 +93,17 @@ void listMatchingPars(par_t *pars, char **patterns, int n)
 	}
 }
 
+const char* usage = "procparse - A utility to find interesting information in Agilent procpar files.\n\
+\n\
+Usage: procparse [opts] file1 par1 par2 ... parN\n\
+par1 to parN are parameter names to search for in procpar. If none are specified \
+they can be entered at via stdin.\n\
+Options:\n\
+ --full:     Print the full parameter information, not a shortened version.\n\
+ --all:      Print all parameters in file.\n\
+ --list:     Print parameter names that contain any of par1 ... parN.\n\
+ --cmp file2:	Open file2 and list only parameters that differ.\n";
+
 int main(int argc, char **argv)
 {
 	static int fullPrint = false, all = false, list = false;
@@ -107,13 +118,18 @@ int main(int argc, char **argv)
 	
 	char *procparFile = NULL, *cmpFile = NULL;
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "m:z", long_options, &indexptr)) != -1)
+	while ((c = getopt_long(argc, argv, "hm:z", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
 			case 'c':
 				cmpFile = optarg;
-			break;
+				break;
+			default:
+				fprintf(stdout, "Unknown option.\n");
+			case 'h':
+				fprintf(stdout, "%s", usage);
+				break;
 		}
 	}
 	
