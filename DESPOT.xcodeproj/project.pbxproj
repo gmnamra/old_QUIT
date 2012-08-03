@@ -17,6 +17,13 @@
 		F64CA29315A1BF5700F72707 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
 		F64CA29415A1BF5900F72707 /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
 		F64CA29515A1BF5C00F72707 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
+		F66F4A6815A48171006C91F1 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
+		F679FB8015B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
+		F679FB8115B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
+		F679FB8215B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
+		F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
+		F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
+		F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6E1F8DF1591E20E00DA918F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F6E1F9141591FFF200DA918F /* phasemap_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E1F9051591FDDC00DA918F /* phasemap_main.c */; };
 		F6E1F9151591FFFF00DA918F /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
@@ -41,6 +48,62 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		F679FB8315B6BF7300A2EC48 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
+			remoteInfo = procpar;
+		};
+		F679FB8615B6BF8700A2EC48 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
+			remoteInfo = procpar;
+		};
+		F679FB8815B6BF8700A2EC48 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6E4A20C1590D1FA00DA4001;
+			remoteInfo = Maths;
+		};
+		F679FB8A15B6BF8B00A2EC48 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6E4A20C1590D1FA00DA4001;
+			remoteInfo = Maths;
+		};
+		F679FB8C15B6BF8F00A2EC48 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
+			remoteInfo = procpar;
+		};
+		F6C3F70015ADD1DA00359F68 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F6FA56B915AC1B5B006A347A;
+			remoteInfo = procparse;
+		};
+		F6DB54DA15ADD84600208C11 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F6DB54D215ADD80E00208C11;
+			remoteInfo = procpar;
+		};
+		F6DB54DF15ADDCAD00208C11 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
+			remoteInfo = procpar;
+		};
 		F6E1F8DC1591E0F200DA918F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
@@ -113,6 +176,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mathsOptimisers.c; sourceTree = SOURCE_ROOT; };
+		F679FB7F15B6BDBF00A2EC48 /* mathsOptimisers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mathsOptimisers.h; sourceTree = SOURCE_ROOT; };
+		F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = procparse.xcodeproj; path = ../procparse/procparse.xcodeproj; sourceTree = "<group>"; };
 		F6E1F8DE1591E20E00DA918F /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		F6E1F9051591FDDC00DA918F /* phasemap_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = phasemap_main.c; sourceTree = SOURCE_ROOT; };
 		F6E1F90A1591FFD200DA918F /* phasemap */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = phasemap; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -142,6 +208,7 @@
 				F6E1F91B1592001C00DA918F /* libznz.a in Frameworks */,
 				F6E1F9181592000C00DA918F /* libz.dylib in Frameworks */,
 				F6E1F9151591FFFF00DA918F /* libMaths.a in Frameworks */,
+				F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -149,6 +216,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */,
 				F64CA29515A1BF5C00F72707 /* libMaths.a in Frameworks */,
 				F64CA29415A1BF5900F72707 /* libznz.a in Frameworks */,
 				F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */,
@@ -161,6 +229,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */,
 				F64CA28C15A1A4E900F72707 /* libMaths.a in Frameworks */,
 				F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */,
 				F64CA28F15A1A4F100F72707 /* libniftiio.a in Frameworks */,
@@ -173,6 +242,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F66F4A6815A48171006C91F1 /* libz.dylib in Frameworks */,
 				F6E4A2AD1590DC4500DA4001 /* libfslio.a in Frameworks */,
 				F6E4A2AE1590DC4500DA4001 /* libniftiio.a in Frameworks */,
 				F6E4A2AF1590DC4500DA4001 /* libznz.a in Frameworks */,
@@ -194,6 +264,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		F6C3F6FD15ADD1DA00359F68 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F6C3F70115ADD1DA00359F68 /* procparse */,
+				F6DB54DB15ADD84600208C11 /* libprocpar.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		F6E4A2361590D9B000DA4001 = {
 			isa = PBXGroup;
 			children = (
@@ -201,6 +280,7 @@
 				F6E4A2A61590DB9600DA4001 /* libfslio.a */,
 				F6E4A2A71590DB9600DA4001 /* libniftiio.a */,
 				F6E4A2A81590DB9600DA4001 /* libznz.a */,
+				F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */,
 				F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */,
 				F6E4A2441590D9B000DA4001 /* DESPOT */,
 				F6E4A2421590D9B000DA4001 /* Products */,
@@ -222,6 +302,8 @@
 		F6E4A2441590D9B000DA4001 /* DESPOT */ = {
 			isa = PBXGroup;
 			children = (
+				F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */,
+				F679FB7F15B6BDBF00A2EC48 /* mathsOptimisers.h */,
 				F6E4A2931590DB4D00DA4001 /* despot1_main.c */,
 				F6E4A2941590DB4D00DA4001 /* despot2_main.c */,
 				F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */,
@@ -255,6 +337,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				F679FB8415B6BF7300A2EC48 /* PBXTargetDependency */,
 				F6E1F9171592000600DA918F /* PBXTargetDependency */,
 			);
 			name = phasemap;
@@ -273,6 +356,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F679FB8B15B6BF8B00A2EC48 /* PBXTargetDependency */,
+				F6DB54E015ADDCAD00208C11 /* PBXTargetDependency */,
 			);
 			name = despot1;
 			productName = despot1;
@@ -290,6 +375,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F679FB8715B6BF8700A2EC48 /* PBXTargetDependency */,
+				F679FB8915B6BF8700A2EC48 /* PBXTargetDependency */,
 			);
 			name = despot2;
 			productName = despot2;
@@ -307,6 +394,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				F679FB8D15B6BF8F00A2EC48 /* PBXTargetDependency */,
 				F6E1F8DD1591E0F200DA918F /* PBXTargetDependency */,
 			);
 			name = mcdespot;
@@ -354,6 +442,10 @@
 					ProductGroup = F6E4A29E1590DB7800DA4001 /* Products */;
 					ProjectRef = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
 				},
+				{
+					ProductGroup = F6C3F6FD15ADD1DA00359F68 /* Products */;
+					ProjectRef = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
+				},
 			);
 			projectRoot = "";
 			targets = (
@@ -367,6 +459,20 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
+		F6C3F70115ADD1DA00359F68 /* procparse */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = procparse;
+			remoteRef = F6C3F70015ADD1DA00359F68 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		F6DB54DB15ADD84600208C11 /* libprocpar.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libprocpar.a;
+			remoteRef = F6DB54DA15ADD84600208C11 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		F6E4A2A51590DB7800DA4001 /* libMaths.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
@@ -391,6 +497,7 @@
 			files = (
 				F6E4A2971590DB5300DA4001 /* despot1_main.c in Sources */,
 				F6E4A2921590DB2F00DA4001 /* DESPOT.c in Sources */,
+				F679FB8015B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -400,6 +507,7 @@
 			files = (
 				F6E4A2981590DB5800DA4001 /* despot2_main.c in Sources */,
 				F6E4A2991590DB5800DA4001 /* DESPOT.c in Sources */,
+				F679FB8115B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -409,6 +517,7 @@
 			files = (
 				F6E4A29A1590DB6000DA4001 /* mcdespot_main.c in Sources */,
 				F6E4A29B1590DB6000DA4001 /* DESPOT.c in Sources */,
+				F679FB8215B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -423,6 +532,36 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		F679FB8415B6BF7300A2EC48 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = procpar;
+			targetProxy = F679FB8315B6BF7300A2EC48 /* PBXContainerItemProxy */;
+		};
+		F679FB8715B6BF8700A2EC48 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = procpar;
+			targetProxy = F679FB8615B6BF8700A2EC48 /* PBXContainerItemProxy */;
+		};
+		F679FB8915B6BF8700A2EC48 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Maths;
+			targetProxy = F679FB8815B6BF8700A2EC48 /* PBXContainerItemProxy */;
+		};
+		F679FB8B15B6BF8B00A2EC48 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Maths;
+			targetProxy = F679FB8A15B6BF8B00A2EC48 /* PBXContainerItemProxy */;
+		};
+		F679FB8D15B6BF8F00A2EC48 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = procpar;
+			targetProxy = F679FB8C15B6BF8F00A2EC48 /* PBXContainerItemProxy */;
+		};
+		F6DB54E015ADDCAD00208C11 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = procpar;
+			targetProxy = F6DB54DF15ADDCAD00208C11 /* PBXContainerItemProxy */;
+		};
 		F6E1F8DD1591E0F200DA918F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Maths;
@@ -481,6 +620,7 @@
 				HEADER_SEARCH_PATHS = (
 					"../nifticlib-2.0.0/include",
 					../Maths,
+					../procparse,
 				);
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
@@ -506,6 +646,7 @@
 				HEADER_SEARCH_PATHS = (
 					"../nifticlib-2.0.0/include",
 					../Maths,
+					../procparse,
 				);
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;

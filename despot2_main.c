@@ -294,20 +294,17 @@ int main(int argc, char **argv)
 						consts[p][2] = B0;
 						consts[p][3] = B1;
 						consts[p][4] = ssfpPhases[p];						
-						if (B0File)
-						{
-							nP = 2;
-							fs[p] = &a1cSSFP;
-						}
-						else
-						{
-							nP = 3;
-							fs[p] = &a1cSSFPB0;
-						}
+						nP = 3;
+						fs[p] = &a1cSSFPB0;
 					}
 					
 					double loBounds[3] = { 1.e5, 0.005, -.5 / ssfpTR };
 					double hiBounds[3] = { 1.e6, 0.100,  .5 / ssfpTR };
+					if (B0File)
+					{
+						loBounds[2] = B0 * 0.95;
+						hiBounds[2] = B0 * 1.05;
+					}
 					double *bounds[2] = { loBounds, hiBounds };
 					bool loC[3] = { FALSE, TRUE, FALSE }, hiC[3] = { FALSE, FALSE, FALSE };
 					bool *constrained[2] = { loC, hiC };
