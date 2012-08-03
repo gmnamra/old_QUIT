@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 	if ((pars = readProcpar(procpar)))
 	{
 		n = realVal(pars, "afi_n", 0);
-		nomFlip = realVal(pars, "flip1", 1);
+		nomFlip = realVal(pars, "flip1", 0);
 		fprintf(stdout, "Read TR2/TR1 ratio of %f and flip-angle %f degrees from procpar.\n", n, nomFlip);
 	}
 	else
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 				{
 					double r = tr2[z][y][x] / tr1[z][y][x];
 					double alpha = acos((r*n - 1.) / (n - r));
-					flip[z][y][x] = alpha;
+					flip[z][y][x] = degrees(alpha);
 					B1[z][y][x]   = alpha / nomFlip;
 				}
 			}
@@ -106,7 +106,8 @@ int main(int argc, char **argv)
 	fprintf(stdout, "done.\n");
 	char outfile[1024];
 	snprintf(outfile, 1024, "%s_flip.nii.gz", prefix);
-	out = FslOpen(argv[++optind], "wb");
+	fprintf(stdout, "Writing to %s...\n", outfile);
+	out = FslOpen(outfile, "wb");
 	FslCloneHeader(out, in);
 	FslSetDim(out, nx, ny, nz, 1);
 	FslSetDataType(out, NIFTI_TYPE_FLOAT32);
@@ -115,7 +116,7 @@ int main(int argc, char **argv)
 	fprintf(stdout, "Wrote flip angle.\n");
 	FslClose(out);
 	snprintf(outfile, 1024, "%s_B1.nii.gz", prefix);
-	out = FslOpen(argv[++optind], "wb");
+	out = FslOpen(outfile, "wb");
 	FslCloneHeader(out, in);
 	FslSetDim(out, nx, ny, nz, 1);
 	FslSetDataType(out, NIFTI_TYPE_FLOAT32);
@@ -123,6 +124,7 @@ int main(int argc, char **argv)
 	FslWriteVolumeFromDouble(out, B1, 0);
 	fprintf(stdout, "Wrote B1 ratio.\n");
 	FslClose(out);
+	FslClose(in);
 	fprintf(stdout, "Success.\n");
     return EXIT_SUCCESS;
 }

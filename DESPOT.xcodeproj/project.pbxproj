@@ -18,6 +18,13 @@
 		F64CA29415A1BF5900F72707 /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
 		F64CA29515A1BF5C00F72707 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F66F4A6815A48171006C91F1 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
+		F675C8D615CC120100BA95FC /* afi_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F675C8D515CC120100BA95FC /* afi_main.c */; };
+		F675C8D715CC16F800BA95FC /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
+		F675C8D815CC16F800BA95FC /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
+		F675C8D915CC170200BA95FC /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
+		F675C8DA15CC170400BA95FC /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
+		F675C8DB15CC170600BA95FC /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
+		F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F679FB8015B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
 		F679FB8115B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
 		F679FB8215B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
@@ -128,6 +135,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		F675C8C915CC11E000BA95FC /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		F6E1F9081591FFD200DA918F /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -176,6 +192,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F61642A715CC1BBB0031F999 /* despot_hifi.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = despot_hifi.c; sourceTree = SOURCE_ROOT; };
+		F675C8CB15CC11E000BA95FC /* afi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = afi; sourceTree = BUILT_PRODUCTS_DIR; };
+		F675C8D515CC120100BA95FC /* afi_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = afi_main.c; sourceTree = SOURCE_ROOT; };
 		F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mathsOptimisers.c; sourceTree = SOURCE_ROOT; };
 		F679FB7F15B6BDBF00A2EC48 /* mathsOptimisers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mathsOptimisers.h; sourceTree = SOURCE_ROOT; };
 		F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = procparse.xcodeproj; path = ../procparse/procparse.xcodeproj; sourceTree = "<group>"; };
@@ -199,6 +218,19 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F675C8C815CC11E000BA95FC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F675C8D715CC16F800BA95FC /* libMaths.a in Frameworks */,
+				F675C8D815CC16F800BA95FC /* libprocpar.a in Frameworks */,
+				F675C8D915CC170200BA95FC /* libfslio.a in Frameworks */,
+				F675C8DA15CC170400BA95FC /* libniftiio.a in Frameworks */,
+				F675C8DB15CC170600BA95FC /* libznz.a in Frameworks */,
+				F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F6E1F9071591FFD200DA918F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -264,6 +296,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		F675C8CD15CC11E000BA95FC /* afi */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = afi;
+			sourceTree = "<group>";
+		};
 		F6C3F6FD15ADD1DA00359F68 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -283,6 +322,7 @@
 				F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */,
 				F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */,
 				F6E4A2441590D9B000DA4001 /* DESPOT */,
+				F675C8CD15CC11E000BA95FC /* afi */,
 				F6E4A2421590D9B000DA4001 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -295,6 +335,7 @@
 				F6E4A2781590DAB500DA4001 /* mcdespot */,
 				F6E4A2861590DAC400DA4001 /* threshold */,
 				F6E1F90A1591FFD200DA918F /* phasemap */,
+				F675C8CB15CC11E000BA95FC /* afi */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -311,6 +352,8 @@
 				F6E4A2901590DB2F00DA4001 /* DESPOT.c */,
 				F6E4A2911590DB2F00DA4001 /* DESPOT.h */,
 				F6E1F9051591FDDC00DA918F /* phasemap_main.c */,
+				F675C8D515CC120100BA95FC /* afi_main.c */,
+				F61642A715CC1BBB0031F999 /* despot_hifi.c */,
 			);
 			path = DESPOT;
 			sourceTree = "<group>";
@@ -326,6 +369,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		F675C8CA15CC11E000BA95FC /* afi */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F675C8D215CC11E000BA95FC /* Build configuration list for PBXNativeTarget "afi" */;
+			buildPhases = (
+				F675C8C715CC11E000BA95FC /* Sources */,
+				F675C8C815CC11E000BA95FC /* Frameworks */,
+				F675C8C915CC11E000BA95FC /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = afi;
+			productName = afi;
+			productReference = F675C8CB15CC11E000BA95FC /* afi */;
+			productType = "com.apple.product-type.tool";
+		};
 		F6E1F9091591FFD200DA918F /* phasemap */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F6E1F9111591FFD200DA918F /* Build configuration list for PBXNativeTarget "phasemap" */;
@@ -454,6 +514,7 @@
 				F6E4A2771590DAB500DA4001 /* mcdespot */,
 				F6E4A2851590DAC400DA4001 /* threshold */,
 				F6E1F9091591FFD200DA918F /* phasemap */,
+				F675C8CA15CC11E000BA95FC /* afi */,
 			);
 		};
 /* End PBXProject section */
@@ -483,6 +544,14 @@
 /* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F675C8C715CC11E000BA95FC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F675C8D615CC120100BA95FC /* afi_main.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F6E1F9061591FFD200DA918F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -575,6 +644,28 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		F675C8D315CC11E000BA95FC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F675C8D415CC11E000BA95FC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		F6E1F9121591FFD200DA918F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -745,6 +836,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F675C8D215CC11E000BA95FC /* Build configuration list for PBXNativeTarget "afi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F675C8D315CC11E000BA95FC /* Debug */,
+				F675C8D415CC11E000BA95FC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		F6E1F9111591FFD200DA918F /* Build configuration list for PBXNativeTarget "phasemap" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
