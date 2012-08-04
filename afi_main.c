@@ -21,6 +21,7 @@
 #include "fslio.h"
 #include "procpar.h"
 #include "mathsUtil.h"
+#include "mathsOps.h"
 
 char *usage = "Usage is: afi [options] input output \n\
 \
@@ -34,9 +35,11 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
+	static int smooth = false;
 	static struct option long_options[] =
 	{
 		{"mask", required_argument, 0, 'm'},
+		{"smooth", no_argument, &smooth, true},
 		{0, 0, 0, 0}
 	};
 	
@@ -44,7 +47,8 @@ int main(int argc, char **argv)
 	char procpar[MAXSTR], *prefix;
 	par_t *pars;
 	double n, nomFlip;
-	double ***tr1, ***tr2, ***flip, ***B1, ***mask = NULL;
+	double ***tr1, ***tr2, ***flip, ***B1, 
+	       ***smoothB1, ***mask = NULL;
 	short nx, ny, nz, nvol;
 	FSLIO *in = NULL, *out = NULL, *maskHdr = NULL;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1)
@@ -87,6 +91,7 @@ int main(int argc, char **argv)
 	fprintf(stdout, "Image dimensions: %d %d %d\n", nx, ny, nz);
 	flip  = d3matrix(nz - 1, ny - 1, nx - 1);
 	B1    = d3matrix(nz - 1, ny - 1, nx - 1);
+	smoothB1    = d3matrix(nz - 1, ny - 1, nx - 1);
 	fprintf(stdout, "Allocated output memory.\n");
 	fprintf(stdout, "Processing...");
 	for (size_t z = 0; z < nz; z++)
@@ -96,7 +101,12 @@ int main(int argc, char **argv)
 				if (!mask || mask[z][y][x] > 0.)
 				{
 					double r = tr2[z][y][x] / tr1[z][y][x];
-					double alpha = acos((r*n - 1.) / (n - r));
+					double temp = (r*n - 1.) / (n - r);
+					if (temp > 1.)
+						temp = 1.;
+					if (temp < -1.)
+						temp = -1.;
+					double alpha = acos(temp);
 					flip[z][y][x] = degrees(alpha);
 					B1[z][y][x]   = alpha / nomFlip;
 				}
@@ -124,6 +134,24 @@ int main(int argc, char **argv)
 	FslWriteVolumeFromDouble(out, B1, 0);
 	fprintf(stdout, "Wrote B1 ratio.\n");
 	FslClose(out);
+	if (smooth)
+	{
+		fprintf(stdout, "Smoothing...");
+		double *gaussKernel = gaussian3D(5, 5, 5, 2, 2, 2);
+		convolve3D(smoothB1[0][0], B1[0][0], nx, ny, nz,
+		           gaussKernel, 5, 5, 5);
+		fprintf(stdout, "done.\n");
+		FslClose(out);
+		snprintf(outfile, 1024, "%s_smooth_B1.nii.gz", prefix);
+		out = FslOpen(outfile, "wb");
+		FslCloneHeader(out, in);
+		FslSetDim(out, nx, ny, nz, 1);
+		FslSetDataType(out, NIFTI_TYPE_FLOAT32);
+		FslWriteHeader(out);
+		FslWriteVolumeFromDouble(out, smoothB1, 0);
+		fprintf(stdout, "Wrote smoothed B1 ratio.\n");
+		FslClose(out);
+	}
 	FslClose(in);
 	fprintf(stdout, "Success.\n");
     return EXIT_SUCCESS;
