@@ -14,23 +14,27 @@
 
 #include "fslio.h"
 #include "procpar.h"
+#include "mathsOps.h"
 
-char *usage = "Usage is: phasemap input_1 input_2 output_file\n\
+char *usage = "Usage is: phasemap input_1 input_2 outprefix\n\
 \n\
 Echo times will be read from procpar if present.\n\
 Options:\n\
 	--mask mask_file : Mask input with specified file\n\
-	--phasetime T    : Calculate the phase accumulated in time T\n";
-	
+	--phasetime T    : Calculate the phase accumulated in time T\n\
+	--smooth         : Smooth output with a gaussian.\n";
+
 int main(int argc, char** argv)
 {
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
+	static int smooth = false;
 	static struct option long_options[] =
 	{
 		{"mask", required_argument, 0, 'm'},
 		{"phasetime", required_argument, 0, 'p'},
+		{"smooth", no_argument, &smooth, true},
 		{0, 0, 0, 0}
 	};
 	
@@ -115,8 +119,7 @@ int main(int argc, char** argv)
 		fprintf(stderr, "%s", usage);
 		exit(EXIT_FAILURE);
 	}
-
-	out = FslOpen(argv[++optind], "wb");
+	char *prefix = argv[++optind];
 	if (TE2 < TE1)
 	{	// Swap them
 		fprintf(stdout, "TE2 < TE1, swapping.\n");
@@ -153,16 +156,37 @@ int main(int argc, char** argv)
 		}
 	}
 	fprintf(stdout, "done.\n");
+	char outfile[1024];
+	snprintf(outfile, 1024, "%s_B0.nii.gz", prefix);
+	out = FslOpen(outfile, "wb");
 	FslCloneHeader(out, in1);
 	FslSetDim(out, nx, ny, nz, 1);
 	FslSetDataType(out, NIFTI_TYPE_FLOAT32);
 	FslWriteHeader(out);
 	FslWriteVolumeFromDouble(out, B0, 0);
 	fprintf(stdout, "Wrote B0 map.\n");
+	FslClose(out);
+	if (smooth)
+	{
+		fprintf(stdout, "Smoothing...");
+		double *gaussKernel = gaussian3D(7, 7, 7, 1.5, 1.5, 1.5);
+		double ***smoothed = d3matrix(nz - 1, ny - 1, nx - 1);
+		convolve3D(smoothed[0][0], B0[0][0], nx, ny, nz,
+		           gaussKernel, 7, 7, 7);
+		fprintf(stdout, "done.\n");
+		snprintf(outfile, 1024, "%s_B0_smooth.nii.gz", prefix);
+		out = FslOpen(outfile, "wb");
+		FslCloneHeader(out, in1);
+		FslSetDim(out, nx, ny, nz, 1);
+		FslSetDataType(out, NIFTI_TYPE_FLOAT32);
+		FslWriteHeader(out);
+		FslWriteVolumeFromDouble(out, smoothed, 0);
+		fprintf(stdout, "Wrote smoothed B0.\n");
+		FslClose(out);	
+	}
 	FslClose(in1);
 	if (in2)
 		FslClose(in2);
-	FslClose(out);
 	fprintf(stdout, "Success.\n");
     return EXIT_SUCCESS;
 }

@@ -137,11 +137,10 @@ int main(int argc, char **argv)
 	if (smooth)
 	{
 		fprintf(stdout, "Smoothing...");
-		double *gaussKernel = gaussian3D(5, 5, 5, 2, 2, 2);
+		double *gaussKernel = gaussian3D(7, 7, 7, 1.5, 1.5, 1.5);
 		convolve3D(smoothB1[0][0], B1[0][0], nx, ny, nz,
-		           gaussKernel, 5, 5, 5);
+		           gaussKernel, 7, 7, 7);
 		fprintf(stdout, "done.\n");
-		FslClose(out);
 		snprintf(outfile, 1024, "%s_smooth_B1.nii.gz", prefix);
 		out = FslOpen(outfile, "wb");
 		FslCloneHeader(out, in);
