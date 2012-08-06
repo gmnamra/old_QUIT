@@ -28,10 +28,10 @@
 char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_180_file [additional ssfp files] \n\
 \
 Options:\n\
-	-m file   : Mask input with specified file.\n\
-	--B0 file : B0 Map File.\n\
-	--B1 file : B1 Map File.\n\
-	--lm      : Use Levenberg-Marquardt instead of Region Contraction.\n";
+	-m, --mask file   : Mask input with specified file.\n\
+	--B0 file         : B0 Map File.\n\
+	--B1 file         : B1 Map File.\n\
+	--lm              : Use Levenberg-Marquardt instead of Region Contraction.\n";
 //******************************************************************************
 // SIGINT interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
@@ -77,6 +77,7 @@ int main(int argc, char **argv)
 	{
 		{"B0", required_argument, 0, '0'},
 		{"B1", required_argument, 0, '1'},
+		{"mask", required_argument, 0, 'm'},
 		{"lm", no_argument, &levMar, true},
 		{0, 0, 0, 0}
 	};
