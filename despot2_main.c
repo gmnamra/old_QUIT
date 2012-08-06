@@ -164,7 +164,6 @@ int main(int argc, char **argv)
 	{
 		fprintf(stdout, "Reading SSFP header from %s.\n", argv[++optind]);
 		ssfpFiles[p] = FslOpen(argv[optind], "rb");
-		FslReadAllVolumes(ssfpFiles[p], argv[optind]);
 		if (!FslCheckDims(ssfpFiles[0], ssfpFiles[p]))
 		{
 			fprintf(stderr, "Image %s has differing dimensions.\n", argv[optind]);
@@ -194,11 +193,10 @@ int main(int argc, char **argv)
 	double **ssfpData = malloc(nPhases * sizeof(double *));
 	for (int p = 0; p < nPhases; p++)
 		ssfpData[p] = FslGetAllVolumesAsScaledDouble(ssfpFiles[p]);
+	fprintf(stdout, "Read SSFP data.\n");
 	//**************************************************************************
 	// Create results files
 	// T2, residue
-	// Need to write a full file of zeros first otherwise per-plane writing
-	// won't produce a complete image.
 	//**************************************************************************
 	char outName[strlen(outPrefix) + 15];
 	for (int r = 0; r < NR; r++)
@@ -260,6 +258,7 @@ int main(int argc, char **argv)
 					params[1] = clamp(params[1], 0.001, 0.250);
 					params[2] = 0.;
 				}
+                                // Need to still trigger this if doing levMar, hence if not else if
 				if (nPhases > 1)
 				{
 					double *xData[nPhases], *consts[nPhases];
@@ -278,8 +277,16 @@ int main(int argc, char **argv)
 						params[2]    = B0;
 						consts[p][3] = B1;
 						consts[p][4] = ssfpPhases[p];						
-						nP = 3;
-						fs[p] = &a1cSSFPB0;
+						if (levMar)
+						{
+						    nP = 3;
+						    fs[p] = &a1cSSFPB0;
+						}
+						else
+						{
+						    nP = 3;
+						    fs[p] = &a1cSSFPB0;
+						}
 					}
 					
 					double loBounds[3] = { 1.e5, 0.005, -.5 / ssfpTR };
@@ -293,7 +300,7 @@ int main(int argc, char **argv)
 					bool loC[3] = { FALSE, TRUE, FALSE }, hiC[3] = { FALSE, FALSE, FALSE };
 					bool *constrained[2] = { loC, hiC };
 					if (levMar)
-						levenbergMarquardt(params, nP, consts, xData, signals, fs, NULL, dSize, nPhases, loBounds, hiBounds, false, params + 3);
+						levenbergMarquardt(params, nP, consts, xData, signals, fs, NULL, dSize, nPhases, NULL, NULL, false, params + 3);
 					else
 						regionContraction(params, nP, consts, nPhases, xData, signals, dSize, false, fs, bounds, constrained, 10000, 20, 10, 0.05, 0.05, params + 3);
 					params[3] = fmod(params[2] * 2 * M_PI, 2 * M_PI);
@@ -314,7 +321,7 @@ int main(int argc, char **argv)
         fprintf(stdout, "Finished slice %zu", slice);
 		if (voxCount > 0)
 		{
-			fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s.", 
+			fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s", 
 			        voxCount, (loopEnd - loopStart) / ((double)voxCount * CLOCKS_PER_SEC));
 		}
 		fprintf(stdout, ".\n");
