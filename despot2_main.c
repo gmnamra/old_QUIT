@@ -38,6 +38,7 @@ Options:\n\
 #define NR 4
 FSLIO *resultsHeaders[NR];
 double *resultsData[NR];
+char *names[NR] = { "_d2_M0", "_T2", "_d2_B0", "_d2_res" };
 void int_handler(int sig);
 void int_handler(int sig)
 {
@@ -199,7 +200,6 @@ int main(int argc, char **argv)
 	// Need to write a full file of zeros first otherwise per-plane writing
 	// won't produce a complete image.
 	//**************************************************************************
-	char *names[NR] = { "_d2_M0", "_T2", "_d2_B0", "_d2_res" };
 	char outName[strlen(outPrefix) + 15];
 	for (int r = 0; r < NR; r++)
 	{
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
 					params[1] = clamp(params[1], 0.001, 0.250);
 					params[2] = 0.;
 				}
-				else if (nPhases > 1)
+				if (nPhases > 1)
 				{
 					double *xData[nPhases], *consts[nPhases];
 					size_t dSize[nPhases];
