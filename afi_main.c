@@ -20,13 +20,14 @@
 #endif
 #include "fslio.h"
 #include "procpar.h"
-#include "mathsUtil.h"
+#include "mathsArray.h"
 #include "mathsOps.h"
 
 char *usage = "Usage is: afi [options] input output \n\
 \
 Options:\n\
-	-m file  : Mask input with specified file.\n";
+	--mask, -m file  : Mask input with specified file.\n\
+	--smooth         : Smooth output with a gaussian.\n";
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -47,9 +48,10 @@ int main(int argc, char **argv)
 	char procpar[MAXSTR], *prefix;
 	par_t *pars;
 	double n, nomFlip;
-	double ***tr1, ***tr2, ***flip, ***B1, 
-	       ***smoothB1, ***mask = NULL;
+	double *tr1, *tr2, *flip, *B1, 
+	       *smoothB1, *mask = NULL;
 	short nx, ny, nz, nvol;
+	int nvox;
 	FSLIO *in = NULL, *out = NULL, *maskHdr = NULL;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1)
 	{
@@ -85,32 +87,29 @@ int main(int argc, char **argv)
 	}
 	nomFlip = radians(nomFlip);
 	FslGetDim(in, &nx, &ny, &nz, &nvol);
+	nvox = nz*ny*nx;
 	tr1 = FslGetVolumeAsScaledDouble(in, 0);
 	tr2 = FslGetVolumeAsScaledDouble(in, 1);
 	prefix = argv[++optind];
 	fprintf(stdout, "Image dimensions: %d %d %d\n", nx, ny, nz);
-	flip  = d3matrix(nz - 1, ny - 1, nx - 1);
-	B1    = d3matrix(nz - 1, ny - 1, nx - 1);
-	smoothB1    = d3matrix(nz - 1, ny - 1, nx - 1);
+	flip  = malloc(nvox * sizeof(double));
+	B1    = malloc(nvox * sizeof(double));
+	arraySet(B1, 1.0, nvox);
 	fprintf(stdout, "Allocated output memory.\n");
 	fprintf(stdout, "Processing...");
-	for (size_t z = 0; z < nz; z++)
-	{	for (size_t y = 0; y < ny; y++)
-		{	for (size_t x = 0; x < nx; x++)
-			{
-				if (!mask || mask[z][y][x] > 0.)
-				{
-					double r = tr2[z][y][x] / tr1[z][y][x];
-					double temp = (r*n - 1.) / (n - r);
-					if (temp > 1.)
-						temp = 1.;
-					if (temp < -1.)
-						temp = -1.;
-					double alpha = acos(temp);
-					flip[z][y][x] = degrees(alpha);
-					B1[z][y][x]   = alpha / nomFlip;
-				}
-			}
+	for (size_t vox = 0; vox < nvox; vox++)
+	{	
+		if (!mask || mask[vox] > 0.)
+		{
+			double r = tr2[vox] / tr1[vox];
+			double temp = (r*n - 1.) / (n - r);
+			if (temp > 1.)
+				temp = 1.;
+			if (temp < -1.)
+				temp = -1.;
+			double alpha = acos(temp);
+			flip[vox] = degrees(alpha);
+			B1[vox]   = alpha / nomFlip;
 		}
 	}
 	fprintf(stdout, "done.\n");
@@ -137,10 +136,13 @@ int main(int argc, char **argv)
 	if (smooth)
 	{
 		fprintf(stdout, "Smoothing...");
-		double *gaussKernel = gaussian3D(7, 7, 7, 1.5, 1.5, 1.5);
-		convolve3D(smoothB1[0][0], B1[0][0], nx, ny, nz,
-		           gaussKernel, 7, 7, 7);
-		arrayMul(smoothB1[0][0], smoothB1[0][0], mask[0][0], nx * ny * nz);
+		smoothB1 = malloc(nvox * sizeof(double));
+		array3d_t *B1_3d = array3d_from_buffer(B1, nz, ny, nx);
+		array3d_t *gauss = gaussian3D(5, 5, 5, 1.5, 1.5, 1.5);
+		array3d_t *smoothB1 = array3d_alloc(nz, ny, nx);
+		convolve3D(smoothB1, B1_3d, gauss);
+		if (mask)
+			arrayMul(smoothB1->array->data, smoothB1->array->data, mask, nx * ny * nz);
 		fprintf(stdout, "done.\n");
 		snprintf(outfile, 1024, "%s_B1_smooth.nii.gz", prefix);
 		out = FslOpen(outfile, "wb");
@@ -148,9 +150,12 @@ int main(int argc, char **argv)
 		FslSetDim(out, nx, ny, nz, 1);
 		FslSetDataType(out, NIFTI_TYPE_FLOAT32);
 		FslWriteHeader(out);
-		FslWriteVolumeFromDouble(out, smoothB1, 0);
-		fprintf(stdout, "Wrote smoothed B1 ratio.\n");
+		FslWriteVolumeFromDouble(out, smoothB1->array->data, 0);
 		FslClose(out);
+		fprintf(stdout, "Wrote smoothed B1 ratio.\n");
+		array3d_free(smoothB1);
+		array3d_free(gauss);
+		array3d_free(B1_3d);
 	}
 	FslClose(in);
 	fprintf(stdout, "Success.\n");

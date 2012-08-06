@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "fslio.h"
+#include "mathsNDArray.h"
 
 char *usage = "Usage is: threshold [options] input_file threshold output_file\n\
 \
@@ -74,7 +75,8 @@ int main(int argc, const char * argv[])
 	fprintf(stdout, "x %d %d y %d %d z %d %d\n", xl, xh,
 	                                             yl, yh,
 												 zl, zh);
-	double ***data = FslGetVolumeAsScaledDouble(inHdr, volume);
+	double *data = FslGetVolumeAsScaledDouble(inHdr, volume);
+	double ***dataPtrs = array_ptrs_3d(data, nz, ny, nx);
 	float *mask = calloc(sizeof(float), nvox);
 	double thresh = atof(argv[thisArg + 1]);
 	fprintf(stdout, "Threshold is %f.\n", thresh);
@@ -83,7 +85,7 @@ int main(int argc, const char * argv[])
 	{	for (size_t y = yl; y < yh; y++)
 		{	for (size_t x = xl; x < xh; x++)
 			{
-				if (data[z][y][x] >= thresh)
+				if (dataPtrs[z][y][x] >= thresh)
 					mask[(z*ny + y)*nx + x] = 1;
 			}
 		}
@@ -98,6 +100,8 @@ int main(int argc, const char * argv[])
 	FslWriteVolumes(outHdr, mask, 1);
 	FslClose(inHdr);
 	FslClose(outHdr);
+	free_ptrs_3d(dataPtrs);
+	free(data);
     return EXIT_SUCCESS;
 }
 

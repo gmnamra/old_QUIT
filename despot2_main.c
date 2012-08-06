@@ -28,17 +28,16 @@
 char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_180_file [additional ssfp files] \n\
 \
 Options:\n\
-	-m file  : Mask input with specified file.\n\
+	-m file   : Mask input with specified file.\n\
 	--B0 file : B0 Map File.\n\
 	--B1 file : B1 Map File.\n\
-	--M0 file : M0 Map File.\n\
-	-z       : Output .nii.gz files.\n";
+	--lm      : Use Levenberg-Marquardt instead of Region Contraction.\n";
 //******************************************************************************
 // SIGINT interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
 #define NR 4
 FSLIO *resultsHeaders[NR];
-float *resultsData[NR];
+double *resultsData[NR];
 void int_handler(int sig);
 void int_handler(int sig)
 {
@@ -46,7 +45,7 @@ void int_handler(int sig)
 	for (size_t r = 0; r < NR; r++)
 	{
 		FslWriteHeader(resultsHeaders[r]);
-		FslWriteVolumes(resultsHeaders[r], resultsData[r], 1);
+		FslWriteVolumeFromDouble(resultsHeaders[r], resultsData[r], 0);
 		FslClose(resultsHeaders[r]);
 	}
 	exit(EXIT_FAILURE);
@@ -65,18 +64,20 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	char *outPrefix = NULL, *outExt = ".nii";
+	char *outPrefix = NULL, *outExt = ".nii.gz";
 	size_t nPhases;
 	double ssfpTR, *ssfpPhases = NULL, *ssfpAngles = NULL;
-	FSLIO *maskFile = NULL, *B0File = NULL, *B1File = NULL, *M0File = NULL, *T1File = NULL, **ssfpFiles = NULL;
+	FSLIO **ssfpFiles = NULL, *inFile = NULL;
+	double *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *T1Data = NULL;
 	char procpar[MAXSTR];
 	par_t *pars;
 	
+	static int levMar = false;
 	static struct option long_options[] =
 	{
 		{"B0", required_argument, 0, '0'},
 		{"B1", required_argument, 0, '1'},
-		{"M0", required_argument, 0, 'M'},
+		{"lm", no_argument, &levMar, true},
 		{0, 0, 0, 0}
 	};
 	
@@ -86,19 +87,22 @@ int main(int argc, char **argv)
 		switch (c)
 		{
 			case 'm':
-				maskFile = FslOpen(optarg, "rb");
+				inFile = FslOpen(optarg, "rb");
+				maskData = FslGetVolumeAsScaledDouble(inFile, 0);
+				FslClose(inFile);
 				break;
 			case '0':
-				B0File = FslOpen(optarg, "rb");
+				inFile = FslOpen(optarg, "rb");
+				B0Data = FslGetVolumeAsScaledDouble(inFile, 0);
+				FslClose(inFile);
 				break;
 			case '1':
-				B1File = FslOpen(optarg, "rb");
+				inFile = FslOpen(optarg, "rb");
+				B1Data = FslGetVolumeAsScaledDouble(inFile, 0);
+				FslClose(inFile);
 				break;
-			case 'M':
-				M0File = FslOpen(optarg, "rb");
-				break;
-			case 'z':
-				outExt = ".nii.gz";
+			case 0:
+				// Just a flag
 				break;
 		}
 	}
@@ -106,11 +110,13 @@ int main(int argc, char **argv)
 	fprintf(stdout, "Output prefix will be: %s\n", argv[optind]);
 	outPrefix = argv[optind++];
 	fprintf(stdout, "Reading T1 Map from: %s\n", argv[optind]);
-	T1File = FslOpen(argv[optind++], "rb");
+	inFile = FslOpen(argv[optind++], "rb");
+	T1Data = FslGetVolumeAsScaledDouble(inFile, 0);
+	FslClose(inFile);
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	nPhases    = argc - optind;
+	nPhases = argc - optind;
 	if (nPhases < 1)
 	{
 		fprintf(stderr, "Must have at least the 180 degree phase-cycling pattern to process.\n");
@@ -156,6 +162,7 @@ int main(int argc, char **argv)
 	{
 		fprintf(stdout, "Reading SSFP header from %s.\n", argv[++optind]);
 		ssfpFiles[p] = FslOpen(argv[optind], "rb");
+		FslReadAllVolumes(ssfpFiles[p], argv[optind]);
 		if (!FslCheckDims(ssfpFiles[0], ssfpFiles[p]))
 		{
 			fprintf(stderr, "Image %s has differing dimensions.\n", argv[optind]);
@@ -178,23 +185,13 @@ int main(int argc, char **argv)
 		}
 	}
 	//**************************************************************************	
-	// Allocate memory for slices
+	// Get input data
 	//**************************************************************************
 	int voxelsPerSlice = nx * ny;
 	int totalVoxels = voxelsPerSlice * nz;
-	float *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *M0Data = NULL, *T1Data = NULL, **ssfpData = NULL;
-	ssfpData = malloc(nPhases * sizeof(float *));
+	double **ssfpData = malloc(nPhases * sizeof(double *));
 	for (int p = 0; p < nPhases; p++)
-		ssfpData[p] = malloc(nSSFP * voxelsPerSlice * sizeof(float));
-	if (maskFile)
-		maskData = malloc(voxelsPerSlice * sizeof(float));
-	if (B0File)
-		B0Data = malloc(voxelsPerSlice * sizeof(float));
-	if (B1File)
-		B1Data = malloc(voxelsPerSlice * sizeof(float));
-	if (M0File)
-		M0Data = malloc(voxelsPerSlice * sizeof(float));
-	T1Data = malloc(voxelsPerSlice * sizeof(float));	
+		ssfpData[p] = FslGetAllVolumesAsScaledDouble(ssfpFiles[p]);
 	//**************************************************************************
 	// Create results files
 	// T2, residue
@@ -211,7 +208,7 @@ int main(int argc, char **argv)
 		FslCloneHeader(resultsHeaders[r], ssfpFiles[0]);
 		FslSetDim(resultsHeaders[r], nx, ny, nz, 1);
 		FslSetDataType(resultsHeaders[r], DTYPE_FLOAT);
-		resultsData[r] = malloc(totalVoxels * sizeof(float));
+		resultsData[r] = malloc(totalVoxels * sizeof(double));
 	}
 	// Now register the SIGINT handler so we can ctrl-c and still get data
 	signal(SIGINT, int_handler);
@@ -227,28 +224,15 @@ int main(int argc, char **argv)
 	{
 		// Read in data
 		fprintf(stdout, "Starting slice %zu...\n", slice);
-		
-		FslReadSliceSeries(T1File, (void *)T1Data, slice, 1);
-		if (B0File)
-			FslReadSliceSeries(B0File, (void *)B0Data, slice, 1);
-		if (B1File)
-			FslReadSliceSeries(B1File, (void *)B1Data, slice, 1);
-		if (M0File)
-			FslReadSliceSeries(M0File, (void *)M0Data, slice, 1);
-		if (maskFile)
-			FslReadSliceSeries(maskFile, (void *)maskData, slice, 1);
-		for (int p = 0; p < nPhases; p++)
-			FslReadSliceSeries(ssfpFiles[p], (void *)ssfpData[p], slice, nSSFP);
-		
-		int sliceOffset = slice * voxelsPerSlice;
 		__block int voxCount = 0;
 		clock_t loopStart = clock();
+		int sliceOffset = slice * voxelsPerSlice;
 		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
 			double params[NR];
 			arraySet(params, 0., NR);
-			if (!maskFile || ((maskData[vox] > 0.) && (T1Data[vox] > 0.)))
+			if (!maskData || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				AtomicAdd(1, &voxCount);
 				
@@ -258,17 +242,15 @@ int main(int argc, char **argv)
 				{
 					signals[p] = malloc(nSSFP * sizeof(double));
 					for (int img = 0; img < nSSFP; img++)
-						signals[p][img] = (double)ssfpData[p][voxelsPerSlice * img + vox];
+						signals[p][img] = (double)ssfpData[p][img * totalVoxels + sliceOffset + vox];
 				}
 				// Some constants set up here because they change per-voxel
-				double T1 = (double)T1Data[vox];
-				double B0 = 0, B1 = 1., M0 = 1;
-				if (B0File)
-					B0 = (double)B0Data[vox];
-				if (B1File)
-					B1 = (double)B1Data[vox];
-				if (M0File)
-					M0 = (double)M0Data[vox];				
+				double T1 = (double)T1Data[sliceOffset + vox];
+				double B0 = 0, B1 = 1.;
+				if (B0Data)
+					B0 = (double)B0Data[sliceOffset + vox];
+				if (B1Data)
+					B1 = (double)B1Data[sliceOffset + vox];
 				// Run classic DESPOT2 on 180 phase data
 				if (nPhases == 1)
 				{
@@ -300,7 +282,7 @@ int main(int argc, char **argv)
 					
 					double loBounds[3] = { 1.e5, 0.005, -.5 / ssfpTR };
 					double hiBounds[3] = { 1.e6, 0.100,  .5 / ssfpTR };
-					if (B0File)
+					if (B0Data)
 					{
 						loBounds[2] = B0 * 0.95;
 						hiBounds[2] = B0 * 1.05;
@@ -308,8 +290,10 @@ int main(int argc, char **argv)
 					double *bounds[2] = { loBounds, hiBounds };
 					bool loC[3] = { FALSE, TRUE, FALSE }, hiC[3] = { FALSE, FALSE, FALSE };
 					bool *constrained[2] = { loC, hiC };
-					//levMar(params + 1, 1, consts, xData, signals, fs, NULL, dSize, nPhases, loBounds, hiBounds, false, params + 2);
-					regionContraction(params, nP, consts, nPhases, xData, signals, dSize, false, fs, bounds, constrained, 10000, 20, 10, 0.05, 0.05, params + 3);
+					if (levMar)
+						levenbergMarquardt(params, nP, consts, xData, signals, fs, NULL, dSize, nPhases, loBounds, hiBounds, false, params + 3);
+					else
+						regionContraction(params, nP, consts, nPhases, xData, signals, dSize, false, fs, bounds, constrained, 10000, 20, 10, 0.05, 0.05, params + 3);
 					params[3] = fmod(params[2] * 2 * M_PI, 2 * M_PI);
 					if (params[3] > M_PI) params[3] -= (2 * M_PI);
 					if (params[3] < -M_PI) params[3] += (2 * M_PI);
@@ -319,7 +303,7 @@ int main(int argc, char **argv)
 					free(signals[p]);
 			}
 			for (int p = 0; p < NR; p++)
-				resultsData[p][sliceOffset + vox]  = (float)params[p];
+				resultsData[p][sliceOffset + vox]  = params[p];
 		};
 		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
@@ -341,7 +325,7 @@ int main(int argc, char **argv)
 	for (size_t r = 0; r < NR; r++)
 	{
 		FslWriteHeader(resultsHeaders[r]);
-		FslWriteVolumes(resultsHeaders[r], resultsData[r], 1);
+		FslWriteVolumeFromDouble(resultsHeaders[r], resultsData[r], 0);
 		FslClose(resultsHeaders[r]);
 	}
 	// Clean up memory

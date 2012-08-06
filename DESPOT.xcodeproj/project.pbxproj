@@ -29,6 +29,7 @@
 		F679FB8115B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
 		F679FB8215B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
 		F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
+		F6B8F93515CFFD7100AECF4F /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6E1F8DF1591E20E00DA918F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
@@ -89,6 +90,20 @@
 			proxyType = 1;
 			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
 			remoteInfo = procpar;
+		};
+		F6B8F93315CFFD7100AECF4F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F61642B215CC329C0031F999;
+			remoteInfo = maths_tests;
+		};
+		F6B8F93815CFFD7800AECF4F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6E4A20C1590D1FA00DA4001;
+			remoteInfo = Maths;
 		};
 		F6C3F70015ADD1DA00359F68 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -290,6 +305,7 @@
 				F6E4A2A91590DB9600DA4001 /* libfslio.a in Frameworks */,
 				F6E4A2AA1590DB9600DA4001 /* libniftiio.a in Frameworks */,
 				F6E4A2AB1590DB9600DA4001 /* libznz.a in Frameworks */,
+				F6B8F93515CFFD7100AECF4F /* libMaths.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -362,6 +378,7 @@
 			isa = PBXGroup;
 			children = (
 				F6E4A2A51590DB7800DA4001 /* libMaths.a */,
+				F6B8F93415CFFD7100AECF4F /* maths_tests */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -473,6 +490,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				F6B8F93915CFFD7800AECF4F /* PBXTargetDependency */,
 			);
 			name = threshold;
 			productName = threshold;
@@ -520,6 +538,13 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
+		F6B8F93415CFFD7100AECF4F /* maths_tests */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = maths_tests;
+			remoteRef = F6B8F93315CFFD7100AECF4F /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		F6C3F70115ADD1DA00359F68 /* procparse */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
@@ -625,6 +650,11 @@
 			isa = PBXTargetDependency;
 			name = procpar;
 			targetProxy = F679FB8C15B6BF8F00A2EC48 /* PBXContainerItemProxy */;
+		};
+		F6B8F93915CFFD7800AECF4F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Maths;
+			targetProxy = F6B8F93815CFFD7800AECF4F /* PBXContainerItemProxy */;
 		};
 		F6DB54E015ADDCAD00208C11 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

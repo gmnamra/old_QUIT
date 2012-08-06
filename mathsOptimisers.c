@@ -230,11 +230,11 @@ int goldenSection(double *parameters, int nP, int P,
 //******************************************************************************
 // Non-linear least squares fitting using Levenberg-Marquardt
 //******************************************************************************
-int levMar(double *parameters, size_t nP, double **constants,
-           double **dataX, double **dataY, eval_array_type **funcs,
-		   jacob_type **jacFuncs, size_t *nD, size_t nF,
-		   double *loBounds, double *hiBounds,
-		   bool normalise, double *finalResidue)
+int levenbergMarquardt(double *parameters, size_t nP, double **constants,
+                       double **dataX, double **dataY, eval_array_type **funcs,
+		               jacob_type **jacFuncs, size_t *nD, size_t nF,
+		               double *loBounds, double *hiBounds,
+		               bool normalise, double *finalResidue)
 {
 	// Set up variables
 	// nP is number of parameters, nD is number of data points

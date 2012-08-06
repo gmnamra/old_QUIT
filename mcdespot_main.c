@@ -49,7 +49,7 @@ const double lo3Bounds[6] = { 0.200, 0.500, 0.002, 0.040, 0.0, 0.050 },
 //******************************************************************************
 #define NR 7
 FSLIO *resultsHeaders[NR] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-float *resultsData[NR];
+double ***resultsData[NR];
 const char *names[NR] = { "_T1_myel", "_T1_free", "_T2_myel", "_T2_free", "_frac_myel", "_tau_myel", "_res" };
 void int_handler(int sig);
 void int_handler(int sig)

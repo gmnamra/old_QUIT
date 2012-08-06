@@ -40,6 +40,7 @@ int main(int argc, char **argv)
 	short nx, ny, nz, nv;
 	char *outPrefix = NULL, *outExt = ".nii.gz", procpar[MAXSTR];
 	double spgrTR = 0., *spgrAngles = NULL;
+	double *B1Data = NULL, *maskData = NULL;
 	FSLIO *spgrFile = NULL, *B1File = NULL, *maskFile = NULL;
 	par_t *pars;
 	
@@ -58,10 +59,12 @@ int main(int argc, char **argv)
 			case '1':
 				fprintf(stdout, "Opening B1 file: %s\n", optarg);
 				B1File = FslOpen(optarg, "rb");
+				B1Data = FslGetVolumeAsScaledDouble(B1File, 0);
 				break;
 			case 'm':
 				fprintf(stdout, "Opening mask file: %s\n", optarg);
 				maskFile = FslOpen(optarg, "rb");
+				maskData = FslGetVolumeAsScaledDouble(maskFile, 0);
 				break;
 		}
 	}
@@ -72,7 +75,6 @@ int main(int argc, char **argv)
 	}
 	fprintf(stdout, "Opening SPGR file: %s\n", argv[optind]);
 	spgrFile = FslOpen(argv[optind], "rb");
-	FslReadAllVolumes(spgrFile, argv[optind]);
 	FslGetDim(spgrFile, &nx, &ny, &nz, &nv);
 	nSPGR = nv;
 	spgrAngles = malloc(nSPGR * sizeof(double));
@@ -101,22 +103,18 @@ int main(int argc, char **argv)
 	// Allocate memory for slices
 	//**************************************************************************	
 	int voxelsPerSlice = nx * ny;
+	int totalVoxels = voxelsPerSlice * nz;
 	__block int voxCount;
 	
 	fprintf(stdout, "Reading SPGR data...\n");
-	double ****SPGR = FslGetBufferAsScaledDouble(spgrFile);
+	double *SPGR = FslGetAllVolumesAsScaledDouble(spgrFile);
 	fprintf(stdout, "done.\n");
-	double ***B1Data = NULL, ***maskData = NULL;
-	if (B1File)
-		B1Data = FslGetVolumeAsScaledDouble(B1File, 0);
-	if (maskFile)
-		maskData = FslGetVolumeAsScaledDouble(maskFile, 0);
 	//**************************************************************************
 	// Create results headers
 	//**************************************************************************
 	#define NR 3
 	FSLIO **resultsHeaders = malloc(NR * sizeof(FSLIO *));
-	double ****resultsData = d4matrix(NR, nz - 1, ny - 1, nx - 1);
+	double **resultsData   = malloc(NR * sizeof(double *));
 	char *names[NR] = { "_M0", "_T1", "_despot1_res" };
 	char outName[strlen(outPrefix) + 64];
 	for (int r = 0; r < NR; r++)
@@ -127,6 +125,7 @@ int main(int argc, char **argv)
 		FslCloneHeader(resultsHeaders[r], spgrFile);
 		FslSetDim(resultsHeaders[r], nx, ny, nz, 1);
 		FslSetDataType(resultsHeaders[r], DTYPE_FLOAT);
+		resultsData[r] = malloc(totalVoxels * sizeof(double));
 	}
 		
 	//**************************************************************************
@@ -139,30 +138,29 @@ int main(int argc, char **argv)
 		fprintf(stdout, "Processing slice %d...\n", slice);
 		loopStart = clock();
 		voxCount = 0;
+		int sliceOffset = slice * voxelsPerSlice;
 		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
 			if (B1File)
-				B1 = B1Data[slice][0][vox];
-			if ((!maskFile) || (maskData[slice][0][vox] > 0.))
+				B1 = B1Data[sliceOffset + vox];
+			if ((!maskFile) || (maskData[sliceOffset + vox] > 0.))
 			{
 				AtomicAdd(1, &voxCount);
 				double spgrs[nSPGR];
 				for (int img = 0; img < nSPGR; img++)
-					spgrs[img] = SPGR[img][slice][0][vox];
-				//ARR_D(spgrs, nSPGR);
+					spgrs[img] = SPGR[img * totalVoxels + sliceOffset + vox];
 				res = calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
 				
 				// Sanity check
 				M0 = clamp(M0, 0., 1.e7);
 				T1 = clamp(T1, 0., 3.);
-				//fprintf(stdout, " B1 %f M0 %f T1 %f res %f\n", B1, M0, T1, res);
 			}
 			
-			resultsData[0][slice][0][vox] = M0;
-			resultsData[1][slice][0][vox] = T1;
-			resultsData[2][slice][0][vox] = res;
+			resultsData[0][sliceOffset + vox] = M0;
+			resultsData[1][sliceOffset + vox] = T1;
+			resultsData[2][sliceOffset + vox] = res;
 		};
 		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);

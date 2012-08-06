@@ -40,7 +40,7 @@ int goldenSection(double *parameters, int nP, int P,
                   double loP, double hiP, double *constants,
                   double *dataX, double *dataY, int nD,
 				  eval_type *function, double *finalResidue);
-int levMar(double *parameters, size_t nP, double **constants,
+int levenbergMarquardt(double *parameters, size_t nP, double **constants,
            double **dataX, double **dataY, eval_array_type **funcs,
 		   jacob_type **jacFuncs, size_t *nD, size_t nF,
 		   double *loBounds, double *hiBounds,

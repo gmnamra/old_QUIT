@@ -15,14 +15,15 @@
 #include "fslio.h"
 #include "procpar.h"
 #include "mathsOps.h"
+#include "mathsArray.h"
 
 char *usage = "Usage is: phasemap input_1 input_2 outprefix\n\
 \n\
 Echo times will be read from procpar if present.\n\
 Options:\n\
-	--mask mask_file : Mask input with specified file\n\
-	--phasetime T    : Calculate the phase accumulated in time T\n\
-	--smooth         : Smooth output with a gaussian.\n";
+	--mask, -m mask_file : Mask input with specified file\n\
+	--phasetime T        : Calculate the phase accumulated in time T\n\
+	--smooth             : Smooth output with a gaussian.\n";
 
 int main(int argc, char** argv)
 {
@@ -42,10 +43,10 @@ int main(int argc, char** argv)
 	char procpar[MAXSTR];
 	par_t *pars;
 	double TE1, TE2, deltaTE, phasetime = 0.;
-	double ***data1, ***data2, ***B0, ***mask = NULL;
+	double *data1, *data2, *B0, *mask = NULL;
 	short nx, ny, nz, nvol;
 	FSLIO *in1 = NULL, *in2 = NULL, *out = NULL, *maskHdr = NULL;
-	while ((c = getopt_long(argc, argv, "", long_options, &indexptr)) != -1)
+	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
@@ -133,25 +134,21 @@ int main(int argc, char** argv)
 	deltaTE = TE2 - TE1;
 	fprintf(stdout, "Delta TE = %f s\n", deltaTE);
 	fprintf(stdout, "Image dimensions: %d %d %d\n", nx, ny, nz);
-	B0    = d3matrix(nz - 1, ny - 1, nx - 1);
+	B0    = malloc(nz*ny*nx * sizeof(double));
 	fprintf(stdout, "Allocated output memory.\n");
 	fprintf(stdout, "Processing...");
-	for (size_t z = 0; z < nz; z++)
-	{	for (size_t y = 0; y < ny; y++)
-		{	for (size_t x = 0; x < nx; x++)
+	for (size_t vox = 0; vox < nz*ny*nx; vox++)
+	{	
+		if (!mask || mask[vox] > 0.)
+		{
+			double deltaPhase = data2[vox] - data1[vox];
+			B0[vox] = deltaPhase / (2 * M_PI * deltaTE);
+			if (phasetime > 0.)
 			{
-				if (!mask || mask[z][y][x] > 0.)
-				{
-					double deltaPhase = data2[z][y][x] - data1[z][y][x];
-					B0[z][y][x] = deltaPhase / (2 * M_PI * deltaTE);
-					if (phasetime > 0.)
-					{
-						double ph = fmod(B0[z][y][x] * 2 * M_PI * phasetime, 2 * M_PI);
-						if (ph > M_PI) ph -= (2 * M_PI);
-						if (ph < -M_PI) ph += (2 * M_PI);
-						B0[z][y][x] = ph;
-					}
-				}
+				double ph = fmod(B0[vox] * 2 * M_PI * phasetime, 2 * M_PI);
+				if (ph > M_PI) ph -= (2 * M_PI);
+				if (ph < -M_PI) ph += (2 * M_PI);
+				B0[vox] = ph;
 			}
 		}
 	}
@@ -169,11 +166,11 @@ int main(int argc, char** argv)
 	if (smooth)
 	{
 		fprintf(stdout, "Smoothing...");
-		double *gaussKernel = gaussian3D(7, 7, 7, 1.5, 1.5, 1.5);
-		double ***smoothed = d3matrix(nz - 1, ny - 1, nx - 1);
-		convolve3D(smoothed[0][0], B0[0][0], nx, ny, nz,
-		           gaussKernel, 7, 7, 7);
-		arrayMul(smoothed[0][0], smoothed[0][0], mask[0][0], nx * ny * nz);
+		array3d_t *B0_3d = array3d_from_buffer(B0, nz, ny, nx);
+		array3d_t *gauss = gaussian3D(7, 7, 7, 1.5, 1.5, 1.5);
+		array3d_t *smoothed = array3d_alloc(nz, ny, nx);
+		convolve3D(smoothed, B0_3d, gauss);
+		arrayMul(smoothed->array->data, smoothed->array->data, mask, nx * ny * nz);
 		fprintf(stdout, "done.\n");
 		snprintf(outfile, 1024, "%s_B0_smooth.nii.gz", prefix);
 		out = FslOpen(outfile, "wb");
@@ -181,7 +178,7 @@ int main(int argc, char** argv)
 		FslSetDim(out, nx, ny, nz, 1);
 		FslSetDataType(out, NIFTI_TYPE_FLOAT32);
 		FslWriteHeader(out);
-		FslWriteVolumeFromDouble(out, smoothed, 0);
+		FslWriteVolumeFromDouble(out, smoothed->array->data, 0);
 		fprintf(stdout, "Wrote smoothed B0.\n");
 		FslClose(out);	
 	}
