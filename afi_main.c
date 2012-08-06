@@ -140,8 +140,9 @@ int main(int argc, char **argv)
 		double *gaussKernel = gaussian3D(7, 7, 7, 1.5, 1.5, 1.5);
 		convolve3D(smoothB1[0][0], B1[0][0], nx, ny, nz,
 		           gaussKernel, 7, 7, 7);
+		arrayMul(smoothB1[0][0], smoothB1[0][0], mask[0][0], nx * ny * nz);
 		fprintf(stdout, "done.\n");
-		snprintf(outfile, 1024, "%s_smooth_B1.nii.gz", prefix);
+		snprintf(outfile, 1024, "%s_B1_smooth.nii.gz", prefix);
 		out = FslOpen(outfile, "wb");
 		FslCloneHeader(out, in);
 		FslSetDim(out, nx, ny, nz, 1);

@@ -173,6 +173,7 @@ int main(int argc, char** argv)
 		double ***smoothed = d3matrix(nz - 1, ny - 1, nx - 1);
 		convolve3D(smoothed[0][0], B0[0][0], nx, ny, nz,
 		           gaussKernel, 7, 7, 7);
+		arrayMul(smoothed[0][0], smoothed[0][0], mask[0][0], nx * ny * nz);
 		fprintf(stdout, "done.\n");
 		snprintf(outfile, 1024, "%s_B0_smooth.nii.gz", prefix);
 		out = FslOpen(outfile, "wb");
