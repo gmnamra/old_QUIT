@@ -251,14 +251,30 @@ int main(int argc, char **argv)
 				if (B1Data)
 					B1 = (double)B1Data[sliceOffset + vox];
 				// Run classic DESPOT2 on 180 phase data
-				if ((nPhases == 1) || levMar)
+				if (nPhases == 1)
 				{
 					params[3] = classicDESPOT2(ssfpAngles, signals[0], nSSFP, ssfpTR, T1, B1, params);
 					params[0] = clamp(params[0], 0, 1.e7);
 					params[1] = clamp(params[1], 0.001, 0.250);
 					params[2] = 0.;
 				}
-                                // Need to still trigger this if doing levMar, hence if not else if
+				else if (levMar)
+				{
+					// Choose phase with accumulated phase closest to 180
+					int index = 0;
+					double bestPhase = 0.;
+					for (int p = 0; p < nPhases; p++)
+					{
+						double thisPhase = (B0 * ssfpTR * 2 * M_PI) + ssfpPhases[p];
+						if (bestPhase > fabs(fmod(thisPhase - M_PI, 2 * M_PI)))
+						{
+							bestPhase = fabs(fmod(thisPhase - M_PI, 2 * M_PI));
+							index = p;
+						}
+					}
+					params[3] = classicDESPOT2(ssfpAngles, signals[index], nSSFP, ssfpTR, T1, B1, params);
+				}
+				
 				if (nPhases > 1)
 				{
 					double *xData[nPhases], *consts[nPhases];
