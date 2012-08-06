@@ -252,7 +252,7 @@ int main(int argc, char **argv)
 				if (B1Data)
 					B1 = (double)B1Data[sliceOffset + vox];
 				// Run classic DESPOT2 on 180 phase data
-				if (nPhases == 1)
+				if ((nPhases == 1) || levMar)
 				{
 					params[3] = classicDESPOT2(ssfpAngles, signals[0], nSSFP, ssfpTR, T1, B1, params);
 					params[0] = clamp(params[0], 0, 1.e7);
@@ -274,6 +274,7 @@ int main(int argc, char **argv)
 						consts[p][0] = ssfpTR;
 						consts[p][1] = T1;
 						consts[p][2] = B0;
+						params[2]    = B0;
 						consts[p][3] = B1;
 						consts[p][4] = ssfpPhases[p];						
 						nP = 3;
