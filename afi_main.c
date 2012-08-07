@@ -76,7 +76,9 @@ int main(int argc, char **argv)
 	strcat(procpar, ".procpar");
 	if ((pars = readProcpar(procpar)))
 	{
-		n = realVal(pars, "afi_n", 0);
+		// From Sam Hurley. The sequence is implemented by waiting afi_dummy
+		// periods after the first afi_tr.
+		n = realVal(pars, "afi_dummy", 0) + 1;
 		nomFlip = realVal(pars, "flip1", 0);
 		fprintf(stdout, "Read TR2/TR1 ratio of %f and flip-angle %f degrees from procpar.\n", n, nomFlip);
 	}
