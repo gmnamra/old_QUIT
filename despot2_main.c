@@ -29,16 +29,17 @@ char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_180_file [a
 \
 Options:\n\
 	-m, --mask file   : Mask input with specified file.\n\
-	--B0 file         : B0 Map File.\n\
-	--B1 file         : B1 Map File.\n\
+	--B0 file         : B0 Map file.\n\
+	--B1 file         : B1 Map file.\n\
+	--M0 file         : Proton density file.\n\
 	--lm              : Use Levenberg-Marquardt instead of Region Contraction.\n";
 //******************************************************************************
 // SIGINT interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
-#define NR 4
+#define NR 3
 FSLIO *resultsHeaders[NR];
 double *resultsData[NR];
-char *names[NR] = { "_d2_M0", "_T2", "_d2_B0", "_d2_res" };
+char *names[NR] = { "_T2", "_d2_B0", "_d2_res" };
 void int_handler(int sig);
 void int_handler(int sig)
 {
@@ -69,7 +70,8 @@ int main(int argc, char **argv)
 	size_t nPhases;
 	double ssfpTR, *ssfpPhases = NULL, *ssfpAngles = NULL;
 	FSLIO **ssfpFiles = NULL, *inFile = NULL;
-	double *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *T1Data = NULL;
+	double *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *T1Data = NULL,
+	       *M0Data = NULL;
 	char procpar[MAXSTR];
 	par_t *pars;
 	
@@ -78,6 +80,7 @@ int main(int argc, char **argv)
 	{
 		{"B0", required_argument, 0, '0'},
 		{"B1", required_argument, 0, '1'},
+		{"M0", required_argument, 0, 'M'},
 		{"mask", required_argument, 0, 'm'},
 		{"lm", no_argument, &levMar, true},
 		{0, 0, 0, 0}
@@ -101,6 +104,11 @@ int main(int argc, char **argv)
 			case '1':
 				inFile = FslOpen(optarg, "rb");
 				B1Data = FslGetVolumeAsScaledDouble(inFile, 0);
+				FslClose(inFile);
+				break;
+			case 'M':
+				inFile = FslOpen(optarg, "rb");
+				M0Data = FslGetVolumeAsScaledDouble(inFile, 0);
 				FslClose(inFile);
 				break;
 			case 0:
@@ -245,11 +253,13 @@ int main(int argc, char **argv)
 				}
 				// Some constants set up here because they change per-voxel
 				double T1 = (double)T1Data[sliceOffset + vox];
-				double B0 = 0, B1 = 1.;
+				double B0 = 0, B1 = 1., M0 = 1.;
 				if (B0Data)
 					B0 = (double)B0Data[sliceOffset + vox];
 				if (B1Data)
 					B1 = (double)B1Data[sliceOffset + vox];
+				if (M0Data)
+					M0 = (double)M0Data[sliceOffset + vox];
 				// Run classic DESPOT2 on 180 phase data
 				if (nPhases == 1)
 				{
@@ -273,6 +283,8 @@ int main(int argc, char **argv)
 						}
 					}
 					params[3] = classicDESPOT2(ssfpAngles, signals[index], nSSFP, ssfpTR, T1, B1, params);
+					if (M0Data)
+						params[0] = M0;
 				}
 				
 				if (nPhases > 1)
