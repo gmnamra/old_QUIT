@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 	char *outPrefix = NULL, *outExt = ".nii.gz", procpar[MAXSTR];
 	double spgrTR = 0., *spgrAngles = NULL;
 	double *B1Data = NULL, *maskData = NULL;
-	FSLIO *spgrFile = NULL, *B1File = NULL, *maskFile = NULL;
+	FSLIO *spgrFile = NULL, *inFile = NULL;
 	par_t *pars;
 	
 	static struct option long_options[] =
@@ -58,13 +58,15 @@ int main(int argc, char **argv)
 		{
 			case '1':
 				fprintf(stdout, "Opening B1 file: %s\n", optarg);
-				B1File = FslOpen(optarg, "rb");
-				B1Data = FslGetVolumeAsScaledDouble(B1File, 0);
+				inFile = FslOpen(optarg, "rb");
+				B1Data = FslGetVolumeAsScaledDouble(inFile, 0);
+				FslClose(inFile);
 				break;
 			case 'm':
 				fprintf(stdout, "Opening mask file: %s\n", optarg);
-				maskFile = FslOpen(optarg, "rb");
-				maskData = FslGetVolumeAsScaledDouble(maskFile, 0);
+				inFile = FslOpen(optarg, "rb");
+				maskData = FslGetVolumeAsScaledDouble(inFile, 0);
+				FslClose(inFile);
 				break;
 		}
 	}
@@ -143,9 +145,9 @@ int main(int argc, char **argv)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
-			if (B1File)
+			if (B1Data)
 				B1 = B1Data[sliceOffset + vox];
-			if ((!maskFile) || (maskData[sliceOffset + vox] > 0.))
+			if ((!maskData) || (maskData[sliceOffset + vox] > 0.))
 			{
 				AtomicAdd(1, &voxCount);
 				double spgrs[nSPGR];
