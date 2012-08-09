@@ -207,10 +207,11 @@ double n2cSSFP(double alpha, double *p, double *c)
 	return s;
 }
 
-void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
+void a1cSSFP(double *alpha, double *p, void *constants, double *signal, size_t nA)
 {
-	double M0 = p[0], T2 = p[1],
-		   TR = c[0], T1 = c[1], B0 = c[2], B1 = c[3], rfPhase = c[4];
+	SSFP_constants *c = constants;
+	double M0 = p[0], T2 = p[1], B0 = p[2],
+		   TR = c->TR, T1 = c->T1, B1 = c->B1, rfPhase = c->rfPhase;
 	
 	double phase = rfPhase + (B0 * TR * 2. * M_PI);
 	double A[9] = { -TR / T2,    phase,       0.,
@@ -516,7 +517,7 @@ double calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 }
 
 double classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
-                      double TR, double T1, double B1, double *p)
+                      double TR, double T1, double B1, double *M0, double *T2)
 {
 	// As above, linearise, then least-squares
 	// p[0] = M0, p[1] = T2
@@ -528,64 +529,10 @@ double classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
 	}
 	linearLeastSquares(X, Y, n, &slope, &inter, &residual);
 	double eT1 = exp(-TR / T1);
-	p[1] = -TR / log((eT1 - slope) / (1. - slope * eT1));
-	double eT2 = exp(-TR / p[1]);
-	p[0] = inter * (1. - eT1 * eT2) / (1. - eT1);
+	*T2 = -TR / log((eT1 - slope) / (1. - slope * eT1));
+	double eT2 = exp(-TR / *T2);
+	*M0 = inter * (1. - eT1 * eT2) / (1. - eT1);
 	return residual;
-}
-
-/*void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **angles, double **ssfp,
-					double TR, double T1, double B1, double *p)
-{
-	// Gather together all the data
-	double *init[4], *c[nPhases], fRes = 0.;
-	eval_type *f[nPhases];
-	for (int i = 0; i < nPhases; i++)
-	{
-		c[i] = malloc(4 * sizeof(double));
-		c[i][0] = TR; c[i][1] = T1; c[i][2] = B1; c[i][3] = phases[i];
-		f[i] = aSSFP;
-	}
-	
-	// Use different phases and guesses at B0 to get initial starting location
-	for (int i = 0; i < 4; i++)
-		init[i] = malloc(3 * sizeof(double));
-	classicDESPOT2(angles[0], ssfp[0], nD[0], TR, T1, B1, init[0]);
-	classicDESPOT2(angles[0], ssfp[0], nD[0], TR, T1, B1, init[1]);
-	classicDESPOT2(angles[1], ssfp[1], nD[1], TR, T1, B1, init[2]);
-	classicDESPOT2(angles[1], ssfp[1], nD[1], TR, T1, B1, init[3]);
-	init[0][2] = 0.; init[1][2] = 1. / (2. * TR);
-	init[2][2] = 0.; init[3][2] = 1. / (2. * TR);
-	
-	simplex(p, 3, c, nPhases, angles, ssfp, nD, f, init, &fRes);
-}*/
-
-void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAngles, double **ssfp,
-					 double TR, double T1, double B1, double *p)
-{
-	double loBounds[2] = {   1.,     0. };
-	double hiBounds[2] = { 500., 1./TR };
-	double *bounds[2] =  { loBounds, hiBounds };
-	bool loConstraints[2] = { true, false };
-	bool hiConstraints[2] = { true, false };
-	bool *constraints[2] = { loConstraints, hiConstraints };
-	double *c[nPhases], fRes = 0.;
-	eval_array_type *f[nPhases];
-	for (int i = 0; i < nPhases; i++)
-	{
-		c[i] = malloc(4 * sizeof(double));
-		c[i][0] = TR; c[i][1] = T1; c[i][2] = B1; c[i][3] = phases[i];
-		f[i] = a1cSSFP;
-		arrayScale(ssfp[i], ssfp[i], 1. / arrayMean(ssfp[i], nD[i]), nD[i]);
-	}
-	regionContraction(p, 2, c, nPhases, flipAngles, ssfp, nD, true, f,
-					  bounds, constraints, 4000, 25, 15, 0.05, 0.1, &fRes);
-	p[1] = fmod(p[1], 1./TR); // Bring B0 back to one cycle 
-	if (p[1] >  .5/TR)        // Move into range -pi/2 to +pi/2
-		p[1] -= 1./TR;
-	if (p[1] < -.5/TR)
-		p[1] += 1./TR;
-	p[1] *= 1.e3;             // Finally convert to Hz
 }
 
 double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,

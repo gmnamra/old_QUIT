@@ -28,18 +28,21 @@
 char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_180_file [additional ssfp files] \n\
 \
 Options:\n\
-	-m, --mask file   : Mask input with specified file.\n\
+	--mask, -m file   : Mask input with specified file.\n\
 	--B0 file         : B0 Map file.\n\
 	--B1 file         : B1 Map file.\n\
 	--M0 file         : Proton density file.\n\
-	--lm              : Use Levenberg-Marquardt instead of Region Contraction.\n";
+	--lm              : Use Levenberg-Marquardt instead of Region Contraction.\n\
+	--verbose, -v     : Print slice processing times.\n\
+	--start_slice N   : Start processing from slice N.\n\
+	--end_slice   N   : Finish processing at slice N.\n";
 //******************************************************************************
 // SIGINT interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
-#define NR 3
+#define NR 4
 FSLIO *resultsHeaders[NR];
 double *resultsData[NR];
-char *names[NR] = { "_T2", "_d2_B0", "_d2_res" };
+char *names[NR] = { "_d2_M0", "_T2", "_d2_B0", "_d2_res" };
 void int_handler(int sig);
 void int_handler(int sig)
 {
@@ -75,7 +78,7 @@ int main(int argc, char **argv)
 	char procpar[MAXSTR];
 	par_t *pars;
 	
-	static int levMar = false;
+	static int levMar = false, verbose = false, start_slice = -1, end_slice = -1;
 	static struct option long_options[] =
 	{
 		{"B0", required_argument, 0, '0'},
@@ -83,33 +86,49 @@ int main(int argc, char **argv)
 		{"M0", required_argument, 0, 'M'},
 		{"mask", required_argument, 0, 'm'},
 		{"lm", no_argument, &levMar, true},
+		{"verbose", no_argument, 0, 'v'},
+		{"start_slice", required_argument, 0, 'S'},
+		{"end_slice", required_argument, 0, 'E'},
 		{0, 0, 0, 0}
 	};
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "m:z", long_options, &indexptr)) != -1)
+	while ((c = getopt_long(argc, argv, "m:vz", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
 			case 'm':
+				fprintf(stdout, "Reading mask file %s.\n", optarg);
 				inFile = FslOpen(optarg, "rb");
 				maskData = FslGetVolumeAsScaledDouble(inFile, 0);
 				FslClose(inFile);
 				break;
 			case '0':
+				fprintf(stdout, "Reading B0 file %s.\n", optarg);
 				inFile = FslOpen(optarg, "rb");
 				B0Data = FslGetVolumeAsScaledDouble(inFile, 0);
 				FslClose(inFile);
 				break;
 			case '1':
+				fprintf(stdout, "Reading B1 file %s.\n", optarg);
 				inFile = FslOpen(optarg, "rb");
 				B1Data = FslGetVolumeAsScaledDouble(inFile, 0);
 				FslClose(inFile);
 				break;
 			case 'M':
+				fprintf(stdout, "Reading M0 file %s.\n", optarg);
 				inFile = FslOpen(optarg, "rb");
 				M0Data = FslGetVolumeAsScaledDouble(inFile, 0);
 				FslClose(inFile);
+				break;
+			case 'v':
+				verbose = true;
+				break;
+			case 'S':
+				start_slice = atoi(optarg);
+				break;
+			case 'E':
+				end_slice = atoi(optarg);
 				break;
 			case 0:
 				// Just a flag
@@ -185,7 +204,10 @@ int main(int argc, char **argv)
 		snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
 		pars = readProcpar(procpar);
 		if (pars)
+		{
 			ssfpPhases[p] = radians(realVal(pars, "rfphase", 0));
+			freeProcpar(pars);
+		}
 		else
 		{
 			fprintf(stdout, "Enter phase-cycling (degrees):");
@@ -222,27 +244,34 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	time_t allStart = time(NULL);
-	struct tm *localStart = localtime(&allStart);
-	char theTime[1024];
-	strftime(theTime, 1024, "%H:%M:%S", localStart);
-	fprintf(stdout, "Started processing at %s.\n", theTime);
-	for (size_t slice = 0; slice < nz; slice++)
+	time_t procStart = clock(), procEnd;
+	if ((start_slice < 0) || (start_slice >= nz))
+		start_slice = 0;
+	if ((end_slice < 0) || (end_slice > nz))
+		end_slice = nz;
+	for (size_t slice = start_slice; slice < end_slice; slice++)
 	{
 		// Read in data
-		fprintf(stdout, "Starting slice %zu...\n", slice);
+		if (verbose)
+			fprintf(stdout, "Starting slice %zu...\n", slice);
 		__block int voxCount = 0;
 		clock_t loopStart = clock();
 		int sliceOffset = slice * voxelsPerSlice;
 		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
-			double params[NR];
-			arraySet(params, 0., NR);
+			// Set up parameters and constants
+			double M0 = 0., T1 = 0., T2 = 0., B0 = 0, B1 = 1., residual = 0.;
+			T1 = T1Data[sliceOffset + vox];
+			if (B0Data)
+				B0 = B0Data[sliceOffset + vox];
+			if (B1Data)
+				B1 = B1Data[sliceOffset + vox];
+			if (M0Data)
+				M0 = M0Data[sliceOffset + vox];
 			if (!maskData || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				AtomicAdd(1, &voxCount);
-				
 				// Gather signals. 180 Phase data is required to be the first file passed into program
 				double *signals[nPhases];
 				for (int p = 0; p < nPhases; p++)
@@ -251,113 +280,80 @@ int main(int argc, char **argv)
 					for (int img = 0; img < nSSFP; img++)
 						signals[p][img] = (double)ssfpData[p][img * totalVoxels + sliceOffset + vox];
 				}
-				// Some constants set up here because they change per-voxel
-				double T1 = (double)T1Data[sliceOffset + vox];
-				double B0 = 0, B1 = 1., M0 = 1.;
-				if (B0Data)
-					B0 = (double)B0Data[sliceOffset + vox];
-				if (B1Data)
-					B1 = (double)B1Data[sliceOffset + vox];
-				if (M0Data)
-					M0 = (double)M0Data[sliceOffset + vox];
-				// Run classic DESPOT2 on 180 phase data
-				if (nPhases == 1)
+				// Choose phase with accumulated phase closest to 180
+				int index = 0;
+				double bestPhase = DBL_MAX;
+				for (int p = 0; p < nPhases; p++)
 				{
-					params[3] = classicDESPOT2(ssfpAngles, signals[0], nSSFP, ssfpTR, T1, B1, params);
-					params[0] = clamp(params[0], 0, 1.e7);
-					params[1] = clamp(params[1], 0.001, 0.250);
-					params[2] = 0.;
-				}
-				else if (levMar)
-				{
-					// Choose phase with accumulated phase closest to 180
-					int index = 0;
-					double bestPhase = 0.;
-					for (int p = 0; p < nPhases; p++)
+					double thisPhase = (B0 * ssfpTR * 2 * M_PI) + ssfpPhases[p];
+					if (fabs(fmod(thisPhase - M_PI, 2 * M_PI)) < bestPhase)
 					{
-						double thisPhase = (B0 * ssfpTR * 2 * M_PI) + ssfpPhases[p];
-						if (bestPhase > fabs(fmod(thisPhase - M_PI, 2 * M_PI)))
-						{
-							bestPhase = fabs(fmod(thisPhase - M_PI, 2 * M_PI));
-							index = p;
-						}
+						bestPhase = fabs(fmod(thisPhase - M_PI, 2 * M_PI));
+						index = p;
 					}
-					params[3] = classicDESPOT2(ssfpAngles, signals[index], nSSFP, ssfpTR, T1, B1, params);
-					if (M0Data)
-						params[0] = M0;
 				}
-				
-				if (nPhases > 1)
+				residual = classicDESPOT2(ssfpAngles, signals[index], nSSFP, ssfpTR, T1, B1, &M0, &T2);
+				residual = index;
+				if (levMar)
 				{
-					double *xData[nPhases], *consts[nPhases];
+					double *xData[nPhases];
+					if (M0Data)
+						M0 = M0Data[sliceOffset + vox];
+					int nP = 3;
+					double params[3] = { M0, T2, B0 };
+					SSFP_constants **c = malloc(nPhases * sizeof(SSFP_constants *));
 					size_t dSize[nPhases];
 					eval_array_type *fs[nPhases];
-					int nP;
-					
 					for (int p = 0; p < nPhases; p++)
 					{
 						xData[p] = ssfpAngles;
 						dSize[p] = nSSFP;
-						consts[p] = arrayAlloc(5);
-						consts[p][0] = ssfpTR;
-						consts[p][1] = T1;
-						consts[p][2] = B0;
-						params[2]    = B0;
-						consts[p][3] = B1;
-						consts[p][4] = ssfpPhases[p];						
-						if (levMar)
-						{
-						    nP = 3;
-						    fs[p] = &a1cSSFPB0;
-						}
-						else
-						{
-						    nP = 3;
-						    fs[p] = &a1cSSFPB0;
-						}
+						c[p] = malloc(sizeof(SSFP_constants));
+						c[p]->TR = ssfpTR;
+						c[p]->T1 = T1;
+						c[p]->B0 = B0;
+						c[p]->B1 = B1;
+						c[p]->rfPhase = ssfpPhases[p];
+					    fs[p] = &a1cSSFP;
 					}
-					
-					double loBounds[3] = { 1.e5, 0.005, -.5 / ssfpTR };
-					double hiBounds[3] = { 1.e6, 0.100,  .5 / ssfpTR };
-					if (B0Data)
-					{
-						loBounds[2] = B0 * 0.95;
-						hiBounds[2] = B0 * 1.05;
-					}
-					double *bounds[2] = { loBounds, hiBounds };
-					bool loC[3] = { FALSE, TRUE, FALSE }, hiC[3] = { FALSE, FALSE, FALSE };
-					bool *constrained[2] = { loC, hiC };
-					if (levMar)
-						levenbergMarquardt(params, nP, consts, xData, signals, fs, NULL, dSize, nPhases, NULL, NULL, false, params + 3);
-					else
-						regionContraction(params, nP, consts, nPhases, xData, signals, dSize, false, fs, bounds, constrained, 10000, 20, 10, 0.05, 0.05, params + 3);
-					params[3] = fmod(params[2] * 2 * M_PI, 2 * M_PI);
-					if (params[3] > M_PI) params[3] -= (2 * M_PI);
-					if (params[3] < -M_PI) params[3] += (2 * M_PI);
+					levenbergMarquardt(params, nP, (void **)c, xData, signals, fs, NULL, dSize, nPhases, NULL, NULL, false, &residual);
+					for (int p = 0; p < nPhases; p++)
+						free(c[p]);
+					free(c);
+					M0 = params[0];
+					T2 = params[1];
+					B0 = params[2];
 				}
 				// Clean up memory
 				for (int p = 0; p < nPhases; p++)
 					free(signals[p]);
 			}
-			for (int p = 0; p < NR; p++)
-				resultsData[p][sliceOffset + vox]  = params[p];
+			resultsData[0][sliceOffset + vox] = clamp(M0, 0., 1.e7);
+			resultsData[1][sliceOffset + vox] = clamp(T2, 0.001, 0.250);
+			resultsData[2][sliceOffset + vox] = B0;
+			resultsData[3][sliceOffset + vox] = residual;
 		};
 		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		
-        clock_t loopEnd = clock();
-        fprintf(stdout, "Finished slice %zu", slice);
-		if (voxCount > 0)
+		if (verbose)
 		{
-			fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s", 
-			        voxCount, (loopEnd - loopStart) / ((double)voxCount * CLOCKS_PER_SEC));
+			clock_t loopEnd = clock();
+			fprintf(stdout, "Finished slice %zu", slice);
+			if (voxCount > 0)
+			{
+				fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s", 
+						voxCount, (loopEnd - loopStart) / ((double)voxCount * CLOCKS_PER_SEC));
+			}
+			fprintf(stdout, ".\n");
 		}
-		fprintf(stdout, ".\n");
 	}
     time_t allEnd = time(NULL);
     struct tm *localEnd = localtime(&allEnd);
+	char theTime[1024];
     strftime(theTime, 1024, "%H:%M:%S", localEnd);
-	fprintf(stdout, "Finished processing at %s. Run-time was %f s.\n", theTime, difftime(allEnd, allStart));
+	procEnd = clock();
+	fprintf(stdout, "Finished processing at %s. Run-time was %f s.\n", theTime, (procEnd - procStart) / (double)CLOCKS_PER_SEC);
 	
 	for (size_t r = 0; r < NR; r++)
 	{

@@ -80,10 +80,10 @@ inline double calcMResiduals(double *params, double **consts, size_t nM,
 }
 
 // Evaluate multiple array function residuals
-inline double calcMAResiduals(double *params, double **consts, size_t nM,
-							  double **dataX, double **dataY, size_t *nD,
-							  eval_array_type **funcs, double **residuals,
-							  bool norm)
+double calcMAResiduals(double *params, void **consts, size_t nM,
+					   double **dataX, double **dataY, size_t *nD,
+					   eval_array_type **funcs, double **residuals,
+					   bool norm)
 {
 	double sum = 0.;
 	for (int m = 0; m < nM; m++)
@@ -230,11 +230,11 @@ int goldenSection(double *parameters, int nP, int P,
 //******************************************************************************
 // Non-linear least squares fitting using Levenberg-Marquardt
 //******************************************************************************
-int levenbergMarquardt(double *parameters, size_t nP, double **constants,
+int levenbergMarquardt(double *parameters, size_t nP, void **constants,
                        double **dataX, double **dataY, eval_array_type **funcs,
-		               jacob_type **jacFuncs, size_t *nD, size_t nF,
-		               double *loBounds, double *hiBounds,
-		               bool normalise, double *finalResidue)
+                       jacob_type **jacFuncs, size_t *nD, size_t nF,
+                       double *loBounds, double *hiBounds,
+                       bool normalise, double *finalResidue)
 {
 	// Set up variables
 	// nP is number of parameters, nD is number of data points
@@ -499,7 +499,7 @@ int simplex(double *params, size_t nP, double **consts, size_t nM,
 // nS = number of points to sample in parameter space at each step
 // nR = number of best points to retain and use for contracting the bounds
 //******************************************************************************
-void regionContraction(double *params, size_t nP, double **consts, size_t nM,
+void regionContraction(double *params, size_t nP, void **consts, size_t nM,
 					   double **dataX, double **dataY, size_t *nD, bool norm,
 					   eval_array_type **funcs, double **initBounds,
 					   bool **constrained, size_t nS, size_t nR,

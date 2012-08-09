@@ -19,7 +19,7 @@
 //******************************************************************************
 
 typedef double (eval_type) (double x, double *parameters, double *constants);
-typedef void (eval_array_type) (double *x, double *p, double *c, double *y, size_t n);
+typedef void (eval_array_type) (double *x, double *p, void *c, double *y, size_t n);
 typedef void (jacob_type) (double *data, int nD, double *parameters, double *constants, double *result);
 double calcResiduals(double *parameters, double *constants,
                      double *dataX, double *dataY, size_t nD,
@@ -30,7 +30,7 @@ double calcAResiduals(double *parameters, double *constants,
 double calcMResiduals(double *params, double **consts, size_t nM,
 					  double **dataX, double **dataY, size_t *nD,
 					  eval_type **funcs, double **residuals, bool norm);
-double calcMAResiduals(double *params, double **consts, size_t nM,
+double calcMAResiduals(double *params, void **consts, size_t nM,
 					   double **dataX, double **dataY, size_t *nD,
 					   eval_array_type **funcs, double **residuals,
 					   bool norm);
@@ -40,7 +40,7 @@ int goldenSection(double *parameters, int nP, int P,
                   double loP, double hiP, double *constants,
                   double *dataX, double *dataY, int nD,
 				  eval_type *function, double *finalResidue);
-int levenbergMarquardt(double *parameters, size_t nP, double **constants,
+int levenbergMarquardt(double *parameters, size_t nP, void **constants,
            double **dataX, double **dataY, eval_array_type **funcs,
 		   jacob_type **jacFuncs, size_t *nD, size_t nF,
 		   double *loBounds, double *hiBounds,
@@ -48,8 +48,8 @@ int levenbergMarquardt(double *parameters, size_t nP, double **constants,
 int simplex(double *params, size_t nP, double **consts, size_t nM,
 		    double **dataX, double **dataY, size_t *nD,
 		    eval_type **funcs, double ** initial, double *finalResidue);
-void regionContraction(double *params, size_t nP, double **consts, size_t nM,
-		               double **dataX, double **dataY, size_t *nD, bool norm,
+void regionContraction(double *params, size_t nP, void **consts, size_t nM,
+					   double **dataX, double **dataY, size_t *nD, bool norm,
 					   eval_array_type **funcs, double **initBounds,
 					   bool **constrained, size_t nS, size_t nR,
 					   size_t maxContractions, double thresh, double expand,

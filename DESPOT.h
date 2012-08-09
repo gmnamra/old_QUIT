@@ -20,7 +20,13 @@ void IRSPGR_Jacobian(double *data, int nD, double *par, double *c, double *resul
 void aSSFP(double *flipAngle, double *p, double *c, double *ssfp, size_t nA);
 double n2cSPGR(double alpha, double *p, double *c);
 double n2cSSFP(double alpha, double *p, double *c);
-void a1cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA);
+
+typedef struct
+{
+	double TR, T1, B0, B1, rfPhase;
+} SSFP_constants;
+
+void a1cSSFP(double *alpha, double *p, void *c, double *signal, size_t nA);
 void a1cSSFPB0(double *alpha, double *p, double *c, double *signal, size_t nA);
 void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA);
 void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA);
@@ -31,9 +37,7 @@ double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 double calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 				   double TR, double B1, double *M0, double *T1);
 double classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
-                      double TR, double T1, double B1, double *p);
+                      double TR, double T1, double B1, double *M0, double *T2);
 void simplexDESPOT2(size_t nPhases, size_t *nD, double *phases, double **angles, double **ssfp,
 					double TR, double T1, double B1, double *p);
-void contractDESPOT2(size_t nPhases, size_t *nD, double *phases, double **flipAngles, double **ssfp,
-					 double TR, double T1, double B1, double *p);
 #endif
