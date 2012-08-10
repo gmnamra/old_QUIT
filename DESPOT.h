@@ -23,13 +23,18 @@ double n2cSSFP(double alpha, double *p, double *c);
 
 typedef struct
 {
-	double TR, T1, B0, B1, rfPhase;
+	double TR, M0, B1;
+} SPGR_constants;
+
+typedef struct
+{
+	double TR, M0, T1, B0, B1, rfPhase;
 } SSFP_constants;
 
 void a1cSSFP(double *alpha, double *p, void *c, double *signal, size_t nA);
-void a1cSSFPB0(double *alpha, double *p, double *c, double *signal, size_t nA);
-void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA);
-void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA);
+
+void a2cSPGR(double *alpha, double *p, void *c, double *signal, size_t nA);
+void a2cSSFP(double *alpha, double *p, void *c, double *signal, size_t nA);
 
 double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
 				double *TI, double *irVals, int nIR, double irFlipAngle, double irTR,

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F648CBB215D51873009CAD99 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F64CA28C15A1A4E900F72707 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F64CA28E15A1A4EE00F72707 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
@@ -289,6 +290,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F648CBB215D51873009CAD99 /* libprocpar.a in Frameworks */,
 				F66F4A6815A48171006C91F1 /* libz.dylib in Frameworks */,
 				F6E4A2AD1590DC4500DA4001 /* libfslio.a in Frameworks */,
 				F6E4A2AE1590DC4500DA4001 /* libniftiio.a in Frameworks */,

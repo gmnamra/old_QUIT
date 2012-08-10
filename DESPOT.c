@@ -244,47 +244,12 @@ void a1cSSFP(double *alpha, double *p, void *constants, double *signal, size_t n
 	}
 }
 
-void a1cSSFPB0(double *alpha, double *p, double *c, double *signal, size_t nA)
+void a2cSPGR(double *alpha, double *p, void *constants, double *signal, size_t nA)
 {
-	double M0 = p[0], T2 = p[1], B0 = p[2],
-		   TR = c[0], T1 = c[1], B1 = c[3], rfPhase = c[4];
-	
-	double phase = rfPhase + (B0 * TR * 2. * M_PI);
-	double A[9] = { -TR / T2,    phase,       0.,
-					  -phase, -TR / T2,       0.,
-					      0.,       0., -TR / T1 };
-	
-	double R_rf[9] = { 1., 0., 0.,
-					   0., 0., 0.,
-					   0., 0., 0.};
-	double eye[9] = { 1., 0., 0.,
-					  0., 1., 0.,
-					  0., 0., 1. };
-	double temp1[9], temp2[9], all[9];
-	matrixExp(A, 3);
-	arraySub(temp2, eye, A, 9);
-	
-	for (size_t n = 0; n < nA; n++)
-	{
-		double ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
-		R_rf[4] = R_rf[8] = ca;
-		R_rf[5] = sa;
-		R_rf[7] = -sa;
-		matrixMult(temp1, A, R_rf, 3, 3, 3);
-		arraySub(temp1, eye, temp1, 9);
-		matrixSolve(all, temp1, temp2, 3, 3);
-		double M0_z[3] = { 0., 0., M0 };
-		double Mobs[3];
-		matrixMult(Mobs, all, M0_z, 3, 3, 1);
-		signal[n] = sqrt(Mobs[0]*Mobs[0] + Mobs[1]*Mobs[1]);
-	}
-}
-
-void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
-{
+	SPGR_constants *c = constants;
 	double T1_a = p[0], T1_b = p[1],
 		   f_a = p[4], tau_a = p[5],
-		   TR = c[0], M0 = c[1], B1 = c[2];
+		   TR = c->TR, M0 = c->M0, B1 = c->B1;
 	double f_b = 1. - f_a;
 	double tau_b = f_b * tau_a / f_a;
 	
@@ -309,11 +274,12 @@ void a2cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
 	}
 }
 
-void a2cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
+void a2cSSFP(double *alpha, double *p, void *constants, double *signal, size_t nA)
 {
+	SSFP_constants *c = constants;
 	double T1_a = p[0], T1_b = p[1], T2_a = p[2], T2_b = p[3],
-		   f_a = p[4], tau_a = p[5],
-		   TR = c[0], M0 = c[1], B0 = c[2], B1 = c[3], rfPhase = c[4];
+		   f_a = p[4], tau_a = p[5], B0 = p[6],
+		   TR = c->TR, M0 = c->M0, B1 = c->B1, rfPhase = c->rfPhase;
 	double f_b = 1. - f_a;
 	double tau_b = f_b * tau_a / f_a;
 	double eT2_a = -TR * (1./T2_a + 1./tau_a);

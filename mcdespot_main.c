@@ -24,6 +24,7 @@
 #include "DESPOT.h"
 #include "fslio.h"
 #include "mathsArray.h"
+#include "procpar.h"
 
 //******************************************************************************
 // Constants
@@ -40,17 +41,17 @@ Options:\n\
 	   7      : Boundaries suitable for 7T\n\
 	   u      : User specified boundaries from stdin.\n";
 
-const double lo3Bounds[6] = { 0.200, 0.500, 0.002, 0.040, 0.0, 0.050 },
-		     hi3Bounds[6] = { 0.700, 2.500, 0.040, 0.200, 0.4, 2.000 },
-		     lo7Bounds[6] = { 0.200, 0.500, 0.002, 0.040, 0.,   0.050 },
-		     hi7Bounds[6] = { 1.500, 5.000, 0.050, 0.400, 0.5,  2.000 };
+const double lo3Bounds[7] = { 0.200, 0.500, 0.002, 0.040, 0.0, 0.050, 0. },
+		     hi3Bounds[7] = { 0.700, 2.500, 0.040, 0.200, 0.4, 2.000, 0. },
+		     lo7Bounds[7] = { 0.200, 0.500, 0.002, 0.040, 0.,   0.050, 0. },
+		     hi7Bounds[7] = { 1.500, 5.000, 0.050, 0.400, 0.5,  2.000, 0. };
 //******************************************************************************
 // SIGTERM interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
-#define NR 7
-FSLIO *resultsHeaders[NR] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-double ***resultsData[NR];
-const char *names[NR] = { "_T1_myel", "_T1_free", "_T2_myel", "_T2_free", "_frac_myel", "_tau_myel", "_res" };
+#define NR 8
+FSLIO *resultsHeaders[NR] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+double *resultsData[NR];
+const char *names[NR] = { "_T1_short", "_T1_long", "_T2_short", "_T2_long", "_frac_short", "_tau_short", "_mc_B0", "_mc_res" };
 void int_handler(int sig);
 void int_handler(int sig)
 {
@@ -58,7 +59,7 @@ void int_handler(int sig)
 	for (size_t r = 0; r < NR; r++)
 	{
 		FslWriteHeader(resultsHeaders[r]);
-		FslWriteVolumes(resultsHeaders[r], resultsData[r], 1);
+		FslWriteVolumeFromDouble(resultsHeaders[r], resultsData[r], 0);
 		FslClose(resultsHeaders[r]);
 	}
 	exit(EXIT_FAILURE);
@@ -79,50 +80,69 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	char *outPrefix = NULL, *outExt = ".nii";
+	char *outPrefix = NULL, *outExt = ".nii.gz", procpar[MAXSTR];
 	size_t nSPGR, nPhases, nSSFP;
-	double spgrTR, *spgrAngles,
-		   ssfpTR, loBounds[NR - 1], hiBounds[NR - 1];
-	double **bounds = malloc(2 * sizeof(double *));
+	double spgrTR, *spgrAngles, ssfpTR, *ssfpPhases, *ssfpAngles,
+	       *maskData = NULL, *M0Data = NULL, *B0Data = NULL, *B1Data = NULL,
+	       loBounds[NR - 1], hiBounds[NR - 1], **bounds = malloc(2 * sizeof(double *));
 	bounds[0] = loBounds; bounds[1] = hiBounds;
-	bool loConstraint[7] = { true, true, true, true, true, true };
-	bool hiConstraint[7] = { true, true, true, true, true, true };
+	bool loConstraint[NR - 1] = { true, true, true, true, true, true, false };
+	bool hiConstraint[NR - 1] = { true, true, true, true, true, true, false };
 	bool **constraints = malloc(2 * sizeof(double *));
 	constraints[0] = loConstraint; constraints[1] = hiConstraint;
-	FSLIO *maskFile = NULL, *M0File = NULL, *B0File = NULL, *B1File = NULL,
-	      *spgrFile = NULL;
-	
+	FSLIO *inFile = NULL, *spgrFile = NULL, **ssfpFiles;
+	short nx, ny, nz, nt;
+	par_t *pars;
+	static int verbose = false, start_slice = -1, end_slice = -1;
 	static struct option long_options[] =
 	{
 		{"B0", required_argument, 0, '0'},
 		{"B1", required_argument, 0, '1'},
 		{"M0", required_argument, 0, 'M'},
+		{"mask", required_argument, 0, 'm'},
+		{"verbose", no_argument, 0, 'v'},
+		{"start_slice", required_argument, 0, 'S'},
+		{"end_slice", required_argument, 0, 'E'},
 		{0, 0, 0, 0}
 	};
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "b:m:z", long_options, &indexptr)) != -1)
+	while ((c = getopt_long(argc, argv, "b:m:vz", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
 			case 'm':
-				if (!(maskFile = FslOpen(optarg, "rb")))
-					exit(EXIT_FAILURE);
+				fprintf(stdout, "Reading mask file %s.\n", optarg);
+				inFile = FslOpen(optarg, "rb");
+				maskData = FslGetVolumeAsScaledDouble(inFile, 0);
+				FslClose(inFile);
 				break;
 			case '0':
-				if (!(B0File = FslOpen(optarg, "rb")))
-					exit(EXIT_FAILURE);
+				fprintf(stdout, "Reading B0 file %s.\n", optarg);
+				inFile = FslOpen(optarg, "rb");
+				B0Data = FslGetVolumeAsScaledDouble(inFile, 0);
+				FslClose(inFile);
 				break;
 			case '1':
-				if (!(B1File = FslOpen(optarg, "rb")))
-					exit(EXIT_FAILURE);
+				fprintf(stdout, "Reading B1 file %s.\n", optarg);
+				inFile = FslOpen(optarg, "rb");
+				B1Data = FslGetVolumeAsScaledDouble(inFile, 0);
+				FslClose(inFile);
 				break;
 			case 'M':
-				if (!(M0File = FslOpen(optarg, "rb")))
-					exit(EXIT_FAILURE);
+				fprintf(stdout, "Reading M0 file %s.\n", optarg);
+				inFile = FslOpen(optarg, "rb");
+				M0Data = FslGetVolumeAsScaledDouble(inFile, 0);
+				FslClose(inFile);
 				break;
-			case 'z':
-				outExt = ".nii.gz";
+			case 'v':
+				verbose = true;
+				break;
+			case 'S':
+				start_slice = atoi(optarg);
+				break;
+			case 'E':
+				end_slice = atoi(optarg);
 				break;
 			case 'b':
 				switch (*optarg)
@@ -149,87 +169,121 @@ int main(int argc, char **argv)
 						break;
 				}
 				break;
+			case 0:
+				// Just a flag
+				break;
 		}
+	}
+	if ((argc - optind) < 3)
+	{
+		fprintf(stderr, "Insufficient number of arguments.\n%s", usage);
+		exit(EXIT_FAILURE);
 	}
 	outPrefix = argv[optind++];
 	fprintf(stdout, "Output prefix will be: %s\n", outPrefix);
 	//**************************************************************************
 	// Gather SPGR Data
 	//**************************************************************************
-	fprintf(stdout, "Reading SPGR header from %s.\n", argv[optind]);
-	if (!(spgrFile = FslOpen(argv[optind++], "rb")))
-		exit(EXIT_FAILURE);
-	nSPGR = spgrFile->niftiptr->nt;
+	fprintf(stdout, "Opening SPGR file: %s\n", argv[optind]);
+	spgrFile = FslOpen(argv[optind], "rb");
+	FslGetDim(spgrFile, &nx, &ny, &nz, &nt);
+	nSPGR = nt;
 	spgrAngles = malloc(nSPGR * sizeof(double));
-	fprintf(stdout, "Enter SPGR TR (seconds):");
-	fscanf(stdin, "%f", &spgrTR);
-	fprintf(stdout, "\nEnter %zu SPGR Flip Angles (degrees):", nSPGR);
-	fgetArray(stdin, 'd', nSPGR, spgrAngles);
+	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
+	pars = readProcpar(procpar);
+	if (pars)
+	{
+		spgrTR = realVal(pars, "tr", 0);
+		arrayCopy(spgrAngles, realVals(pars, "flip1", NULL), nSPGR);
+		freeProcpar(pars);
+	}
+	else
+	{
+		fprintf(stdout, "Enter SPGR TR (s):");
+		fscanf(stdin, "%lf", &spgrTR);
+		fprintf(stdout, "Enter SPGR Flip Angles (degrees):");
+		fgetArray(stdin, 'd', nSPGR, spgrAngles);
+	}
+	fprintf(stdout, "SPGR TR=%f s.\n", spgrTR);
+	ARR_D(spgrAngles, nSPGR);
 	arrayApply(spgrAngles, spgrAngles, radians, nSPGR);
-
+	optind++;
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	nPhases    = argc - optind;
-	double *ssfpPhases = malloc(nPhases * sizeof(double));
-	FSLIO *ssfpFiles[nPhases];
-	fprintf(stdout, "Reading first SSFP header %s\n", argv[optind]);
-	ssfpFiles[0] = FslOpen(argv[optind++], "rb");
-	if (!FslCheckDims(spgrFile, ssfpFiles[0]))
-	{
-		fprintf(stderr, "Differing number of voxels in SPGR and SSFP data.\n");
-		exit(EXIT_FAILURE);
-	}
-	fprintf(stdout, "Specified %zu phase cycling patterns.\n", nPhases);
-	fprintf(stdout, "Enter SSFP TR (seconds):");
-	fscanf(stdin, "%f", &ssfpTR);
-	fprintf(stdout, "\nEnter %zu Phase-Cycling Patterns (degrees):", nPhases);
-	fgetArray(stdin, 'd', nPhases, ssfpPhases); fprintf(stdout, "\n");
-	arrayApply(ssfpPhases, ssfpPhases, radians, nPhases);
-	
+	nPhases = argc - optind;
+	ssfpFiles  = malloc(nPhases * sizeof(nifti_image *));
+	ssfpPhases = malloc(nPhases * sizeof(double));
+	ssfpPhases[0] = M_PI;
+	ssfpFiles[0] = FslOpen(argv[optind], "rb");
 	nSSFP = ssfpFiles[0]->niftiptr->nt;
-	double ssfpAngles[nSSFP];
-	fprintf(stdout, "Enter %zu SSFP Flip Angles (degrees):", nSSFP);
-	fgetArray(stdin, 'd', nSSFP, ssfpAngles); fprintf(stdout, "\n");
-	arrayApply(ssfpAngles, ssfpAngles, radians, nSSFP);
-	for (int p = 1; p < nPhases; p++)
+	ssfpAngles = malloc(nSSFP * sizeof(double));	
+	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
+	pars = readProcpar(procpar);
+	if (pars)
 	{
-		fprintf(stdout, "Reading %f SSFP header from %s.\n", degrees(ssfpPhases[p]), argv[optind]);
-		ssfpFiles[p] = FslOpen(argv[optind++], "rb");
-		if (!FslCheckDims(spgrFile, ssfpFiles[p]))
+		int check;
+		fprintf(stdout, "Reading SSFP 180 parameters from procpar.\n");
+		arrayCopy(ssfpAngles, realVals(pars, "flip1", &check), nSSFP);		
+		if (check != nSSFP)
 		{
-			fprintf(stderr, "Differing number of voxels in phase %d and %d headers.\n", 0, p);
+			fprintf(stderr, "flip1 and nvols do not match.\n");
+			exit(EXIT_FAILURE);
+		}
+		ssfpTR = realVal(pars, "tr", 0);
+		fprintf(stdout, "TR (s): %f, Angles (deg) = ", ssfpTR);
+		arrayPrint(stdout, ssfpAngles, nSSFP); fprintf(stdout, "\n");
+		arrayApply(ssfpAngles, ssfpAngles, radians, nSSFP);
+		freeProcpar(pars);
+	}
+	else
+	{
+		fprintf(stdout, "Enter %zu SSFP flip angles (degrees) :", nSSFP);
+		fgetArray(stdin, 'd', nSSFP, ssfpAngles); fprintf(stdout, "\n");
+		arrayApply(ssfpAngles, ssfpAngles, radians, nSSFP);
+		fprintf(stdout, "Enter SSFP TR (ms):");
+		fscanf(stdin, "%lf", &ssfpTR);		
+	}
+
+	for (size_t p = 1; p < nPhases; p++)
+	{
+		fprintf(stdout, "Reading SSFP header from %s.\n", argv[++optind]);
+		ssfpFiles[p] = FslOpen(argv[optind], "rb");
+		if (!FslCheckDims(ssfpFiles[0], ssfpFiles[p]))
+		{
+			fprintf(stderr, "Image %s has differing dimensions.\n", argv[optind]);
 			exit(EXIT_FAILURE);
 		}
 		if (ssfpFiles[p]->niftiptr->nt != nSSFP)
 		{
-			fprintf(stderr, "Wrong number of flip angles in SSFP file %s.\n", argv[optind - 1]);
+			fprintf(stderr, "Image %s has wrong number of flip angles.\n", argv[optind]);
 			exit(EXIT_FAILURE);
 		}
+		snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
+		pars = readProcpar(procpar);
+		if (pars)
+		{
+			ssfpPhases[p] = radians(realVal(pars, "rfphase", 0));
+			freeProcpar(pars);
+		}
+		else
+		{
+			fprintf(stdout, "Enter phase-cycling (degrees):");
+			fscanf(stdin, "%lf", ssfpPhases + p);
+			ssfpPhases[p] = radians(ssfpPhases[p]);	
+		}
 	}
-	fprintf(stdout, "Read all SSFP files.\n");
 	//**************************************************************************	
-	// Allocate memory for slices
+	// Get input data
 	//**************************************************************************
-	int nx = spgrFile->niftiptr->nx;
-	int ny = spgrFile->niftiptr->ny;
-	int nz = spgrFile->niftiptr->nz;
 	int voxelsPerSlice = nx * ny;
 	int totalVoxels = voxelsPerSlice * nz;
-	float *spgrData, **ssfpData, *maskData, *M0Data, *B0Data, *B1Data;
-	spgrData = malloc(nSPGR * voxelsPerSlice * sizeof(float));
-	ssfpData = malloc(nPhases * sizeof(float *));
+	fprintf(stdout, "Reading SPGR data...\n");
+	double *SPGR = FslGetAllVolumesAsScaledDouble(spgrFile);
+	fprintf(stdout, "Reading SSFP data...\n");
+	double **SSFP = malloc(nPhases * sizeof(double *));
 	for (int p = 0; p < nPhases; p++)
-		ssfpData[p] = malloc(nSSFP * voxelsPerSlice * sizeof(float));
-	if (maskFile)
-		maskData = malloc(voxelsPerSlice * sizeof(float));
-	if (M0File)
-		M0Data = malloc(voxelsPerSlice * sizeof(float));
-	if (B0File)
-		B0Data = malloc(voxelsPerSlice * sizeof(float));
-	if (B1File)
-		B1Data = malloc(voxelsPerSlice * sizeof(float));
-	fprintf(stdout, "Allocated memory.\n");
+		SSFP[p] = FslGetAllVolumesAsScaledDouble(ssfpFiles[p]);
 	//**************************************************************************
 	// Create results files
 	// T1_m, T1_m, T2_f, T2_f,	f_m, tau_m, residue
@@ -243,7 +297,7 @@ int main(int argc, char **argv)
 		FslCloneHeader(resultsHeaders[r], spgrFile);
 		FslSetDim(resultsHeaders[r], nx, ny, nz, 1);
 		FslSetDataType(resultsHeaders[r], DTYPE_FLOAT);
-		resultsData[r] = malloc(totalVoxels * sizeof(float));
+		resultsData[r] = malloc(totalVoxels * sizeof(double));
 	}
 	signal(SIGINT, int_handler);
 	//**************************************************************************
@@ -262,76 +316,62 @@ int main(int argc, char **argv)
 		f[p + 1]      = a2cSSFP;
 		angles[p + 1] = ssfpAngles;
 	}
-	
+	fprintf(stdout, "Starting processing.\n");
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	time_t allStart = time(NULL);
-	struct tm *localStart = localtime(&allStart);
-	char theTime[1024];
-	strftime(theTime, 1024, "%H:%M:%S", localStart);
-	fprintf(stdout, "Started processing at %s.\n", theTime);
-	for (size_t slice = 0; slice < nz; slice++)
+    time_t procStart = time(NULL);
+	if ((start_slice < 0) || (start_slice >= nz))
+		start_slice = 0;
+	if ((end_slice < 0) || (end_slice > nz))
+		end_slice = nz;
+	for (size_t slice = start_slice; slice < end_slice; slice++)
 	{
-		// Read in data
-		fprintf(stdout, "Starting slice %zu...\n", slice);
-		
-		FslReadSliceSeries(spgrFile, (void *)spgrData, slice, nSPGR);
-		if (B0File)
-			FslReadSliceSeries(B0File, (void *)B0Data, slice, 1);
-		if (B1File)
-			FslReadSliceSeries(B1File, (void *)B1Data, slice, 1);
-		if (M0File)
-			FslReadSliceSeries(M0File, (void *)M0Data, slice, 1);
-		if (maskFile)
-			FslReadSliceSeries(maskFile, (void *)maskData, slice, 1);
-		for (int p = 0; p < nPhases; p++)
-			FslReadSliceSeries(ssfpFiles[p], (void *)ssfpData[p], slice, nSSFP);
-		fprintf(stdout, "read data.\n");
+		if (verbose)
+			fprintf(stdout, "Starting slice %zu...\n", slice);
 		__block int voxCount = 0;
 		int sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
-			double params[NR];
-			arraySet(params, 0., NR);
-			if (!maskFile || (maskData[vox] > 0.))
+			double M0 = 1, B0 = 0, B1 = 1., residual = 0.;
+			if (M0Data)
+				M0 = (double)M0Data[sliceOffset + vox];
+			if (B0Data)
+				B0 = (double)B0Data[sliceOffset + vox];
+			if (B1Data)
+				B1 = (double)B1Data[sliceOffset + vox];		
+			double params[NR - 1] = { 0., 0., 0., 0., 0., 0., 0. };
+			if (!maskData || (maskData[sliceOffset + vox] > 0.))
 			{
 				AtomicAdd(1, &voxCount);
-				
-				double M0 = 1, B0 = 0, B1 = 1.;
-				if (M0File)
-					M0 = (double)M0Data[vox];
-				if (B0File)
-					B0 = (double)B0Data[vox];
-				if (B1File)
-					B1 = (double)B1Data[vox];
-				
-				// Constants need to be set up here because B1 changes per-voxels
-				double *signals[1 + nPhases], *consts[1 + nPhases];
-				
+				double *signals[1 + nPhases];				
+				void **consts = malloc((1 + nPhases) * sizeof(void *));
 				signals[0] = malloc(nSPGR * sizeof(double));
 				for (int img = 0; img < nSPGR; img++)
-					signals[0][img] = (double)spgrData[voxelsPerSlice * img + vox];
-				consts[0] = malloc(2 * sizeof(double));
-				consts[0][0] = spgrTR; consts[0][1] = B1;
-				
+					signals[0][img] = SPGR[totalVoxels * img + sliceOffset +  + vox];
+				consts[0] = malloc(sizeof(SPGR_constants));
+				((SPGR_constants *)consts[0])->TR = spgrTR;
+				((SPGR_constants *)consts[0])->M0 = M0;
+				((SPGR_constants *)consts[0])->B1 = B1;				
 				for (int p = 0; p < nPhases; p++)
 				{
 					signals[p + 1] = malloc(nSSFP * sizeof(double));
 					for (int img = 0; img < nSSFP; img++)
-						signals[p + 1][img] = (double)ssfpData[p][voxelsPerSlice * img + vox];
-					
-					consts[p + 1] = malloc(5 * sizeof(double));
-					consts[p + 1][0] = ssfpTR; consts[p + 1][1] = M0;
-					consts[p + 1][2] = B0;     consts[p + 1][3] = B1;
-					consts[p + 1][4] = ssfpPhases[p];
+						signals[p + 1][img] = SSFP[p][totalVoxels * img + sliceOffset +  + vox];
+					consts[p + 1] = malloc(sizeof(SSFP_constants));
+					((SSFP_constants *)consts[p + 1])->TR = ssfpTR;
+					((SSFP_constants *)consts[p + 1])->M0 = M0;
+					((SSFP_constants *)consts[p + 1])->B0 = B0;
+					((SSFP_constants *)consts[p + 1])->B1 = B1;
+					((SSFP_constants *)consts[p + 1])->rfPhase = ssfpPhases[p];
 				}
-
-				// Store residual in final parameter
+				
+				bounds[0][6] = -0.5 / ssfpTR;
+				bounds[1][6] =  0.5 / ssfpTR;
 				regionContraction(params, NR - 1, consts, 1 + nPhases, angles,
 				                  signals, nD, false, f, bounds, constraints,
-								  1000, 10, 20, 0.1, 0.025, &(params[NR - 1]));		
+								  1000, 10, 20, 0.1, 0.025, &residual);		
 				// Clean up memory
 				for (int p = 0; p < 1 + nPhases; p++)
 				{
@@ -339,34 +379,40 @@ int main(int argc, char **argv)
 					free(consts[p]);
 				}
 			}
-			for (int p = 0; p < NR; p++)
-				resultsData[p][sliceOffset + vox]  = (float)params[p];
+			for (int p = 0; p < NR - 1; p++)
+				resultsData[p][sliceOffset + vox]  = params[p];
+			resultsData[NR - 1][sliceOffset + vox] = residual;
 		};
 		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		
-        clock_t loopEnd = clock();
-        fprintf(stdout, "Finished slice %zu", slice);
-		if (voxCount > 0)
-			fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s.",
-				    voxCount, (loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC));
-		fprintf(stdout, ".\n");
+		if (verbose)
+		{
+			clock_t loopEnd = clock();
+			fprintf(stdout, "Finished slice %zu", slice);
+			if (voxCount > 0)
+				fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s.",
+						voxCount, (loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC));
+			fprintf(stdout, ".\n");
+		}
 	}
-    time_t allEnd = time(NULL);
-    struct tm *localEnd = localtime(&allEnd);
-    strftime(theTime, 1024, "%H:%M:%S", localEnd);
-	fprintf(stdout, "Finished processing at %s. Run-time was %f s.\n", theTime, difftime(allEnd, allStart));
+    time_t procEnd = time(NULL);
+    struct tm *localEnd = localtime(&procEnd);
+	char theTime[MAXSTR];
+    strftime(theTime, MAXSTR, "%H:%M:%S", localEnd);
+	fprintf(stdout, "Finished processing at %s. Run-time was %f s.\n", theTime, difftime(procEnd, procStart));
 
 	for (size_t r = 0; r < NR; r++)
 	{
 		FslWriteHeader(resultsHeaders[r]);
-		FslWriteVolumes(resultsHeaders[r], resultsData[r], 1);
+		FslWriteVolumeFromDouble(resultsHeaders[r], resultsData[r], 0);
 		FslClose(resultsHeaders[r]);
 	}
 	// Clean up memory
-	free(spgrData);
+	free(SPGR);
 	for (int p = 0; p < nPhases; p++)
-		free(ssfpData[p]);
+		free(SSFP[p]);
+	free(SSFP);
 	free(M0Data);
 	free(B0Data);
 	free(B1Data);
