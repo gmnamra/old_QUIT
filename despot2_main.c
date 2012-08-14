@@ -221,7 +221,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	int voxelsPerSlice = nx * ny;
 	int totalVoxels = voxelsPerSlice * nz;
-	double **ssfpData = malloc(nPhases * sizeof(double *));
+	__block double **ssfpData = malloc(nPhases * sizeof(double *));
 	for (int p = 0; p < nPhases; p++)
 		ssfpData[p] = FslGetAllVolumesAsScaledDouble(ssfpFiles[p]);
 	fprintf(stdout, "Read SSFP data.\n");
@@ -332,7 +332,7 @@ int main(int argc, char **argv)
 				}
 				// Clean up memory
 				for (int p = 0; p < nPhases; p++)
-					free(signals[p]);
+					gsl_vector_free(signals[p]);
 			}
 			resultsData[0][sliceOffset + vox] = clamp(M0, 0., 1.e7);
 			resultsData[1][sliceOffset + vox] = clamp(T2, 0.001, 0.250);

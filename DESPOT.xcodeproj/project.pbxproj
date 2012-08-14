@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F62E668C15DA971E005785B7 /* libgsl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F62E668B15DA971E005785B7 /* libgsl.dylib */; };
+		F62E668F15DA9755005785B7 /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F62E668E15DA9755005785B7 /* libgsl.a */; };
 		F648CBB215D51873009CAD99 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F64CA28C15A1A4E900F72707 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
@@ -30,8 +32,6 @@
 		F679FB8115B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
 		F679FB8215B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
 		F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
-		F69B286D15D96AF500D0824B /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F69B286C15D96AF300D0824B /* libgsl.a */; };
-		F69B286E15D9717C00D0824B /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F69B286C15D96AF300D0824B /* libgsl.a */; };
 		F6B8F93515CFFD7100AECF4F /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
@@ -211,11 +211,12 @@
 
 /* Begin PBXFileReference section */
 		F61642A715CC1BBB0031F999 /* despot_hifi.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = despot_hifi.c; sourceTree = SOURCE_ROOT; };
+		F62E668B15DA971E005785B7 /* libgsl.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgsl.dylib; path = ../../../../../usr/local/lib/libgsl.dylib; sourceTree = "<group>"; };
+		F62E668E15DA9755005785B7 /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgsl.a; path = ../../../../../usr/local/lib/libgsl.a; sourceTree = "<group>"; };
 		F675C8CB15CC11E000BA95FC /* afi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = afi; sourceTree = BUILT_PRODUCTS_DIR; };
 		F675C8D515CC120100BA95FC /* afi_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = afi_main.c; sourceTree = SOURCE_ROOT; };
 		F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mathsOptimisers.c; sourceTree = SOURCE_ROOT; };
 		F679FB7F15B6BDBF00A2EC48 /* mathsOptimisers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mathsOptimisers.h; sourceTree = SOURCE_ROOT; };
-		F69B286C15D96AF300D0824B /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgsl.a; path = /Users/Tobias/Code/MR/Maths/../../../../../usr/local/lib/libgsl.a; sourceTree = "<absolute>"; };
 		F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = procparse.xcodeproj; path = ../procparse/procparse.xcodeproj; sourceTree = "<group>"; };
 		F6E1F8DE1591E20E00DA918F /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		F6E1F9051591FDDC00DA918F /* phasemap_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = phasemap_main.c; sourceTree = SOURCE_ROOT; };
@@ -273,7 +274,8 @@
 				F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */,
 				F64CA29215A1BF5600F72707 /* libfslio.a in Frameworks */,
 				F64CA29315A1BF5700F72707 /* libniftiio.a in Frameworks */,
-				F69B286D15D96AF500D0824B /* libgsl.a in Frameworks */,
+				F62E668C15DA971E005785B7 /* libgsl.dylib in Frameworks */,
+				F62E668F15DA9755005785B7 /* libgsl.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -287,7 +289,6 @@
 				F64CA28F15A1A4F100F72707 /* libniftiio.a in Frameworks */,
 				F64CA28E15A1A4EE00F72707 /* libfslio.a in Frameworks */,
 				F64CA29015A1A4F500F72707 /* libznz.a in Frameworks */,
-				F69B286E15D9717C00D0824B /* libgsl.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -342,7 +343,8 @@
 				F6E4A2A61590DB9600DA4001 /* libfslio.a */,
 				F6E4A2A71590DB9600DA4001 /* libniftiio.a */,
 				F6E4A2A81590DB9600DA4001 /* libznz.a */,
-				F69B286C15D96AF300D0824B /* libgsl.a */,
+				F62E668B15DA971E005785B7 /* libgsl.dylib */,
+				F62E668E15DA9755005785B7 /* libgsl.a */,
 				F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */,
 				F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */,
 				F6E4A2441590D9B000DA4001 /* DESPOT */,
@@ -755,6 +757,10 @@
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = (
+					"-lgsl",
+					"-lgslcblas",
+				);
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -781,6 +787,10 @@
 				);
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				OTHER_LDFLAGS = (
+					"-lgsl",
+					"-lgslcblas",
+				);
 				SDKROOT = macosx;
 			};
 			name = Release;

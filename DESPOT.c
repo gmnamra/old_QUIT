@@ -134,49 +134,58 @@ extern int LEV_DEBUG;
 void a1cSSFP(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *signal)
 {
 	SSFP_constants *c = constants;
-	gsl_matrix *A = gsl_matrix_calloc(3, 3);
+	/*gsl_matrix *A = gsl_matrix_alloc(3, 3);
 	gsl_matrix *R_rf = gsl_matrix_calloc(3, 3);
 	gsl_matrix *eye = gsl_matrix_calloc(3, 3);
 	gsl_matrix *temp1 = gsl_matrix_alloc(3, 3);
 	gsl_matrix *temp2 = gsl_matrix_alloc(3, 3);
 	gsl_vector *M0_v = gsl_vector_calloc(3);
-	gsl_vector *Mobs = gsl_vector_alloc(3);
+	gsl_vector *Mobs = gsl_vector_alloc(3);*/
 	double M0 = gsl_vector_get(p, 0),
 	       T2 = gsl_vector_get(p, 1),
 		   B0 = gsl_vector_get(p, 2),
 		   TR = c->TR, T1 = c->T1, B1 = c->B1, rfPhase = c->rfPhase;
 	double phase = rfPhase + (B0 * TR * 2. * M_PI);
-	double A_d[] = { -TR / T2,    phase,       0.,
+	double A_d[9] = { -TR / T2,    phase,       0.,
 	                   -phase, -TR / T2,       0.,
 						   0.,       0., -TR / T1 };
-	matrix_set_array(A, A_d);
-	gsl_matrix_set(R_rf, 0, 0, 1.);
-	matrix_eye(eye);
-	MAT_PRINT(A);
-	matrix_exp(A);
-	MAT_PRINT(A);
-	gsl_vector_set(M0_v, 2, M0);
+	double R_rf_d[9] = { 1., 0., 0., 0., 0., 0., 0., 0., 0. };
+	double eye_d[9] = {1., 0., 0., 0., 1., 0., 0. ,0., 1. };
+	double temp1_d[9], temp2_d[9], M0_v_d[3] = {0., 0., M0}, Mobs_d[3];
+	gsl_matrix_view A     = gsl_matrix_view_array(A_d, 3, 3);
+	gsl_matrix_view R_rf  = gsl_matrix_view_array(R_rf_d, 3, 3);
+	gsl_matrix_view eye   = gsl_matrix_view_array(eye_d, 3, 3);
+	gsl_matrix_view temp1 = gsl_matrix_view_array(temp1_d, 3, 3);
+	gsl_matrix_view temp2 = gsl_matrix_view_array(temp2_d, 3, 3);
+	gsl_vector_view M0_v  = gsl_vector_view_array(M0_v_d, 3);
+	gsl_vector_view Mobs  = gsl_vector_view_array(Mobs_d, 3);
+	//matrix_set_array(A, A_d);
+	//gsl_matrix_set(R_rf, 0, 0, 1.);
+	//matrix_eye(eye);
+	//gsl_vector_set(M0_v, 2, M0);
+	matrix_exp(&A.matrix);
+
 	for (size_t n = 0; n < alpha->size; n++)
 	{
-		matrix_add_scale(temp2, eye, 1., A, -1.);
+		matrix_add_scale(&temp2.matrix, &eye.matrix, 1., &A.matrix, -1.);
 		double a = gsl_vector_get(alpha, n);
 		double ca = cos(B1 * a), sa = sin(B1 * a);
-		gsl_matrix_set(R_rf, 1, 1, ca); gsl_matrix_set(R_rf, 2, 2, ca);
-		gsl_matrix_set(R_rf, 1, 2, sa); gsl_matrix_set(R_rf, 2, 1, -sa);
-		matrix_mult(temp1, A, R_rf);
-		matrix_add_scale(temp1, eye, 1., temp1, -1.);
-		matrix_solve(temp1, temp2);
-		matrix_mulv(Mobs, temp2, M0_v);
-		gsl_vector_set(signal, n, sqrt(gsl_vector_get(Mobs, 0) * gsl_vector_get(Mobs, 0) +
-									   gsl_vector_get(Mobs, 1) * gsl_vector_get(Mobs, 1)));
+		gsl_matrix_set(&R_rf.matrix, 1, 1, ca); gsl_matrix_set(&R_rf.matrix, 2, 2, ca);
+		gsl_matrix_set(&R_rf.matrix, 1, 2, sa); gsl_matrix_set(&R_rf.matrix, 2, 1, -sa);
+		matrix_mult(&temp1.matrix, &A.matrix, &R_rf.matrix);
+		matrix_add_scale(&temp1.matrix, &eye.matrix, 1., &temp1.matrix, -1.);
+		matrix_solve(&temp1.matrix, &temp2.matrix);
+		matrix_mulv(&Mobs.vector, &temp2.matrix, &M0_v.vector);
+		gsl_vector_set(signal, n, sqrt(gsl_vector_get(&Mobs.vector, 0) * gsl_vector_get(&Mobs.vector, 0) +
+									   gsl_vector_get(&Mobs.vector, 1) * gsl_vector_get(&Mobs.vector, 1)));
 	}
-	gsl_matrix_free(A);
+	/*gsl_matrix_free(A);
 	gsl_matrix_free(R_rf);
 	gsl_matrix_free(eye);
 	gsl_matrix_free(temp1);
 	gsl_matrix_free(temp2);
 	gsl_vector_free(M0_v);
-	gsl_vector_free(Mobs);
+	gsl_vector_free(Mobs);*/
 }
 
 void a2cSPGR(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *signal)

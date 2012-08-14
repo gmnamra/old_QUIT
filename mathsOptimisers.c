@@ -224,7 +224,7 @@ int levenbergMarquardt(gsl_vector *parameters, size_t nF, void **constants,
 	
 	double oldSum = 0., lambda = 1., tol = sqrt(DBL_EPSILON); // Starting values
 	double sumResidues = calcMResiduals(parameters, nF, constants, dataX, dataY, funcs, residuals);
-	
+	evaluations++;
 	if (LEV_DEBUG > 0)
 		fprintf(stdout, "\nStarting Levenberg-Marquardt. Initial residue = %g\n", sumResidues);
 	bool outer = true;
@@ -297,7 +297,6 @@ int levenbergMarquardt(gsl_vector *parameters, size_t nF, void **constants,
 		bool inner = true;
 		while(inner && (evaluations < MAX_EVALUATIONS))
 		{	// Inner loop (Marquardt)
-			evaluations++;
 			// Augment with lambda * diag(JtJ)
 			gsl_matrix_memcpy(JtJAug, JtJ);
 			for (int i = 0; i < nP; i++)
@@ -305,40 +304,29 @@ int levenbergMarquardt(gsl_vector *parameters, size_t nF, void **constants,
 			gsl_vector_memcpy(delta, JtRes);
 			matrix_solvev(JtJAug, delta);
 			// New parameter estimate
-			gsl_vector_memcpy(newPars, parameters);
-			gsl_vector_add(newPars, delta);
-			if (!isfinite(gsl_vector_max(newPars)))
+			if (!isfinite(vector_norm(delta)))
 			{
 				if (LEV_DEBUG > 0)
-					fprintf(stdout, "Infinite parameter detected. Back to outer loop.\n");
+					fprintf(stdout, "Change in parameters is too large. Back to outer loop.\n");
 				inner = false;
-			}
-			sumResidues = calcMResiduals(newPars, nF, constants, dataX, dataY, funcs, residuals);
-			if (LEV_DEBUG > 0)
-			{
-				fprintf(stdout, "\nEvaluations = %zu, lambda = %f, residual = %g\n", evaluations, lambda, sumResidues);
-				VEC_PRINT(delta);
-				VEC_PRINT(newPars);
-			}
-			if (LEV_DEBUG)
-			{
-				VEC_PRINT(delta);
-				VEC_PRINT(tolerance);
-			}
+				break; // Avoid a residuals calculation with an infinite parameter
+			}			
 			gsl_vector_sub(delta, tolerance);
 			if (gsl_vector_isneg(delta))
 			{
 				if (LEV_DEBUG)
-					fprintf(stdout, "Change in parameters is small. Back to outer loop.\n");
-				gsl_vector_memcpy(parameters, newPars);
+					fprintf(stdout, "Change in parameters is small, accept and back to outer loop.\n");
+				gsl_vector_add(parameters, delta);
 				lambda /= 10.;
 				inner = false;
+				break;
 			}
-			else if(sumResidues < oldSum)
+			sumResidues = calcMResiduals(parameters, nF, constants, dataX, dataY, funcs, residuals);
+			evaluations++;
+			if(sumResidues < oldSum)
 			{
 				if (LEV_DEBUG)
 					fprintf(stdout, "Estimate has improved. Back to outer loop.\n");
-				gsl_vector_memcpy(parameters, newPars);
 				lambda /= 10.;
 				inner = false; 
 			}
