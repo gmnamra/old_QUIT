@@ -30,6 +30,8 @@
 		F679FB8115B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
 		F679FB8215B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
 		F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
+		F69B286D15D96AF500D0824B /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F69B286C15D96AF300D0824B /* libgsl.a */; };
+		F69B286E15D9717C00D0824B /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F69B286C15D96AF300D0824B /* libgsl.a */; };
 		F6B8F93515CFFD7100AECF4F /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
@@ -213,6 +215,7 @@
 		F675C8D515CC120100BA95FC /* afi_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = afi_main.c; sourceTree = SOURCE_ROOT; };
 		F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mathsOptimisers.c; sourceTree = SOURCE_ROOT; };
 		F679FB7F15B6BDBF00A2EC48 /* mathsOptimisers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mathsOptimisers.h; sourceTree = SOURCE_ROOT; };
+		F69B286C15D96AF300D0824B /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgsl.a; path = /Users/Tobias/Code/MR/Maths/../../../../../usr/local/lib/libgsl.a; sourceTree = "<absolute>"; };
 		F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = procparse.xcodeproj; path = ../procparse/procparse.xcodeproj; sourceTree = "<group>"; };
 		F6E1F8DE1591E20E00DA918F /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		F6E1F9051591FDDC00DA918F /* phasemap_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = phasemap_main.c; sourceTree = SOURCE_ROOT; };
@@ -270,6 +273,7 @@
 				F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */,
 				F64CA29215A1BF5600F72707 /* libfslio.a in Frameworks */,
 				F64CA29315A1BF5700F72707 /* libniftiio.a in Frameworks */,
+				F69B286D15D96AF500D0824B /* libgsl.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -283,6 +287,7 @@
 				F64CA28F15A1A4F100F72707 /* libniftiio.a in Frameworks */,
 				F64CA28E15A1A4EE00F72707 /* libfslio.a in Frameworks */,
 				F64CA29015A1A4F500F72707 /* libznz.a in Frameworks */,
+				F69B286E15D9717C00D0824B /* libgsl.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -337,6 +342,7 @@
 				F6E4A2A61590DB9600DA4001 /* libfslio.a */,
 				F6E4A2A71590DB9600DA4001 /* libniftiio.a */,
 				F6E4A2A81590DB9600DA4001 /* libznz.a */,
+				F69B286C15D96AF300D0824B /* libgsl.a */,
 				F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */,
 				F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */,
 				F6E4A2441590D9B000DA4001 /* DESPOT */,
@@ -744,6 +750,7 @@
 					"../nifticlib-2.0.0/include",
 					../Maths,
 					../procparse,
+					/usr/local/include,
 				);
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
@@ -770,6 +777,7 @@
 					"../nifticlib-2.0.0/include",
 					../Maths,
 					../procparse,
+					/usr/local/include,
 				);
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
@@ -783,6 +791,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+					/usr/local/lib,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -794,6 +803,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+					/usr/local/lib,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -805,6 +815,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+					/usr/local/lib,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -816,6 +827,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
+					/usr/local/lib,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

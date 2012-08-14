@@ -7,105 +7,65 @@
  */
 
 #include "mathsOptimisers.h"
+
+extern int MATHS_DEBUG;
+int LEV_DEBUG = 0;
 //******************************************************************************
 #pragma mark Residuals
 //******************************************************************************
 // Single evaulation function residuals
-inline double calcResiduals(double *parameters, double *constants,
-                            double *dataX, double *dataY, size_t nD,
-				            eval_type *function, double *residuals, bool norm)
+double calcResiduals(gsl_vector *params, void *consts,
+					 gsl_vector *dataX, gsl_vector *dataY,
+					 eval_type  *function, gsl_vector *residuals)
 {
-	double sum = 0.;
-	double funcY[nD];
-	for (int d = 0; d < nD; d++)
-		funcY[d] = function(dataX[d], parameters, constants);
-	if (norm)
-		arrayScale(funcY, funcY, 1. /arrayMean(funcY, nD), nD);
-	for (int d = 0; d < nD; d++)
+	bool alloc = false;
+	gsl_vector *temp;
+	if (!residuals)
 	{
-		double res = dataY[d] - funcY[d];
-		if (residuals)
-			residuals[d] = res;
-		sum += res*res;
+		alloc = true;
+		temp = gsl_vector_alloc(dataX->size);
 	}
-	return sqrt(sum);
-}
-
-// One array function residuals
-double calcAResiduals(double *params, double *consts,
-                      double *dataX, double *dataY, size_t nD,
-	 	              eval_array_type *function, double *residuals, bool norm)
-{
-	double sum = 0.;
-	double funcY[nD];
-	function(dataX, params, consts, funcY, nD);
-	if (norm)
-		arrayScale(funcY, funcY, 1. /arrayMean(funcY, nD), nD);
-	for (int d = 0; d < nD; d++)
-	{
-		double res = dataY[d] - funcY[d];
-		if (residuals)
-			residuals[d] = res;
-		sum += res*res;
-	}
-	return sqrt(sum);
-}
-
-// Evaluate multiple function residuals
-inline double calcMResiduals(double *params, double **consts, size_t nM,
-							 double **dataX, double **dataY, size_t *nD,
-							 eval_type **funcs, double **residuals, bool norm)
-{
-	double sum = 0.;
-	for (int m = 0; m < nM; m++)
-	{
-		double *funcY = malloc(nD[m] * sizeof(double));
-		for (int d = 0; d < nD[m]; d++)
-			funcY[d] = funcs[m](dataX[m][d], params, consts[m]);
-		if (norm)
-			arrayScale(funcY, funcY, 1. / arrayMean(funcY, nD[m]), nD[m]);
-		double thisRes = 0.;
-		for (int d = 0; d < nD[m]; d++)
-		{
-			double res = dataY[m][d] - funcY[d];
-			if (residuals)
-				residuals[m][d] = res;
-			thisRes += res*res;
-		}
-		sum += thisRes;
-		free(funcY);
-	}
-	sum = sqrt(sum);
-	return sum;
+	else
+		temp = residuals;
+	function(dataX, params, consts, temp);
+	gsl_vector_sub(temp, dataY);
+	gsl_vector_mul(temp, temp);
+	double sumsq = vector_sum(temp);
+	if (alloc)
+		gsl_vector_free(temp);
+	return sqrt(sumsq);
 }
 
 // Evaluate multiple array function residuals
-double calcMAResiduals(double *params, void **consts, size_t nM,
-					   double **dataX, double **dataY, size_t *nD,
-					   eval_array_type **funcs, double **residuals,
-					   bool norm)
+double calcMResiduals(gsl_vector *params, size_t nF, void **consts,
+                      gsl_vector **dataX, gsl_vector **dataY,
+					  eval_type  **funcs, gsl_vector **residuals)
 {
-	double sum = 0.;
-	for (int m = 0; m < nM; m++)
+	bool alloc = false;
+	gsl_vector **temp;
+	if (!residuals)
 	{
-		double *funcY = malloc(nD[m] * sizeof(double));
-		funcs[m](dataX[m], params, consts[m], funcY, nD[m]);
-		
-		if (norm)
-			arrayScale(funcY, funcY, 1. / arrayMean(funcY, nD[m]), nD[m]);
-		double thisRes = 0.;
-		for (int d = 0; d < nD[m]; d++)
-		{
-			double res = dataY[m][d] - funcY[d];
-			if (residuals)
-				residuals[m][d] = res;
-			thisRes += res*res;
-		}
-		sum += thisRes;
-		free(funcY);
+		alloc = true;
+		temp = malloc(nF * sizeof(gsl_vector *));
+		for (int i = 0; i < nF; i++)
+			temp[i] = gsl_vector_alloc(dataX[i]->size);
 	}
-	sum = sqrt(sum);
-	return sum;
+	else
+		temp = residuals;
+	
+	double sumsq = 0;
+	for (int m = 0; m < nF; m++)
+	{
+		funcs[m](dataX[m], params, consts[m], temp[m]);
+		gsl_vector_sub(temp[m], dataY[m]);
+		gsl_vector_mul(temp[m], temp[m]);
+		sumsq += vector_sum(temp[m]);
+		if (alloc)
+			gsl_vector_free(temp[m]);
+	}
+	if (alloc)
+		free(temp);
+	return sqrt(sumsq);
 }
 //******************************************************************************
 #pragma mark Distributions
@@ -156,9 +116,9 @@ void linearLeastSquares(double *X, double *Y, int nD,
 //******************************************************************************
 // Golden Ratio section search
 //******************************************************************************
-int goldenSection(double *parameters, int nP, int P,
-                  double loP, double hiP, double *constants,
-                  double *dataX, double *dataY, int nD,
+int goldenSection(gsl_vector *parameters, int P,
+                  double loP, double hiP, void *constants,
+                  gsl_vector *dataX, gsl_vector *dataY,
 				  eval_type *function, double *finalResidue)
 {
 	// Golden Section Search to find B1	
@@ -167,14 +127,15 @@ int goldenSection(double *parameters, int nP, int P,
 	double C = 1 - R;
 	double precision = 0.001;	
 
-	double res1, res2, residuals[nD];
+	double res1, res2;
+	gsl_vector *residuals = gsl_vector_alloc(dataX->size);
 	double P0 = loP, P1, P2, P3 = hiP;
 	
 	int iterations = 0;
-	parameters[P] = P0;
-	res1 = calcResiduals(parameters, constants, dataX, dataY, nD, function, residuals, false);
-	parameters[P] = P3;
-	res2 = calcResiduals(parameters, constants, dataX, dataY, nD, function, residuals, false);
+	gsl_vector_set(parameters, P, P0);
+	res1 = calcResiduals(parameters, constants, dataX, dataY, function, residuals);
+	gsl_vector_set(parameters, P, P3);
+	res2 = calcResiduals(parameters, constants, dataX, dataY, function, residuals);
 
 	if (res1 < res2)
 	{
@@ -187,10 +148,10 @@ int goldenSection(double *parameters, int nP, int P,
 		P1 = P2 - C * (P2 - P0);
 	}
 
-	parameters[P] = P1;
-	res1 = calcResiduals(parameters, constants, dataX, dataY, nD, function, residuals, false);
-	parameters[P] = P2;
-	res2 = calcResiduals(parameters, constants, dataX, dataY, nD, function, residuals, false);
+	gsl_vector_set(parameters, P, P1);
+	res1 = calcResiduals(parameters, constants, dataX, dataY, function, residuals);
+	gsl_vector_set(parameters, P, P2);
+	res2 = calcResiduals(parameters, constants, dataX, dataY, function, residuals);
 	
 	while ( fabs(P3 - P0) > precision * (fabs(P1) + fabs(P2)))
 	{
@@ -200,16 +161,16 @@ int goldenSection(double *parameters, int nP, int P,
 			P0 = P1; P1 = P2;
 			P2 = R * P1 + C * P3;
 			res1 = res2;
-			parameters[P] = P2;
-			res2 = calcResiduals(parameters, constants, dataX, dataY, nD, function, residuals, false);
+			gsl_vector_set(parameters, P, P2);
+			res2 = calcResiduals(parameters, constants, dataX, dataY, function, residuals);
 		}
 		else
 		{
 			P3 = P2; P2 = P1;
 			P1 = R * P2 + C * P0;
 			res2 = res1;
-			parameters[P] = P1;
-			res1 = calcResiduals(parameters, constants, dataX, dataY, nD, function, residuals, false);
+			gsl_vector_set(parameters, P, P1);
+			res1 = calcResiduals(parameters, constants, dataX, dataY, function, residuals);
 		}
 	}
 	
@@ -217,12 +178,12 @@ int goldenSection(double *parameters, int nP, int P,
 	if (res1 < res2)
 	{
 		*finalResidue = res1;
-		parameters[P] = P1;
+		gsl_vector_set(parameters, P, P1);
 	}
 	else
 	{
 		*finalResidue = res2;
-		parameters[P] = P2;
+		gsl_vector_set(parameters, P, P2);
 	}
 	return iterations;
 }
@@ -230,17 +191,15 @@ int goldenSection(double *parameters, int nP, int P,
 //******************************************************************************
 // Non-linear least squares fitting using Levenberg-Marquardt
 //******************************************************************************
-int levenbergMarquardt(double *parameters, size_t nP, void **constants,
-                       double **dataX, double **dataY, eval_array_type **funcs,
-                       jacob_type **jacFuncs, size_t *nD, size_t nF,
-                       double *loBounds, double *hiBounds,
-                       bool normalise, double *finalResidue)
+int levenbergMarquardt(gsl_vector *parameters, size_t nF, void **constants,
+                       gsl_vector **dataX, gsl_vector **dataY,
+					   eval_type  **funcs, jacob_type **jacFuncs, double *finalResidue)
 {
 	// Set up variables
 	// nP is number of parameters, nD is number of data points
 	size_t evaluations = 0, MAX_EVALUATIONS = 100;
 	size_t totalD = 0;
-	
+	size_t nP = parameters->size;
 	if (nF == 0)
 	{
 		fprintf(stderr, "Invalid parameters for Levenberg-Marquardt, must have at least 1 evaluation function.\n");
@@ -248,146 +207,171 @@ int levenbergMarquardt(double *parameters, size_t nP, void **constants,
 	}
 	
 	for (size_t f = 0; f < nF; f++)
-		totalD += nD[f];
+		totalD += dataX[f]->size;
 	
-	double *Jacob = matrixAlloc(totalD, nP);
-	double *Jacobt = matrixAlloc(nP, totalD);
-	double *JtJ = matrixAlloc(nP, nP);
-	double *JtJAug = matrixAlloc(nP, nP);
-	double *residuals[nF], allRes[totalD];
+	gsl_matrix *Jacob = gsl_matrix_alloc(totalD, nP);
+	gsl_matrix *Jacobt = gsl_matrix_alloc(nP, totalD);
+	gsl_matrix *JtJ = gsl_matrix_alloc(nP, nP);
+	gsl_matrix *JtJAug = gsl_matrix_alloc(nP, nP);
+	gsl_vector *allRes = gsl_vector_alloc(totalD);;
+	gsl_vector **residuals = malloc(nF * sizeof(gsl_vector *));
 	for (size_t f = 0; f < nF; f++)
-		residuals[f] = arrayAlloc(nD[f]);
-	double *JtRes = arrayAlloc(nP);
-	double *delta = arrayAlloc(nP);
-	double *newPars = arrayAlloc(nP);
+		residuals[f] = gsl_vector_alloc(dataX[f]->size);
+	gsl_vector *JtRes = gsl_vector_alloc(nP);
+	gsl_vector *delta = gsl_vector_alloc(nP);
+	gsl_vector *tolerance = gsl_vector_alloc(nP);
+	gsl_vector *newPars = gsl_vector_alloc(nP);
 	
-	double oldSum = 0., lambda = 1., tol = sqrt(EPS); // Starting values
-	double sumResidues = calcMAResiduals(parameters, constants, nF, dataX, dataY, nD, funcs, residuals, normalise);
+	double oldSum = 0., lambda = 1., tol = sqrt(DBL_EPSILON); // Starting values
+	double sumResidues = calcMResiduals(parameters, nF, constants, dataX, dataY, funcs, residuals);
 	
-	if (MATHS_DEBUG > 0)
+	if (LEV_DEBUG > 0)
 		fprintf(stdout, "\nStarting Levenberg-Marquardt. Initial residue = %g\n", sumResidues);
 	bool outer = true;
-	while (outer && (evaluations < MAX_EVALUATIONS) && (fabs(sumResidues - oldSum) > tol))
+	while (outer && (evaluations < MAX_EVALUATIONS))
 	{	// Outer loop (Levenberg)
-		if (MATHS_DEBUG > 0)
+		if (fabs(sumResidues - oldSum) < (tol * oldSum))
+		{
+			if (LEV_DEBUG > 0)
+				fprintf(stdout, "Improvement in residue (%f) is below tolerance (%f). Terminating.\n",
+				        fabs(sumResidues - oldSum), (tol * oldSum));
+			break;
+		}
+		if (LEV_DEBUG > 0)
 			fprintf(stdout, "\nOuter Loop. Evaluations = %zu, lambda = %f, residual = %g\n", evaluations, lambda, sumResidues);
-		oldSum = sumResidues;
 		
+		oldSum = sumResidues;
 		// Calculate Jacobians
 		size_t jacOffset = 0;
 		for (size_t f = 0; f < nF; f++)
 		{
-			arrayCopy(allRes + jacOffset, residuals[f], nD[f]);
-			
+			size_t nX = dataX[f]->size;
+			gsl_vector_view temp = gsl_vector_subvector(allRes, jacOffset, nX);
+			gsl_vector_memcpy(&temp.vector, residuals[f]);
 			if (jacFuncs) // We have analytical gradients
-				jacFuncs[f](dataX[f], nD[f], parameters, constants[f], Jacob + (jacOffset * nP));
+				jacFuncs[f](dataX[f], parameters, constants[f], Jacob + (jacOffset * nP));
 			else // Numerical gradients
 			{
-				double *tempP = arrayAlloc(nP), *valAtP = arrayAlloc(nD[f]),
-				 	  *tempVal = arrayAlloc(nD[f]), *grad = arrayAlloc(nD[f]);
-				funcs[f](dataX[f], parameters, constants[f], valAtP, nD[f]);
-				arrayCopy(tempP, parameters, nP);
+				gsl_vector *tempP = gsl_vector_alloc(nP);
+				gsl_vector_memcpy(tempP, parameters);
+				gsl_vector *Y = gsl_vector_alloc(nX);
+				gsl_vector *dYdX = gsl_vector_alloc(nX);
+				funcs[f](dataX[f], parameters, constants[f], Y);
 				for (size_t p = 0; p < nP; p++)
 				{
-					double dP = sqrt(EPS) * tempP[p];
-					if (dP < sqrt(EPS))
-						dP = sqrt(EPS);
-					tempP[p] += dP;
-					funcs[f](dataX[f], tempP, constants[f], tempVal, nD[f]);
-					arraySub(grad, tempVal, valAtP, nD[f]);
-					arrayScale(grad, grad, 1. / dP, nD[f]);
-					for (size_t d = 0; d < nD[f]; d++)
-						Jacob[(jacOffset * nP) + (d * nP) + p] = grad[d];
-					tempP[p] = parameters[p]; // Restore original value
+					double dP = sqrt(DBL_EPSILON) * gsl_vector_get(tempP, p);
+					if (dP < sqrt(DBL_EPSILON))
+						dP = sqrt(DBL_EPSILON);
+					tempP->data[p * tempP->stride] += dP;
+					funcs[f](dataX[f], tempP, constants[f], dYdX); // Calc Y + dY
+					gsl_vector_sub(dYdX, Y);                       // Sub to get dY
+					gsl_vector_scale(dYdX, 1. / dP);               // Div to get dYdX
+					gsl_matrix_view Jview = gsl_matrix_submatrix(Jacob, jacOffset, 0, nX, nP);
+					gsl_matrix_set_col(&Jview.matrix, p, dYdX);
+					// Restore original value
+					tempP->data[p*tempP->stride] = gsl_vector_get(parameters, p); 
 				}
-				free(tempP); free(valAtP); free(tempVal); free(grad);
+				gsl_vector_free(tempP);
+				gsl_vector_free(Y);
+				gsl_vector_free(dYdX);
 			}
-			
-			jacOffset += nD[f];
+			jacOffset += nX;
 		}
 		// Calculate J'J and J'res
-		matrixTranspose(Jacobt, Jacob, totalD, nP);
-		matrixMult(JtRes, Jacobt, allRes, nP, totalD, 1);
-		matrixMult(JtJ, Jacobt, Jacob, nP, totalD, nP);
+		gsl_matrix_transpose_memcpy(Jacobt, Jacob);
+		matrix_mulv(JtRes, Jacobt, allRes);
+		matrix_mult(JtJ, Jacobt, Jacob);
 		
-		if (MATHS_DEBUG > 1)
+		gsl_vector_memcpy(tolerance, parameters);
+		gsl_vector_scale(tolerance, tol);
+		
+		if (LEV_DEBUG > 0)
 		{
-			MAT_D(Jacob, totalD, nP);
-			MAT_D(Jacobt, nP, totalD);
-			ARR_D(allRes, totalD);
-			MAT_D(JtRes, nP, 1);			
-			MAT_D(JtJ, nP, nP);
+			fprintf(stdout, "Outer Loop Calculations Finished.\n");
+			MAT_PRINT(Jacob);
+			MAT_PRINT(Jacobt);
+			MAT_PRINT(JtJ);
+			VEC_PRINT(tolerance);
+			fprintf(stdout, "Starting inner loop.\n\n");
 		}
-				
-		double deltaTolerance = tol * matrixInfNorm(parameters, nP, 1);
 		bool inner = true;
 		while(inner && (evaluations < MAX_EVALUATIONS))
 		{	// Inner loop (Marquardt)
 			evaluations++;
 			// Augment with lambda * diag(JtJ)
-			arrayCopy(JtJAug, JtJ, nP * nP);
+			gsl_matrix_memcpy(JtJAug, JtJ);
 			for (int i = 0; i < nP; i++)
-				JtJAug[i * nP + i] += lambda * JtJ[i * nP + i];
-			matrixSolve(delta, JtJAug, JtRes, nP, 1);
+				JtJAug->data[i * JtJAug->tda + i] += lambda * JtJ->data[i * JtJ->tda + i];
+			gsl_vector_memcpy(delta, JtRes);
+			matrix_solvev(JtJAug, delta);
 			// New parameter estimate
-			arrayAdd(newPars, parameters, delta, nP);
-			
-			// Get in bounds
-			for (size_t p = 0; p < nP; p++)
+			gsl_vector_memcpy(newPars, parameters);
+			gsl_vector_add(newPars, delta);
+			if (!isfinite(gsl_vector_max(newPars)))
 			{
-				if (loBounds && (newPars[p] < loBounds[p]))
-				{
-					double ratio = fabs(parameters[p] - loBounds[p]) / fabs(delta[p]);
-					arrayAddScale(newPars, parameters, 1., delta, ratio, nP);
-				}
-				if (hiBounds && (newPars[p] > hiBounds[p]))
-				{
-					double ratio = fabs(parameters[p] - hiBounds[p]) / fabs(delta[p]);
-					arrayAddScale(newPars, parameters, 1., delta, ratio, nP);
-				}
+				if (LEV_DEBUG > 0)
+					fprintf(stdout, "Infinite parameter detected. Back to outer loop.\n");
+				inner = false;
 			}
-			
-			sumResidues = calcMAResiduals(newPars, constants, nF, dataX, dataY, nD, funcs, residuals, normalise);
-			if (MATHS_DEBUG > 0)
+			sumResidues = calcMResiduals(newPars, nF, constants, dataX, dataY, funcs, residuals);
+			if (LEV_DEBUG > 0)
 			{
-				fprintf(stdout, "\nInner Loop. Evaluations = %zu, lambda = %f, residual = %g\n", evaluations, lambda, sumResidues);
-				ARR_D(delta, nP);
-				ARR_D(newPars, nP);
+				fprintf(stdout, "\nEvaluations = %zu, lambda = %f, residual = %g\n", evaluations, lambda, sumResidues);
+				VEC_PRINT(delta);
+				VEC_PRINT(newPars);
 			}
-			if (!isfinite(sumResidues))
-				inner = false;			
-			if ((matrixInfNorm(delta, nP, 1) < deltaTolerance) || // Change in parameters is small, back to outer loop
-			    (sumResidues < oldSum))                                // Improvement in estimate, accept
+			if (LEV_DEBUG)
 			{
-				arrayCopy(parameters, newPars, nP);
+				VEC_PRINT(delta);
+				VEC_PRINT(tolerance);
+			}
+			gsl_vector_sub(delta, tolerance);
+			if (gsl_vector_isneg(delta))
+			{
+				if (LEV_DEBUG)
+					fprintf(stdout, "Change in parameters is small. Back to outer loop.\n");
+				gsl_vector_memcpy(parameters, newPars);
+				lambda /= 10.;
+				inner = false;
+			}
+			else if(sumResidues < oldSum)
+			{
+				if (LEV_DEBUG)
+					fprintf(stdout, "Estimate has improved. Back to outer loop.\n");
+				gsl_vector_memcpy(parameters, newPars);
 				lambda /= 10.;
 				inner = false; 
 			}
 			else
 			{
-				lambda *= 10.;
+				lambda *= 100.;
 				if (!isfinite(lambda))
-				{	// No further improvement is possible
+				{
+					if (LEV_DEBUG)
+						fprintf(stdout, "Lambda is infinite. No further improvement possible. Terminating.\n");
 					inner = false;
 					outer = false;
 				}
 			}
 		}
 	}
-	if (MATHS_DEBUG > 0)
+	if (LEV_DEBUG > 0)
 	{
 		fprintf(stdout, "Finished Levenberg-Marquardt. Final evaluations = %zu, residual = %g\n", evaluations, sumResidues);
-		ARR_D(parameters, nP);
+		VEC_PRINT(parameters);
 	}
+	gsl_matrix_free(Jacob);
+	gsl_matrix_free(Jacobt);
+	gsl_matrix_free(JtJ);
+	gsl_matrix_free(JtJAug);
+	gsl_vector_free(JtRes);
+	gsl_vector_free(delta);
+	gsl_vector_free(newPars);
+	gsl_vector_free(tolerance);
+	gsl_vector_free(allRes);
 	for (size_t f = 0; f < nF; f++)
-		free(residuals[f]);
-	free(Jacob);
-	free(Jacobt);
-	free(JtJ);
-	free(JtJAug);
-	free(JtRes);
-	free(delta);
-	free(newPars);
+		gsl_vector_free(residuals[f]);
+	free(residuals);
 	*finalResidue = sqrt(sumResidues);
 	return evaluations;
 }
@@ -396,43 +380,54 @@ int levenbergMarquardt(double *parameters, size_t nP, void **constants,
 // Basic Simplex/Amoeba Search Optimiser (Nelder-Mead)
 //******************************************************************************
 int MATHS_SIMPLEX_DEBUG = 0;
-int simplex(double *params, size_t nP, double **consts, size_t nM,
-		    double **dataX, double **dataY, size_t *nD,
-		    eval_type **funcs, double **initial, double *finalResidue)
+int simplex(gsl_vector *params, size_t nF, void **consts,
+		    gsl_vector **dataX, gsl_vector **dataY,
+		    eval_type  **funcs, gsl_vector **initial, double *finalResidue)
 {
-	size_t nV = nP + 1, best[nV], MAX_EVALUATIONS = 250, evaluations = 0;
-	double simplex[nV][nP], centroid[nP], reflection[nP], expansion[nP], contraction[nP], residuals[nV];
+	size_t nP = params->size, nV = params->size + 1, MAX_EVALUATIONS = 250, evaluations = 0;
+	gsl_vector *centroid = gsl_vector_alloc(nP),
+			   *reflection = gsl_vector_alloc(nP),
+			   *expansion = gsl_vector_alloc(nP),
+			   *contraction = gsl_vector_alloc(nP),
+			   *residuals = gsl_vector_alloc(nV),
+	           *simplex[nV];
+	gsl_permutation *sort_perm = gsl_permutation_alloc(nV);
+	for (size_t i = 0; i < nV; i++)
+		simplex[i] = gsl_vector_alloc(nP);
 	
 	double alpha = 1., gamma = 2.5, rho = 0.5, sigma = 0.25;
-	double tol = sqrt(EPS), resDiff = 0.;
+	double tol = sqrt(DBL_EPSILON), resDiff = 0.;
 
 	if (initial)
 	{
 		for (int v = 0; v < nV; v++)
-			arrayCopy(simplex[v], initial[v], nP);
+			gsl_vector_memcpy(simplex[v], initial[v]);
 	}
 	else
 	{	// Randomly peturb starting params to produce initial simplex
 		//srand(clock());
 		for (int v = 0; v < nV; v++)
 		{
-			arrayCopy(simplex[v], params, nP);
+			gsl_vector_memcpy(simplex[v], params);
 			for (int p = 0; p < nP; p++)
 			{
 				double r = uniform(0.8, 1.2);
-				simplex[v][p] *= r;
+				simplex[v]->data[p * simplex[v]->stride] *= r;
 			}
 		}
 	}
 	if (MATHS_SIMPLEX_DEBUG > 0)
 	{
-		fprintf(stdout, "Start params: "); ARR_D( params, nP); fprintf(stdout, "\n");
+		//fprintf(stdout, "Start params: "); ARR_D( params, nP); fprintf(stdout, "\n");
 	}
 	
 	for (size_t v = 0; v < nV; v++)
-		residuals[v] = calcMResiduals(simplex[v], consts, nM, dataX, dataY, nD, funcs, NULL, false);
-	arrayIndexSort(residuals, best, SORT_ASCEND, nV);
-	resDiff = fabs(residuals[best[0]] - residuals[best[nV - 1]]);
+		gsl_vector_set(residuals, v, calcMResiduals(simplex[v], nF, consts, dataX, dataY, funcs, NULL));
+	
+	
+	gsl_sort_vector_index(sort_perm, residuals);
+	resDiff = fabs(gsl_vector_get(residuals, gsl_permutation_get(sort_perm, 0)) -
+	               gsl_vector_get(residuals, gsl_permutation_get(sort_perm, nV - 1)));
 
 	while ((evaluations < MAX_EVALUATIONS) && (resDiff > tol))
 	{
@@ -441,56 +436,61 @@ int simplex(double *params, size_t nP, double **consts, size_t nM,
 			fprintf(stdout, "Iteration %ld. Simplex: \n", evaluations);
 			for (size_t v = 0; v < nV; v++)
 			{
-				ARR_D( simplex[v], nP );
-				fprintf(stdout, "Res: %f\n", residuals[v]);
+				//ARR_D( simplex[v], nP );
+				fprintf(stdout, "Res: %f\n", gsl_vector_get(residuals, v));
 			}
 			fprintf(stdout, "Res Diff: %f\n", resDiff);
 		}
 
 		// Ignore worst vertex, calculate centroid
-		arrayZero(centroid, nP);
+		gsl_vector_set_zero(centroid);
 		for (size_t v = 0; v < (nV - 1); v++)
-			arrayAdd(centroid, centroid, simplex[v], nP);
-		arrayScale(centroid, centroid, 1. / nP, nP);
+			gsl_vector_add(centroid, simplex[v]);
+		gsl_vector_scale(centroid, 1. / nP);
 		
 		// Calculate reflection and compare
-		arrayAddScale(reflection, centroid, 1. + alpha, simplex[best[nV -1]], -alpha, nP);
-		double resRef = calcMResiduals(reflection, consts, nM, dataX, dataY, nD, funcs, NULL, false);
-		if ((resRef < residuals[best[nV - 2]]) && (resRef > residuals[best[0]]))
-			arrayCopy(simplex[best[nV - 1]], reflection, nP);
-		else if (resRef < residuals[best[0]])
+		gsl_vector *best = simplex[gsl_permutation_get(sort_perm, 0)];
+		gsl_vector *worst = simplex[gsl_permutation_get(sort_perm, nV - 1)];
+		
+		vector_add_scale(reflection, centroid, 1. + alpha, worst, -alpha);
+		double resRef = calcMResiduals(reflection, nF, consts, dataX, dataY, funcs, NULL);
+		if ((resRef < gsl_vector_get(residuals, gsl_permutation_get(sort_perm, nV - 2))) &&
+			(resRef > gsl_vector_get(residuals, gsl_permutation_get(sort_perm, 0))))
+			gsl_vector_memcpy(worst, reflection);
+		else if (resRef < gsl_vector_get(residuals, gsl_permutation_get(sort_perm, 0)))
 		{	// Reflection is better than any point in simplex
-			arrayAddScale(expansion, centroid, 1. + gamma, simplex[best[nV - 1]], -gamma, nP);
-			double resExp = calcMResiduals(expansion, consts, nM, dataX, dataY, nD, funcs, NULL, false);
+			vector_add_scale(expansion, centroid, 1. + gamma, worst, -gamma);
+			double resExp = calcMResiduals(expansion, nF, consts, dataX, dataY, funcs, NULL);
 			if (resExp < resRef)
-				arrayCopy(simplex[best[nV - 1]], expansion, nP);
+				gsl_vector_memcpy(worst, expansion);
 			else 
-				arrayCopy(simplex[best[nV - 1]], reflection, nP);
+				gsl_vector_memcpy(worst, reflection);
 		}
 		else
 		{	// Reflection not better than 2nd worst point in simplex
-			arrayAddScale(contraction, centroid, 1. + rho, simplex[best[nV - 1]], -rho, nP);
-			double resCon = calcMResiduals(contraction, consts, nM, dataX, dataY, nD, funcs, NULL, false);
-			if (resCon < residuals[best[nV - 1]])
-				arrayCopy(simplex[best[nV - 1]], contraction, nP);
+			vector_add_scale(contraction, centroid, 1. + rho, worst, -rho);
+			double resCon = calcMResiduals(contraction, nF, consts, dataX, dataY, funcs, NULL);
+			if (resCon < gsl_vector_get(residuals, gsl_permutation_get(sort_perm, nV - 1)))
+				gsl_vector_memcpy(worst, contraction);
 			else
 			{	// Still not better, just shrink the simplex
-				double bestCopy[nP]; arrayCopy(bestCopy, simplex[best[0]], nP);
+				gsl_vector *bestCopy = gsl_vector_alloc(nP);
+				gsl_vector_memcpy(bestCopy, best);
 				for (int v = 0; v < nV; v++)
-				{
-					arrayAddScale(simplex[v], bestCopy, 1 - sigma, simplex[v], sigma, nP);
-				}
+					vector_add_scale(simplex[v], bestCopy, 1 - sigma, simplex[v], sigma);
+				gsl_vector_free(bestCopy);
 			}
 		}
 		
 		for (size_t v = 0; v < nV; v++)
-			residuals[v] = calcMResiduals(simplex[v], consts, nM, dataX, dataY, nD, funcs, NULL, false);
-		arrayIndexSort(residuals, best, SORT_ASCEND, nV);
-		resDiff = fabs(residuals[best[0]] - residuals[best[nV - 1]]);
+			gsl_vector_set(residuals, v, calcMResiduals(simplex[v], nF, consts, dataX, dataY, funcs, NULL));
+		gsl_sort_vector_index(sort_perm, residuals);
+		resDiff = fabs(gsl_vector_get(residuals, gsl_permutation_get(sort_perm, 0)) -
+					   gsl_vector_get(residuals, gsl_permutation_get(sort_perm, nV - 1)));
 		evaluations++;		
 	}
-	arrayCopy(params, simplex[best[0]], nP);
-	*finalResidue = residuals[best[0]];
+	gsl_vector_memcpy(params, simplex[gsl_permutation_get(sort_perm, 0)]);
+	*finalResidue = gsl_vector_get(residuals, gsl_permutation_get(sort_perm, 0));
 	return evaluations;
 }
 
@@ -499,23 +499,25 @@ int simplex(double *params, size_t nP, double **consts, size_t nM,
 // nS = number of points to sample in parameter space at each step
 // nR = number of best points to retain and use for contracting the bounds
 //******************************************************************************
-void regionContraction(double *params, size_t nP, void **consts, size_t nM,
-					   double **dataX, double **dataY, size_t *nD, bool norm,
-					   eval_array_type **funcs, double **initBounds,
+void regionContraction(gsl_vector *params, size_t nF, void **consts,
+					   gsl_vector **dataX, gsl_vector **dataY,
+					   eval_type  **funcs, gsl_vector *initBounds[2],
 					   bool **constrained, size_t nS, size_t nR,
 					   size_t maxContractions, double thresh, double expand,
 					   double *finalResidue)
 {
-
-	double **samples = malloc(nS * sizeof(double *));
-	double *sampleRes = malloc(nS * sizeof(double));
-	size_t *sortedRes = malloc(nS * sizeof(size_t));
+	size_t nP = params->size;
+	gsl_vector **samples = malloc(nS * sizeof(gsl_vector *));
 	for (int s = 0; s < nS; s++)
-		samples[s] = malloc(nP * sizeof(double));
-	double bounds[2][nP];
-	arrayCopy(bounds[0], initBounds[0], nP);
-	arrayCopy(bounds[1], initBounds[1], nP);
-	
+		samples[s] = gsl_vector_alloc(nP);
+	gsl_vector *sampleRes = gsl_vector_alloc(nS);
+	gsl_vector *bounds[2];
+	bounds[0] = gsl_vector_alloc(nP);
+	bounds[1] = gsl_vector_alloc(nP);
+	gsl_vector *regionSize = gsl_vector_alloc(nP);
+	gsl_vector_memcpy(bounds[0], initBounds[0]);
+	gsl_vector_memcpy(bounds[1], initBounds[1]);
+	gsl_permutation *retained = gsl_permutation_alloc(nR);
 	size_t c;
 	srand(time(NULL));
 	for (c = 0; c < maxContractions; c++)
@@ -523,68 +525,67 @@ void regionContraction(double *params, size_t nP, void **consts, size_t nM,
 		for (int s = 0; s < nS; s++)
 		{
 			for (int p = 0; p < nP; p++)
-				samples[s][p] = uniform(bounds[0][p], bounds[1][p]);
-			sampleRes[s] = calcMAResiduals(samples[s], consts, nM, dataX, dataY, nD, funcs, NULL, norm);
+			{
+				double rval = uniform(gsl_vector_get(bounds[0], p),
+							           gsl_vector_get(bounds[1], p));
+				gsl_vector_set(samples[s], p, rval);
+				               
+			}
+			gsl_vector_set(sampleRes, s,
+			               calcMResiduals(samples[s], nF, consts, dataX, dataY, funcs, NULL));
 		}
-		arrayIndexSort(sampleRes, sortedRes, SORT_ASCEND, nS);
-		
+		gsl_sort_vector_smallest_index(retained->data, nR, sampleRes);
 		// Find the min and max for each parameter in the top nR samples
-		arraySet(bounds[0],  NUM_MAX, nP);
-		arraySet(bounds[1], -NUM_MAX, nP);
+		gsl_vector_set_all(bounds[0], DBL_MAX);
+		gsl_vector_set_all(bounds[1],-DBL_MAX);
 		
 		for (int r = 0; r < nR; r++)
 		{
 			for (int p = 0; p < nP; p++)
 			{
-				if (samples[sortedRes[r]][p] < bounds[0][p])
-					bounds[0][p] = samples[sortedRes[r]][p];
-				if (samples[sortedRes[r]][p] > bounds[1][p])
-					bounds[1][p] = samples[sortedRes[r]][p];
+				double pval = gsl_vector_get(samples[gsl_permutation_get(retained, r)], p);
+				if (pval < gsl_vector_get(bounds[0], p))
+					gsl_vector_set(bounds[0], p, pval);
+
+				if (pval > gsl_vector_get(bounds[1], p))
+					gsl_vector_set(bounds[1], p, pval);
 			}
 		}
 		
-		double regionSize[nP];
-		arraySub(regionSize, bounds[1], bounds[0], nP);
 		// Terminate if ALL the distances between bounds are under the threshold
-		bool all = true;
-		for (int p = 0; p < nP; p++)
-		{
-			if ((regionSize[p] / bounds[1][p]) > thresh)
-			{
-				all = false;
-				break;
-			}
-		}
-		if (all)
+		vector_add_scale(regionSize, bounds[1], 1., bounds[0], -1.);
+		gsl_vector_div(regionSize, bounds[1]);
+		double max_size = gsl_vector_max(regionSize);
+		if (max_size < thresh)
 			break;
 		
 		// Expand the boundaries back out in case we just missed a minima,
 		// but don't go past initial boundaries if constrained
+		vector_add_scale(regionSize, bounds[1], expand, bounds[0], expand);
+		gsl_vector_sub(bounds[0], regionSize);
+		gsl_vector_add(bounds[1], regionSize);
 		for (int p = 0; p < nP; p++)
 		{
-			bounds[0][p] -= regionSize[p] * expand;
-			if (constrained[0][p] && (bounds[0][p] < initBounds[0][p]))
-				bounds[0][p] = initBounds[0][p];
+			if (constrained[0][p] && (gsl_vector_get(bounds[0], p) < gsl_vector_get(initBounds[0], p)))
+				gsl_vector_set(bounds[0], p, gsl_vector_get(initBounds[0], p));
 			
-			bounds[1][p] += regionSize[p] * expand;
-			if (constrained[1][p] && (bounds[1][p] > initBounds[1][p]))
-				bounds[1][p] = initBounds[1][p];
+			if (constrained[1][p] && (gsl_vector_get(bounds[0], p) > gsl_vector_get(initBounds[1], p)))
+				gsl_vector_set(bounds[1], p, gsl_vector_get(initBounds[1], p));
 		}
 		
 	}
 	// Return the best evaluated solution so far
-	for (int p = 0; p < nP; p++)
-		params[p] = samples[sortedRes[0]][p];
-	*finalResidue = sampleRes[sortedRes[0]];
+	gsl_vector_memcpy(params, samples[gsl_permutation_get(retained, 0)]);
+	*finalResidue = gsl_vector_get(sampleRes, gsl_permutation_get(retained, 0));
 	
-	free(sortedRes); free(sampleRes);
 	for (int s = 0; s < nS; s++)
-		free(samples[s]);
+		gsl_vector_free(samples[s]);
 	free(samples);
-	if (MATHS_DEBUG > 0)
-	{
-		ARR_D(bounds[0], nP);
-		ARR_D(bounds[1], nP);
-		fprintf(stdout, "   "); ARR_D(params, nP);
-	}
+
+	gsl_vector_free(sampleRes);
+	gsl_vector_free(bounds[0]);
+	gsl_vector_free(bounds[1]);
+	gsl_vector_free(regionSize);
+	gsl_permutation_free(retained);
+
 }

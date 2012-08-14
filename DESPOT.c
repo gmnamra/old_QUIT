@@ -130,207 +130,173 @@ void aSSFP(double *flipAngle, double *p, double *c, double *ssfp, size_t nA)
 	1 - B1
 	2 - Phase cycle/offset
 */
-double n2cSPGR(double alpha, double *p, double *c)
-{
-	double T1_a = p[0], T1_b = p[1],
-		   f_a = p[4], tau_a = p[5],
-		   TR = c[0], B1 = c[1];
-	double f_b = 1. - f_a;
-	double tau_b = f_b * tau_a / f_a;
-	
-	double M0[2] = {f_a, f_b}, S[2];
-	double A[4]  = {-(TR/T1_a + TR/tau_a), TR/tau_b,
-	                TR/tau_a, -(TR/T1_b + TR/tau_b)};
-	double eye[4] = { 1., 0.,
-					  0., 1. };
-	matrixExp(A, 2);
-	double costerm[4];
-	arrayScale(costerm, A, cos(B1 * alpha), 4);
-	arraySub(costerm, eye, costerm, 4);
-	
-	double sinterm[4];
-	arraySub(sinterm, eye, A, 4);
-	arrayScale(sinterm, sinterm, sin(B1 * alpha), 4);
-	matrixSolve(A, costerm, sinterm, 2, 2);
-	matrixMult(S, A, M0, 2, 2, 1);
-	double s = S[0] + S[1];
-	return s;
-}
-
-double n2cSSFP(double alpha, double *p, double *c)
-{
-	double T1_a = p[0], T1_b = p[1], T2_a = p[2], T2_b = p[3],
-		   f_a = p[4], tau_a = p[5],
-		   TR = c[0], B0 = c[1], B1 = c[2], rfPhase = c[3];
-	double f_b = 1. - f_a;
-	double tau_b = f_b * tau_a / f_a;
-	double k_a = 1. / tau_a, k_b = 1. / tau_b;
-	double iT2_a = -(1./T2_a + k_a);
-	double iT2_b = -(1./T2_b + k_b);
-	double iT1_a = -(1./T1_a + k_a);
-	double iT1_b = -(1./T1_b + k_b);
-	double phase = rfPhase + (B0 * TR * 2. * M_PI);
-	double A[36] = { iT2_a * TR, k_b * TR,    phase,     0.,    0.,    0.,
-					 k_a  * TR,  iT2_b * TR,  0.,     phase,    0.,    0.,
-					 -phase,             0.,     iT2_a * TR,  k_b * TR,   0.,    0.,
-					 0.,    -phase,     k_a * TR,    iT2_b * TR, 0.,    0.,
-					 0.,    0.,     0.,    0.,     iT1_a * TR, k_b * TR,
-					 0.,    0.,     0.,    0.,     k_a * TR,   iT1_b * TR };
-
-	double ca = cos(B1 * alpha), sa = sin(B1 * alpha);
-	double R_rf[36] = { 1., 0., 0., 0., 0., 0.,
-	                    0., 1., 0., 0., 0., 0.,
-					    0., 0., ca, 0., sa, 0.,
-					    0., 0., 0., ca, 0., sa,
-					    0., 0.,-sa, 0., ca, 0.,
-					    0., 0., 0.,-sa, 0., ca };
-	double eye[36] = { 1., 0., 0., 0., 0., 0.,
-	                   0., 1., 0., 0., 0., 0.,
-					   0., 0., 1., 0., 0., 0.,
-					   0., 0., 0., 1., 0., 0.,
-					   0., 0., 0., 0., 1., 0.,
-					   0., 0., 0., 0., 0., 1. };
-					   
-	double temp1[36], temp2[36], temp3[36]; // First bracket
-	matrixExp(A, 6);
-	matrixMult(temp1, A, R_rf, 6, 6, 6);
-	arraySub(temp1, eye, temp1, 36);
-	arraySub(temp2, eye, A, 36);
-	
-	// Now multiply everything together
-	matrixSolve(temp3, temp1, temp2, 6, 6);
-	double M0[6] = { 0., 0., 0., 0., f_a , f_b };
-	double Mobs[6];
-	matrixMult(Mobs, temp3, M0, 6, 6, 1);
-	double s =  sqrt(pow(Mobs[0] + Mobs[1], 2.) +
-					 pow(Mobs[2] + Mobs[3], 2.));
-	return s;
-}
-
-void a1cSSFP(double *alpha, double *p, void *constants, double *signal, size_t nA)
+extern int LEV_DEBUG;
+void a1cSSFP(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *signal)
 {
 	SSFP_constants *c = constants;
-	double M0 = p[0], T2 = p[1], B0 = p[2],
+	gsl_matrix *A = gsl_matrix_calloc(3, 3);
+	gsl_matrix *R_rf = gsl_matrix_calloc(3, 3);
+	gsl_matrix *eye = gsl_matrix_calloc(3, 3);
+	gsl_matrix *temp1 = gsl_matrix_alloc(3, 3);
+	gsl_matrix *temp2 = gsl_matrix_alloc(3, 3);
+	gsl_vector *M0_v = gsl_vector_calloc(3);
+	gsl_vector *Mobs = gsl_vector_alloc(3);
+	double M0 = gsl_vector_get(p, 0),
+	       T2 = gsl_vector_get(p, 1),
+		   B0 = gsl_vector_get(p, 2),
 		   TR = c->TR, T1 = c->T1, B1 = c->B1, rfPhase = c->rfPhase;
-	
 	double phase = rfPhase + (B0 * TR * 2. * M_PI);
-	double A[9] = { -TR / T2,    phase,       0.,
-					  -phase, -TR / T2,       0.,
-					      0.,       0., -TR / T1 };
-
-	double R_rf[9] = { 1., 0., 0.,
-					   0., 0., 0.,
-					   0., 0., 0.};
-	double eye[9] = { 1., 0., 0.,
-					  0., 1., 0.,
-					  0., 0., 1. };
-	double temp1[9], temp2[9], all[9];
-	matrixExp(A, 3);
-	arraySub(temp2, eye, A, 9);
-	
-	for (size_t n = 0; n < nA; n++)
+	double A_d[] = { -TR / T2,    phase,       0.,
+	                   -phase, -TR / T2,       0.,
+						   0.,       0., -TR / T1 };
+	matrix_set_array(A, A_d);
+	gsl_matrix_set(R_rf, 0, 0, 1.);
+	matrix_eye(eye);
+	MAT_PRINT(A);
+	matrix_exp(A);
+	MAT_PRINT(A);
+	gsl_vector_set(M0_v, 2, M0);
+	for (size_t n = 0; n < alpha->size; n++)
 	{
-		double ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
-		R_rf[4] = R_rf[8] = ca;
-		R_rf[5] = sa;
-		R_rf[7] = -sa;
-		matrixMult(temp1, A, R_rf, 3, 3, 3);
-		arraySub(temp1, eye, temp1, 9);
-		matrixSolve(all, temp1, temp2, 3, 3);
-		double M0_z[3] = { 0., 0., M0 };
-		double Mobs[3];
-		matrixMult(Mobs, all, M0_z, 3, 3, 1);
-		signal[n] = sqrt(Mobs[0]*Mobs[0] + Mobs[1]*Mobs[1]);
+		matrix_add_scale(temp2, eye, 1., A, -1.);
+		double a = gsl_vector_get(alpha, n);
+		double ca = cos(B1 * a), sa = sin(B1 * a);
+		gsl_matrix_set(R_rf, 1, 1, ca); gsl_matrix_set(R_rf, 2, 2, ca);
+		gsl_matrix_set(R_rf, 1, 2, sa); gsl_matrix_set(R_rf, 2, 1, -sa);
+		matrix_mult(temp1, A, R_rf);
+		matrix_add_scale(temp1, eye, 1., temp1, -1.);
+		matrix_solve(temp1, temp2);
+		matrix_mulv(Mobs, temp2, M0_v);
+		gsl_vector_set(signal, n, sqrt(gsl_vector_get(Mobs, 0) * gsl_vector_get(Mobs, 0) +
+									   gsl_vector_get(Mobs, 1) * gsl_vector_get(Mobs, 1)));
 	}
+	gsl_matrix_free(A);
+	gsl_matrix_free(R_rf);
+	gsl_matrix_free(eye);
+	gsl_matrix_free(temp1);
+	gsl_matrix_free(temp2);
+	gsl_vector_free(M0_v);
+	gsl_vector_free(Mobs);
 }
 
-void a2cSPGR(double *alpha, double *p, void *constants, double *signal, size_t nA)
+void a2cSPGR(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *signal)
 {
 	SPGR_constants *c = constants;
-	double T1_a = p[0], T1_b = p[1],
-		   f_a = p[4], tau_a = p[5],
-		   TR = c->TR, M0 = c->M0, B1 = c->B1;
-	double f_b = 1. - f_a;
-	double tau_b = f_b * tau_a / f_a;
+	double T1_a = gsl_vector_get(p, 0),
+	       T1_b = gsl_vector_get(p, 1),
+		   f_a  = gsl_vector_get(p, 4),
+		   f_b = 1. - f_a,
+		   tau_a = gsl_vector_get(p, 5),
+		   tau_b = f_b * tau_a / f_a,
+		   TR = c->TR, B1 = c->B1;
 	
-	double M0v[2] = {M0 * f_a, M0 * f_b}, Mobs[2];
-	double A[4]  = {-(TR/T1_a + TR/tau_a), TR/tau_b,
-	                TR/tau_a, -(TR/T1_b + TR/tau_b)};
-	double eye[4] = { 1., 0.,
-					  0., 1. };
+	gsl_matrix *A = gsl_matrix_alloc(2, 2);
+	gsl_matrix *eye = gsl_matrix_alloc(2, 2);
+	gsl_matrix *num = gsl_matrix_alloc(2, 2);
+	gsl_matrix *den = gsl_matrix_alloc(2, 2);
+	gsl_vector *M0   = gsl_vector_alloc(2);
+	gsl_vector *Mobs = gsl_vector_alloc(2);
+	matrix_eye(eye);
+	double A_d[4]  = {-(TR/T1_a + TR/tau_a), TR/tau_b,
+	                    TR/tau_a, -(TR/T1_b + TR/tau_b)};
+	matrix_set_array(A, A_d);
+	gsl_vector_set(M0, 0, c->M0 * f_a);
+	gsl_vector_set(M0, 1, c->M0 * f_b); 
 	
-	matrixExp(A, 2);
-	double top[4], bottom[4], all[4];
-	arraySub(top, eye, A, 4);
-	for (size_t n = 0; n < nA; n++)
+	matrix_exp(A);
+	for (size_t n = 0; n < signal->size; n++)
 	{
-		arrayScale(bottom, A, cos(B1 * alpha[n]), 4);
-		arraySub(bottom, eye, bottom, 4);
+		double angle = gsl_vector_get(alpha, n);
+		matrix_add_scale(num, eye, 1., A, -1.);
+		gsl_matrix_memcpy(den, A);
+		gsl_matrix_scale(den, cos(B1 * angle));
+		matrix_add_scale(den, eye, 1., den, -1.);
 	
-		matrixSolve(all, bottom, top, 2, 2);
-		arrayScale(all, all, sin(B1 * alpha[n]), 4);
-		matrixMult(Mobs, all, M0v, 2, 2, 1);
-		signal[n] = Mobs[0] + Mobs[1];
+		matrix_solve(den, num);
+		gsl_matrix_scale(num, sin(B1 * angle));
+		matrix_mulv(Mobs, num, M0);
+		gsl_vector_set(signal, n, gsl_vector_get(Mobs, 0) + gsl_vector_get(Mobs, 1));
 	}
+	gsl_matrix_free(A);
+	gsl_matrix_free(eye);
+	gsl_matrix_free(num);
+	gsl_matrix_free(den);
+	gsl_vector_free(M0);
+	gsl_vector_free(Mobs);
 }
 
-void a2cSSFP(double *alpha, double *p, void *constants, double *signal, size_t nA)
+void a2cSSFP(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *signal)
 {
 	SSFP_constants *c = constants;
-	double T1_a = p[0], T1_b = p[1], T2_a = p[2], T2_b = p[3],
-		   f_a = p[4], tau_a = p[5], B0 = p[6],
-		   TR = c->TR, M0 = c->M0, B1 = c->B1, rfPhase = c->rfPhase;
-	double f_b = 1. - f_a;
-	double tau_b = f_b * tau_a / f_a;
-	double eT2_a = -TR * (1./T2_a + 1./tau_a);
-	double eT2_b = -TR * (1./T2_b + 1./tau_b);
-	double eT1_a = -TR * (1./T1_a + 1./tau_a);
-	double eT1_b = -TR * (1./T1_b + 1./tau_b);
-	double k_a   = TR / tau_a;
-	double k_b   = TR / tau_b;
-	double phase = rfPhase + (B0 * TR * 2. * M_PI);
-
-	double eye[36] = { 1., 0., 0., 0., 0., 0.,
-	                   0., 1., 0., 0., 0., 0.,
-					   0., 0., 1., 0., 0., 0.,
-					   0., 0., 0., 1., 0., 0.,
-					   0., 0., 0., 0., 1., 0.,
-					   0., 0., 0., 0., 0., 1. };
-	double A[36] = {  eT2_a,    k_b, phase,    0.,    0.,    0.,
-					    k_a,  eT2_b,    0., phase,    0.,    0.,
-					 -phase,     0., eT2_a,   k_b,    0.,    0.,
-					     0., -phase,   k_a, eT2_b,    0.,    0.,
-					     0.,     0.,    0.,    0., eT1_a,   k_b,
-					     0.,     0.,    0.,    0.,   k_a, eT1_b };
-	double R_rf[36] = { 1., 0., 0., 0., 0., 0.,
-	                    0., 1., 0., 0., 0., 0.,
-					    0., 0., 0., 0., 0., 0.,
-					    0., 0., 0., 0., 0., 0.,
-					    0., 0., 0., 0., 0., 0.,
-					    0., 0., 0., 0., 0., 0. };
-
-	double top[36], bottom[36], all[36];
-	double M0v[6] = { 0., 0., 0., 0., M0 * f_a , M0 * f_b }, Mobs[6];
+	double T1_a = gsl_vector_get(p, 0),
+	       T1_b = gsl_vector_get(p, 1),
+		   T2_a = gsl_vector_get(p, 2),
+		   T2_b = gsl_vector_get(p, 3),
+		   f_a  = gsl_vector_get(p, 4),
+		   f_b  = 1. - f_a,
+		   tau_a = gsl_vector_get(p, 5),
+		   tau_b = f_b * tau_a / f_a,
+		   B0 = gsl_vector_get(p, 6),
+		   TR = c->TR, B1 = c->B1, rfPhase = c->rfPhase;
+	double eT2_a = -TR * (1./T2_a + 1./tau_a),
+	       eT2_b = -TR * (1./T2_b + 1./tau_b),
+		   eT1_a = -TR * (1./T1_a + 1./tau_a),
+		   eT1_b = -TR * (1./T1_b + 1./tau_b),
+		   k_a   = TR / tau_a,
+		   k_b   = TR / tau_b,
+		   phase = rfPhase + (B0 * TR * 2. * M_PI);
 	
-	matrixExp(A, 6);
+	double A_d[36] = {  eT2_a,    k_b, phase,    0.,    0.,    0.,
+					      k_a,  eT2_b,    0., phase,    0.,    0.,
+					   -phase,     0., eT2_a,   k_b,    0.,    0.,
+					       0., -phase,   k_a, eT2_b,    0.,    0.,
+					       0.,     0.,    0.,    0., eT1_a,   k_b,
+					       0.,     0.,    0.,    0.,   k_a, eT1_b };
+	gsl_matrix *eye = gsl_matrix_alloc(6, 6); matrix_eye(eye);
+	gsl_matrix *A   = gsl_matrix_alloc(6, 6); matrix_set_array(A, A_d);
+	gsl_matrix *R_rf = gsl_matrix_calloc(6, 6);
+	gsl_matrix_set(R_rf, 0, 0, 1.);
+	gsl_matrix_set(R_rf, 1, 1, 1.);
+	gsl_matrix *top = gsl_matrix_alloc(6, 6);
+	gsl_matrix *bottom = gsl_matrix_alloc(6, 6);
+	
+	gsl_vector *M0 = gsl_vector_calloc(6);
+	gsl_vector *Mobs = gsl_vector_alloc(6);
+	gsl_vector_set(M0, 4, c->M0 * f_a);
+	gsl_vector_set(M0, 5, c->M0 * f_b);
+	
+	matrix_exp(A);
 	// Top of matrix divide
-	arraySub(top, eye, A, 36);
-
-	for (size_t n = 0; n < nA; n++)
+	for (size_t n = 0; n < signal->size; n++)
 	{
-		double ca = cos(B1 * alpha[n]), sa = sin(B1 * alpha[n]);
-		R_rf[14] = ca; R_rf[21] = ca; R_rf[28] = ca; R_rf[35] = ca;
-		R_rf[16] = sa; R_rf[23] = sa; R_rf[26] = -sa; R_rf[33] = -sa;
+		matrix_add_scale(top, eye, 1., A, -1.);
+		double angle = gsl_vector_get(alpha, n);
+		double ca = cos(B1 * angle), sa = sin(B1 * angle);
+		gsl_matrix_set(R_rf, 2, 2, ca);
+		gsl_matrix_set(R_rf, 3, 3, ca);
+		gsl_matrix_set(R_rf, 4, 4, ca);
+		gsl_matrix_set(R_rf, 5, 5, ca);
+		gsl_matrix_set(R_rf, 2, 4, sa);
+		gsl_matrix_set(R_rf, 3, 5, sa);
+		gsl_matrix_set(R_rf, 4, 2, -sa);
+		gsl_matrix_set(R_rf, 5, 3, -sa);
 		// Inverse bracket term (i.e. bottom of matrix divide)
-		matrixMult(bottom, A, R_rf, 6, 6, 6);
-		arraySub(bottom, eye, bottom, 36);
-		
+		matrix_mult(bottom, A, R_rf);
+		matrix_add_scale(bottom, eye, 1., bottom, -1.);
 		// Matrix 'divide'
-		matrixSolve(all, bottom, top, 6, 6);
-		matrixMult(Mobs, all, M0v, 6, 6, 1);
-		signal[n] =  sqrt(pow(Mobs[0] + Mobs[1], 2.) +
-					      pow(Mobs[2] + Mobs[3], 2.));
+		matrix_solve(bottom, top);
+		matrix_mulv(Mobs, top, M0);
+		gsl_vector_set(signal, n, sqrt(pow(gsl_vector_get(Mobs, 0) + gsl_vector_get(Mobs, 1), 2.) +
+					                   pow(gsl_vector_get(Mobs, 2) + gsl_vector_get(Mobs, 3), 2.)));
 	}
+	
+	gsl_matrix_free(eye);
+	gsl_matrix_free(A);
+	gsl_matrix_free(R_rf);
+	gsl_matrix_free(top);
+	gsl_matrix_free(bottom);
+	gsl_vector_free(M0);
+	gsl_vector_free(Mobs);
 }
 
 // Normalised, 3 component versions
@@ -354,7 +320,6 @@ void a2cSSFP(double *alpha, double *p, void *constants, double *signal, size_t n
 	0 - TR
 	1 - B1
 	2 - Phase cycle/offset
-*/
 void a3cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
 {
 	double T1_a = p[0], T1_b = p[1], T1_c = p[2],
@@ -378,7 +343,7 @@ void a3cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
 					  0., 1., 0.,
 					  0., 0., 1. };
 	
-	matrixExp(A, 3);
+	matrix_exp(A, 3);
 	double top[9], bottom[9], all[9];
 	arraySub(top, eye, A, 9);
 	for (size_t n = 0; n < nA; n++)
@@ -388,7 +353,7 @@ void a3cSPGR(double *alpha, double *p, double *c, double *signal, size_t nA)
 	
 		matrixSolve(all, bottom, top, 3, 3);
 		arrayScale(all, all, sin(B1 * alpha[n]), 9);
-		matrixMult(Mobs, all, M0, 3, 3, 1);
+		matrix_mult(Mobs, all, M0, 3, 3, 1);
 		signal[n] = Mobs[0] + Mobs[1] + Mobs[2];
 	}
 }
@@ -445,7 +410,7 @@ void a3cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 	double top[81], bottom[81], all[81];
 	double M0[9] = { 0., 0., 0., 0., 0., 0., f_a , f_b, f_c }, Mobs[9];
 	
-	matrixExp(A, 9);
+	matrix_exp(A, 9);
 	// Top of matrix divide
 	arraySub(top, eye, A, 81);
 
@@ -455,16 +420,16 @@ void a3cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 		R[30] = ca; R[40] = ca; R[50] = ca; R[60] = ca; R[70] = ca; R[80] = ca;
 		R[33] = sa; R[43] = sa; R[53] = sa; R[57] = -sa; R[67] = -sa; R[77] = -sa;
 		// Inverse bracket term (i.e. bottom of matrix divide)
-		matrixMult(bottom, A, R, 9, 9, 9);
+		matrix_mult(bottom, A, R, 9, 9, 9);
 		arraySub(bottom, eye, bottom, 81);
 		
 		// Matrix 'divide'
 		matrixSolve(all, bottom, top, 9, 9);
-		matrixMult(Mobs, all, M0, 9, 9, 1);
+		matrix_mult(Mobs, all, M0, 9, 9, 1);
 		signal[n] =  sqrt(pow(Mobs[0] + Mobs[1] + Mobs[2], 2.) +
 					      pow(Mobs[3] + Mobs[4] + Mobs[5], 2.));
 	}
-}
+}*/
 
 double calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 				   double TR, double B1, double *M0, double *T1)
@@ -482,16 +447,17 @@ double calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 	return res;
 }
 
-double classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
+double classicDESPOT2(gsl_vector *flipAngles, gsl_vector *ssfpVals,
                       double TR, double T1, double B1, double *M0, double *T2)
 {
 	// As above, linearise, then least-squares
 	// p[0] = M0, p[1] = T2
+	int n = flipAngles->size;
 	double X[n], Y[n], slope, inter, residual;
 	for (int i = 0; i < n; i++)
 	{
-		X[i] = ssfpVals[i] / tan(flipAngles[i] * B1);
-		Y[i] = ssfpVals[i] / sin(flipAngles[i] * B1);
+		X[i] = gsl_vector_get(ssfpVals, i) / tan(gsl_vector_get(flipAngles, i) * B1);
+		Y[i] = gsl_vector_get(ssfpVals, i) / sin(gsl_vector_get(flipAngles, i) * B1);
 	}
 	linearLeastSquares(X, Y, n, &slope, &inter, &residual);
 	double eT1 = exp(-TR / T1);
@@ -499,89 +465,4 @@ double classicDESPOT2(double *flipAngles, double *ssfpVals, int n,
 	double eT2 = exp(-TR / *T2);
 	*M0 = inter * (1. - eT1 * eT2) / (1. - eT1);
 	return residual;
-}
-
-double calcHIFI(double *flipAngles, double *spgrVals, int nSPGR, double spgrTR,
-				double *TI, double *irVals, int nIR, double irFlipAngle, double irTR,
-				double *M0, double *T1, double *B1)
-{
-	// Golden Section Search to find B1	
-	// From www.mae.wvu.edu/~smirnov/nr/c10-1.pdf
-	double R = 0.61803399; // Golden ratio - 1
-	double C = 1 - R;
-	double precision = 0.001;	
-	
-	// Set up initial bracket using some guesses
-	double B1_0 = 0.3; double B1_3 = 1.8; double B1_1, B1_2;
-	
-	// Assemble parameters
-	double par[3] = { *M0, *T1, B1_0 };
-	double spgrConstants[1] = { spgrTR };
-	double irConstants[2] = { irFlipAngle, irTR };
-	double spgrRes[nSPGR], irRes[nIR];
-	
-	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-	double res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, &SPGR, spgrRes, false) +
-	              calcResiduals(par, irConstants, TI, irVals, nIR, &IRSPGR, irRes, false);
-	par[2] = B1_3;
-	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-	double res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
-	              calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes, false);
-	
-	if (res1 < res2)
-	{
-		B1_1 = B1_0 + 0.2;
-		B1_2 = B1_1 + C * (B1_3 - B1_1);
-	}
-	else
-	{
-		B1_2 = B1_3 - 0.2;
-		B1_1 = B1_2 - C * (B1_2 - B1_0);
-	}
-	
-	par[2] = B1_1;
-	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-	res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
-	       calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes, false);
-	par[2] = B1_2;
-	calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-	res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
-	       calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes, false);
-	
-	while ( fabs(B1_3 - B1_0) > precision * (fabs(B1_1) + fabs(B1_2)))
-	{
-		if (res2 < res1)
-		{
-			B1_0 = B1_1; B1_1 = B1_2;
-			B1_2 = R * B1_1 + C * B1_3;
-			res1 = res2;
-			par[2] = B1_2;
-			calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-			res2 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
-	               calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes, false);
-		}
-		else
-		{
-			B1_3 = B1_2; B1_2 = B1_1;
-			B1_1 = R * B1_2 + C * B1_0;
-			res2 = res1;
-			par[2] = B1_1;
-			calcDESPOT1(flipAngles, spgrVals, nSPGR, spgrTR, par[2], &(par[0]), &(par[1]));
-			res1 = calcResiduals(par, spgrConstants, flipAngles, spgrVals, nSPGR, SPGR, spgrRes, false) +
-	               calcResiduals(par, irConstants, TI, irVals, nIR, IRSPGR, irRes, false);
-		}
-	}
-	
-	// Best value for B1
-	*M0 = par[0]; *T1 = par[1];
-	if (res1 < res2)
-	{
-		*B1 = B1_1;
-		return res1;
-	}
-	else
-	{
-		*B1 = B1_2;
-		return res2;
-	}
 }

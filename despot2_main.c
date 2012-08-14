@@ -22,7 +22,7 @@
 
 #include "DESPOT.h"
 #include "fslio.h"
-#include "mathsArray.h"
+#include "mathsMatrix.h"
 #include "procpar.h"
 
 char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_180_file [additional ssfp files] \n\
@@ -71,7 +71,8 @@ int main(int argc, char **argv)
 
 	char *outPrefix = NULL, *outExt = ".nii.gz";
 	size_t nPhases;
-	double ssfpTR, *ssfpPhases = NULL, *ssfpAngles = NULL;
+	double ssfpTR, *ssfpPhases = NULL;
+	gsl_vector *ssfpAngles = NULL;
 	FSLIO **ssfpFiles = NULL, *inFile = NULL;
 	double *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *T1Data = NULL,
 	       *M0Data = NULL;
@@ -159,14 +160,14 @@ int main(int argc, char **argv)
 	size_t ny = ssfpFiles[0]->niftiptr->ny;
 	size_t nz = ssfpFiles[0]->niftiptr->nz;
 	size_t nSSFP = ssfpFiles[0]->niftiptr->nt;
-	ssfpAngles = malloc(nSSFP * sizeof(double));	
+	ssfpAngles = gsl_vector_alloc(nSSFP);
 	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
 	pars = readProcpar(procpar);
 	if (pars)
 	{
 		int check;
 		fprintf(stdout, "Reading SSFP 180 parameters from procpar.\n");
-		arrayCopy(ssfpAngles, realVals(pars, "flip1", &check), nSSFP);		
+		vector_memcpy_array(ssfpAngles, realVals(pars, "flip1", &check));
 		if (check != nSSFP)
 		{
 			fprintf(stderr, "flip1 and nvols do not match.\n");
@@ -174,15 +175,15 @@ int main(int argc, char **argv)
 		}
 		ssfpTR = realVal(pars, "tr", 0);
 		fprintf(stdout, "TR (s): %f, Angles (deg) = ", ssfpTR);
-		arrayPrint(stdout, ssfpAngles, nSSFP); fprintf(stdout, "\n");
-		arrayApply(ssfpAngles, ssfpAngles, radians, nSSFP);
+		gsl_vector_fprintf(stdout, ssfpAngles, "%f");
+		vector_apply(ssfpAngles, radians);
 		freeProcpar(pars);
 	}
 	else
 	{
 		fprintf(stdout, "Enter %zu SSFP flip angles (degrees) :", nSSFP);
-		fgetArray(stdin, 'd', nSSFP, ssfpAngles); fprintf(stdout, "\n");
-		arrayApply(ssfpAngles, ssfpAngles, radians, nSSFP);
+		fgetArray(stdin, 'd', nSSFP, ssfpAngles->data); fprintf(stdout, "\n");
+		vector_apply(ssfpAngles, radians);
 		fprintf(stdout, "Enter SSFP TR (ms):");
 		fscanf(stdin, "%lf", &ssfpTR);		
 	}
@@ -236,7 +237,7 @@ int main(int argc, char **argv)
 		resultsHeaders[r] = FslOpen(outName, "wb");
 		FslCloneHeader(resultsHeaders[r], ssfpFiles[0]);
 		FslSetDim(resultsHeaders[r], nx, ny, nz, 1);
-		FslSetDataType(resultsHeaders[r], DTYPE_FLOAT);
+		FslSetDataType(resultsHeaders[r], NIFTI_TYPE_FLOAT32);
 		resultsData[r] = malloc(totalVoxels * sizeof(double));
 	}
 	// Now register the SIGINT handler so we can ctrl-c and still get data
@@ -257,8 +258,8 @@ int main(int argc, char **argv)
 		__block int voxCount = 0;
 		clock_t loopStart = clock();
 		int sliceOffset = slice * voxelsPerSlice;
-		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
-		void (^processVoxel)(size_t vox) = ^(size_t vox)
+		for (size_t vox = 0; vox < voxelsPerSlice; vox++)
+		//void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
 			// Set up parameters and constants
 			double M0 = 0., T1 = 0., T2 = 0., B0 = 0, B1 = 1., residual = 0.;
@@ -273,12 +274,12 @@ int main(int argc, char **argv)
 			{	// Zero T1 causes zero-pivot error.
 				AtomicAdd(1, &voxCount);
 				// Gather signals. 180 Phase data is required to be the first file passed into program
-				double *signals[nPhases];
+				gsl_vector *signals[nPhases];
 				for (int p = 0; p < nPhases; p++)
 				{
-					signals[p] = malloc(nSSFP * sizeof(double));
-					for (int img = 0; img < nSSFP; img++)
-						signals[p][img] = (double)ssfpData[p][img * totalVoxels + sliceOffset + vox];
+					signals[p] = gsl_vector_alloc(nSSFP);
+					for (int i = 0; i < nSSFP; i++)
+						gsl_vector_set(signals[p], i, ssfpData[p][i*totalVoxels + sliceOffset + vox]);
 				}
 				// Choose phase with accumulated phase closest to 180
 				int index = 0;
@@ -292,18 +293,22 @@ int main(int argc, char **argv)
 						index = p;
 					}
 				}
-				residual = classicDESPOT2(ssfpAngles, signals[index], nSSFP, ssfpTR, T1, B1, &M0, &T2);
-				residual = index;
-				if (levMar)
+				residual = classicDESPOT2(ssfpAngles, signals[index], ssfpTR, T1, B1, &M0, &T2);
+				if (nPhases > 1)
+					residual = index;
+				// Don't process if DESPOT2 failed.
+				if (levMar && isfinite(T2) && isfinite(M0))
 				{
-					double *xData[nPhases];
+					gsl_vector *xData[nPhases];
 					if (M0Data)
 						M0 = M0Data[sliceOffset + vox];
-					int nP = 3;
-					double params[3] = { M0, T2, B0 };
+					gsl_vector *params = gsl_vector_alloc(3);
+					gsl_vector_set(params, 0, M0);
+					gsl_vector_set(params, 1, T2);
+					gsl_vector_set(params, 2, B0);
 					SSFP_constants **c = malloc(nPhases * sizeof(SSFP_constants *));
 					size_t dSize[nPhases];
-					eval_array_type *fs[nPhases];
+					eval_type *fs[nPhases];
 					for (int p = 0; p < nPhases; p++)
 					{
 						xData[p] = ssfpAngles;
@@ -316,13 +321,14 @@ int main(int argc, char **argv)
 						c[p]->rfPhase = ssfpPhases[p];
 					    fs[p] = &a1cSSFP;
 					}
-					levenbergMarquardt(params, nP, (void **)c, xData, signals, fs, NULL, dSize, nPhases, NULL, NULL, false, &residual);
+					levenbergMarquardt(params, nPhases, (void **)c, xData, signals, fs, NULL, &residual);
 					for (int p = 0; p < nPhases; p++)
 						free(c[p]);
 					free(c);
-					M0 = params[0];
-					T2 = params[1];
-					B0 = params[2];
+					M0 = gsl_vector_get(params, 0);
+					T2 = gsl_vector_get(params, 1);
+					B0 = gsl_vector_get(params, 2);
+					gsl_vector_free(params);
 				}
 				// Clean up memory
 				for (int p = 0; p < nPhases; p++)
@@ -333,8 +339,8 @@ int main(int argc, char **argv)
 			resultsData[2][sliceOffset + vox] = B0;
 			resultsData[3][sliceOffset + vox] = residual;
 		};
-		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+		//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+		//dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		
 		if (verbose)
 		{

@@ -11,46 +11,38 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "mathsUtil.h"
 #include "mathsMatrix.h"
+#include <gsl/gsl_permutation.h>
+#include <gsl/gsl_sort_vector.h>
 
 //******************************************************************************
 #pragma mark Fitting Library
 //******************************************************************************
-
-typedef double (eval_type) (double x, double *parameters, double *constants);
-typedef void (eval_array_type) (double *x, double *p, void *c, double *y, size_t n);
-typedef void (jacob_type) (double *data, int nD, double *parameters, double *constants, double *result);
-double calcResiduals(double *parameters, double *constants,
-                     double *dataX, double *dataY, size_t nD,
-	 	             eval_type *function, double *residuals, bool norm);
-double calcAResiduals(double *parameters, double *constants,
-                      double *dataX, double *dataY, size_t nD,
-	 	              eval_array_type *function, double *residuals, bool norm);
-double calcMResiduals(double *params, double **consts, size_t nM,
-					  double **dataX, double **dataY, size_t *nD,
-					  eval_type **funcs, double **residuals, bool norm);
-double calcMAResiduals(double *params, void **consts, size_t nM,
-					   double **dataX, double **dataY, size_t *nD,
-					   eval_array_type **funcs, double **residuals,
-					   bool norm);
+typedef void (eval_type)  (gsl_vector *x, gsl_vector *p, void *c, gsl_vector *y);
+typedef void (jacob_type) (gsl_vector *x, gsl_vector *p, void *c, gsl_matrix *dydx);
+double calcResiduals(gsl_vector *parameters, void *constants,
+					 gsl_vector *dataX, gsl_vector *dataY,
+					 eval_type  *function, gsl_vector *residuals);
+double calcMResiduals(gsl_vector *params, size_t nF, void **consts,
+                      gsl_vector **dataX, gsl_vector **dataY,
+					  eval_type  **funcs, gsl_vector **residuals);
 void linearLeastSquares(double *X, double *Y, int nD,
 						double *slope, double *inter, double *res);
-int goldenSection(double *parameters, int nP, int P,
-                  double loP, double hiP, double *constants,
-                  double *dataX, double *dataY, int nD,
+int goldenSection(gsl_vector *parameters, int P,
+                  double loP, double hiP, void *constants,
+                  gsl_vector *dataX, gsl_vector *dataY,
 				  eval_type *function, double *finalResidue);
-int levenbergMarquardt(double *parameters, size_t nP, void **constants,
-           double **dataX, double **dataY, eval_array_type **funcs,
-		   jacob_type **jacFuncs, size_t *nD, size_t nF,
-		   double *loBounds, double *hiBounds,
-		   bool normalise, double *finalResidue);
-int simplex(double *params, size_t nP, double **consts, size_t nM,
-		    double **dataX, double **dataY, size_t *nD,
-		    eval_type **funcs, double ** initial, double *finalResidue);
-void regionContraction(double *params, size_t nP, void **consts, size_t nM,
-					   double **dataX, double **dataY, size_t *nD, bool norm,
-					   eval_array_type **funcs, double **initBounds,
+extern int LEV_DEBUG;
+int levenbergMarquardt(gsl_vector *parameters, size_t nF, void **constants,
+                       gsl_vector **dataX, gsl_vector **dataY,
+					   eval_type  **funcs, jacob_type **jacFuncs,
+					   double *finalResidue);
+int simplex(gsl_vector *params, size_t nF, void **consts,
+		    gsl_vector **dataX, gsl_vector **dataY,
+		    eval_type  **funcs, gsl_vector **initial, double *finalResidue);
+void regionContraction(gsl_vector *params, size_t nF, void **consts,
+					   gsl_vector **dataX, gsl_vector **dataY,
+					   eval_type  **funcs, gsl_vector *initBounds[2],
 					   bool **constrained, size_t nS, size_t nR,
 					   size_t maxContractions, double thresh, double expand,
 					   double *finalResidue);
