@@ -15,6 +15,9 @@
 #include <gsl/gsl_permutation.h>
 #include <gsl/gsl_sort_vector.h>
 
+#ifdef __cplusplus
+extern "C"{
+#endif
 //******************************************************************************
 #pragma mark Fitting Library
 //******************************************************************************
@@ -46,4 +49,8 @@ void regionContraction(gsl_vector *params, size_t nF, void **consts,
 					   bool **constrained, size_t nS, size_t nR,
 					   size_t maxContractions, double thresh, double expand,
 					   double *finalResidue);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

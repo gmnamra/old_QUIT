@@ -23,6 +23,7 @@
 #include "DESPOT.h"
 #include "fslio.h"
 #include "mathsMatrix.h"
+#include "mathsUtil.h"
 #include "procpar.h"
 
 char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_180_file [additional ssfp files] \n\
@@ -152,8 +153,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Must have at least the 180 degree phase-cycling pattern to process.\n");
 		exit(EXIT_FAILURE);
 	}
-	ssfpFiles  = malloc(nPhases * sizeof(nifti_image *));
-	ssfpPhases = malloc(nPhases * sizeof(double));
+	ssfpFiles  = (FSLIO **)malloc(nPhases * sizeof(nifti_image *));
+	ssfpPhases = (double *)malloc(nPhases * sizeof(double));
 	ssfpPhases[0] = M_PI;
 	ssfpFiles[0] = FslOpen(argv[optind], "rb");
 	size_t nx = ssfpFiles[0]->niftiptr->nx;
@@ -221,7 +222,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	int voxelsPerSlice = nx * ny;
 	int totalVoxels = voxelsPerSlice * nz;
-	__block double **ssfpData = malloc(nPhases * sizeof(double *));
+	__block double **ssfpData = (double **)malloc(nPhases * sizeof(double *));
 	for (int p = 0; p < nPhases; p++)
 		ssfpData[p] = FslGetAllVolumesAsScaledDouble(ssfpFiles[p]);
 	fprintf(stdout, "Read SSFP data.\n");
@@ -238,7 +239,7 @@ int main(int argc, char **argv)
 		FslCloneHeader(resultsHeaders[r], ssfpFiles[0]);
 		FslSetDim(resultsHeaders[r], nx, ny, nz, 1);
 		FslSetDataType(resultsHeaders[r], NIFTI_TYPE_FLOAT32);
-		resultsData[r] = malloc(totalVoxels * sizeof(double));
+		resultsData[r] = (double *)malloc(totalVoxels * sizeof(double));
 	}
 	// Now register the SIGINT handler so we can ctrl-c and still get data
 	signal(SIGINT, int_handler);
@@ -297,7 +298,7 @@ int main(int argc, char **argv)
 				if (nPhases > 1)
 					residual = index;
 				// Don't process if DESPOT2 failed.
-				if (levMar && isfinite(T2) && isfinite(M0))
+				if (levMar && std::isfinite(T2) && std::isfinite(M0))
 				{
 					gsl_vector *xData[nPhases];
 					if (M0Data)
@@ -306,14 +307,14 @@ int main(int argc, char **argv)
 					gsl_vector_set(params, 0, M0);
 					gsl_vector_set(params, 1, T2);
 					gsl_vector_set(params, 2, B0);
-					SSFP_constants **c = malloc(nPhases * sizeof(SSFP_constants *));
+					SSFP_constants **c = (SSFP_constants **)malloc(nPhases * sizeof(SSFP_constants *));
 					size_t dSize[nPhases];
 					eval_type *fs[nPhases];
 					for (int p = 0; p < nPhases; p++)
 					{
 						xData[p] = ssfpAngles;
 						dSize[p] = nSSFP;
-						c[p] = malloc(sizeof(SSFP_constants));
+						c[p] = (SSFP_constants *)malloc(sizeof(SSFP_constants));
 						c[p]->TR = ssfpTR;
 						c[p]->T1 = T1;
 						c[p]->B0 = B0;

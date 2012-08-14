@@ -11,6 +11,11 @@
 
 #include "mathsMatrix.h"
 #include "mathsOptimisers.h"
+
+#include <iostream>
+#include <Eigen/Dense>
+#include <unsupported/Eigen/MatrixFunctions>
+using namespace Eigen;
 int tests();
 double SPGR(double flipAngle, double *p, double *c);
 void SPGR_Jacobian(double *angles, int nD, double *p, double *c, double *result);

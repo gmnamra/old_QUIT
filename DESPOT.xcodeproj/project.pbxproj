@@ -42,12 +42,12 @@
 		F6E1F9191592001C00DA918F /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
 		F6E1F91A1592001C00DA918F /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
 		F6E1F91B1592001C00DA918F /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
-		F6E4A2921590DB2F00DA4001 /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.c */; };
+		F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F6E4A2971590DB5300DA4001 /* despot1_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2931590DB4D00DA4001 /* despot1_main.c */; };
-		F6E4A2981590DB5800DA4001 /* despot2_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2941590DB4D00DA4001 /* despot2_main.c */; };
-		F6E4A2991590DB5800DA4001 /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.c */; };
+		F6E4A2981590DB5800DA4001 /* despot2_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */; };
+		F6E4A2991590DB5800DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F6E4A29A1590DB6000DA4001 /* mcdespot_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */; };
-		F6E4A29B1590DB6000DA4001 /* DESPOT.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.c */; };
+		F6E4A29B1590DB6000DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F6E4A29C1590DB6500DA4001 /* threshold_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2961590DB4D00DA4001 /* threshold_main.c */; };
 		F6E4A2A91590DB9600DA4001 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
 		F6E4A2AA1590DB9600DA4001 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
@@ -225,10 +225,10 @@
 		F6E4A26A1590DAA400DA4001 /* despot2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot2; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E4A2781590DAB500DA4001 /* mcdespot */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mcdespot; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E4A2861590DAC400DA4001 /* threshold */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = threshold; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6E4A2901590DB2F00DA4001 /* DESPOT.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = DESPOT.c; sourceTree = SOURCE_ROOT; };
+		F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DESPOT.cpp; sourceTree = SOURCE_ROOT; };
 		F6E4A2911590DB2F00DA4001 /* DESPOT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DESPOT.h; sourceTree = SOURCE_ROOT; };
 		F6E4A2931590DB4D00DA4001 /* despot1_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = despot1_main.c; sourceTree = SOURCE_ROOT; };
-		F6E4A2941590DB4D00DA4001 /* despot2_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = despot2_main.c; sourceTree = SOURCE_ROOT; };
+		F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = despot2_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = mcdespot_main.c; sourceTree = SOURCE_ROOT; };
 		F6E4A2961590DB4D00DA4001 /* threshold_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = threshold_main.c; sourceTree = SOURCE_ROOT; };
 		F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Maths.xcodeproj; path = ../Maths/Maths.xcodeproj; sourceTree = "<group>"; };
@@ -372,10 +372,10 @@
 				F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */,
 				F679FB7F15B6BDBF00A2EC48 /* mathsOptimisers.h */,
 				F6E4A2931590DB4D00DA4001 /* despot1_main.c */,
-				F6E4A2941590DB4D00DA4001 /* despot2_main.c */,
+				F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */,
 				F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */,
 				F6E4A2961590DB4D00DA4001 /* threshold_main.c */,
-				F6E4A2901590DB2F00DA4001 /* DESPOT.c */,
+				F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */,
 				F6E4A2911590DB2F00DA4001 /* DESPOT.h */,
 				F6E1F9051591FDDC00DA918F /* phasemap_main.c */,
 				F675C8D515CC120100BA95FC /* afi_main.c */,
@@ -600,7 +600,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6E4A2971590DB5300DA4001 /* despot1_main.c in Sources */,
-				F6E4A2921590DB2F00DA4001 /* DESPOT.c in Sources */,
+				F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */,
 				F679FB8015B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -609,8 +609,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6E4A2981590DB5800DA4001 /* despot2_main.c in Sources */,
-				F6E4A2991590DB5800DA4001 /* DESPOT.c in Sources */,
+				F6E4A2981590DB5800DA4001 /* despot2_main.cpp in Sources */,
+				F6E4A2991590DB5800DA4001 /* DESPOT.cpp in Sources */,
 				F679FB8115B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -620,7 +620,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6E4A29A1590DB6000DA4001 /* mcdespot_main.c in Sources */,
-				F6E4A29B1590DB6000DA4001 /* DESPOT.c in Sources */,
+				F6E4A29B1590DB6000DA4001 /* DESPOT.cpp in Sources */,
 				F679FB8215B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -753,6 +753,7 @@
 					../Maths,
 					../procparse,
 					/usr/local/include,
+					../eigen,
 				);
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
@@ -784,6 +785,7 @@
 					../Maths,
 					../procparse,
 					/usr/local/include,
+					../eigen,
 				);
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
