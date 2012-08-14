@@ -135,9 +135,8 @@ void a1cSSFP(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *sign
 {
 	SSFP_constants *c = (SSFP_constants *)constants;
 	
-	Matrix3d A, R_rf = Matrix3d::Zero(), eye = Matrix3d::Identity(), temp1, temp2, all;
+	Matrix3d A, R_rf = Matrix3d::Zero(), eye = Matrix3d::Identity(), eyema;
 	Vector3d M0 = Vector3d::Zero(), Mobs;
-	
 	M0(2) = gsl_vector_get(p, 0);
 	double T2 = gsl_vector_get(p, 1),
 		   B0 = gsl_vector_get(p, 2),
@@ -149,7 +148,7 @@ void a1cSSFP(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *sign
 	R_rf(0, 0) = 1.;
 	MatrixExponential<Matrix3d> expA(A);
 	expA.compute(A);
-	temp2 = eye - A;
+	eyema.noalias() = eye - A;
 	LLT<Matrix3d> llt;
 	for (size_t n = 0; n < alpha->size; n++)
 	{
@@ -157,10 +156,8 @@ void a1cSSFP(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *sign
 		double ca = cos(B1 * a), sa = sin(B1 * a);
 		R_rf(1, 1) = R_rf(2, 2) = ca;
 		R_rf(1, 2) = sa; R_rf(2, 1) = -sa;
-		temp1 = eye - (A * R_rf);
-		llt.compute(temp1);
-		all = llt.solve(temp2);
-		Mobs = all * M0;
+		llt.compute(eye - (A * R_rf));
+		Mobs = llt.solve(eyema) * M0;
 		gsl_vector_set(signal, n, sqrt(Mobs(0) * Mobs(0) +
 									   Mobs(1) * Mobs(1)));
 	}

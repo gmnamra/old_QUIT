@@ -836,6 +836,7 @@
 		F6E4A2731590DAA400DA4001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_OPTIMIZATION_LEVEL = 3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
