@@ -12,6 +12,9 @@
 #include <stdio.h>
 #include "uthash.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
 #define MAXSTR 1024
 
 enum PAR_TYPES
@@ -65,4 +68,7 @@ char   *stringVal(par_t *pars, char*name, int i);
 double *realVals(par_t *pars, char *name, int *nvals);
 char   **stringVals(par_t *pars, char *name, int *nvals);
 
+#ifdef __cplusplus
+}
+#endif
 #endif
