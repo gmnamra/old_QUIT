@@ -130,38 +130,6 @@ void aSSFP(double *flipAngle, double *p, double *c, double *ssfp, size_t nA)
 	1 - B1
 	2 - Phase cycle/offset
 */
-extern int LEV_DEBUG;
-void a1cSSFP(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *signal)
-{
-	SSFP_constants *c = (SSFP_constants *)constants;
-	
-	Matrix3d A, R_rf = Matrix3d::Zero(), eye = Matrix3d::Identity(), eyema;
-	Vector3d M0 = Vector3d::Zero(), Mobs;
-	M0(2) = gsl_vector_get(p, 0);
-	double T2 = gsl_vector_get(p, 1),
-		   B0 = gsl_vector_get(p, 2),
-		   TR = c->TR, T1 = c->T1, B1 = c->B1, rfPhase = c->rfPhase;		
-	double phase = rfPhase + (B0 * TR * 2. * M_PI);
-	A << -TR / T2,    phase,       0.,
-		   -phase, -TR / T2,       0.,
-			   0.,       0., -TR / T1;
-	R_rf(0, 0) = 1.;
-	MatrixExponential<Matrix3d> expA(A);
-	expA.compute(A);
-	eyema.noalias() = eye - A;
-	LLT<Matrix3d> llt;
-	for (size_t n = 0; n < alpha->size; n++)
-	{
-		double a = gsl_vector_get(alpha, n);
-		double ca = cos(B1 * a), sa = sin(B1 * a);
-		R_rf(1, 1) = R_rf(2, 2) = ca;
-		R_rf(1, 2) = sa; R_rf(2, 1) = -sa;
-		llt.compute(eye - (A * R_rf));
-		Mobs = llt.solve(eyema) * M0;
-		gsl_vector_set(signal, n, sqrt(Mobs(0) * Mobs(0) +
-									   Mobs(1) * Mobs(1)));
-	}
-}
 
 void a2cSPGR(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *signal)
 {
@@ -431,17 +399,17 @@ double calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 	return res;
 }
 
-double classicDESPOT2(gsl_vector *flipAngles, gsl_vector *ssfpVals,
+double classicDESPOT2(const Map<ArrayXd> &flipAngles, ArrayXd &ssfpVals,
                       double TR, double T1, double B1, double *M0, double *T2)
 {
 	// As above, linearise, then least-squares
 	// p[0] = M0, p[1] = T2
-	int n = flipAngles->size;
+	int n = flipAngles.size();
 	double X[n], Y[n], slope, inter, residual;
 	for (int i = 0; i < n; i++)
 	{
-		X[i] = gsl_vector_get(ssfpVals, i) / tan(gsl_vector_get(flipAngles, i) * B1);
-		Y[i] = gsl_vector_get(ssfpVals, i) / sin(gsl_vector_get(flipAngles, i) * B1);
+		X[i] = ssfpVals[i] / tan(flipAngles[i] * B1);
+		Y[i] = ssfpVals[i] / sin(flipAngles[i] * B1);
 	}
 	linearLeastSquares(X, Y, n, &slope, &inter, &residual);
 	double eT1 = exp(-TR / T1);
