@@ -178,13 +178,11 @@ class SSFP_2c: public SSFP_1c
 			       tau_a = params[5],
 			       tau_b = f_b * tau_a / f_a,
 				   B0 = params[6];
-			typedef Matrix<double, 6, 6> Matrix6d;
-			typedef Matrix<double, 6, 1> Vector6d;
-			Matrix6d A   = Matrix6d::Zero(),
-			         R_rf = Matrix6d::Zero(),
-					 eye = Matrix6d::Identity(),
-					 eyema;
-			Vector6d M0, Mobs;
+			//typedef Matrix<double, 6, 6> Matrix6d;
+			//typedef Matrix<double, 6, 1> Vector6d;
+			MatrixXd A(6, 6), R_rf(6, 6), eye(6, 6), eyema(6, 6);
+			VectorXd M0(6), Mobs(6);
+			A.setZero(); R_rf.setZero(); eye.setIdentity();
 			R_rf(0, 0) = R_rf(1, 1) = 1.;
 			M0 << 0., 0., 0., 0., _M0 * f_a, _M0 * f_b;
 			
@@ -211,7 +209,7 @@ class SSFP_2c: public SSFP_1c
 				A(4, 4) = eT1_a;
 				A(5, 5) = eT1_b;
 				A(0, 3) = A(1, 2) = A(2, 1) = A(3, 0) = 0.;
-				MatrixExponential<Matrix6d> expM(A);
+				MatrixExponential<MatrixXd> expM(A);
 				expM.compute(A);
 				eyema.noalias() = eye - A;
 				for (int i = 0; i < _flipAngles.size(); i++)
@@ -221,8 +219,8 @@ class SSFP_2c: public SSFP_1c
 					R_rf(2, 2) = R_rf(3, 3) = R_rf(4, 4) = R_rf(5, 5) = ca;
 					R_rf(2, 4) = R_rf(3, 5) = sa;
 					R_rf(4, 2) = R_rf(5, 3) = -sa;
-					
-					Mobs = (eye - (A * R_rf)).partialPivLu().solve(eyema) * M0;
+					MatrixXd eye_mAR = eye - (A * R_rf);
+					Mobs.noalias() = (eye_mAR).partialPivLu().solve(eyema) * M0;
 					diffs[index] = sqrt(pow(Mobs[0] + Mobs[1], 2.) +
 					                    pow(Mobs[2] + Mobs[3], 2.)) - _signals(p, i);
 					index++;
