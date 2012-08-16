@@ -8,248 +8,6 @@
  */
 
 #include "DESPOT.h"
-#include "mathsMatrix.h"
-#include "maths2d.h"
-#include "stdio.h"
-
-double SPGR(double flipAngle, double *p, double *c)
-{
-	double M0 = p[0], T1 = p[1], B1 = p[2], TR = c[0];
-	double e1 = exp(-TR / T1);
-	double spgr = M0 * (1. - e1) * sin(flipAngle * B1) /
-				      (1. - e1 * cos(flipAngle * B1));
-	return spgr;
-}
-
-void SPGR_Jacobian(double *angles, int nD, double *p, double *c, double *result)
-{
-	double M0 = p[0], T1 = p[1], B1 = p[2], TR = c[0];
-	double eTR = exp(-TR / T1);
-	for (int d = 0; d < nD; d++)
-	{
-		double alpha = angles[d];
-		
-		double denom = (1. - eTR * cos(B1 * alpha));
-		
-		double dMzM0 = (1 - eTR * sin(B1 * alpha)) / denom;
-		double dMzT1 = (M0 * TR * sin(B1 * alpha) * eTR * (cos(B1 * alpha) - 1.)) /
-		               (T1 * T1 * denom * denom);
-		double dMzB1 = (M0 * B1 * eTR * (1. - eTR + cos(B1 * alpha))) / (denom * denom);
-		result[0 * nD + d] = dMzM0;
-		result[1 * nD + d] = dMzT1;
-		result[2 * nD + d] = dMzB1;
-	}
-}
-
-double IRSPGR(double TI, double *p, double *c)
-{
-	double M0 = p[0], T1 = p[1], B1 = p[2];
-	double flipAngle = c[0], TR = c[1];
-	
-	double irEfficiency = cos(B1 * M_PI) - 1;
-
-	double fullTR = TI + TR;
-	double eTI = exp(-TI / T1);
-	double eFull = exp(-fullTR / T1);
-
-	double irspgr = fabs(M0 * sin(B1 * flipAngle) *
-					       (1. + irEfficiency * eTI + eFull));
-	return irspgr;
-}
-
-void IRSPGR_Jacobian(double *data, int nD, double *p, double *c, double *result)
-{
-	double M0 = p[0], T1 = p[1], B1 = p[2];
-	double alpha = c[0], TR = c[1], nReadout = c[2];
-	
-	for (int d = 0; d < nD; d++)
-	{
-		double TI = data[d];
-		double irEff = cos(B1 * M_PI) - 1;
-		
-		double fullTR = TI + (nReadout * TR);
-		double eTI = exp(-TI / T1);
-		double eTR = exp(-fullTR / T1);
-		
-		double dMzM0 = sin(B1 * alpha) * (1. + eTR + irEff * eTI);
-		double dMzT1 = (M0 * sin(B1 * alpha) / (T1 * T1)) *
-					   (fullTR * eTR + TI * irEff * eTI);
-		double b1 = M0 * alpha * cos(B1 * alpha) *
-					   (1 + eTR + irEff * eTI);
-		double b2 =    M0 * sin(B1 * alpha) *
-					   (M_PI * sin(B1 * M_PI) * eTI);
-		double dMzB1 = b1 - b2;
-		result[0 * nD + d] = dMzM0;
-		result[1 * nD + d] = dMzT1;
-		result[2 * nD + d] = dMzB1;
-	}
-}
-
-void aSSFP(double *flipAngle, double *p, double *c, double *ssfp, size_t nA)
-{
-	double M0 = p[0], T2 = p[1];
-	double TR = c[0], T1 = c[1], B0 = c[2], B1 = c[3], offset = c[4];
-	
-	double eT1 = exp(-TR / T1);
-	double eT2 = exp(-TR / T2);
-	
-	double phase = offset + B0 * TR * 2. * M_PI;
-	double sinp = sin(phase);
-	double cosp = cos(phase);
-	
-	for (size_t i = 0; i < nA; i++)
-	{
-		double sina = sin(B1 * flipAngle[i]);
-		double cosa = cos(B1 * flipAngle[i]);
-
-	
-		double denom = ((1. - eT1 * cosa) * (1. - eT2 * cosp)) - 
-					   (eT2 * (eT1 - cosa) * (eT2 - cosp));
-	
-		double Mx = ((1 - eT1) * eT2 * sina * (cosp - eT2)) / denom;
-		double My = ((1.- eT1) * eT2 * sina * sinp) / denom;
-		ssfp[i] = M0 * sqrt(Mx*Mx + My*My);
-	}
-}
-
-// Normalised, 2 component versions
-/*	Full parameter vector is
-	0 - T1_a
-	1 - T1_b
-	2 - T2_a
-	3 - T2_b
-	4 - f_a
-	5 - tau_a
-	6 - dw
-	Relationships:
-	f_b + f_a = 1. (Only two components)
-	k_ = 1. / tau_ (Exchange is inverse of lifetime)
-	f_b / tau_b = f_a / tau_a (Exchange equilibrium)
-	Constants vector:
-	0 - TR
-	1 - B1
-	2 - Phase cycle/offset
-*/
-
-void a2cSPGR(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *signal)
-{
-	SPGR_constants *c = (SPGR_constants *)constants;
-	double T1_a = gsl_vector_get(p, 0),
-	       T1_b = gsl_vector_get(p, 1),
-		   f_a  = gsl_vector_get(p, 4),
-		   f_b = 1. - f_a,
-		   tau_a = gsl_vector_get(p, 5),
-		   tau_b = f_b * tau_a / f_a,
-		   TR = c->TR, B1 = c->B1;
-	
-	gsl_matrix *A = gsl_matrix_alloc(2, 2);
-	gsl_matrix *eye = gsl_matrix_alloc(2, 2);
-	gsl_matrix *num = gsl_matrix_alloc(2, 2);
-	gsl_matrix *den = gsl_matrix_alloc(2, 2);
-	gsl_vector *M0   = gsl_vector_alloc(2);
-	gsl_vector *Mobs = gsl_vector_alloc(2);
-	matrix_eye(eye);
-	double A_d[4]  = {-(TR/T1_a + TR/tau_a), TR/tau_b,
-	                    TR/tau_a, -(TR/T1_b + TR/tau_b)};
-	matrix_set_array(A, A_d);
-	gsl_vector_set(M0, 0, c->M0 * f_a);
-	gsl_vector_set(M0, 1, c->M0 * f_b); 
-	
-	matrix_exp(A);
-	for (size_t n = 0; n < signal->size; n++)
-	{
-		double angle = gsl_vector_get(alpha, n);
-		matrix_add_scale(num, eye, 1., A, -1.);
-		gsl_matrix_memcpy(den, A);
-		gsl_matrix_scale(den, cos(B1 * angle));
-		matrix_add_scale(den, eye, 1., den, -1.);
-	
-		matrix_solve(den, num);
-		gsl_matrix_scale(num, sin(B1 * angle));
-		matrix_mulv(Mobs, num, M0);
-		gsl_vector_set(signal, n, gsl_vector_get(Mobs, 0) + gsl_vector_get(Mobs, 1));
-	}
-	gsl_matrix_free(A);
-	gsl_matrix_free(eye);
-	gsl_matrix_free(num);
-	gsl_matrix_free(den);
-	gsl_vector_free(M0);
-	gsl_vector_free(Mobs);
-}
-
-void a2cSSFP(gsl_vector *alpha, gsl_vector *p, void *constants, gsl_vector *signal)
-{
-	SSFP_constants *c = (SSFP_constants *)constants;
-	double T1_a = gsl_vector_get(p, 0),
-	       T1_b = gsl_vector_get(p, 1),
-		   T2_a = gsl_vector_get(p, 2),
-		   T2_b = gsl_vector_get(p, 3),
-		   f_a  = gsl_vector_get(p, 4),
-		   f_b  = 1. - f_a,
-		   tau_a = gsl_vector_get(p, 5),
-		   tau_b = f_b * tau_a / f_a,
-		   B0 = gsl_vector_get(p, 6),
-		   TR = c->TR, B1 = c->B1, rfPhase = c->rfPhase;
-	double eT2_a = -TR * (1./T2_a + 1./tau_a),
-	       eT2_b = -TR * (1./T2_b + 1./tau_b),
-		   eT1_a = -TR * (1./T1_a + 1./tau_a),
-		   eT1_b = -TR * (1./T1_b + 1./tau_b),
-		   k_a   = TR / tau_a,
-		   k_b   = TR / tau_b,
-		   phase = rfPhase + (B0 * TR * 2. * M_PI);
-	
-	double A_d[36] = {  eT2_a,    k_b, phase,    0.,    0.,    0.,
-					      k_a,  eT2_b,    0., phase,    0.,    0.,
-					   -phase,     0., eT2_a,   k_b,    0.,    0.,
-					       0., -phase,   k_a, eT2_b,    0.,    0.,
-					       0.,     0.,    0.,    0., eT1_a,   k_b,
-					       0.,     0.,    0.,    0.,   k_a, eT1_b };
-	gsl_matrix *eye = gsl_matrix_alloc(6, 6); matrix_eye(eye);
-	gsl_matrix *A   = gsl_matrix_alloc(6, 6); matrix_set_array(A, A_d);
-	gsl_matrix *R_rf = gsl_matrix_calloc(6, 6);
-	gsl_matrix_set(R_rf, 0, 0, 1.);
-	gsl_matrix_set(R_rf, 1, 1, 1.);
-	gsl_matrix *top = gsl_matrix_alloc(6, 6);
-	gsl_matrix *bottom = gsl_matrix_alloc(6, 6);
-	
-	gsl_vector *M0 = gsl_vector_calloc(6);
-	gsl_vector *Mobs = gsl_vector_alloc(6);
-	gsl_vector_set(M0, 4, c->M0 * f_a);
-	gsl_vector_set(M0, 5, c->M0 * f_b);
-	
-	matrix_exp(A);
-	// Top of matrix divide
-	for (size_t n = 0; n < signal->size; n++)
-	{
-		matrix_add_scale(top, eye, 1., A, -1.);
-		double angle = gsl_vector_get(alpha, n);
-		double ca = cos(B1 * angle), sa = sin(B1 * angle);
-		gsl_matrix_set(R_rf, 2, 2, ca);
-		gsl_matrix_set(R_rf, 3, 3, ca);
-		gsl_matrix_set(R_rf, 4, 4, ca);
-		gsl_matrix_set(R_rf, 5, 5, ca);
-		gsl_matrix_set(R_rf, 2, 4, sa);
-		gsl_matrix_set(R_rf, 3, 5, sa);
-		gsl_matrix_set(R_rf, 4, 2, -sa);
-		gsl_matrix_set(R_rf, 5, 3, -sa);
-		// Inverse bracket term (i.e. bottom of matrix divide)
-		matrix_mult(bottom, A, R_rf);
-		matrix_add_scale(bottom, eye, 1., bottom, -1.);
-		// Matrix 'divide'
-		matrix_solve(bottom, top);
-		matrix_mulv(Mobs, top, M0);
-		gsl_vector_set(signal, n, sqrt(pow(gsl_vector_get(Mobs, 0) + gsl_vector_get(Mobs, 1), 2.) +
-					                   pow(gsl_vector_get(Mobs, 2) + gsl_vector_get(Mobs, 3), 2.)));
-	}
-	
-	gsl_matrix_free(eye);
-	gsl_matrix_free(A);
-	gsl_matrix_free(R_rf);
-	gsl_matrix_free(top);
-	gsl_matrix_free(bottom);
-	gsl_vector_free(M0);
-	gsl_vector_free(Mobs);
-}
 
 // Normalised, 3 component versions
 /*	Full parameter vector is
@@ -383,12 +141,88 @@ void a3cSSFP(double *alpha, double *p, double *c, double *signal, size_t nA)
 	}
 }*/
 
-double calcDESPOT1(double *flipAngles, double *spgrVals, int n,
-				   double TR, double B1, double *M0, double *T1)
+double radians(double degrees)
+{	return degrees * M_PI / 180.;	}
+double degrees(double radians)
+{	return radians * 180. / M_PI;	}
+
+double clamp(double value, double low, double high)
+{
+	if (value < low)
+		return low;
+	if (value > high)
+		return high;
+	return value;
+}
+
+//******************************************************************************
+#pragma mark Console Input
+//******************************************************************************
+int fgetArray(FILE *in, char type, size_t n, void *array)
+{
+		for (size_t i = 0; i < n; i++)
+		{
+			switch (type)
+			{
+				case 'i':
+				{	int inVal; fscanf(in, "%d", &inVal);
+					((int *)array)[i] = inVal;
+				} break;
+				case 'f':
+				{	float inVal; fscanf(in, "%f", &inVal);
+					((float *)array)[i] = inVal;
+				} break;
+				case 'd':
+				{	double inVal; fscanf(in, "%lf", &inVal);
+					((double *)array)[i] = inVal;
+				} break;
+				case 's':
+				{	char inVal[1024]; fscanf(stdin, "%s", &inVal);
+					((char **)array)[i] = (char *)malloc(strlen(inVal) * sizeof(char));
+					strcpy(((char **)array)[i], inVal); } break;
+			}
+		}
+	return n;
+}
+
+//******************************************************************************
+// Basic least squares fitting
+//******************************************************************************
+void linearLeastSquares(double *X, double *Y, int nD,
+						double *slope, double *inter, double *res)
+{
+	double sumX, sumY, sumXX, sumXY;
+	sumX = sumY = sumXX = sumXY = 0.;
+	for (int i = 0; i < nD; i++)
+	{
+		double x = X[i];
+		double y = Y[i];
+		
+		sumX  += x;
+		sumY  += y;
+		sumXX += (x*x);
+		sumXY += (x*y);
+	}
+	
+	*slope = (nD * sumXY - (sumX * sumY)) / (nD * sumXX - (sumX * sumX));
+	*inter = (sumY - (*slope) * sumX) / nD;
+	
+	if (res)
+	{
+		*res = 0.;
+		double m = *slope; double c = *inter;
+		for (int i = 0; i < nD; i++)
+			*res += pow(Y[i] - (m*X[i] + c), 2.);
+	}
+}
+
+double classicDESPOT1(const ArrayXd &flipAngles, const ArrayXd &spgrVals,
+				      double TR, double B1, double *M0, double *T1)
 {
 	// Linearise the data, then least-squares
+	int n = flipAngles.size();
 	double X[n], Y[n], slope, inter, res;
-	for (int i = 0; i < n; i++)
+	for (int i = 0; i < flipAngles.size(); i++)
 	{
 		X[i] = spgrVals[i] / tan(flipAngles[i] * B1);
 		Y[i] = spgrVals[i] / sin(flipAngles[i] * B1);
@@ -399,14 +233,14 @@ double calcDESPOT1(double *flipAngles, double *spgrVals, int n,
 	return res;
 }
 
-double classicDESPOT2(const Map<ArrayXd> &flipAngles, ArrayXd &ssfpVals,
+double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
                       double TR, double T1, double B1, double *M0, double *T2)
 {
 	// As above, linearise, then least-squares
 	// p[0] = M0, p[1] = T2
 	int n = flipAngles.size();
 	double X[n], Y[n], slope, inter, residual;
-	for (int i = 0; i < n; i++)
+	for (int i = 0; i < flipAngles.size(); i++)
 	{
 		X[i] = ssfpVals[i] / tan(flipAngles[i] * B1);
 		Y[i] = ssfpVals[i] / sin(flipAngles[i] * B1);

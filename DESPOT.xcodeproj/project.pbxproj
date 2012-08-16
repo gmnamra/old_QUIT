@@ -7,10 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F62E668C15DA971E005785B7 /* libgsl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F62E668B15DA971E005785B7 /* libgsl.dylib */; };
-		F62E668F15DA9755005785B7 /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F62E668E15DA9755005785B7 /* libgsl.a */; };
 		F648CBB215D51873009CAD99 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
-		F64CA28C15A1A4E900F72707 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F64CA28E15A1A4EE00F72707 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
 		F64CA28F15A1A4F100F72707 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
@@ -19,7 +16,6 @@
 		F64CA29215A1BF5600F72707 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
 		F64CA29315A1BF5700F72707 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
 		F64CA29415A1BF5900F72707 /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
-		F64CA29515A1BF5C00F72707 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F66F4A6815A48171006C91F1 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F675C8D615CC120100BA95FC /* afi_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F675C8D515CC120100BA95FC /* afi_main.c */; };
 		F675C8D715CC16F800BA95FC /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
@@ -28,8 +24,6 @@
 		F675C8DA15CC170400BA95FC /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
 		F675C8DB15CC170600BA95FC /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
 		F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
-		F679FB8015B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
-		F679FB8115B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
 		F679FB8215B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
 		F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6B8F93515CFFD7100AECF4F /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
@@ -43,7 +37,7 @@
 		F6E1F91A1592001C00DA918F /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
 		F6E1F91B1592001C00DA918F /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
 		F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F6E4A2971590DB5300DA4001 /* despot1_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2931590DB4D00DA4001 /* despot1_main.c */; };
+		F6E4A2971590DB5300DA4001 /* despot1_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */; };
 		F6E4A2981590DB5800DA4001 /* despot2_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */; };
 		F6E4A2991590DB5800DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F6E4A29A1590DB6000DA4001 /* mcdespot_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */; };
@@ -227,7 +221,7 @@
 		F6E4A2861590DAC400DA4001 /* threshold */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = threshold; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DESPOT.cpp; sourceTree = SOURCE_ROOT; };
 		F6E4A2911590DB2F00DA4001 /* DESPOT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DESPOT.h; sourceTree = SOURCE_ROOT; };
-		F6E4A2931590DB4D00DA4001 /* despot1_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = despot1_main.c; sourceTree = SOURCE_ROOT; };
+		F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = despot1_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = despot2_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = mcdespot_main.c; sourceTree = SOURCE_ROOT; };
 		F6E4A2961590DB4D00DA4001 /* threshold_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = threshold_main.c; sourceTree = SOURCE_ROOT; };
@@ -269,13 +263,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */,
-				F64CA29515A1BF5C00F72707 /* libMaths.a in Frameworks */,
 				F64CA29415A1BF5900F72707 /* libznz.a in Frameworks */,
 				F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */,
 				F64CA29215A1BF5600F72707 /* libfslio.a in Frameworks */,
 				F64CA29315A1BF5700F72707 /* libniftiio.a in Frameworks */,
-				F62E668C15DA971E005785B7 /* libgsl.dylib in Frameworks */,
-				F62E668F15DA9755005785B7 /* libgsl.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -284,7 +275,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */,
-				F64CA28C15A1A4E900F72707 /* libMaths.a in Frameworks */,
 				F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */,
 				F64CA28F15A1A4F100F72707 /* libniftiio.a in Frameworks */,
 				F64CA28E15A1A4EE00F72707 /* libfslio.a in Frameworks */,
@@ -371,7 +361,7 @@
 			children = (
 				F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */,
 				F679FB7F15B6BDBF00A2EC48 /* mathsOptimisers.h */,
-				F6E4A2931590DB4D00DA4001 /* despot1_main.c */,
+				F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */,
 				F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */,
 				F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */,
 				F6E4A2961590DB4D00DA4001 /* threshold_main.c */,
@@ -599,9 +589,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6E4A2971590DB5300DA4001 /* despot1_main.c in Sources */,
+				F6E4A2971590DB5300DA4001 /* despot1_main.cpp in Sources */,
 				F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */,
-				F679FB8015B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -611,7 +600,6 @@
 			files = (
 				F6E4A2981590DB5800DA4001 /* despot2_main.cpp in Sources */,
 				F6E4A2991590DB5800DA4001 /* DESPOT.cpp in Sources */,
-				F679FB8115B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -733,6 +721,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
 				COPY_PHASE_STRIP = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -771,6 +760,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;

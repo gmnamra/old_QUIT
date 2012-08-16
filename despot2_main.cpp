@@ -22,11 +22,9 @@
 
 #include "DESPOT.h"
 #include "fslio.h"
-#include "mathsMatrix.h"
-#include "mathsUtil.h"
 #include "procpar.h"
 
-char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_180_file [additional ssfp files] \n\
+const char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_180_file [additional ssfp files] \n\
 \
 Options:\n\
 	--mask, -m file   : Mask input with specified file.\n\
@@ -43,7 +41,7 @@ Options:\n\
 #define NR 4
 FSLIO *resultsHeaders[NR];
 double *resultsData[NR];
-char *names[NR] = { "_d2_M0", "_T2", "_d2_B0", "_d2_res" };
+const char *names[NR] = { "_d2_M0", "_T2", "_d2_B0", "_d2_res" };
 void int_handler(int sig);
 void int_handler(int sig)
 {
@@ -70,7 +68,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	Eigen::initParallel();
-	char *outPrefix = NULL, *outExt = ".nii.gz";
+	const char *outPrefix = NULL, *outExt = ".nii.gz";
 	size_t nPhases;
 	double ssfpTR;
 	FSLIO **ssfpFiles = NULL, *inFile = NULL;
@@ -186,9 +184,9 @@ int main(int argc, char **argv)
 		fscanf(stdin, "%lf", &ssfpTR);		
 	}
 	Map<ArrayXd> ssfpAngles(angles_data, nSSFP);
-	std::cout << ssfpAngles << std::endl;
+	std::cout << ssfpAngles.transpose() << std::endl;
 	for (int i = 0; i < nSSFP; i++)
-		angles_data[i] = radians(angles_data[i]);
+		ssfpAngles[i] = radians(ssfpAngles[i]);
 	for (size_t p = 1; p < nPhases; p++)
 	{
 		fprintf(stdout, "Reading SSFP header from %s.\n", argv[++optind]);
@@ -295,23 +293,22 @@ int main(int argc, char **argv)
 						index = p;
 					}
 				}
-				ArrayXd temp(signals.row(index));
-				residual = classicDESPOT2(ssfpAngles, temp, ssfpTR, T1, B1, &M0, &T2);
+				residual = classicDESPOT2(ssfpAngles, signals.row(index), ssfpTR, T1, B1, &M0, &T2);
 				if (nPhases > 1)
 					residual = index;
 				// Don't process if DESPOT2 failed.
 				if (levMar && std::isfinite(T2) && std::isfinite(M0))
 				{
 					ArrayXd tempAngles = ssfpAngles;
-					a1cSSFP_functor f(ssfpPhases, tempAngles, signals,
-									  ssfpTR, T1, B1);
-					NumericalDiff<a1cSSFP_functor> nf(f);
-					LevenbergMarquardt<NumericalDiff<a1cSSFP_functor> > lm(nf);
+					SSFP_1c f(ssfpPhases, tempAngles, signals,
+							  ssfpTR, T1, B1);
+					NumericalDiff<SSFP_1c> nf(f);
+					LevenbergMarquardt<NumericalDiff<SSFP_1c> > lm(nf);
 					if (M0Data)
 						M0 = M0Data[sliceOffset + vox];
 					VectorXd params(3);
 					params << M0, T2, B0;
-					int info = lm.minimize(params);
+					lm.minimize(params);
 					M0 = params[0];
 					T2 = params[1];
 					B0 = params[2];
