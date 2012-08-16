@@ -149,8 +149,8 @@ int main(int argc, char **argv)
 						break;
 					case '7':
 						fprintf(stdout, "Using 7T boundaries.\n");
-						loBounds << 0.200, 0.500, 0.002, 0.040, 0.,   0.050, 0.;
-						hiBounds << 1.500, 5.000, 0.050, 0.400, 0.5,  2.000, 0.;
+						loBounds << 0.100, 0.800, 0.001, 0.010, 0., 0.050, 0.;
+						hiBounds << 1.000, 3.000, 0.050, 0.250, 1., 2.000, 0.;
 						break;
 					case 'u':
 					{
@@ -330,6 +330,7 @@ int main(int argc, char **argv)
 			if (B1Data)
 				B1 = (double)B1Data[sliceOffset + vox];		
 			ArrayXd params(7);
+			params.setZero();
 			if (!maskData || (maskData[sliceOffset + vox] > 0.))
 			{
 				AtomicAdd(1, &voxCount);

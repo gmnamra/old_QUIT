@@ -16,6 +16,8 @@
 
 #include "DESPOT_Functors.h"
 
+#include <stdio.h>
+
 using namespace Eigen;
 
 //******************************************************************************
