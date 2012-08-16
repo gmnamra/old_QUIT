@@ -62,11 +62,11 @@ void fprintVals(FILE *f, par_t *p);
 void fprintAllowedVals(FILE *f, par_t *p);
 const char *parTypeStr(int type);
 const char *parSubTypeStr(int subtype);
-double realVal(par_t *pars, char *name, int i);
-char   *stringVal(par_t *pars, char*name, int i);
+double realVal(par_t *pars, const char *name, int i);
+char   *stringVal(par_t *pars, const char*name, int i);
 
-double *realVals(par_t *pars, char *name, int *nvals);
-char   **stringVals(par_t *pars, char *name, int *nvals);
+double *realVals(par_t *pars, const char *name, int *nvals);
+char   **stringVals(par_t *pars, const char *name, int *nvals);
 
 #ifdef __cplusplus
 }

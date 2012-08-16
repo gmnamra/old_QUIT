@@ -235,7 +235,7 @@ const char *parSubTypeStr(int subtype)
 	}
 }
 
-double realVal(par_t *pars, char *name, int i)
+double realVal(par_t *pars, const char *name, int i)
 {
 	par_t *p;
 	HASH_FIND_STR(pars, name, p);
@@ -252,7 +252,7 @@ double realVal(par_t *pars, char *name, int i)
 	return 0;
 }
 
-char *stringVal(par_t *pars, char*name, int i)
+char *stringVal(par_t *pars, const char*name, int i)
 {
 	par_t *p;
 	HASH_FIND_STR(pars, name, p);
@@ -269,7 +269,7 @@ char *stringVal(par_t *pars, char*name, int i)
 	return 0;
 }
 
-double *realVals(par_t *pars, char *name, int *nvals)
+double *realVals(par_t *pars, const char *name, int *nvals)
 {
 	par_t *p;
 	HASH_FIND_STR(pars, name, p);
@@ -288,7 +288,7 @@ double *realVals(par_t *pars, char *name, int *nvals)
 	return NULL;
 }
 
-char **stringVals(par_t *pars, char *name, int *nvals)
+char **stringVals(par_t *pars, const char *name, int *nvals)
 {
 	par_t *p;
 	HASH_FIND_STR(pars, name, p);
