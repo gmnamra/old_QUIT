@@ -252,3 +252,74 @@ double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
 	*M0 = inter * (1. - eT1 * eT2) / (1. - eT1);
 	return residual;
 }
+
+//******************************************************************************
+// Stochastic Region Contraction
+// nS = number of points to sample in parameter space at each step
+// nR = number of best points to retain and use for contracting the bounds
+//******************************************************************************
+bool argsort_comp(const argsort_pair& left, const argsort_pair& right) {
+    return left.second < right.second;
+}
+
+double regionContraction(ArrayXd &params, SPGR_2c SPGR, SSFP_2c SSFP,
+                         const ArrayXd &loStart, const ArrayXd &hiStart,
+					     const ArrayXi &loConstrained, const ArrayXi &hiConstrained,
+					     const int nS, const int nR, const int maxContractions,
+						 const double thresh, const double expand)
+{
+	size_t nP = params.size();
+	
+	ArrayXXd samples(nS, nP);
+	ArrayXXd retained(nR, nP);
+	ArrayXd sampleRes(nS);
+	ArrayXi indices(nR);
+	ArrayXd loBounds = loStart;
+	ArrayXd hiBounds = hiStart;
+	ArrayXd regionSize = (hiBounds - loBounds);
+	size_t c;
+	srand(time(NULL));
+	for (c = 0; c < maxContractions; c++)
+	{
+		samples.setRandom();
+
+		for (int s = 0; s < nS; s++)
+		{
+			samples.row(s) *= regionSize;
+			samples.row(s) += loBounds;
+			VectorXd SPGRdiffs(SPGR.values());
+			VectorXd SSFPdiffs(SSFP.values());
+			SPGR(samples.row(s), SPGRdiffs);
+			SSFP(samples.row(s), SSFPdiffs);
+			
+			sampleRes(s) = SPGRdiffs.squaredNorm() + SSFPdiffs.squaredNorm();
+		}
+		indices = arg_partial_sort(sampleRes, nR);
+		for (int i = 0; i < nR; i++)
+			retained.row(i) = samples.row(indices[i]);
+		// Find the min and max for each parameter in the top nR samples
+		loBounds = retained.colwise().minCoeff();
+		hiBounds = retained.colwise().maxCoeff();
+		regionSize = (hiBounds - loBounds);
+		
+		// Terminate if ALL the distances between bounds are under the threshold
+		if (((regionSize / hiBounds) < 0).all())
+			break;
+		
+		// Expand the boundaries back out in case we just missed a minima,
+		// but don't go past initial boundaries if constrained
+		loBounds -= (regionSize * expand);
+		hiBounds += (regionSize * expand);
+		
+		for (int p = 0; p < nP; p++)
+		{
+			if (loConstrained[p] && (loBounds[p] < loStart[p]))
+				loBounds[p] = loStart[p];
+			if (hiConstrained[p] && (hiBounds[p] > hiStart[p]))
+				hiBounds[p] = hiStart[p];
+		}		
+	}
+	// Return the best evaluated solution so far
+	params = retained.row(0);
+	return sampleRes[indices[0]];
+}

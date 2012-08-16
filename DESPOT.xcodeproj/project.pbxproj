@@ -24,7 +24,6 @@
 		F675C8DA15CC170400BA95FC /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
 		F675C8DB15CC170600BA95FC /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
 		F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
-		F679FB8215B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */ = {isa = PBXBuildFile; fileRef = F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */; };
 		F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6B8F93515CFFD7100AECF4F /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
@@ -40,13 +39,12 @@
 		F6E4A2971590DB5300DA4001 /* despot1_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */; };
 		F6E4A2981590DB5800DA4001 /* despot2_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */; };
 		F6E4A2991590DB5800DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F6E4A29A1590DB6000DA4001 /* mcdespot_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */; };
+		F6E4A29A1590DB6000DA4001 /* mcdespot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */; };
 		F6E4A29B1590DB6000DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F6E4A29C1590DB6500DA4001 /* threshold_main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2961590DB4D00DA4001 /* threshold_main.c */; };
 		F6E4A2A91590DB9600DA4001 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
 		F6E4A2AA1590DB9600DA4001 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
 		F6E4A2AB1590DB9600DA4001 /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
-		F6E4A2AC1590DC2700DA4001 /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F6E4A2AD1590DC4500DA4001 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
 		F6E4A2AE1590DC4500DA4001 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
 		F6E4A2AF1590DC4500DA4001 /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
@@ -223,7 +221,7 @@
 		F6E4A2911590DB2F00DA4001 /* DESPOT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DESPOT.h; sourceTree = SOURCE_ROOT; };
 		F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = despot1_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = despot2_main.cpp; sourceTree = SOURCE_ROOT; };
-		F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = mcdespot_main.c; sourceTree = SOURCE_ROOT; };
+		F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = mcdespot_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E4A2961590DB4D00DA4001 /* threshold_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = threshold_main.c; sourceTree = SOURCE_ROOT; };
 		F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Maths.xcodeproj; path = ../Maths/Maths.xcodeproj; sourceTree = "<group>"; };
 		F6E4A2A61590DB9600DA4001 /* libfslio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfslio.a; path = "../nifticlib-2.0.0/lib/libfslio.a"; sourceTree = "<group>"; };
@@ -291,7 +289,6 @@
 				F6E4A2AD1590DC4500DA4001 /* libfslio.a in Frameworks */,
 				F6E4A2AE1590DC4500DA4001 /* libniftiio.a in Frameworks */,
 				F6E4A2AF1590DC4500DA4001 /* libznz.a in Frameworks */,
-				F6E4A2AC1590DC2700DA4001 /* libMaths.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -363,7 +360,7 @@
 				F679FB7F15B6BDBF00A2EC48 /* mathsOptimisers.h */,
 				F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */,
 				F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */,
-				F6E4A2951590DB4D00DA4001 /* mcdespot_main.c */,
+				F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */,
 				F6E4A2961590DB4D00DA4001 /* threshold_main.c */,
 				F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */,
 				F6E4A2911590DB2F00DA4001 /* DESPOT.h */,
@@ -607,9 +604,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6E4A29A1590DB6000DA4001 /* mcdespot_main.c in Sources */,
+				F6E4A29A1590DB6000DA4001 /* mcdespot_main.cpp in Sources */,
 				F6E4A29B1590DB6000DA4001 /* DESPOT.cpp in Sources */,
-				F679FB8215B6BDBF00A2EC48 /* mathsOptimisers.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -741,16 +737,12 @@
 					"../nifticlib-2.0.0/include",
 					../Maths,
 					../procparse,
-					/usr/local/include,
 					../eigen,
 				);
-				LIBRARY_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = "../nifticlib-2.0.0/lib";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = (
-					"-lgsl",
-					"-lgslcblas",
-				);
+				OTHER_LDFLAGS = "";
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -765,6 +757,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -774,15 +767,11 @@
 					"../nifticlib-2.0.0/include",
 					../Maths,
 					../procparse,
-					/usr/local/include,
 					../eigen,
 				);
-				LIBRARY_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = "../nifticlib-2.0.0/lib";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
-				OTHER_LDFLAGS = (
-					"-lgsl",
-					"-lgslcblas",
-				);
+				OTHER_LDFLAGS = "";
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -839,10 +828,6 @@
 		F6E4A2801590DAB500DA4001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -850,10 +835,6 @@
 		F6E4A2811590DAB500DA4001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

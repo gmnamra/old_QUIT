@@ -121,6 +121,8 @@ class SSFP_1c : public DESPOT_Functor
 			int index = 0;
 			for (int p = 0; p < _rfPhases.size(); p++)
 			{
+				eigen_assert(diffs.size() == values());
+				
 				double phase = _rfPhases(p) + (B0 * _TR * 2. * M_PI);
 				A << -_TR / T2,     phase,         0.,
 					    -phase, -_TR / T2,         0.,
@@ -150,7 +152,7 @@ class SPGR_2c : public DESPOT_Functor
 {
 	public:
 		double _TR, _M0, _B1;
-		SPGR_2c(const ArrayXd &flipAngles, const ArrayXd &signals,
+		SPGR_2c(const ArrayXd &flipAngles, const ArrayXXd &signals,
 		        double TR, double M0, double B1) :
 				DESPOT_Functor(flipAngles, signals),
 				_TR(TR),
@@ -167,21 +169,24 @@ class SPGR_2c : public DESPOT_Functor
 			       tau_a = params[5],
 			       tau_b = f_b * tau_a / f_a;
 			
+			eigen_assert(diffs.size() == values());
+			
 			Matrix2d A,
 					 eye = Matrix2d::Identity(),
 					 eyema;
 			Vector2d M0, Mobs;
-			A << -(_TR/T1_a + _TR/tau_a),               _TR/tau_b,
-				               _TR/tau_a, -(_TR/T1_b + _TR/tau_b);
 			M0 << _M0 * f_a, _M0 * f_b;
+			A << -(_TR/T1_a + _TR/tau_a),               _TR/tau_b,
+					           _TR/tau_a, -(_TR/T1_b + _TR/tau_b);
 			MatrixExponential<Matrix2d> expA(A);
 			expA.compute(A);
 			eyema.noalias() = eye - A;
 			for (int i = 0; i < _flipAngles.size(); i++)
 			{
 				double a = _flipAngles[i];
-				Mobs = ((eye - A*cos(_B1 * a)).partialPivLu().solve(eyema * sin(_B1 * a))) * M0;
-				diffs[i] = Mobs.sum() - _signals(i);
+				Mobs = (eye - A*cos(_B1 * a)).partialPivLu().solve(eyema * sin(_B1 * a)) * M0;
+				double val = Mobs.sum() - _signals(i, 0); 
+				diffs[i] = val;
 			}
 			return 0;
 		}
@@ -192,13 +197,15 @@ class SSFP_2c: public SSFP_1c
 	public:
 		double _M0;
 		SSFP_2c(const ArrayXd &rfphases, const ArrayXd &flipAngles,
-		        const ArrayXXd &signals, double TR, double M0, double T1, double B1) :
-				SSFP_1c(rfphases, flipAngles, signals, TR, T1, B1),
+		        const ArrayXXd &signals, double TR, double M0, double B1) :
+				SSFP_1c(rfphases, flipAngles, signals, TR, 0., B1),
 				_M0(M0)
 				{}		
 		
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
+			eigen_assert(diffs.size() == values());
+			
 			double T1_a = params[0],
 			       T1_b = params[1],
 				   T2_a = params[2],
@@ -255,5 +262,33 @@ class SSFP_2c: public SSFP_1c
 			return 0;
 		}
 };
+
+typedef Array<bool, Dynamic, Dynamic> ArrayXb;
+typedef std::pair<int, double> argsort_pair;
+
+bool argsort_comp(const argsort_pair& left, const argsort_pair& right);
+
+template<typename Derived>
+ArrayXi arg_partial_sort(const ArrayBase<Derived> &x, int middle)
+{
+    ArrayXi indices(middle);
+    std::vector<argsort_pair> data(x.size());
+    for(int i=0;i<x.size();i++)
+	{
+        data[i].first = i;
+        data[i].second = x(i);
+    }
+    std::partial_sort(data.begin(), data.begin() + middle, data.end(), argsort_comp);
+    for(int i=0;i<middle;i++) {
+        indices(i) = data[i].first;
+    }    
+    return indices;
+}
+
+double regionContraction(ArrayXd &params, SPGR_2c SPGR, SSFP_2c SSFP,
+                         const ArrayXd &loStart, const ArrayXd &hiStart,
+					     const ArrayXi &loConstrained, const ArrayXi &hiConstrained,
+					     const int nS, const int nR, const int maxContractions,
+						 const double thresh, const double expand);
 
 #endif
