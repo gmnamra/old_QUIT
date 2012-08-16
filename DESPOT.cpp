@@ -282,7 +282,9 @@ double regionContraction(ArrayXd &params, SPGR_2c SPGR, SSFP_2c SSFP,
 	for (c = 0; c < maxContractions; c++)
 	{
 		samples.setRandom();
-
+		// Get in the range 0 to 1
+		samples += 1;
+		samples /= 2.;
 		for (int s = 0; s < nS; s++)
 		{
 			samples.row(s) *= regionSize;
@@ -291,7 +293,6 @@ double regionContraction(ArrayXd &params, SPGR_2c SPGR, SSFP_2c SSFP,
 			VectorXd SSFPdiffs(SSFP.values());
 			SPGR(samples.row(s), SPGRdiffs);
 			SSFP(samples.row(s), SSFPdiffs);
-			
 			sampleRes(s) = SPGRdiffs.squaredNorm() + SSFPdiffs.squaredNorm();
 		}
 		indices = arg_partial_sort(sampleRes, nR);
@@ -300,10 +301,9 @@ double regionContraction(ArrayXd &params, SPGR_2c SPGR, SSFP_2c SSFP,
 		// Find the min and max for each parameter in the top nR samples
 		loBounds = retained.colwise().minCoeff();
 		hiBounds = retained.colwise().maxCoeff();
-		regionSize = (hiBounds - loBounds);
-		
+		regionSize = (hiBounds - loBounds);	
 		// Terminate if ALL the distances between bounds are under the threshold
-		if (((regionSize / hiBounds) < 0).all())
+		if ((((regionSize / hiBounds).abs() - thresh) < 0).all())
 			break;
 		
 		// Expand the boundaries back out in case we just missed a minima,
@@ -317,7 +317,8 @@ double regionContraction(ArrayXd &params, SPGR_2c SPGR, SSFP_2c SSFP,
 				loBounds[p] = loStart[p];
 			if (hiConstrained[p] && (hiBounds[p] > hiStart[p]))
 				hiBounds[p] = hiStart[p];
-		}		
+		}
+		regionSize = hiBounds - loBounds;
 	}
 	// Return the best evaluated solution so far
 	params = retained.row(0);

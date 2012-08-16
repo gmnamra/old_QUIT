@@ -202,6 +202,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F61131BA15DD54E80040FE67 /* DESPOT_Functors.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DESPOT_Functors.h; sourceTree = SOURCE_ROOT; };
 		F61642A715CC1BBB0031F999 /* despot_hifi.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = despot_hifi.c; sourceTree = SOURCE_ROOT; };
 		F62E668B15DA971E005785B7 /* libgsl.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgsl.dylib; path = ../../../../../usr/local/lib/libgsl.dylib; sourceTree = "<group>"; };
 		F62E668E15DA9755005785B7 /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgsl.a; path = ../../../../../usr/local/lib/libgsl.a; sourceTree = "<group>"; };
@@ -367,6 +368,7 @@
 				F6E1F9051591FDDC00DA918F /* phasemap_main.c */,
 				F675C8D515CC120100BA95FC /* afi_main.c */,
 				F61642A715CC1BBB0031F999 /* despot_hifi.c */,
+				F61131BA15DD54E80040FE67 /* DESPOT_Functors.h */,
 			);
 			path = DESPOT;
 			sourceTree = "<group>";

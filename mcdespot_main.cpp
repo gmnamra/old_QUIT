@@ -350,7 +350,7 @@ int main(int argc, char **argv)
 				residual = regionContraction(params, SPGR, SSFP,
 				                             loBounds, hiBounds,
 											 loConstraints, hiConstraints,
-											 1000, 10, 10, 0.1, 0.025);
+											 1000, 10, 20, 0.1, 0.025);
 			}
 			for (int p = 0; p < NR - 1; p++)
 				resultsData[p][sliceOffset + vox]  = params[p];
