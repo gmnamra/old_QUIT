@@ -101,8 +101,6 @@ class SSFP_1c : public Functor<double>
 
 typedef Matrix<double, 6, 6> Matrix6d;
 typedef Matrix<double, 6, 1> Vector6d;
-const Matrix2d eye2 = Matrix2d::Identity();
-const Matrix6d eye6 = Matrix6d::Identity();
 
 class TwoComponent : public Functor<double>
 {
@@ -141,14 +139,15 @@ class TwoComponent : public Functor<double>
 			//****************************************************
 			// SPGR First
 			{
-				Matrix2d A, eyema;
+				Matrix2d A;
+				const Matrix2d eye2 = Matrix2d::Identity();
 				Vector2d M0, Mobs;
 				M0 << _M0 * f_a, _M0 * f_b;
 				A << -(_spgrTR/T1_a + _spgrTR/tau_a),                  _spgrTR/tau_b,
 									   _spgrTR/tau_a, -(_spgrTR/T1_b + _spgrTR/tau_b);
 				MatrixExponential<Matrix2d> expA(A);
 				expA.compute(A);
-				eyema.noalias() = eye2 - A;
+				const Matrix2d eyema = eye2 - A;
 				for (int i = 0; i < _spgrAngles.size(); i++)
 				{
 					double a = _spgrAngles[i];
@@ -160,7 +159,8 @@ class TwoComponent : public Functor<double>
 			//std::cout << "****************************************************" << std::endl;
 			//std::cout << "Now SSFP" << std::endl;
 			{
-				Matrix6d A, expA, R_rf, eyema, eye_mAR;
+				Matrix6d A, expA, R_rf, eye_mAR;
+				const Matrix6d eye6 = Matrix6d::Identity();
 				Vector6d M0, Mobs;
 				PartialPivLU<Matrix6d> solver;
 				A.setZero(); R_rf.setZero();
@@ -191,7 +191,7 @@ class TwoComponent : public Functor<double>
 					A(0, 3) = A(1, 2) = A(2, 1) = A(3, 0) = 0.;
 					MatrixExponential<Matrix6d> exp(A);
 					exp.compute(expA);
-					eyema.noalias() = eye6 - expA;
+					const Matrix6d eyema = eye6 - expA;
 					for (int i = 0; i < _ssfpAngles.size(); i++)
 					{
 						double a = _ssfpAngles[i];

@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "%s", usage);
 		exit(EXIT_FAILURE);
 	}
-	
+	Eigen::initParallel();
 	const char *outPrefix = NULL, *outExt = ".nii.gz";
 	char procpar[MAXSTR];
 	size_t nSPGR, nPhases, nSSFP;
@@ -322,8 +322,8 @@ int main(int argc, char **argv)
 		__block int voxCount = 0;
 		int sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
-		for (int vox = 0; vox < voxelsPerSlice; vox++)
-		//void (^processVoxel)(size_t vox) = ^(size_t vox)
+		//for (int vox = 0; vox < voxelsPerSlice; vox++)
+		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
 			double M0 = 1, B0 = 0, B1 = 1., residual = 0.;
 			if (M0Data)
@@ -363,8 +363,8 @@ int main(int argc, char **argv)
 				resultsData[p][sliceOffset + vox]  = params[p];
 			resultsData[NR - 1][sliceOffset + vox] = residual;
 		};
-		//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-		//dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		
 		if (verbose)
 		{
