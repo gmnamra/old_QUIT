@@ -132,7 +132,7 @@ class SPGR_2c : public DESPOT_Functor
 			       tau_a = params[5],
 			       tau_b = f_b * tau_a / f_a;
 			
-			eigen_assert(diffs.size() == values());
+			//eigen_assert(diffs.size() == values());
 			
 			Matrix2d A,
 					 eye = Matrix2d::Identity(),
@@ -167,7 +167,7 @@ class SSFP_2c: public SSFP_1c
 		
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
-			eigen_assert(diffs.size() == values());
+			//eigen_assert(diffs.size() == values());
 			
 			double T1_a = params[0],
 			       T1_b = params[1],
@@ -178,10 +178,11 @@ class SSFP_2c: public SSFP_1c
 			       tau_a = params[5],
 			       tau_b = f_b * tau_a / f_a,
 				   B0 = params[6];
-			//typedef Matrix<double, 6, 6> Matrix6d;
-			//typedef Matrix<double, 6, 1> Vector6d;
-			MatrixXd A(6, 6), R_rf(6, 6), eye(6, 6), eyema(6, 6);
-			VectorXd M0(6), Mobs(6);
+			typedef Matrix<double, 6, 6> Matrix6d;
+			typedef Matrix<double, 6, 1> Vector6d;
+			Matrix6d A, expA, R_rf, eye, eyema, eye_mAR;
+			Vector6d M0, Mobs;
+			PartialPivLU<Matrix6d> solver;
 			A.setZero(); R_rf.setZero(); eye.setIdentity();
 			R_rf(0, 0) = R_rf(1, 1) = 1.;
 			M0 << 0., 0., 0., 0., _M0 * f_a, _M0 * f_b;
@@ -209,9 +210,9 @@ class SSFP_2c: public SSFP_1c
 				A(4, 4) = eT1_a;
 				A(5, 5) = eT1_b;
 				A(0, 3) = A(1, 2) = A(2, 1) = A(3, 0) = 0.;
-				MatrixExponential<MatrixXd> expM(A);
-				expM.compute(A);
-				eyema.noalias() = eye - A;
+				MatrixExponential<Matrix6d> exp(A);
+				exp.compute(expA);
+				eyema.noalias() = eye - expA;
 				for (int i = 0; i < _flipAngles.size(); i++)
 				{
 					double a = _flipAngles[i];
@@ -219,8 +220,9 @@ class SSFP_2c: public SSFP_1c
 					R_rf(2, 2) = R_rf(3, 3) = R_rf(4, 4) = R_rf(5, 5) = ca;
 					R_rf(2, 4) = R_rf(3, 5) = sa;
 					R_rf(4, 2) = R_rf(5, 3) = -sa;
-					MatrixXd eye_mAR = eye - (A * R_rf);
-					Mobs.noalias() = (eye_mAR).partialPivLu().solve(eyema) * M0;
+					eye_mAR.noalias() = eye - (expA * R_rf);
+					solver.compute(eye_mAR);
+					Mobs.noalias() = solver.solve(eyema) * M0;
 					diffs[index] = sqrt(pow(Mobs[0] + Mobs[1], 2.) +
 					                    pow(Mobs[2] + Mobs[3], 2.)) - _signals(p, i);
 					index++;
