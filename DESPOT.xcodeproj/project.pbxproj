@@ -48,6 +48,7 @@
 		F6E4A2AD1590DC4500DA4001 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
 		F6E4A2AE1590DC4500DA4001 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
 		F6E4A2AF1590DC4500DA4001 /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
+		F6F435E615DE7FED00503AD3 /* test_despot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -239,6 +240,7 @@
 		F6E4A2A81590DB9600DA4001 /* libznz.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libznz.a; path = "../nifticlib-2.0.0/lib/libznz.a"; sourceTree = "<group>"; };
 		F6EA0A7E15DE3C490059E436 /* test_despot */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = test_despot; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6EA0ADC15DE67960059E436 /* RegionContraction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RegionContraction.h; sourceTree = SOURCE_ROOT; };
+		F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = test_despot_main.cpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -376,6 +378,7 @@
 		F6E4A2441590D9B000DA4001 /* DESPOT */ = {
 			isa = PBXGroup;
 			children = (
+				F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */,
 				F679FB7E15B6BDBF00A2EC48 /* mathsOptimisers.c */,
 				F679FB7F15B6BDBF00A2EC48 /* mathsOptimisers.h */,
 				F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */,
@@ -628,6 +631,7 @@
 			files = (
 				F6E4A2971590DB5300DA4001 /* despot1_main.cpp in Sources */,
 				F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */,
+				F6F435E615DE7FED00503AD3 /* test_despot_main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
