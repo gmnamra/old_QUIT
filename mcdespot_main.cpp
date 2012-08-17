@@ -22,6 +22,8 @@
 #endif
 
 #include "DESPOT.h"
+#include "DESPOT_Functors.h"
+#include "RegionContraction.h"
 #include "fslio.h"
 #include "procpar.h"
 
@@ -81,8 +83,8 @@ int main(int argc, char **argv)
 	double spgrTR, ssfpTR,
 	       *maskData = NULL, *M0Data = NULL, *B0Data = NULL, *B1Data = NULL,
 		   loUser[7], hiUser[7];
-	ArrayXd loBounds(7), hiBounds(7);
-	ArrayXi loConstraints(7), hiConstraints(7);
+	VectorXd loBounds(7), hiBounds(7);
+	VectorXi loConstraints(7), hiConstraints(7);
 	loConstraints << true, true, true, true, true, true, false;
 	hiConstraints << true, true, true, true, true, true, false;
 	FSLIO *inFile = NULL, *spgrFile = NULL, **ssfpFiles;
@@ -156,11 +158,11 @@ int main(int argc, char **argv)
 					{
 						fprintf(stdout, "Enter low boundaries (%d values):", 7);
 						fgetArray(stdin, 'd', 7, loUser);
-						Map<ArrayXd> tempLo(loUser, 7);
+						Map<VectorXd> tempLo(loUser, 7);
 						loBounds = tempLo;
 						fprintf(stdout, "Enter high boundaries (%d values):", 7);
 						fgetArray(stdin, 'd', 7, hiUser);
-						Map<ArrayXd> tempHi(hiUser, 7);
+						Map<VectorXd> tempHi(hiUser, 7);
 						hiBounds = tempHi;
 					}
 						break;
@@ -205,7 +207,7 @@ int main(int argc, char **argv)
 		fprintf(stdout, "Enter SPGR Flip Angles (degrees):");
 		fgetArray(stdin, 'd', nSPGR, spgr_angles);
 	}
-	Map<ArrayXd> spgrAngles(spgr_angles, nSPGR);
+	Map<VectorXd> spgrAngles(spgr_angles, nSPGR);
 	std::cout << "SPGR TR = " << spgrTR << ". Angles = " << spgrAngles.transpose() << std::endl;
 	spgrAngles *= (M_PI / 180.);
 	optind++;
@@ -214,7 +216,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	nPhases = argc - optind;
 	ssfpFiles = (FSLIO **)malloc(nPhases * sizeof(FSLIO *));
-	ArrayXd ssfpPhases(nPhases);
+	VectorXd ssfpPhases(nPhases);
 	ssfpPhases[0] = M_PI;
 	ssfpFiles[0] = FslOpen(argv[optind], "rb");
 	nSSFP = ssfpFiles[0]->niftiptr->nt;
@@ -232,7 +234,7 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 		ssfpTR = realVal(pars, "tr", 0);
-		fprintf(stdout, "TR (s): %f, Angles (deg) = ", ssfpTR);
+		fprintf(stdout, "TR (s): %f", ssfpTR);
 		freeProcpar(pars);
 	}
 	else
@@ -242,8 +244,9 @@ int main(int argc, char **argv)
 		fprintf(stdout, "Enter SSFP TR (ms):");
 		fscanf(stdin, "%lf", &ssfpTR);		
 	}
-	Map<ArrayXd> ssfpAngles(ssfp_angles, nSSFP);
-	std::cout << "SSFP flip angles: " << ssfpAngles.transpose() << std::endl;
+	Map<VectorXd> ssfpAngles(ssfp_angles, nSSFP);
+	std::cout << "SSFP flip angles (deg): " << ssfpAngles.transpose() << std::endl;
+	ssfpAngles *= M_PI / 180.;
 	// Make sure the B0 bounds are sensible
 	loBounds(6) = (-0.5 / ssfpTR);
 	hiBounds(6) = (0.5 / ssfpTR);	
@@ -319,8 +322,8 @@ int main(int argc, char **argv)
 		__block int voxCount = 0;
 		int sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
-		//for (int vox = 0; vox < voxelsPerSlice; vox++)
-		void (^processVoxel)(size_t vox) = ^(size_t vox)
+		for (int vox = 0; vox < voxelsPerSlice; vox++)
+		//void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
 			double M0 = 1, B0 = 0, B1 = 1., residual = 0.;
 			if (M0Data)
@@ -329,36 +332,39 @@ int main(int argc, char **argv)
 				B0 = (double)B0Data[sliceOffset + vox];
 			if (B1Data)
 				B1 = (double)B1Data[sliceOffset + vox];		
-			ArrayXd params(7);
+			VectorXd params(7);
 			params.setZero();
 			if (!maskData || (maskData[sliceOffset + vox] > 0.))
 			{
 				AtomicAdd(1, &voxCount);
-				ArrayXd SPGR_signals(nSPGR);
-				for (int img = 0; img < nSPGR; img++)
-					SPGR_signals[img] = SPGR[totalVoxels * img + sliceOffset +  + vox];
-
-				ArrayXXd SSFP_signals(nPhases, nSSFP);
+				//ArrayXd SPGR_signals(nSPGR);
+				//for (int img = 0; img < nSPGR; img++)
+				//	SPGR_signals[img] = SPGR[totalVoxels * img + sliceOffset +  + vox];
+				typedef Stride<1, Dynamic> VecStride;
+				typedef Map<VectorXd, Unaligned, VecStride> VecMap;
+				VecStride stride(1, totalVoxels);
+				VecMap	SPGR_signal(SPGR + sliceOffset + vox, nSPGR, stride);
+				
+				std::vector<VectorXd> SSFP_signals;
 				for (int p = 0; p < nPhases; p++)
 				{
-					for (int img = 0; img < nSSFP; img++)
-						SSFP_signals(p, img) = SSFP[p][totalVoxels * img + sliceOffset +  + vox];
+					VecMap temp(SSFP[p] + sliceOffset + vox, nSSFP, stride);
+					SSFP_signals.push_back(temp);
 				}
 				
-				SPGR_2c SPGR(spgrAngles, SPGR_signals, spgrTR, M0, B1);
-				SSFP_2c SSFP(ssfpPhases, ssfpAngles, SSFP_signals, ssfpTR, M0, B1);
+				TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B1);
 				
-				residual = regionContraction(params, SPGR, SSFP,
-				                             loBounds, hiBounds,
-											 loConstraints, hiConstraints,
-											 1000, 10, 20, 0.1, 0.025);
+				residual = regionContraction<TwoComponent>(params, tc,
+				                                           loBounds, hiBounds,
+											               loConstraints, hiConstraints,
+														   1000, 10, 20, 0.1, 0.025);
 			}
 			for (int p = 0; p < NR - 1; p++)
 				resultsData[p][sliceOffset + vox]  = params[p];
 			resultsData[NR - 1][sliceOffset + vox] = residual;
 		};
-		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+		//dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+		//dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		
 		if (verbose)
 		{

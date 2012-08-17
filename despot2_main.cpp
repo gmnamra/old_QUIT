@@ -20,7 +20,8 @@
 	#define AtomicAdd(x, y) (*y) += x
 #endif
 
-#include "DESPOT.h"
+#include <unsupported/Eigen/NonLinearOptimization>
+#include "DESPOT_Functors.h"
 #include "fslio.h"
 #include "procpar.h"
 
