@@ -27,20 +27,44 @@
 #include "procpar.h"
 
 //******************************************************************************
-// Constants
+// Arguments / Usage
 //******************************************************************************
 const char *usage = "Usage is: mcdespot [options] output_prefix spgr_file ssfp_file1 (ssfp_fileN)\n\
 \
 Options:\n\
-	-m file   : Mask input with specified file.\n\
-	-z        : Output .nii.gz files.\n\
-	--M0 file : M0 Map file.\n\
-	--B0 file : B0 Map file.\n\
-	--B1 file : B1 Map file.\n\
-	-b 3      : Boundaries suitable for 3T (default)\n\
-	   7      : Boundaries suitable for 7T\n\
-	   u      : User specified boundaries from stdin.\n";
+	-v, --verbose     : Print extra information.\n\
+	-m, --mask file   : Mask input with specified file.\n\
+	--M0 file         : M0 Map file.\n\
+	--B0 file         : B0 Map file.\n\
+	--B1 file         : B1 Map file.\n\
+	--start_slice n   : Only start processing at slice n.\n\
+	--end_slice n     : Finish at slice n-1.\n\
+	-s, --samples n   : Use n samples for region contraction (Default 5000).\n\
+	-r, --retain  n   : Retain n samples for new boundary (Default 50).\n\
+	-c, --contract n  : Contract a maximum of n times (Default 10).\n\
+	-e, --expand n    : Re-expand boundary by percentage n (Default 0).\n\
+	-b 3              : Boundaries suitable for 3T (default)\n\
+	   7              : Boundaries suitable for 7T\n\
+	   u              : User specified boundaries from stdin.\n";
 
+static int verbose = false, start_slice = -1, end_slice = -1,
+		   samples = 5000, retain = 50, contract = 10;
+static double expand = 0.;
+static struct option long_options[] =
+{
+	{"B0", required_argument, 0, '0'},
+	{"B1", required_argument, 0, '1'},
+	{"M0", required_argument, 0, 'M'},
+	{"mask", required_argument, 0, 'm'},
+	{"verbose", no_argument, 0, 'v'},
+	{"start_slice", required_argument, 0, 'S'},
+	{"end_slice", required_argument, 0, 'E'},
+	{"samples", required_argument, 0, 's'},
+	{"retain", required_argument, 0, 'r'},
+	{"contract", required_argument, 0, 'c'},
+	{"expand", required_argument, 0, 'e'},
+	{0, 0, 0, 0}
+};
 //******************************************************************************
 // SIGTERM interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
@@ -88,21 +112,9 @@ int main(int argc, char **argv)
 	FSLIO *inFile = NULL, *spgrFile = NULL, **ssfpFiles;
 	short nx, ny, nz, nt;
 	par_t *pars;
-	static int verbose = false, start_slice = -1, end_slice = -1;
-	static struct option long_options[] =
-	{
-		{"B0", required_argument, 0, '0'},
-		{"B1", required_argument, 0, '1'},
-		{"M0", required_argument, 0, 'M'},
-		{"mask", required_argument, 0, 'm'},
-		{"verbose", no_argument, 0, 'v'},
-		{"start_slice", required_argument, 0, 'S'},
-		{"end_slice", required_argument, 0, 'E'},
-		{0, 0, 0, 0}
-	};
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "b:m:vz", long_options, &indexptr)) != -1)
+	while ((c = getopt_long(argc, argv, "b:m:vzs:r:c:e:", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
@@ -130,15 +142,13 @@ int main(int argc, char **argv)
 				M0Data = FslGetVolumeAsScaledDouble(inFile, 0);
 				FslClose(inFile);
 				break;
-			case 'v':
-				verbose = true;
-				break;
-			case 'S':
-				start_slice = atoi(optarg);
-				break;
-			case 'E':
-				end_slice = atoi(optarg);
-				break;
+			case 'v': verbose = true; break;
+			case 'S': start_slice = atoi(optarg); break;
+			case 'E': end_slice = atoi(optarg); break;
+			case 's': samples  = atoi(optarg); break;
+			case 'r': retain   = atoi(optarg); break;
+			case 'c': contract = atoi(optarg); break;
+			case 'e': expand   = atof(optarg); break; 
 			case 'b':
 				switch (*optarg)
 				{
@@ -332,27 +342,21 @@ int main(int argc, char **argv)
 			if (!maskData || (maskData[sliceOffset + vox] > 0.))
 			{
 				AtomicAdd(1, &voxCount);
-				//ArrayXd SPGR_signals(nSPGR);
-				//for (int img = 0; img < nSPGR; img++)
-				//	SPGR_signals[img] = SPGR[totalVoxels * img + sliceOffset +  + vox];
-				typedef Stride<1, Dynamic> VecStride;
-				typedef Map<VectorXd, Unaligned, VecStride> VecMap;
-				VecStride stride(1, totalVoxels);
-				VecMap	SPGR_Map(SPGR + sliceOffset + vox, nSPGR, VecStride(1, totalVoxels));
-				VectorXd SPGR_signal = SPGR_Map;
+				VectorXd SPGR_signal(nSPGR);
+				for (int vol = 0; vol < nSPGR; vol++)
+					SPGR_signal[vol] = SPGR[totalVoxels*vol + sliceOffset + vox];
 				std::vector<VectorXd> SSFP_signals;
 				for (int p = 0; p < nPhases; p++)
 				{
-					VecMap SSFP_Map(SSFP[p] + sliceOffset + vox, nSSFP, VecStride(1, totalVoxels));
-					VectorXd SSFP_vec = SSFP_Map;
-					SSFP_signals.push_back(SSFP_vec);
-				}
-				
+					VectorXd temp(nSSFP);
+					for (int vol = 0; vol < nSSFP; vol++)
+						temp[vol] = SSFP[p][totalVoxels*vol + sliceOffset + vox];
+					SSFP_signals.push_back(temp);
+				}				
 				TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B1);
-				
 				residual = regionContraction<TwoComponent>(params, tc, loBounds, hiBounds,
 											               loConstraints, hiConstraints,
-														   5000, 50, 10, 0.05, 0.05, vox + time(NULL));
+														   samples, retain, contract, 0.05, expand, vox + time(NULL));
 			}
 			for (int p = 0; p < NR - 1; p++)
 				resultsData[p][sliceOffset + vox]  = params[p];
