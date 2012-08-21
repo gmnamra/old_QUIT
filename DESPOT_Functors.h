@@ -56,7 +56,8 @@ class SSFP_1c : public Functor<double>
 				_TR(TR),
 				_T1(T1),
 				_B1(B1)
-				{  }
+				{
+				}
 	
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
@@ -69,7 +70,6 @@ class SSFP_1c : public Functor<double>
 			M0 << 0., 0., params[0];
 			double T2 = params[1],
 				   B0 = params[2];
-			
 			int index = 0;
 			for (int p = 0; p < _rfPhases.size(); p++)
 			{
@@ -88,9 +88,7 @@ class SSFP_1c : public Functor<double>
 					double ca = cos(_B1 * a), sa = sin(_B1 * a);
 					R_rf(1, 1) = R_rf(2, 2) = ca;
 					R_rf(1, 2) = sa; R_rf(2, 1) = -sa;
-					
-					Mobs = (eye - (A * R_rf)).partialPivLu().solve(eyema) * M0;
-					
+					Mobs = (eye - (A * R_rf)).partialPivLu().solve(eyema) * M0;				
 					diffs[index] = Mobs.head(2).norm() - _signals[p][i];
 					index++;
 				}
@@ -119,6 +117,7 @@ class TwoComponent : public Functor<double>
 					 _ssfpSignals(ssfpSignals),
 					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M0(M0), _B1(B1)
 				     {
+						
 					 }
 	
 		int operator()(const VectorXd &params, VectorXd &diffs) const
@@ -131,20 +130,30 @@ class TwoComponent : public Functor<double>
 				   f_b = 1. - f_a,
 			       tau_a = params[5],
 			       tau_b = f_b * tau_a / f_a,
-				   B0 = params[6];
+				   B0 = params[6],
+				   k_ab = 1. / tau_a,
+				   k_ba = 1. / tau_b;
+			
+			// Only have 1 component, so no exchange
+			if ((f_a == 0.) || (f_b == 0.))
+			{
+				k_ab = 0.;
+				k_ba = 0.;
+			}
 			
 			eigen_assert(diffs.size() == values());
 			
 			int index = 0;
-			//****************************************************
-			// SPGR First
+			//std::cout << "****************************************************" << std::endl;
+			//std::cout << "SPGR First" << std::endl;
 			{
 				Matrix2d A;
 				const Matrix2d eye2 = Matrix2d::Identity();
 				Vector2d M0, Mobs;
 				M0 << _M0 * f_a, _M0 * f_b;
-				A << -(_spgrTR/T1_a + _spgrTR/tau_a),                  _spgrTR/tau_b,
-									   _spgrTR/tau_a, -(_spgrTR/T1_b + _spgrTR/tau_b);
+				A << -(_spgrTR/T1_a + _spgrTR*k_ab),                  _spgrTR*k_ba,
+									   _spgrTR*k_ab, -(_spgrTR/T1_b + _spgrTR*k_ba);
+				//std::cout << A << std::endl;
 				MatrixExponential<Matrix2d> expA(A);
 				expA.compute(A);
 				const Matrix2d eyema = eye2 - A;
@@ -156,6 +165,7 @@ class TwoComponent : public Functor<double>
 					index++;
 				}
 			}
+			
 			//std::cout << "****************************************************" << std::endl;
 			//std::cout << "Now SSFP" << std::endl;
 			{
@@ -167,27 +177,20 @@ class TwoComponent : public Functor<double>
 				R_rf(0, 0) = R_rf(1, 1) = 1.;
 				M0 << 0., 0., 0., 0., _M0 * f_a, _M0 * f_b;
 				
-				double eT2_a = -_ssfpTR * (1./T2_a + 1./tau_a),
-					   eT2_b = -_ssfpTR * (1./T2_b + 1./tau_b),
-					   eT1_a = -_ssfpTR * (1./T1_a + 1./tau_a),
-					   eT1_b = -_ssfpTR * (1./T1_b + 1./tau_b),
-					   k_a   = _ssfpTR / tau_a,
-					   k_b   = _ssfpTR / tau_b;
-				
 				for (int p = 0; p < _rfPhases.size(); p++)
 				{
 					double phase = _rfPhases[p] + (B0 * _ssfpTR * 2. * M_PI);
 					// Can get away with this because the block structure of the
 					// matrix ensures that the zero blocks are always zero after
 					// the matrix exponential.
-					A(0, 0) = A(2, 2) = eT2_a;
-					A(1, 1) = A(3, 3) = eT2_b;
-					A(0, 1) = A(2, 3) = A(4, 5) = k_b;
+					A(0, 0) = A(2, 2) = -_ssfpTR * (1./T2_a + k_ab);
+					A(1, 1) = A(3, 3) = -_ssfpTR * (1./T2_b + k_ba);
+					A(0, 1) = A(2, 3) = A(4, 5) = _ssfpTR * k_ba;
 					A(0, 2) = A(1, 3) = phase;
-					A(1, 0) = A(3, 2) = A(5, 4) = k_a;
-					A(2, 0) = A(3, 1) = -phase;  
-					A(4, 4) = eT1_a;
-					A(5, 5) = eT1_b;
+					A(1, 0) = A(3, 2) = A(5, 4) = _ssfpTR * k_ab;
+					A(2, 0) = A(3, 1) = -phase; 
+					A(4, 4) = -_ssfpTR * (1./T1_a + k_ab);
+					A(5, 5) = -_ssfpTR * (1./T1_b + k_ba);
 					A(0, 3) = A(1, 2) = A(2, 1) = A(3, 0) = 0.;
 					MatrixExponential<Matrix6d> exp(A);
 					exp.compute(expA);

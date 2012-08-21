@@ -21,6 +21,7 @@
 #endif
 
 #include <unsupported/Eigen/NonLinearOptimization>
+#include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "fslio.h"
 #include "procpar.h"
@@ -152,7 +153,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	ssfpFiles  = (FSLIO **)malloc(nPhases * sizeof(nifti_image *));
-	ArrayXd ssfpPhases(nPhases);
+	VectorXd ssfpPhases(nPhases);
 	ssfpPhases[0] = M_PI;
 	ssfpFiles[0] = FslOpen(argv[optind], "rb");
 	size_t nx = ssfpFiles[0]->niftiptr->nx;
@@ -161,33 +162,27 @@ int main(int argc, char **argv)
 	size_t nSSFP = ssfpFiles[0]->niftiptr->nt;
 	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
 	pars = readProcpar(procpar);
-	double angles_data[nSSFP];
+	VectorXd ssfpAngles(nSSFP);
 	if (pars)
 	{
-		int check;
 		fprintf(stdout, "Reading SSFP 180 parameters from procpar.\n");
-		memcpy(angles_data, realVals(pars, "flip1", &check), nSSFP * sizeof(double));
-		if (check != nSSFP)
-		{
-			fprintf(stderr, "flip1 and nvols do not match.\n");
-			exit(EXIT_FAILURE);
-		}
+		for (int i = 0; i < nSSFP; i++)
+			ssfpAngles[i] = radians(realVal(pars, "flip1", i));
 		ssfpTR = realVal(pars, "tr", 0);
 		fprintf(stdout, "TR (s): %f, Angles (deg) = ", ssfpTR);
-
 		freeProcpar(pars);
 	}
 	else
 	{
+		double temp[nSSFP];
 		fprintf(stdout, "Enter %zu SSFP flip angles (degrees) :", nSSFP);
-		fgetArray(stdin, 'd', nSSFP, angles_data); fprintf(stdout, "\n");
+		fgetArray(stdin, 'd', nSSFP, temp); fprintf(stdout, "\n");
+		for (int i = 0; i < nSSFP; i++)
+			ssfpAngles[i] = radians(temp[i]);
 		fprintf(stdout, "Enter SSFP TR (ms):");
 		fscanf(stdin, "%lf", &ssfpTR);		
 	}
-	Map<ArrayXd> ssfpAngles(angles_data, nSSFP);
-	std::cout << ssfpAngles.transpose() << std::endl;
-	for (int i = 0; i < nSSFP; i++)
-		ssfpAngles[i] = radians(ssfpAngles[i]);
+	std::cout << "Flip angles (deg): " << ssfpAngles.transpose() * 180. / M_PI << std::endl;
 	for (size_t p = 1; p < nPhases; p++)
 	{
 		fprintf(stdout, "Reading SSFP header from %s.\n", argv[++optind]);
@@ -216,6 +211,7 @@ int main(int argc, char **argv)
 			ssfpPhases[p] = radians(ssfpPhases[p]);	
 		}
 	}
+	std::cout << "Phase cycling patterns (degrees): " << ssfpPhases.transpose() * 180. / M_PI << std::endl;
 	//**************************************************************************	
 	// Get input data
 	//**************************************************************************
@@ -275,12 +271,14 @@ int main(int argc, char **argv)
 			{	// Zero T1 causes zero-pivot error.
 				AtomicAdd(1, &voxCount);
 				// Gather signals. 180 Phase data is required to be the first file passed into program
-				ArrayXXd signals(nPhases, nSSFP);
+				std::vector<VectorXd> signals;
 				for (int p = 0; p < nPhases; p++)
 				{
 					//signals[p].resize(nSSFP);
+					VectorXd temp(nSSFP);
 					for (int i = 0; i < nSSFP; i++)
-						signals(p, i) = ssfpData[p][i*totalVoxels + sliceOffset + vox];
+						temp(i) = ssfpData[p][i*totalVoxels + sliceOffset + vox];
+					signals.push_back(temp);
 				}
 				// Choose phase with accumulated phase closest to 180
 				int index = 0;
@@ -294,21 +292,19 @@ int main(int argc, char **argv)
 						index = p;
 					}
 				}
-				residual = classicDESPOT2(ssfpAngles, signals.row(index), ssfpTR, T1, B1, &M0, &T2);
+				residual = classicDESPOT2(ssfpAngles, signals[index], ssfpTR, T1, B1, &M0, &T2);
 				if (nPhases > 1)
 					residual = index;
 				// Don't process if DESPOT2 failed.
 				if (levMar && std::isfinite(T2) && std::isfinite(M0))
 				{
-					ArrayXd tempAngles = ssfpAngles;
-					SSFP_1c f(ssfpPhases, tempAngles, signals,
+					SSFP_1c f(ssfpAngles, ssfpPhases, signals,
 							  ssfpTR, T1, B1);
 					NumericalDiff<SSFP_1c> nf(f);
 					LevenbergMarquardt<NumericalDiff<SSFP_1c> > lm(nf);
 					if (M0Data)
 						M0 = M0Data[sliceOffset + vox];
 					VectorXd params(3);
-					params << M0, T2, B0;
 					lm.minimize(params);
 					M0 = params[0];
 					T2 = params[1];
@@ -317,7 +313,7 @@ int main(int argc, char **argv)
 			}
 			resultsData[0][sliceOffset + vox] = clamp(M0, 0., 1.e7);
 			resultsData[1][sliceOffset + vox] = clamp(T2, 0.001, 0.250);
-			resultsData[2][sliceOffset + vox] = B0;
+			resultsData[2][sliceOffset + vox] = fmod(B0, 1./ssfpTR);
 			resultsData[3][sliceOffset + vox] = residual;
 		};
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);

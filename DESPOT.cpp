@@ -158,31 +158,12 @@ double clamp(double value, double low, double high)
 //******************************************************************************
 #pragma mark Console Input
 //******************************************************************************
-int fgetArray(FILE *in, char type, size_t n, void *array)
+void fscanVector(std::istream &s, VectorXd &v)
 {
-		for (size_t i = 0; i < n; i++)
-		{
-			switch (type)
-			{
-				case 'i':
-				{	int inVal; fscanf(in, "%d", &inVal);
-					((int *)array)[i] = inVal;
-				} break;
-				case 'f':
-				{	float inVal; fscanf(in, "%f", &inVal);
-					((float *)array)[i] = inVal;
-				} break;
-				case 'd':
-				{	double inVal; fscanf(in, "%lf", &inVal);
-					((double *)array)[i] = inVal;
-				} break;
-				case 's':
-				{	char inVal[1024]; fscanf(stdin, "%s", &inVal);
-					((char **)array)[i] = (char *)malloc(strlen(inVal) * sizeof(char));
-					strcpy(((char **)array)[i], inVal); } break;
-			}
-		}
-	return n;
+	for (size_t i = 0; i < v.size(); i++)
+	{
+		s >> v[i];
+	}
 }
 
 //******************************************************************************

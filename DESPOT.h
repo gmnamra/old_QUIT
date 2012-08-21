@@ -11,8 +11,6 @@
 
 #include <iostream>
 
-#include <stdio.h>
-
 #include <Eigen/Dense>
 using namespace Eigen;
 
@@ -40,7 +38,7 @@ double clamp(double value, double low, double high);
 //******************************************************************************
 #pragma mark Parameter Files
 //******************************************************************************
-int fgetArray(FILE *in, char type, size_t n, void *array);
+void fscanVector(std::istream &s, VectorXd &v);
 
 void linearLeastSquares(double *X, double *Y, int nD,
 						double *slope, double *inter, double *res);

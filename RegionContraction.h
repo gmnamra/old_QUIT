@@ -9,6 +9,9 @@
 #ifndef DESPOT_RegionContraction_h
 #define DESPOT_RegionContraction_h
 
+#define DSFMT_MEXP 521
+#include "dSFMT.h"
+
 typedef Array<bool, Dynamic, Dynamic> ArrayXb;
 typedef std::pair<int, double> argsort_pair;
 
@@ -38,10 +41,9 @@ double regionContraction(VectorXd &params, Functor_t &f,
                          const VectorXd &loStart, const VectorXd &hiStart,
 					     const VectorXi &loConstrained, const VectorXi &hiConstrained,
 					     const int nS, const int nR, const int maxContractions,
-						 const double thresh, const double expand)
+						 const double thresh, const double expand, const uint32_t seed = 0)
 {
 	size_t nP = params.size();
-	
 	MatrixXd samples(nP, nS);
 	MatrixXd retained(nP, nR);
 	VectorXd sampleRes(nS);
@@ -49,40 +51,39 @@ double regionContraction(VectorXd &params, Functor_t &f,
 	VectorXd loBounds = loStart;
 	VectorXd hiBounds = hiStart;
 	VectorXd regionSize = (hiBounds - loBounds);
+	VectorXd diffs(f.values());
 	size_t c;
-	srand(time(NULL));
+	
+	dsfmt_t dsfmt;
+	dsfmt_init_gen_rand(&dsfmt, seed);
+
 	for (c = 0; c < maxContractions; c++)
 	{
-		samples.setRandom();
 		// Get in the range 0 to 1
-		samples.array() += 1;
-		samples.array() /= 2.;
-		//std::cout << "Contraction : " << c << std::endl;		
+		dsfmt_fill_array_open_open(&dsfmt, samples.data(), nP * nS);
 		for (int s = 0; s < nS; s++)
 		{
 			samples.col(s).array() *= regionSize.array();
 			samples.col(s) += loBounds;
-			VectorXd diffs(f.values());
 			f(samples.col(s), diffs);
-			sampleRes(s) = diffs.squaredNorm();
+			sampleRes(s) = diffs.norm();
+			if (!std::isfinite(diffs.norm()))
+			{
+				std::cout << "Infinite Diff" << std::endl;
+				std::cout << "Sample = " << samples.col(s).transpose() << std::endl;
+				std::cout << "Diffs  = " << diffs.transpose() << std::endl;
+			}
 		}
 		indices = arg_partial_sort(sampleRes, nR);
-		//std::cout << std::endl;
-		//std::cout << "First 10 residuals: " << sampleRes.head(10).transpose() << std::endl;
-		//std::cout << "Retained residuals: ";
 		for (int i = 0; i < nR; i++)
-		{
 			retained.col(i) = samples.col(indices[i]);
-			//std::cout << indices[i] << " " << sampleRes[indices[i]] << " ";
-		}
-		//std::cout << std::endl;*/
-			
+		
 		// Find the min and max for each parameter in the top nR samples
 		loBounds = retained.rowwise().minCoeff();
 		hiBounds = retained.rowwise().maxCoeff();
 		regionSize = (hiBounds - loBounds);	
 		// Terminate if ALL the distances between bounds are under the threshold
-		if ((((regionSize.array() / hiBounds.array()).abs() - thresh) < 0).all())
+		if (((regionSize.array() / hiBounds.array()).abs() < thresh).all())
 			break;
 		
 		// Expand the boundaries back out in case we just missed a minima,
@@ -98,13 +99,9 @@ double regionContraction(VectorXd &params, Functor_t &f,
 				hiBounds[p] = hiStart[p];
 		}
 		regionSize = hiBounds - loBounds;
-		//std::cout << "Lo:   " << loBounds.transpose() << std::endl;
-		//std::cout << "Hi:   " << hiBounds.transpose() << std::endl;
-		//std::cout << "Size: " << regionSize.transpose() << std::endl;
 	}
 	// Return the best evaluated solution so far
 	params = retained.col(0);
-	//std::cout << "End P: " << params.transpose() << " Res: " << sampleRes[indices[0]] << std::endl;
 	return sampleRes[indices[0]];
 }
 
