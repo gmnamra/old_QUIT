@@ -149,8 +149,8 @@ int main(int argc, char **argv)
 						break;
 					case '7':
 						std::cout << "Using 7T boundaries.\n";
-						loBounds << 0.600, 1.80, 0.003, 0.015, 0.0, 0.4, 0.;
-						hiBounds << 1.000, 2.20, 0.007, 0.025, 0.5, 0.6, 0.;
+						loBounds << 0.500, 1.50, 0.005, 0.010, 0.0, 0.5, 0.;
+						hiBounds << 1.000, 3.00, 0.050, 0.500, 1.0, 1.5, 0.;
 						break;
 					case 'u':
 					{
