@@ -48,7 +48,7 @@ Options:\n\
 	   u              : User specified boundaries from stdin.\n";
 
 static int verbose = false, start_slice = -1, end_slice = -1,
-		   samples = 5000, retain = 50, contract = 10;
+		   samples = 2500, retain = 25, contract = 10;
 static double expand = 0.;
 static struct option long_options[] =
 {
@@ -68,10 +68,11 @@ static struct option long_options[] =
 //******************************************************************************
 // SIGTERM interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
-#define NR 8
+#define NR 12
 FSLIO *resultsHeaders[NR] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 double *resultsData[NR];
-const char *names[NR] = { "_T1_short", "_T1_long", "_T2_short", "_T2_long", "_frac_short", "_tau_short", "_mc_B0", "_mc_res" };
+// Params don't include f_c, so we calculate it explicitly later
+const char *names[NR] = { "_T1_a", "_T1_b", "_T1_c", "_T2_a", "_T2_b", "_T2_c", "_f_a", "_f_c", "_tau_a", "_mc_B0", "_f_b", "_mc_res" };
 void int_handler(int sig);
 void int_handler(int sig)
 {
@@ -105,10 +106,10 @@ int main(int argc, char **argv)
 	size_t nSPGR, nPhases, nSSFP;
 	double spgrTR, ssfpTR,
 	       *maskData = NULL, *M0Data = NULL, *B0Data = NULL, *B1Data = NULL;
-	VectorXd loBounds(7), hiBounds(7);
-	VectorXi loConstraints(7), hiConstraints(7);
-	loConstraints << true, true, true, true, true, true, false;
-	hiConstraints << true, true, true, true, true, true, false;
+	VectorXd loBounds(10), hiBounds(10);
+	VectorXi loConstraints(10), hiConstraints(10);
+	loConstraints << true, true, true, true, true, true, true, true, true, false;
+	hiConstraints << true, true, true, true, true, true, true, true, true, false;
 	FSLIO *inFile = NULL, *spgrFile = NULL, **ssfpFiles;
 	short nx, ny, nz, nt;
 	par_t *pars;
@@ -154,19 +155,19 @@ int main(int argc, char **argv)
 				{
 					case '3':
 						std::cout << "Using 3T boundaries.\n";
-						loBounds << 0.200, 0.500, 0.002, 0.040, 0.0, 0.050, 0.;
-						hiBounds << 0.700, 2.500, 0.040, 0.200, 0.4, 2.000, 0.;
+						loBounds << 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0.;
+						hiBounds << 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0.;
 						break;
 					case '7':
 						std::cout << "Using 7T boundaries.\n";
-						loBounds << 0.500, 1.50, 0.005, 0.010, 0.0, 0.5, 0.;
-						hiBounds << 1.000, 3.00, 0.050, 0.500, 1.0, 1.5, 0.;
+						loBounds << 0.500, 1.50, 0.0001, 0.010, 0.0, 0.0, 0., 0., 0., 0.;
+						hiBounds << 1.000, 3.00, 0.0500, 0.500, 1.0, 1.0, 0., 0., 0., 0.;
 						break;
 					case 'u':
 					{
-						std::cout << "Enter low boundaries (7 values):";
+						std::cout << "Enter low boundaries (10 values):";
 						fscanVector(std::cin, loBounds);
-						std::cout << "Enter high boundaries (7 values):";
+						std::cout << "Enter high boundaries (10 values):";
 						fscanVector(std::cin, hiBounds);
 					}
 						break;
@@ -181,6 +182,8 @@ int main(int argc, char **argv)
 				break;
 		}
 	}
+	std::cout << "Low bounds: " << loBounds.transpose() << std::endl;
+	std::cout << "Hi bounds:  " << hiBounds.transpose() << std::endl;
 	if ((argc - optind) < 3)
 	{
 		fprintf(stderr, "Insufficient number of arguments.\n%s", usage);
@@ -278,9 +281,16 @@ int main(int argc, char **argv)
 		std::cout << "SSFP TR (s): " << ssfpTR << " SSFP flip angles (deg): " << ssfpAngles.transpose() * 180. / M_PI << std::endl;	
 		std::cout << "Phase Cycling Patterns (degrees): " << ssfpPhases.transpose() * 180. / M_PI << std::endl;
 	}
-	// Make sure the B0 bounds are sensible
-	loBounds(6) = (-0.5 / ssfpTR);
-	hiBounds(6) = (0.5 / ssfpTR);
+	if (B0Data)
+	{	// User is supplying a B0 estimate
+		loBounds(9) = 0.;
+		hiBounds(9) = 0.;
+	}
+	else
+	{	// Make sure the B0 bounds are sensible
+		loBounds(9) = (-0.5 / ssfpTR);
+		hiBounds(9) = (0.5 / ssfpTR);
+	}
 	//**************************************************************************	
 	// Get input data
 	//**************************************************************************
@@ -327,18 +337,14 @@ int main(int argc, char **argv)
 		__block int voxCount = 0;
 		const int sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
-		//for (int vox = 0; vox < voxelsPerSlice; vox++)
-		void (^processVoxel)(size_t vox) = ^(size_t vox)
+		for (int vox = 0; vox < voxelsPerSlice; vox++)
+		//void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
-			double M0 = 1, B0 = 0, B1 = 1., residual = 0.;
-			if (M0Data)
-				M0 = (double)M0Data[sliceOffset + vox];
-			if (B0Data)
-				B0 = (double)B0Data[sliceOffset + vox];
-			if (B1Data)
-				B1 = (double)B1Data[sliceOffset + vox];		
-			VectorXd params(7);
-			params.setZero();
+			double M0 = 1, B0 = INFINITY, B1 = 1., residual = 0.;
+			if (M0Data) M0 = (double)M0Data[sliceOffset + vox];
+			if (B0Data) B0 = (double)B0Data[sliceOffset + vox];
+			if (B1Data) B1 = (double)B1Data[sliceOffset + vox];		
+			VectorXd params(10); params.setZero();
 			if (!maskData || (maskData[sliceOffset + vox] > 0.))
 			{
 				AtomicAdd(1, &voxCount);
@@ -353,16 +359,17 @@ int main(int argc, char **argv)
 						temp[vol] = SSFP[p][totalVoxels*vol + sliceOffset + vox];
 					SSFP_signals.push_back(temp);
 				}				
-				TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B1);
-				residual = regionContraction<TwoComponent>(params, tc, loBounds, hiBounds,
-											               loConstraints, hiConstraints,
-														   samples, retain, contract, 0.05, expand, vox + time(NULL));
+				ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1);
+				residual = regionContraction<ThreeComponent>(params, tc, loBounds, hiBounds,
+											                 loConstraints, hiConstraints,
+														     samples, retain, contract, 0.05, expand, vox + time(NULL));
 			}
-			for (int p = 0; p < NR - 1; p++)
+			for (int p = 0; p < params.size(); p++)
 				resultsData[p][sliceOffset + vox]  = params[p];
+			resultsData[NR - 2][sliceOffset + vox] = 1. - params[6] - params[7];
 			resultsData[NR - 1][sliceOffset + vox] = residual;
 		};
-		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+		//dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		
 		if (verbose)
 		{

@@ -15,14 +15,14 @@ int main(int argc, const char * argv[])
 	// Generate test images
 	
 	// Set up all the parameters
-	double spgrTR = 0.0087;
-	double ssfpTR = 0.002916;
-	double M0 = 1.e6;
+	double spgrTR = 0.013;
+	double ssfpTR = 0.0105;
+	double M0 = 1.;
 	double B1 = 1;
 	
-	VectorXd alphaSPGR(8); alphaSPGR << 2, 2.5, 3, 4, 5, 7.5, 10, 15;
-	VectorXd alphaSSFP(8); alphaSSFP << 2, 4, 6, 7, 12, 16, 24, 32;
-	VectorXd phases(6); phases << 0., 90., 135., 180., 225., 270.;
+	VectorXd alphaSPGR(8); alphaSPGR << 2, 3, 4, 5, 6, 7, 10, 14;
+	VectorXd alphaSSFP(8); alphaSSFP << 11, 16, 19, 23, 27, 35, 50, 70;
+	VectorXd phases(2); phases << 0., 180.;
 	alphaSPGR *= M_PI / 180.;
 	alphaSSFP *= M_PI / 180.;
 	phases    *= M_PI / 180.;
@@ -32,15 +32,15 @@ int main(int argc, const char * argv[])
 	std::cout << "SSFP flip: " << alphaSSFP.transpose() << std::endl;
 	
 	const char *param_names[] =
-	 { "T1_a", "T1_b", "T2_a", "T2_b", "f_a", "tau_a", "B0" };
-	VectorXd params(7); params << 0.8, 2., 0.005, 0.02, 0., 0.5, 0.;
+	 { "T1_a", "T1_b", "T1_c", "T2_a", "T2_b", "T2_c", "f_a", "f_c", "tau_a", "B0" };
+	VectorXd params(10); params << 0.465, 0.965, 3.5, 0.012, 0.09, 0.25, 0., 0., 0.125, 0.;
 	VectorXd zeros(8); zeros.setZero();
 	std::vector<VectorXd> ssfpZeros;
 	for (int i = 0; i < phases.size(); i++)
 		ssfpZeros.push_back(zeros);
 	
 	// Now create our images
-	int nx = 3, ny = 3, nz = 3;
+	int nx = 5, ny = 6, nz = 2;
 	int totalVoxels = nx * ny * nz;
 	double *dataSPGR = (double *)malloc(alphaSPGR.size() * totalVoxels * sizeof(double));
 	double *dataSSFP[phases.size()];
@@ -52,17 +52,17 @@ int main(int argc, const char * argv[])
 	double *dataM0 = (double *)malloc(totalVoxels * sizeof(double));
 	double *dataB1 = (double *)malloc(totalVoxels * sizeof(double));
 	
-	TwoComponent tc(alphaSPGR, zeros, alphaSSFP, phases, ssfpZeros, spgrTR, ssfpTR, M0, B1);
+	ThreeComponent tc(alphaSPGR, zeros, alphaSSFP, phases, ssfpZeros, spgrTR, ssfpTR, M0, INFINITY, B1);
 	VectorXd sig(tc.values());
 	
 	std::cout << "M0 " << M0 << " B1 " << B1 << std::endl;
 	for (short z = 0; z < nz; z++)
 	{	for (short y = 0; y < ny; y++)
 		{	
-			params[4] = ((double)y / (ny - 1)) * 0.3 + 0.1;
+			params[7] = ((double)y / (ny - 1)) * 0.6;
 			for (short x = 0; x < nx; x++)
 			{
-				params[6] = ((double)x / (nx - 1)) * (0.5 / ssfpTR);
+				params[6] = ((double)x / (nx - 1)) * 0.2 + 0.05;
 				std::cout << "P: " << params.transpose() << std::endl;				
 				tc(params, sig);
 				std::cout << "SPGR: " << sig.head(alphaSPGR.size()).transpose() << std::endl;
@@ -154,7 +154,7 @@ int main(int argc, const char * argv[])
 	FslWriteHeader(outFile);
 	FslWriteAllVolumesFromDouble(outFile, dataB1);
 	FslClose(outFile);
-	
+		
     return 0;
 }
 

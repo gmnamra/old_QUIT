@@ -105,17 +105,17 @@ class TwoComponent : public Functor<double>
 	public:
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
-		double _spgrTR, _ssfpTR, _M0, _B1;
+		const double _spgrTR, _ssfpTR, _M0, _B0, _B1;
 		TwoComponent(const VectorXd &spgrAngles, const VectorXd &spgrSignals,
 		             const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					 const std::vector<VectorXd> &ssfpSignals,
 					 const double spgrTR, const double ssfpTR, 
-					 const double M0, const double B1) :
+					 const double M0, const double B0, const double B1) :
 					 Functor(7, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				     _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				     _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					 _ssfpSignals(ssfpSignals),
-					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M0(M0), _B1(B1)
+					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M0(M0), _B0(B0), _B1(B1)
 				     {
 						
 					 }
@@ -134,6 +134,8 @@ class TwoComponent : public Functor<double>
 				   k_ab = 1. / tau_a,
 				   k_ba = 1. / tau_b;
 			
+			if (std::isfinite(_B0))
+				B0 = _B0;
 			// Only have 1 component, so no exchange
 			if ((f_a == 0.) || (f_b == 0.))
 			{
@@ -207,6 +209,141 @@ class TwoComponent : public Functor<double>
 						Mobs.noalias() = solver.solve(eyema) * M0;
 						diffs[index] = sqrt(pow(Mobs[0] + Mobs[1], 2.) +
 											pow(Mobs[2] + Mobs[3], 2.)) - _ssfpSignals[p][i];
+						index++;
+					}
+				}
+			}
+			return 0;
+		}
+};
+
+typedef Matrix<double, 9, 9> Matrix9d;
+typedef Matrix<double, 9, 1> Vector9d;
+
+class ThreeComponent : public Functor<double>
+{
+	public:
+		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
+		const std::vector<VectorXd> &_ssfpSignals;
+		const double _spgrTR, _ssfpTR, _M0, _B0, _B1;
+		ThreeComponent(const VectorXd &spgrAngles, const VectorXd &spgrSignals,
+		               const VectorXd &ssfpAngles, const VectorXd &rfPhases,
+					   const std::vector<VectorXd> &ssfpSignals,
+					   const double spgrTR, const double ssfpTR, 
+					   const double M0, const double B0, const double B1) :
+					   Functor(10, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
+				       _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
+				       _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
+					   _ssfpSignals(ssfpSignals),
+					   _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M0(M0), _B0(B0), _B1(B1)
+				      {
+						
+					  }
+	
+		int operator()(const VectorXd &params, VectorXd &diffs) const
+		{
+			double T1_a = params[0],
+			       T1_b = params[1],
+				   T1_c = params[2],
+				   T2_a = params[3],
+				   T2_b = params[4],
+				   T2_c = params[5],
+			       f_a  = params[6],
+				   f_c  = params[7],
+				   f_b  = 1. - f_a - f_c,
+			       tau_a = params[8],
+			       tau_b = f_b * tau_a / f_a,
+				   B0 = params[9],
+				   k_ab = 1. / tau_a,
+				   k_ba = 1. / tau_b;
+			
+			if (std::isfinite(_B0))
+				B0 = _B0;
+			// Only have 1 component, so no exchange
+			if ((f_a == 0.) || (f_b == 0.))
+			{
+				k_ab = 0.;
+				k_ba = 0.;
+			}
+			
+			eigen_assert(diffs.size() == values());
+			
+			int index = 0;
+			//std::cout << "****************************************************" << std::endl;
+			//std::cout << "SPGR First" << std::endl;
+			{
+				Matrix3d A;
+				const Matrix3d eye3 = Matrix3d::Identity();
+				Vector3d M0, Mobs;
+				M0 << _M0 * f_a, _M0 * f_b, _M0 * f_c;
+				A << -(1./T1_a + k_ab),               k_ba, 0,
+								  k_ab,  -(1./T1_b + k_ba), 0,
+									 0,                  0, -1./T1_c;
+				//std::cout << A << std::endl;
+				MatrixExponential<Matrix3d> expA(_spgrTR * A);
+				expA.compute(A);
+				const Matrix3d eyema = eye3 - A;
+				for (int i = 0; i < _spgrAngles.size(); i++)
+				{
+					double a = _spgrAngles[i];
+					Mobs = (eye3 - A*cos(_B1 * a)).partialPivLu().solve(eyema * sin(_B1 * a)) * M0;
+					diffs[index] = Mobs.sum() - _spgrSignals[i];
+					index++;
+				}
+			}
+			
+			//std::cout << "****************************************************" << std::endl;
+			//std::cout << "Now SSFP" << std::endl;
+			{
+				Matrix9d A, expA, R_rf, eye_mAR;
+				const Matrix9d eye9 = Matrix9d::Identity();
+				Vector9d M0, Mobs;
+				PartialPivLU<Matrix9d> solver;
+				A.setZero(); R_rf.setZero();
+				R_rf(0, 0) = R_rf(1, 1) = R_rf(2, 2) = 1.;
+				M0 << 0., 0., 0., 0., 0., 0., _M0 * f_a, _M0 * f_b, _M0 * f_c;
+				
+				for (int p = 0; p < _rfPhases.size(); p++)
+				{
+					double phase = _rfPhases[p] + (B0 * _ssfpTR * 2. * M_PI);
+					// Can get away with this because the block structure of the
+					// matrix ensures that the zero blocks are always zero after
+					// the matrix exponential.
+					A(0, 0) = A(3, 3) = -_ssfpTR * (1./T2_a + k_ab);
+					A(1, 1) = A(4, 4) = -_ssfpTR * (1./T2_b + k_ba);
+					A(2, 2) = A(5, 5) = -_ssfpTR * (1./T2_c);
+					A(0, 1) = A(3, 4) = A(6, 7) = _ssfpTR * k_ba;
+					A(0, 3) = A(1, 4) = A(2, 5) = phase;
+					A(1, 0) = A(4, 3) = A(7, 6) = _ssfpTR * k_ab;
+					A(3, 0) = A(4, 1) = A(5, 2) = -phase; 
+					A(6, 6) = -_ssfpTR * (1./T1_a + k_ab);
+					A(7, 7) = -_ssfpTR * (1./T1_b + k_ba);
+					A(8, 8) = -_ssfpTR * (1./T1_c);
+					A(0, 2) = A(0, 4) = A(0, 5) =
+					A(1, 2) = A(1, 3) = A(1, 5) =
+					A(2, 0) = A(2, 1) = A(2, 3) = A(2, 4) =
+					A(3, 1) = A(3, 2) = A(3, 5) = 
+					A(4, 0) = A(4, 2) = A(4, 5) =
+					A(5, 0) = A(5, 1) = A(5, 3) = A(5, 4) =
+					A(6, 8) = A(7, 8) = A(8, 6) = A(8, 7) = 0.;
+					A.topRightCorner(6, 3).setZero();
+					A.bottomLeftCorner(3, 6).setZero();
+					MatrixExponential<Matrix9d> exp(A);
+					exp.compute(expA);
+					const Matrix9d eyema = eye9 - expA;
+					for (int i = 0; i < _ssfpAngles.size(); i++)
+					{
+						double a = _ssfpAngles[i];
+						double ca = cos(_B1 * a), sa = sin(_B1 * a);
+						R_rf(3, 3) = R_rf(4, 4) = R_rf(5, 5) =
+						R_rf(6, 6) = R_rf(7, 7) = R_rf(8, 8) =  ca;
+						R_rf(3, 6) = R_rf(4, 7) = R_rf(5, 8) =  sa;
+						R_rf(6, 3) = R_rf(7, 4) = R_rf(8, 5) = -sa;
+						eye_mAR.noalias() = eye9 - (expA * R_rf);
+						solver.compute(eye_mAR);
+						Mobs.noalias() = solver.solve(eyema) * M0;
+						diffs[index] = sqrt(pow(Mobs[0] + Mobs[1] + Mobs[2], 2.) +
+											pow(Mobs[3] + Mobs[4] + Mobs[5], 2.)) - _ssfpSignals[p][i];
 						index++;
 					}
 				}

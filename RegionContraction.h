@@ -56,7 +56,6 @@ double regionContraction(VectorXd &params, Functor_t &f,
 	
 	dsfmt_t dsfmt;
 	dsfmt_init_gen_rand(&dsfmt, seed);
-
 	for (c = 0; c < maxContractions; c++)
 	{
 		// Get in the range 0 to 1
@@ -65,6 +64,10 @@ double regionContraction(VectorXd &params, Functor_t &f,
 		{
 			samples.col(s).array() *= regionSize.array();
 			samples.col(s) += loBounds;
+			while (((samples.col(s))[6] + (samples.col(s)[7])) > 0.95)
+			{
+				samples.col(s)[7] = dsfmt_genrand_open_open(&dsfmt) * regionSize[7] + loBounds[7];
+			}
 			f(samples.col(s), diffs);
 			sampleRes(s) = diffs.norm();
 			if (!std::isfinite(diffs.norm()))
@@ -99,9 +102,11 @@ double regionContraction(VectorXd &params, Functor_t &f,
 				hiBounds[p] = hiStart[p];
 		}
 		regionSize = hiBounds - loBounds;
+		std::cout << std::endl << regionSize.transpose() << std::endl;
 	}
 	// Return the best evaluated solution so far
 	params = retained.col(0);
+	std::cout << params.transpose() << std::endl;
 	return sampleRes[indices[0]];
 }
 
