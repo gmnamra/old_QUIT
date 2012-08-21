@@ -150,6 +150,60 @@ par_t *readPar(FILE *in)
 	return p;
 }
 
+par_t *createPar(const char *name, int subtype, int nvals, void *vals)
+{
+	par_t *par = calloc(1, sizeof(par_t));	// Local, make sure we have a complete par before returning
+	par->name = malloc((strlen(name) + 1) * sizeof(char));
+	strcpy(par->name, name);
+	par->subtype = subtype;
+	switch (subtype)
+	{
+		case PAR_REAL:
+		case PAR_DELAY:
+		case PAR_FREQ:
+		case PAR_PULSE:
+		case PAR_INT:
+			par->type = TYPE_REAL;
+			break;
+		case PAR_STRING:
+		case PAR_FLAG:
+			par->type = TYPE_STRING;
+			break;
+	}
+	setPar(par, nvals, vals);
+	return par;
+}
+
+void setPar(par_t *par, int nvals, void *vals)
+{
+	par->nvals = nvals;
+	switch (par->type)
+	{
+		case TYPE_REAL:
+		{
+			if (par->vals)
+				free(par->vals);
+			par->vals = malloc(par->nvals * sizeof(double));
+			memcpy(par->vals, vals, par->nvals * sizeof(double));
+		}
+		break;
+		case TYPE_STRING:
+			if (par->vals)
+			{
+				for (size_t i = 0; i < par->nvals; i++)
+					free(((char **)par->vals)[i]);
+				free(par->vals);
+			}
+			par->vals = malloc(par->nvals * sizeof(char *));
+			for (size_t i = 0; i < par->nvals; i++)
+			{
+				((char **)par->vals)[i] = malloc((strlen(((char **)vals)[i]) + 1) * sizeof(char));
+				strcpy(((char **)par->vals)[i], ((char **)vals)[i]);
+			}
+		break;
+	}
+}
+
 void fprintPar(FILE* f, par_t *p)
 {
 	fprintf(f, "%s %d %d %g %g %g %d %d %d %d %d\n%d ",
