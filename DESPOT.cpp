@@ -156,17 +156,6 @@ double clamp(double value, double low, double high)
 }
 
 //******************************************************************************
-#pragma mark Console Input
-//******************************************************************************
-void fscanVector(std::istream &s, VectorXd &v)
-{
-	for (size_t i = 0; i < v.size(); i++)
-	{
-		s >> v[i];
-	}
-}
-
-//******************************************************************************
 // Basic least squares fitting
 //******************************************************************************
 void linearLeastSquares(double *X, double *Y, int nD,

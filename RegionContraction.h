@@ -59,21 +59,21 @@ double regionContraction(VectorXd &params, Functor_t &f,
 	for (c = 0; c < maxContractions; c++)
 	{
 		// Get in the range 0 to 1
-		dsfmt_fill_array_open_open(&dsfmt, samples.data(), nP * nS);
+		//dsfmt_fill_array_open_open(&dsfmt, samples.data(), nP * nS);
 		for (int s = 0; s < nS; s++)
 		{
-			samples.col(s).array() *= regionSize.array();
-			samples.col(s) += loBounds;
-			while (((samples.col(s))[6] + (samples.col(s)[7])) > 0.95)
-			{
-				samples.col(s)[7] = dsfmt_genrand_open_open(&dsfmt) * regionSize[7] + loBounds[7];
-			}
+			VectorXd sample(nP);
+			do {
+				dsfmt_fill_array_open_open(&dsfmt, samples.col(s).data(), nP);
+				samples.col(s).array() *= regionSize.array();
+				samples.col(s) += loBounds;
+			} while (!Functor_t::f_constraint(samples.col(s)));
 			f(samples.col(s), diffs);
 			sampleRes(s) = diffs.norm();
 			if (!std::isfinite(diffs.norm()))
 			{
 				std::cout << "Infinite Diff" << std::endl;
-				std::cout << "Sample = " << samples.col(s).transpose() << std::endl;
+				std::cout << "Sample = " << sample.transpose() << std::endl;
 				std::cout << "Diffs  = " << diffs.transpose() << std::endl;
 			}
 		}
@@ -102,11 +102,9 @@ double regionContraction(VectorXd &params, Functor_t &f,
 				hiBounds[p] = hiStart[p];
 		}
 		regionSize = hiBounds - loBounds;
-		std::cout << std::endl << regionSize.transpose() << std::endl;
 	}
 	// Return the best evaluated solution so far
 	params = retained.col(0);
-	std::cout << params.transpose() << std::endl;
 	return sampleRes[indices[0]];
 }
 

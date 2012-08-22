@@ -20,7 +20,6 @@
 	#define AtomicAdd(x, y) (*y)++
 #endif
 
-#include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
 #include "fslio.h"
@@ -34,6 +33,7 @@ const char *usage = "Usage is: mcdespot [options] output_prefix spgr_file ssfp_f
 Options:\n\
 	-v, --verbose     : Print extra information.\n\
 	-m, --mask file   : Mask input with specified file.\n\
+	--2, --3          : Use a 2 or 3 component model (default 2).\n\
 	--M0 file         : M0 Map file.\n\
 	--B0 file         : B0 Map file.\n\
 	--B1 file         : B1 Map file.\n\
@@ -43,13 +43,14 @@ Options:\n\
 	-r, --retain  n   : Retain n samples for new boundary (Default 50).\n\
 	-c, --contract n  : Contract a maximum of n times (Default 10).\n\
 	-e, --expand n    : Re-expand boundary by percentage n (Default 0).\n\
-	-b 3              : Boundaries suitable for 3T (default)\n\
-	   7              : Boundaries suitable for 7T\n\
+	-b 3              : Boundaries suitable for 3T\n\
+	   7              : Boundaries suitable for 7T (default)\n\
 	   u              : User specified boundaries from stdin.\n";
 
 static int verbose = false, start_slice = -1, end_slice = -1,
-		   samples = 2500, retain = 25, contract = 10;
+		   samples = 2500, retain = 25, contract = 10, components = 2, tesla = 7, nP = 0;
 static double expand = 0.;
+static std::string outPrefix;
 static struct option long_options[] =
 {
 	{"B0", required_argument, 0, '0'},
@@ -63,26 +64,64 @@ static struct option long_options[] =
 	{"retain", required_argument, 0, 'r'},
 	{"contract", required_argument, 0, 'c'},
 	{"expand", required_argument, 0, 'e'},
+	{"2", no_argument, &components, 2},
+	{"3", no_argument, &components, 3},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
 // SIGTERM interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
-#define NR 12
-FSLIO *resultsHeaders[NR] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-double *resultsData[NR];
-// Params don't include f_c, so we calculate it explicitly later
-const char *names[NR] = { "_T1_a", "_T1_b", "_T1_c", "_T2_a", "_T2_b", "_T2_c", "_f_a", "_f_c", "_tau_a", "_mc_B0", "_f_b", "_mc_res" };
+FSLIO *savedHeader;
+double **paramsData;
+double *residualData;
+
+void write_results();
+void write_results()
+{
+	std::string outPath;
+	short nx, ny, nz, nvol;
+	for (int p = 0; p < nP; p++)
+	{
+		outPath = outPrefix + "_";
+		if (components == 2)
+			outPath += TwoComponent::names[p];
+		else
+			outPath += ThreeComponent::names[p];
+		outPath += ".nii.gz";
+		std::cout << "Writing parameter file: " << outPath << std::endl;
+		FSLIO *outFile = FslOpen(outPath.c_str(), "wb");
+		FslCloneHeader(outFile, savedHeader);
+		FslGetDim(outFile, &nx, &ny, &nz, &nvol);
+		FslSetDim(outFile, nx, ny, nz, 1);
+		FslSetDimensionality(outFile, 3);
+		FslSetDataType(outFile, NIFTI_TYPE_FLOAT32);
+		FslWriteHeader(outFile);
+		FslWriteVolumeFromDouble(outFile, paramsData[p], 0);
+		FslClose(outFile);
+		free(paramsData[p]);
+	}
+	free(paramsData);
+	
+	outPath = outPrefix + "_residual.nii.gz";
+	std::cout << "Writing residual file: " << outPath << std::endl;
+	FSLIO *outFile = FslOpen(outPath.c_str(), "wb");
+	FslCloneHeader(outFile, savedHeader);
+	FslGetDim(outFile, &nx, &ny, &nz, &nvol);
+	FslSetDim(outFile, nx, ny, nz, 1);
+	FslSetDimensionality(outFile, 3);
+	FslSetDataType(outFile, NIFTI_TYPE_FLOAT32);
+	FslWriteHeader(outFile);
+	FslWriteVolumeFromDouble(outFile, residualData, 0);
+	FslClose(outFile);
+	FslClose(savedHeader);
+	free(residualData);
+}
+
 void int_handler(int sig);
 void int_handler(int sig)
 {
 	fprintf(stdout, "Processing terminated. Writing currently processed data.\n");
-	for (size_t r = 0; r < NR; r++)
-	{
-		FslWriteHeader(resultsHeaders[r]);
-		FslWriteVolumeFromDouble(resultsHeaders[r], resultsData[r], 0);
-		FslClose(resultsHeaders[r]);
-	}
+	write_results();
 	exit(EXIT_FAILURE);
 }
 
@@ -101,17 +140,11 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	Eigen::initParallel();
-	const char *outPrefix = NULL, *outExt = ".nii.gz";
 	char procpar[MAXSTR];
-	size_t nSPGR, nPhases, nSSFP;
 	double spgrTR, ssfpTR,
 	       *maskData = NULL, *M0Data = NULL, *B0Data = NULL, *B1Data = NULL;
-	VectorXd loBounds(10), hiBounds(10);
-	VectorXi loConstraints(10), hiConstraints(10);
-	loConstraints << true, true, true, true, true, true, true, true, true, false;
-	hiConstraints << true, true, true, true, true, true, true, true, true, false;
-	FSLIO *inFile = NULL, *spgrFile = NULL, **ssfpFiles;
-	short nx, ny, nz, nt;
+	FSLIO *inFile = NULL;
+	short nx, ny, nz, nSPGR, nPhases, nSSFP;
 	par_t *pars;
 	
 	int indexptr = 0, c;
@@ -155,21 +188,14 @@ int main(int argc, char **argv)
 				{
 					case '3':
 						std::cout << "Using 3T boundaries.\n";
-						loBounds << 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0.;
-						hiBounds << 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0.;
+						tesla = 3;
 						break;
 					case '7':
 						std::cout << "Using 7T boundaries.\n";
-						loBounds << 0.500, 1.50, 0.0001, 0.010, 0.0, 0.0, 0., 0., 0., 0.;
-						hiBounds << 1.000, 3.00, 0.0500, 0.500, 1.0, 1.0, 0., 0., 0., 0.;
+						tesla = 7;
 						break;
 					case 'u':
-					{
-						std::cout << "Enter low boundaries (10 values):";
-						fscanVector(std::cin, loBounds);
-						std::cout << "Enter high boundaries (10 values):";
-						fscanVector(std::cin, hiBounds);
-					}
+						tesla = -1;
 						break;
 					default:
 						std::cout << "Unknown boundaries type " << optarg << std::endl;
@@ -182,144 +208,164 @@ int main(int argc, char **argv)
 				break;
 		}
 	}
-	std::cout << "Low bounds: " << loBounds.transpose() << std::endl;
-	std::cout << "Hi bounds:  " << hiBounds.transpose() << std::endl;
-	if ((argc - optind) < 3)
-	{
-		fprintf(stderr, "Insufficient number of arguments.\n%s", usage);
-		exit(EXIT_FAILURE);
-	}
 	outPrefix = argv[optind++];
 	if (verbose)
 		std::cout << "Output prefix will be: " << outPrefix << std::endl;
 	//**************************************************************************
 	// Gather SPGR Data
 	//**************************************************************************
-	fprintf(stdout, "Opening SPGR file: %s\n", argv[optind]);
-	spgrFile = FslOpen(argv[optind], "rb");
-	FslGetDim(spgrFile, &nx, &ny, &nz, &nt);
-	nSPGR = nt;
+	std::cout << "Opening SPGR file: " << argv[optind] << std::endl;
+	inFile = FslOpen(argv[optind], "rb");
+	FslGetDim(inFile, &nx, &ny, &nz, &nSPGR);
 	VectorXd spgrAngles(nSPGR);
 	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
 	pars = readProcpar(procpar);
 	if (pars)
 	{
 		spgrTR = realVal(pars, "tr", 0);
-		for (int i = 0; i < nSPGR; i++)
-			spgrAngles[i] = radians(realVal(pars, "flip1", i));
+		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = realVal(pars, "flip1", i);
 		freeProcpar(pars);
 	}
 	else
 	{
-		fprintf(stdout, "Enter SPGR TR (s):");
-		fscanf(stdin, "%lf", &spgrTR);
-		fprintf(stdout, "Enter SPGR Flip Angles (degrees):");
-		fscanVector(std::cin, spgrAngles);
+		std::cout << "Enter SPGR TR (s): " << std::flush;
+		std::cin >> spgrTR;
+		std::cout << "Enter SPGR Flip Angles (degrees): " << std::flush;
+		for (int i = 0; i < nSPGR; i++) std::cin >> spgrAngles[i];
 	}
-	if (verbose)
-		std::cout << "SPGR TR = " << spgrTR << ". Angles = " << spgrAngles.transpose() * 180. / M_PI << std::endl;
+	spgrAngles *= M_PI / 180.;
+	int voxelsPerSlice = nx * ny;
+	int totalVoxels = voxelsPerSlice * nz;
+	std::cout << "Reading SPGR data..." << std::endl;
+	double *SPGR = FslGetAllVolumesAsScaledDouble(inFile);	
+	// Save this header to output the results files.
+	savedHeader = inFile;
 	optind++;
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
 	nPhases = argc - optind;
-	ssfpFiles = (FSLIO **)malloc(nPhases * sizeof(FSLIO *));
-	VectorXd ssfpPhases(nPhases);
-	ssfpPhases[0] = M_PI;
-	ssfpFiles[0] = FslOpen(argv[optind], "rb");
-	nSSFP = ssfpFiles[0]->niftiptr->nt;
-	VectorXd ssfpAngles(nSSFP);
-	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
-	pars = readProcpar(procpar);
-	if (pars)
+	VectorXd ssfpPhases(nPhases), ssfpAngles;
+	double **SSFP = (double **)malloc(nPhases * sizeof(double *));
+	for (size_t p = 0; p < nPhases; p++)
 	{
-		for (int i = 0; i < nSSFP; i++)
-			ssfpAngles[i] = radians(realVal(pars, "flip1", i));
-		ssfpTR = realVal(pars, "tr", 0);
-		ssfpPhases[0] = radians(realVal(pars, "rfphase", 0));
-		freeProcpar(pars);
-	}
-	else
-	{
-		
-		fprintf(stdout, "Enter %zu SSFP flip angles (degrees) :", nSSFP);
-		fscanVector(std::cin, ssfpAngles); 
-		//fgetArray(stdin, 'd', nSSFP, ssfp_angles); fprintf(stdout, "\n");
-		fprintf(stdout, "Enter SSFP TR (ms):");
-		fscanf(stdin, "%lf", &ssfpTR);		
-	}	
-	for (size_t p = 1; p < nPhases; p++)
-	{
-		fprintf(stdout, "Reading SSFP header from %s.\n", argv[++optind]);
-		ssfpFiles[p] = FslOpen(argv[optind], "rb");
-		if (!FslCheckDims(ssfpFiles[0], ssfpFiles[p]))
-		{
-			fprintf(stderr, "Image %s has differing dimensions.\n", argv[optind]);
-			exit(EXIT_FAILURE);
-		}
-		if (ssfpFiles[p]->niftiptr->nt != nSSFP)
-		{
-			fprintf(stderr, "Image %s has wrong number of flip angles.\n", argv[optind]);
-			exit(EXIT_FAILURE);
-		}
+		short inX, inY, inZ, inVols;
+		std::cout << "Reading SSFP header from " << argv[optind] << std::endl;
+		inFile = FslOpen(argv[optind], "rb");
+		FslGetDim(inFile, &inX, &inY, &inZ, &inVols);
+		eigen_assert((inX == nx) && (inY == ny) && (inZ == nz));
 		snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
-		pars = readProcpar(procpar);
+		pars = readProcpar(procpar);		
+		if (p == 0)
+		{	// Read nSSFP, TR and flip angles from first file
+			nSSFP = inVols;
+			ssfpAngles.resize(nSSFP, 1);
+			if (pars)
+			{
+				ssfpTR = realVal(pars, "tr", 0);
+				for (int i = 0; i < nSSFP; i++)
+					ssfpAngles[i] = realVal(pars, "flip1", i);
+			}
+			else
+			{
+				std::cout << "Enter SSFP TR (s): " << std::flush;
+				std::cin >> ssfpTR;
+				std::cout << "Enter " << nSSFP << " flip angles (degrees): " << std::flush;
+				for (int i = 0; i < ssfpAngles.size(); i++)
+					std::cin >> ssfpAngles[i];
+			}
+		}
+		
+		eigen_assert((inVols == nSSFP));
 		if (pars)
 		{
-			ssfpPhases[p] = radians(realVal(pars, "rfphase", 0));
+			ssfpPhases[p] = realVal(pars, "rfphase", 0);
 			freeProcpar(pars);
 		}
 		else
 		{
-			fprintf(stdout, "Enter phase-cycling (degrees):");
-			fscanf(stdin, "%lf", ssfpPhases[p]);
-			ssfpPhases[p] *= M_PI / 180.;
+			std::cout << "Enter phase-cycling (degrees): " << std::flush;
+			std::cin >> ssfpPhases[p];
 		}
+		std::cout << "Reading SSFP data..." << std::endl;
+		SSFP[p] = FslGetAllVolumesAsScaledDouble(inFile);
+		FslClose(inFile);
+		optind++;
 	}
-	if (verbose)
+	ssfpAngles *= M_PI / 180.;
+	ssfpPhases *= M_PI / 180.;
+	
+	if (optind != argc)
 	{
-		std::cout << "SSFP TR (s): " << ssfpTR << " SSFP flip angles (deg): " << ssfpAngles.transpose() * 180. / M_PI << std::endl;	
-		std::cout << "Phase Cycling Patterns (degrees): " << ssfpPhases.transpose() * 180. / M_PI << std::endl;
+		std::cerr << "Unprocessed arguments supplied.\n" << usage;
+		exit(EXIT_FAILURE);
+	}	
+	//**************************************************************************
+	// Allocate results memory and set up boundaries
+	//**************************************************************************
+	if (components == 2)
+	{
+		std::cout << "Using 2 component model." << std::endl;
+		nP = TwoComponent::nP;
+	} else {
+		std::cout << "Using 3 component model." << std::endl;
+		nP = ThreeComponent::nP;
+	}
+		
+	VectorXd loBounds(nP), hiBounds(nP);
+	VectorXi loConstraints(nP), hiConstraints(nP);
+	
+	residualData = (double *)malloc(totalVoxels * sizeof(double));
+	paramsData = (double **)malloc(nP * sizeof(double *));
+	if (tesla < 0)
+		std::cout << "Enter " << nP << " parameter pairs (low then high): " << std::flush;
+	for (int i = 0; i < nP; i++)
+	{
+		paramsData[i] = (double *)malloc(totalVoxels * sizeof(double));
+		loConstraints[i] = true; hiConstraints[i] = true;
+		if (tesla == 3)
+		{
+			if (components == 2)
+			{
+				loBounds[i] = TwoComponent::lo3Bounds[i];
+				hiBounds[i] = TwoComponent::hi3Bounds[i];
+			} else {
+				loBounds[i] = ThreeComponent::lo3Bounds[i];
+				hiBounds[i] = ThreeComponent::hi3Bounds[i];
+			}
+		} else if (tesla == 7) {
+			if (components == 2)
+			{
+				loBounds[i] = TwoComponent::lo7Bounds[i];
+				hiBounds[i] = TwoComponent::hi7Bounds[i];
+			} else {
+				loBounds[i] = ThreeComponent::lo7Bounds[i];
+				hiBounds[i] = ThreeComponent::hi7Bounds[i];
+			}
+		} else {
+			std::cin >> loBounds[i] >> hiBounds[i];
+		}
 	}
 	if (B0Data)
 	{	// User is supplying a B0 estimate
-		loBounds(9) = 0.;
-		hiBounds(9) = 0.;
+		loBounds(nP - 1) = 0.;
+		hiBounds(nP - 1) = 0.;
 	}
 	else
 	{	// Make sure the B0 bounds are sensible
-		loBounds(9) = (-0.5 / ssfpTR);
-		hiBounds(9) = (0.5 / ssfpTR);
+		loBounds(nP - 1) = (-0.5 / ssfpTR);
+		hiBounds(nP - 1) = (0.5 / ssfpTR);
+		loConstraints(nP - 1) = false;
+		hiConstraints(nP - 1) = false;
 	}
-	//**************************************************************************	
-	// Get input data
-	//**************************************************************************
-	int voxelsPerSlice = nx * ny;
-	int totalVoxels = voxelsPerSlice * nz;
-	std::cout << "Reading SPGR data...\n";
-	double *SPGR = FslGetAllVolumesAsScaledDouble(spgrFile);
-	std::cout << "Reading SSFP data...\n";
-	double **SSFP = (double **)malloc(nPhases * sizeof(double *));
-	for (int p = 0; p < nPhases; p++)
-		SSFP[p] = FslGetAllVolumesAsScaledDouble(ssfpFiles[p]);
-	//**************************************************************************
-	// Create results files
-	// T1_m, T1_m, T2_f, T2_f,	f_m, tau_m, residue
-	//**************************************************************************
-	char outName[strlen(outPrefix) + 32];
-	for (int r = 0; r < NR; r++)
+	if (verbose)
 	{
-		strcpy(outName, outPrefix); strcat(outName, names[r]); strcat(outName, outExt);
-		if (verbose)
-			std::cout << "Creating result header " << outName << std::endl;
-		resultsHeaders[r] = FslOpen(outName, "wb");
-		FslCloneHeader(resultsHeaders[r], spgrFile);
-		FslSetDim(resultsHeaders[r], nx, ny, nz, 1);
-		FslSetDataType(resultsHeaders[r], NIFTI_TYPE_FLOAT32);
-		resultsData[r] = (double *)malloc(totalVoxels * sizeof(double));
-	}
-	signal(SIGINT, int_handler);
-
+		std::cout << "SPGR TR (s): " << spgrTR << " SPGR flip angles (deg): " << spgrAngles.transpose() * 180. / M_PI << std::endl;		
+		std::cout << "SSFP TR (s): " << ssfpTR << " SSFP flip angles (deg): " << ssfpAngles.transpose() * 180. / M_PI << std::endl;	
+		std::cout << "Phase Cycling Patterns (degrees): " << ssfpPhases.transpose() * 180. / M_PI << std::endl;
+		std::cout << "Low bounds: " << loBounds.transpose() << std::endl;
+		std::cout << "Hi bounds:  " << hiBounds.transpose() << std::endl;
+	}	
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -328,23 +374,24 @@ int main(int argc, char **argv)
 		start_slice = 0;
 	if ((end_slice < 0) || (end_slice > nz))
 		end_slice = nz;
+	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	std::cout << "Starting processing." << std::endl;
 	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);	
 	for (size_t slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose)
-			std::cout << "Starting slice " << slice << "...";
+			std::cout << "Starting slice " << slice << "..." << std::flush;
 		__block int voxCount = 0;
 		const int sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
-		for (int vox = 0; vox < voxelsPerSlice; vox++)
-		//void (^processVoxel)(size_t vox) = ^(size_t vox)
+		//for (int vox = 0; vox < voxelsPerSlice; vox++)
+		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
 			double M0 = 1, B0 = INFINITY, B1 = 1., residual = 0.;
 			if (M0Data) M0 = (double)M0Data[sliceOffset + vox];
 			if (B0Data) B0 = (double)B0Data[sliceOffset + vox];
 			if (B1Data) B1 = (double)B1Data[sliceOffset + vox];		
-			VectorXd params(10); params.setZero();
+			VectorXd params(nP); params.setZero();
 			if (!maskData || (maskData[sliceOffset + vox] > 0.))
 			{
 				AtomicAdd(1, &voxCount);
@@ -358,41 +405,43 @@ int main(int argc, char **argv)
 					for (int vol = 0; vol < nSSFP; vol++)
 						temp[vol] = SSFP[p][totalVoxels*vol + sliceOffset + vox];
 					SSFP_signals.push_back(temp);
-				}				
-				ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1);
-				residual = regionContraction<ThreeComponent>(params, tc, loBounds, hiBounds,
-											                 loConstraints, hiConstraints,
-														     samples, retain, contract, 0.05, expand, vox + time(NULL));
+				}
+				if (components == 2)
+				{
+					TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1);
+					residual = regionContraction<TwoComponent>(params, tc, loBounds, hiBounds,
+															   loConstraints, hiConstraints,
+															   samples, retain, contract, 0.05, expand, vox + time(NULL));
+				} else {
+					ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1);
+					residual = regionContraction<ThreeComponent>(params, tc, loBounds, hiBounds,
+																 loConstraints, hiConstraints,
+																 samples, retain, contract, 0.05, expand, vox + time(NULL));
+				}
 			}
-			for (int p = 0; p < params.size(); p++)
-				resultsData[p][sliceOffset + vox]  = params[p];
-			resultsData[NR - 2][sliceOffset + vox] = 1. - params[6] - params[7];
-			resultsData[NR - 1][sliceOffset + vox] = residual;
+			for (int p = 0; p < nP; p++)
+				paramsData[p][sliceOffset + vox]  = params[p];
+			residualData[sliceOffset + vox] = residual;
 		};
-		//dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		
 		if (verbose)
 		{
 			clock_t loopEnd = clock();
-			fprintf(stdout, "Finished slice %zu", slice);
 			if (voxCount > 0)
-				fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s.",
-						voxCount, (loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC));
-			fprintf(stdout, ".\n");
+				std::cout << voxCount << " unmasked voxels, CPU time per voxel was "
+				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
+			std::cout << "finished." << std::endl;
 		}
 	}
     time_t procEnd = time(NULL);
     struct tm *localEnd = localtime(&procEnd);
 	char theTime[MAXSTR];
     strftime(theTime, MAXSTR, "%H:%M:%S", localEnd);
-	fprintf(stdout, "Finished processing at %s. Run-time was %f s.\n", theTime, difftime(procEnd, procStart));
+	std::cout << "Finished processing at " << theTime << "Run-time was " 
+	          << difftime(procEnd, procStart) << " s." << std::endl;
 
-	for (size_t r = 0; r < NR; r++)
-	{
-		FslWriteHeader(resultsHeaders[r]);
-		FslWriteVolumeFromDouble(resultsHeaders[r], resultsData[r], 0);
-		FslClose(resultsHeaders[r]);
-	}
+	write_results();
 	// Clean up memory
 	free(SPGR);
 	for (int p = 0; p < nPhases; p++)

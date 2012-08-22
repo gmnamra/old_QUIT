@@ -35,10 +35,6 @@ double radians(double degrees);
 double degrees(double radians);
 
 double clamp(double value, double low, double high);
-//******************************************************************************
-#pragma mark Parameter Files
-//******************************************************************************
-void fscanVector(std::istream &s, VectorXd &v);
 
 void linearLeastSquares(double *X, double *Y, int nD,
 						double *slope, double *inter, double *res);

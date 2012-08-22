@@ -106,12 +106,22 @@ class TwoComponent : public Functor<double>
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
 		const double _spgrTR, _ssfpTR, _M0, _B0, _B1;
+		
+		static const int nP = 7;
+		static const char *names[];
+		static const double lo3Bounds[], hi3Bounds[], lo7Bounds[], hi7Bounds[];
+		
+		static bool f_constraint(const VectorXd &params)
+		{
+			return true;
+		}
+		
 		TwoComponent(const VectorXd &spgrAngles, const VectorXd &spgrSignals,
 		             const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					 const std::vector<VectorXd> &ssfpSignals,
 					 const double spgrTR, const double ssfpTR, 
 					 const double M0, const double B0, const double B1) :
-					 Functor(7, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
+					 Functor(TwoComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				     _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				     _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					 _ssfpSignals(ssfpSignals),
@@ -217,6 +227,12 @@ class TwoComponent : public Functor<double>
 		}
 };
 
+const char *TwoComponent::names[] = { "T1_a", "T1_b", "T2_a", "T2_b", "f_a", "tau_a", "B0" };
+const double TwoComponent::lo3Bounds[] = { 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
+const double TwoComponent::hi3Bounds[] = { 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
+const double TwoComponent::lo7Bounds[] = { 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
+const double TwoComponent::hi7Bounds[] = { 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
+
 typedef Matrix<double, 9, 9> Matrix9d;
 typedef Matrix<double, 9, 1> Vector9d;
 
@@ -226,12 +242,26 @@ class ThreeComponent : public Functor<double>
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
 		const double _spgrTR, _ssfpTR, _M0, _B0, _B1;
+		
+		static const int nP = 10;
+		static const char *names[];
+		static const double lo3Bounds[], hi3Bounds[], lo7Bounds[], hi7Bounds[];
+		
+		static bool f_constraint(const VectorXd &params)
+		{
+			if ((params[6] + params[7]) > 0.95)
+				return false;
+			else
+				return true;
+		}
+		
+		
 		ThreeComponent(const VectorXd &spgrAngles, const VectorXd &spgrSignals,
 		               const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					   const std::vector<VectorXd> &ssfpSignals,
 					   const double spgrTR, const double ssfpTR, 
 					   const double M0, const double B0, const double B1) :
-					   Functor(10, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
+					   Functor(ThreeComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				       _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				       _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					   _ssfpSignals(ssfpSignals),
@@ -351,5 +381,11 @@ class ThreeComponent : public Functor<double>
 			return 0;
 		}
 };
+
+const char *ThreeComponent::names[] = { "T1_a", "T1_b", "T1_c", "T2_a", "T2_b", "T2_c", "f_a", "f_c", "tau_a", "B0" };
+const double ThreeComponent::lo3Bounds[] = { 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. };
+const double ThreeComponent::hi3Bounds[] = { 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. };
+const double ThreeComponent::lo7Bounds[] = { 0.500, 1.50, 0.0001, 0.010, 0.0, 0.0, 0., 0., 0., 0. };
+const double ThreeComponent::hi7Bounds[] = { 1.000, 3.00, 0.0500, 0.500, 1.0, 1.0, 0., 0., 0., 0. };
 
 #endif
