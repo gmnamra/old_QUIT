@@ -81,11 +81,11 @@ int main(int argc, char **argv)
 	nSPGR = nv;
 	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
 	pars = readProcpar(procpar);
-	double angles_data[nSPGR];
+	VectorXd spgrAngles(nSPGR);
 	if (pars)
 	{
 		spgrTR = realVal(pars, "tr", 0);
-		memcpy(angles_data, realVals(pars, "flip1", NULL), nSPGR * sizeof(double));
+		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = realVal(pars, "flip1", i);
 		freeProcpar(pars);
 	}
 	else
@@ -93,14 +93,11 @@ int main(int argc, char **argv)
 		fprintf(stdout, "Enter SPGR TR (s):");
 		fscanf(stdin, "%lf", &spgrTR);
 		fprintf(stdout, "Enter SPGR Flip Angles (degrees):");
-		fgetArray(stdin, 'd', nSPGR, angles_data);
+		for (int i = 0; i < nSPGR; i++) std::cin >> spgrAngles[i];
 	}
-	fprintf(stdout, "SPGR TR=%f s.\n", spgrTR);
-	Map<ArrayXd> spgrAngles(angles_data, nSPGR);
-	std::cout << spgrAngles.transpose() << std::endl;
-	for (int i = 0; i < nSPGR; i++)
-		spgrAngles[i] = radians(spgrAngles[i]);
-		
+	spgrAngles *= M_PI / 180.;
+	fprintf(stdout, "SPGR TR=%f s. Flip-angles: ", spgrTR);
+	std::cout << spgrAngles.transpose() * 180. / M_PI << std::endl;
 	fprintf(stdout, "Ouput prefix will be: %s\n", argv[++optind]);
 	outPrefix = argv[optind];
 	//**************************************************************************	

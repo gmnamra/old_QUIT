@@ -32,7 +32,6 @@
 		F681257615E239D8007A3362 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F681257915E23F3A007A3362 /* test_despot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */; };
 		F6B8F93515CFFD7100AECF4F /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
-		F6C06BE515E3A06E006AA770 /* dSFMT.c in Sources */ = {isa = PBXBuildFile; fileRef = F6C06BE315E3A06E006AA770 /* dSFMT.c */; };
 		F6C06BE615E3A07C006AA770 /* dSFMT.c in Sources */ = {isa = PBXBuildFile; fileRef = F6C06BE315E3A06E006AA770 /* dSFMT.c */; };
 		F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
@@ -56,7 +55,6 @@
 		F6E4A2AD1590DC4500DA4001 /* libfslio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A61590DB9600DA4001 /* libfslio.a */; };
 		F6E4A2AE1590DC4500DA4001 /* libniftiio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A71590DB9600DA4001 /* libniftiio.a */; };
 		F6E4A2AF1590DC4500DA4001 /* libznz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A81590DB9600DA4001 /* libznz.a */; };
-		F6F435E615DE7FED00503AD3 /* test_despot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -680,8 +678,6 @@
 			files = (
 				F6E4A2971590DB5300DA4001 /* despot1_main.cpp in Sources */,
 				F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */,
-				F6F435E615DE7FED00503AD3 /* test_despot_main.cpp in Sources */,
-				F6C06BE515E3A06E006AA770 /* dSFMT.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

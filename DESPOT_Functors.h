@@ -40,25 +40,26 @@ class Functor
   virtual int operator()(const VectorXd &params, VectorXd &diffs) { return 0; }
 };
 
-class SSFP_1c : public Functor<double>
+class OneComponentSSFP : public Functor<double>
 {
 	public:
 		const VectorXd &_flipAngles, &_rfPhases;
 		const std::vector<VectorXd> &_signals;
 		double _TR, _T1, _B1;
-		SSFP_1c(const VectorXd &flipAngles, const VectorXd &rfPhases,
-		        const std::vector<VectorXd> &signals,
-				double TR, double T1, double B1) :
-				Functor(3, flipAngles.size() * rfPhases.size()),
-				_flipAngles(flipAngles),
-				_rfPhases(rfPhases),
-				_signals(signals),
-				_TR(TR),
-				_T1(T1),
-				_B1(B1)
-				{
-				}
-	
+		
+		static const int nP = 3;
+		static const char *names[];
+		
+		OneComponentSSFP(const VectorXd &flipAngles, const VectorXd &rfPhases,
+		                 const std::vector<VectorXd> &signals,
+				         double TR, double T1, double B1) :
+				         Functor(3, flipAngles.size() * rfPhases.size()),
+				         _flipAngles(flipAngles),
+				         _rfPhases(rfPhases),
+				         _signals(signals),
+				         _TR(TR), _T1(T1), _B1(B1)
+				         {}
+			
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
 			Matrix3d A,
@@ -96,10 +97,11 @@ class SSFP_1c : public Functor<double>
 			return 0;
 		}
 };
+const char *OneComponentSSFP::names[] = { "M0", "T2", "B0" };
+
 
 typedef Matrix<double, 6, 6> Matrix6d;
 typedef Matrix<double, 6, 1> Vector6d;
-
 class TwoComponent : public Functor<double>
 {
 	public:
@@ -226,7 +228,6 @@ class TwoComponent : public Functor<double>
 			return 0;
 		}
 };
-
 const char *TwoComponent::names[] = { "T1_a", "T1_b", "T2_a", "T2_b", "f_a", "tau_a", "B0" };
 const double TwoComponent::lo3Bounds[] = { 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
 const double TwoComponent::hi3Bounds[] = { 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
@@ -235,7 +236,6 @@ const double TwoComponent::hi7Bounds[] = { 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. 
 
 typedef Matrix<double, 9, 9> Matrix9d;
 typedef Matrix<double, 9, 1> Vector9d;
-
 class ThreeComponent : public Functor<double>
 {
 	public:
@@ -381,7 +381,6 @@ class ThreeComponent : public Functor<double>
 			return 0;
 		}
 };
-
 const char *ThreeComponent::names[] = { "T1_a", "T1_b", "T1_c", "T2_a", "T2_b", "T2_c", "f_a", "f_c", "tau_a", "B0" };
 const double ThreeComponent::lo3Bounds[] = { 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. };
 const double ThreeComponent::hi3Bounds[] = { 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. };

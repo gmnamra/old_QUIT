@@ -20,6 +20,7 @@
 	#define AtomicAdd(x, y) (*y)++
 #endif
 
+#include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
 #include "fslio.h"
@@ -75,53 +76,14 @@ FSLIO *savedHeader;
 double **paramsData;
 double *residualData;
 
-void write_results();
-void write_results()
-{
-	std::string outPath;
-	short nx, ny, nz, nvol;
-	for (int p = 0; p < nP; p++)
-	{
-		outPath = outPrefix + "_";
-		if (components == 2)
-			outPath += TwoComponent::names[p];
-		else
-			outPath += ThreeComponent::names[p];
-		outPath += ".nii.gz";
-		std::cout << "Writing parameter file: " << outPath << std::endl;
-		FSLIO *outFile = FslOpen(outPath.c_str(), "wb");
-		FslCloneHeader(outFile, savedHeader);
-		FslGetDim(outFile, &nx, &ny, &nz, &nvol);
-		FslSetDim(outFile, nx, ny, nz, 1);
-		FslSetDimensionality(outFile, 3);
-		FslSetDataType(outFile, NIFTI_TYPE_FLOAT32);
-		FslWriteHeader(outFile);
-		FslWriteVolumeFromDouble(outFile, paramsData[p], 0);
-		FslClose(outFile);
-		free(paramsData[p]);
-	}
-	free(paramsData);
-	
-	outPath = outPrefix + "_residual.nii.gz";
-	std::cout << "Writing residual file: " << outPath << std::endl;
-	FSLIO *outFile = FslOpen(outPath.c_str(), "wb");
-	FslCloneHeader(outFile, savedHeader);
-	FslGetDim(outFile, &nx, &ny, &nz, &nvol);
-	FslSetDim(outFile, nx, ny, nz, 1);
-	FslSetDimensionality(outFile, 3);
-	FslSetDataType(outFile, NIFTI_TYPE_FLOAT32);
-	FslWriteHeader(outFile);
-	FslWriteVolumeFromDouble(outFile, residualData, 0);
-	FslClose(outFile);
-	FslClose(savedHeader);
-	free(residualData);
-}
-
 void int_handler(int sig);
 void int_handler(int sig)
 {
 	fprintf(stdout, "Processing terminated. Writing currently processed data.\n");
-	write_results();
+	if (components == 2)
+		write_results<TwoComponent>(outPrefix, paramsData, residualData, savedHeader);
+	else
+		write_results<ThreeComponent>(outPrefix, paramsData, residualData, savedHeader);
 	exit(EXIT_FAILURE);
 }
 
@@ -440,8 +402,10 @@ int main(int argc, char **argv)
     strftime(theTime, MAXSTR, "%H:%M:%S", localEnd);
 	std::cout << "Finished processing at " << theTime << "Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << std::endl;
-
-	write_results();
+	if (components == 2)
+		write_results<TwoComponent>(outPrefix, paramsData, residualData, savedHeader);
+	else
+		write_results<ThreeComponent>(outPrefix, paramsData, residualData, savedHeader);
 	// Clean up memory
 	free(SPGR);
 	for (int p = 0; p < nPhases; p++)
