@@ -102,11 +102,12 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	Eigen::initParallel();
-	char procpar[MAXSTR];
-	double spgrTR, ssfpTR,
-	       *maskData = NULL, *M0Data = NULL, *B0Data = NULL, *B1Data = NULL;
+	__block double spgrTR, ssfpTR,
+	               *maskData = NULL, *M0Data = NULL,
+				   *B0Data = NULL, *B1Data = NULL;
 	FSLIO *inFile = NULL;
 	short nx, ny, nz, nSPGR, nPhases, nSSFP;
+	char procpar[MAXSTR];
 	par_t *pars;
 	
 	int indexptr = 0, c;
@@ -199,7 +200,7 @@ int main(int argc, char **argv)
 	int voxelsPerSlice = nx * ny;
 	int totalVoxels = voxelsPerSlice * nz;
 	std::cout << "Reading SPGR data..." << std::endl;
-	double *SPGR = FslGetAllVolumesAsScaledDouble(inFile);	
+	__block double *SPGR = FslGetAllVolumesAsScaledDouble(inFile);	
 	// Save this header to output the results files.
 	savedHeader = inFile;
 	optind++;
@@ -208,7 +209,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	nPhases = argc - optind;
 	VectorXd ssfpPhases(nPhases), ssfpAngles;
-	double **SSFP = (double **)malloc(nPhases * sizeof(double *));
+	__block double **SSFP = (double **)malloc(nPhases * sizeof(double *));
 	for (size_t p = 0; p < nPhases; p++)
 	{
 		short inX, inY, inZ, inVols;
@@ -274,8 +275,8 @@ int main(int argc, char **argv)
 		nP = ThreeComponent::nP;
 	}
 		
-	VectorXd loBounds(nP), hiBounds(nP);
-	VectorXi loConstraints(nP), hiConstraints(nP);
+	__block VectorXd loBounds(nP), hiBounds(nP);
+	__block VectorXi loConstraints(nP), hiConstraints(nP);
 	
 	residualData = (double *)malloc(totalVoxels * sizeof(double));
 	paramsData = (double **)malloc(nP * sizeof(double *));
@@ -344,7 +345,7 @@ int main(int argc, char **argv)
 		if (verbose)
 			std::cout << "Starting slice " << slice << "..." << std::flush;
 		__block int voxCount = 0;
-		const int sliceOffset = slice * voxelsPerSlice;
+		__block const int sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
 		//for (int vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)

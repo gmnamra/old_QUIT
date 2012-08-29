@@ -206,6 +206,12 @@ int main(int argc, char **argv)
 		std::cerr << "Unprocessed arguments supplied.\n" << usage;
 		exit(EXIT_FAILURE);
 	}
+	
+	if (verbose)
+	{
+		std::cout << "SSFP Angles (deg): " << ssfpAngles.transpose() * 180 / M_PI << std::endl
+		          << "SSFP Phases (deg): " << ssfpPhases.transpose() * 180 / M_PI << std::endl;
+	}
 	//**************************************************************************
 	// Set up results data and register signal handler
 	//**************************************************************************
@@ -250,7 +256,6 @@ int main(int argc, char **argv)
 				std::vector<VectorXd> signals;
 				for (int p = 0; p < nPhases; p++)
 				{
-					//signals[p].resize(nSSFP);
 					VectorXd temp(nSSFP);
 					for (int i = 0; i < nSSFP; i++)
 						temp(i) = ssfpData[p][i*totalVoxels + sliceOffset + vox];
@@ -281,6 +286,7 @@ int main(int argc, char **argv)
 					if (M0Data)
 						M0 = M0Data[sliceOffset + vox];
 					VectorXd params(3);
+					params << M0, T2, B0;
 					lm.minimize(params);
 					M0 = params[0];
 					T2 = params[1];

@@ -132,6 +132,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
+	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	for (int slice = 0; slice < nz; slice++)
 	{
 		clock_t loopStart, loopEnd;
@@ -140,7 +141,7 @@ int main(int argc, char **argv)
 		loopStart = clock();
 		voxCount = 0;
 		int sliceOffset = slice * voxelsPerSlice;
-		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
+		for (size_t vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
@@ -156,13 +157,12 @@ int main(int argc, char **argv)
 				
 				// Sanity check
 				M0 = clamp(M0, 0., 1.e7);
-				T1 = clamp(T1, 0., 3.);
+				T1 = clamp(T1, 0., 15.);
 			}
 			resultsData[0][sliceOffset + vox] = M0;
 			resultsData[1][sliceOffset + vox] = T1;
 			resultsData[2][sliceOffset + vox] = res;
 		};
-		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		
         loopEnd = clock();

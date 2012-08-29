@@ -329,35 +329,33 @@ class ThreeComponent : public Functor<double>
 				const Matrix9d eye9 = Matrix9d::Identity();
 				Vector9d M0, Mobs;
 				PartialPivLU<Matrix9d> solver;
-				A.setZero(); R_rf.setZero();
+				R_rf.setZero();
+				// Set up the 'A' matrix. It's quite complex.
+				A(0, 0) = A(3, 3) = -_ssfpTR * (1./T2_a + k_ab);
+				A(1, 1) = A(4, 4) = -_ssfpTR * (1./T2_b + k_ba);
+				A(2, 2) = A(5, 5) = -_ssfpTR * (1./T2_c);
+				A(0, 1) = A(3, 4) = A(6, 7) = _ssfpTR * k_ba;
+				A(1, 0) = A(4, 3) = A(7, 6) = _ssfpTR * k_ab;
+				A(6, 6) = -_ssfpTR * (1./T1_a + k_ab);
+				A(7, 7) = -_ssfpTR * (1./T1_b + k_ba);
+				A(8, 8) = -_ssfpTR * (1./T1_c);
 				R_rf(0, 0) = R_rf(1, 1) = R_rf(2, 2) = 1.;
+				A(0, 2) = A(0, 4) = A(0, 5) =
+				A(1, 2) = A(1, 3) = A(1, 5) =
+				A(2, 0) = A(2, 1) = A(2, 3) = A(2, 4) =
+				A(3, 1) = A(3, 2) = A(3, 5) = 
+				A(4, 0) = A(4, 2) = A(4, 5) =
+				A(5, 0) = A(5, 1) = A(5, 3) = A(5, 4) =
+				A(6, 8) = A(7, 8) = A(8, 6) = A(8, 7) = 0.;
+				A.topRightCorner(6, 3).setZero();
+				A.bottomLeftCorner(3, 6).setZero();
 				M0 << 0., 0., 0., 0., 0., 0., _M0 * f_a, _M0 * f_b, _M0 * f_c;
 				
 				for (int p = 0; p < _rfPhases.size(); p++)
 				{
 					double phase = _rfPhases[p] + (B0 * _ssfpTR * 2. * M_PI);
-					// Can get away with this because the block structure of the
-					// matrix ensures that the zero blocks are always zero after
-					// the matrix exponential.
-					A(0, 0) = A(3, 3) = -_ssfpTR * (1./T2_a + k_ab);
-					A(1, 1) = A(4, 4) = -_ssfpTR * (1./T2_b + k_ba);
-					A(2, 2) = A(5, 5) = -_ssfpTR * (1./T2_c);
-					A(0, 1) = A(3, 4) = A(6, 7) = _ssfpTR * k_ba;
 					A(0, 3) = A(1, 4) = A(2, 5) = phase;
-					A(1, 0) = A(4, 3) = A(7, 6) = _ssfpTR * k_ab;
-					A(3, 0) = A(4, 1) = A(5, 2) = -phase; 
-					A(6, 6) = -_ssfpTR * (1./T1_a + k_ab);
-					A(7, 7) = -_ssfpTR * (1./T1_b + k_ba);
-					A(8, 8) = -_ssfpTR * (1./T1_c);
-					A(0, 2) = A(0, 4) = A(0, 5) =
-					A(1, 2) = A(1, 3) = A(1, 5) =
-					A(2, 0) = A(2, 1) = A(2, 3) = A(2, 4) =
-					A(3, 1) = A(3, 2) = A(3, 5) = 
-					A(4, 0) = A(4, 2) = A(4, 5) =
-					A(5, 0) = A(5, 1) = A(5, 3) = A(5, 4) =
-					A(6, 8) = A(7, 8) = A(8, 6) = A(8, 7) = 0.;
-					A.topRightCorner(6, 3).setZero();
-					A.bottomLeftCorner(3, 6).setZero();
+					A(3, 0) = A(4, 1) = A(5, 2) = -phase;
 					MatrixExponential<Matrix9d> exp(A);
 					exp.compute(expA);
 					const Matrix9d eyema = eye9 - expA;
