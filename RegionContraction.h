@@ -62,7 +62,6 @@ double regionContraction(VectorXd &params, Functor_t &f,
 		//dsfmt_fill_array_open_open(&dsfmt, samples.data(), nP * nS);
 		for (int s = 0; s < nS; s++)
 		{
-			VectorXd sample(nP);
 			do {
 				dsfmt_fill_array_open_open(&dsfmt, samples.col(s).data(), nP);
 				samples.col(s).array() *= regionSize.array();
@@ -73,7 +72,9 @@ double regionContraction(VectorXd &params, Functor_t &f,
 			if (!std::isfinite(diffs.norm()))
 			{
 				std::cout << "Infinite Diff" << std::endl;
-				std::cout << "Sample = " << sample.transpose() << std::endl;
+				std::cout << "Sample = " << samples.col(s).transpose() << std::endl;
+				std::cout << "Lo Bnds= " << loBounds.transpose() << std::endl;
+				std::cout << "Hi Bnds= " << hiBounds.transpose() << std::endl;
 				std::cout << "Diffs  = " << diffs.transpose() << std::endl;
 			}
 		}

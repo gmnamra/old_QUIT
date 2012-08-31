@@ -7,7 +7,7 @@
 //
 
 #include "DESPOT_Functors.h"
-#include "FSLIO.h"
+#include "fslio.h"
 #include "procpar.h"
 
 int main(int argc, const char * argv[])
@@ -52,10 +52,12 @@ int main(int argc, const char * argv[])
 	double *dataM0 = (double *)malloc(totalVoxels * sizeof(double));
 	double *dataB1 = (double *)malloc(totalVoxels * sizeof(double));
 	
-	ThreeComponent tc(alphaSPGR, zeros, alphaSSFP, phases, ssfpZeros, spgrTR, ssfpTR, M0, INFINITY, B1);
+	ThreeComponent tc(alphaSPGR, zeros, alphaSSFP, phases, ssfpZeros, spgrTR, ssfpTR, M0, INFINITY, B1, false);
 	VectorXd sig(tc.values());
 	
 	std::cout << "M0 " << M0 << " B1 " << B1 << std::endl;
+	
+	clock_t loopStart = clock();
 	for (short z = 0; z < nz; z++)
 	{	for (short y = 0; y < ny; y++)
 		{	
@@ -63,16 +65,16 @@ int main(int argc, const char * argv[])
 			for (short x = 0; x < nx; x++)
 			{
 				params[6] = ((double)x / (nx - 1)) * 0.2 + 0.05;
-				std::cout << "P: " << params.transpose() << std::endl;				
+				//std::cout << "P: " << params.transpose() << std::endl;				
 				tc(params, sig);
-				std::cout << "SPGR: " << sig.head(alphaSPGR.size()).transpose() << std::endl;
+				//std::cout << "SPGR: " << sig.head(alphaSPGR.size()).transpose() << std::endl;
 				int index = 0;
 				// Results are in one long vector
 				for (int i = 0; i < alphaSPGR.size(); i++)
 					dataSPGR[i*totalVoxels + (z*ny + y)*nx + x] = sig[index++];
 				for (int p = 0; p < phases.size(); p++)
 				{
-					std::cout  << "SSFP Phase " << phases[p] << ": " << sig.segment(index, alphaSSFP.size()).transpose() << std::endl;
+					//std::cout  << "SSFP Phase " << phases[p] << ": " << sig.segment(index, alphaSSFP.size()).transpose() << std::endl;
 					for (int i = 0; i < alphaSSFP.size(); i++)
 					{	dataSSFP[p][i * totalVoxels + (z*ny + y)*nx + x] = sig[index++];	}
 				}
@@ -83,6 +85,9 @@ int main(int argc, const char * argv[])
 			}
 		}
 	}
+
+	clock_t loopEnd = clock();
+	std::cout << "Time to generate data was " << ((loopEnd - loopStart) / ((float)totalVoxels * CLOCKS_PER_SEC)) << " seconds per voxel." << std::endl;
 
 	float volSize = 40.;
 	// Reset to degrees

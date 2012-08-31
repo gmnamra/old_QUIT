@@ -20,11 +20,10 @@
 	#define AtomicAdd(x, y) (*y)++
 #endif
 
-#include "DESPOT.h"
-#include "DESPOT_Functors.h"
-#include "RegionContraction.h"
 #include "fslio.h"
 #include "procpar.h"
+#include "DESPOT_Functors.h"
+#include "RegionContraction.h"
 
 //******************************************************************************
 // Arguments / Usage
@@ -339,7 +338,10 @@ int main(int argc, char **argv)
 		end_slice = nz;
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	std::cout << "Starting processing." << std::endl;
-	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);	
+	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	bool norm = true;
+	if (M0Data)
+		norm = false;
 	for (size_t slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose)
@@ -361,22 +363,26 @@ int main(int argc, char **argv)
 				VectorXd SPGR_signal(nSPGR);
 				for (int vol = 0; vol < nSPGR; vol++)
 					SPGR_signal[vol] = SPGR[totalVoxels*vol + sliceOffset + vox];
+				if (norm)
+					SPGR_signal /= SPGR_signal.mean();
 				std::vector<VectorXd> SSFP_signals;
 				for (int p = 0; p < nPhases; p++)
 				{
 					VectorXd temp(nSSFP);
 					for (int vol = 0; vol < nSSFP; vol++)
 						temp[vol] = SSFP[p][totalVoxels*vol + sliceOffset + vox];
+					if (norm)
+						temp /= temp.mean();
 					SSFP_signals.push_back(temp);
 				}
 				if (components == 2)
 				{
-					TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1);
+					TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1, norm);
 					residual = regionContraction<TwoComponent>(params, tc, loBounds, hiBounds,
 															   loConstraints, hiConstraints,
 															   samples, retain, contract, 0.05, expand, vox + time(NULL));
 				} else {
-					ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1);
+					ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1, norm);
 					residual = regionContraction<ThreeComponent>(params, tc, loBounds, hiBounds,
 																 loConstraints, hiConstraints,
 																 samples, retain, contract, 0.05, expand, vox + time(NULL));

@@ -14,7 +14,13 @@
 #include <Eigen/Dense>
 #include <unsupported/Eigen/MatrixFunctions>
 
+#include "fslio.h"
+
 using namespace Eigen;
+
+//******************************************************************************
+#pragma mark Functors
+//******************************************************************************
 // From Nonlinear Tests in Eigen 
 template<typename _Scalar, int NX=Dynamic, int NY=Dynamic>
 class Functor
@@ -40,12 +46,13 @@ class Functor
   virtual int operator()(const VectorXd &params, VectorXd &diffs) { return 0; }
 };
 
+//******************************************************************************
 class OneComponentSSFP : public Functor<double>
 {
 	public:
 		const VectorXd &_flipAngles, &_rfPhases;
 		const std::vector<VectorXd> &_signals;
-		double _TR, _T1, _B1;
+		const double _TR, _T1, _B1;
 		
 		static const int nP = 3;
 		static const char *names[];
@@ -53,7 +60,7 @@ class OneComponentSSFP : public Functor<double>
 		OneComponentSSFP(const VectorXd &flipAngles, const VectorXd &rfPhases,
 		                 const std::vector<VectorXd> &signals,
 				         double TR, double T1, double B1) :
-				         Functor(3, flipAngles.size() * rfPhases.size()),
+				         Functor<double>(3, flipAngles.size() * rfPhases.size()),
 				         _flipAngles(flipAngles),
 				         _rfPhases(rfPhases),
 				         _signals(signals),
@@ -99,7 +106,7 @@ class OneComponentSSFP : public Functor<double>
 };
 const char *OneComponentSSFP::names[] = { "M0", "T2", "B0" };
 
-
+//******************************************************************************
 typedef Matrix<double, 6, 6> Matrix6d;
 typedef Matrix<double, 6, 1> Vector6d;
 class TwoComponent : public Functor<double>
@@ -108,6 +115,7 @@ class TwoComponent : public Functor<double>
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
 		const double _spgrTR, _ssfpTR, _M0, _B0, _B1;
+		const bool _normalise;
 		
 		static const int nP = 7;
 		static const char *names[];
@@ -122,12 +130,14 @@ class TwoComponent : public Functor<double>
 		             const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					 const std::vector<VectorXd> &ssfpSignals,
 					 const double spgrTR, const double ssfpTR, 
-					 const double M0, const double B0, const double B1) :
-					 Functor(TwoComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
+					 const double M0, const double B0, const double B1,
+					 const bool normalise) :
+					 Functor<double>(TwoComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				     _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				     _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					 _ssfpSignals(ssfpSignals),
-					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M0(M0), _B0(B0), _B1(B1)
+					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M0(M0), _B0(B0), _B1(B1),
+					 _normalise(normalise)
 				     {
 						
 					 }
@@ -164,6 +174,8 @@ class TwoComponent : public Functor<double>
 				Matrix2d A;
 				const Matrix2d eye2 = Matrix2d::Identity();
 				Vector2d M0, Mobs;
+				VectorXd signals(_spgrSignals.size());
+				
 				M0 << _M0 * f_a, _M0 * f_b;
 				A << -(_spgrTR/T1_a + _spgrTR*k_ab),                  _spgrTR*k_ba,
 									   _spgrTR*k_ab, -(_spgrTR/T1_b + _spgrTR*k_ba);
@@ -175,9 +187,14 @@ class TwoComponent : public Functor<double>
 				{
 					double a = _spgrAngles[i];
 					Mobs = (eye2 - A*cos(_B1 * a)).partialPivLu().solve(eyema * sin(_B1 * a)) * M0;
-					diffs[index] = Mobs.sum() - _spgrSignals[i];
-					index++;
+					signals[i] = Mobs.sum();
 				}
+				
+				if (_normalise)
+					signals /= signals.mean();
+				
+				diffs.head(_spgrSignals.size()) = signals - _spgrSignals;
+				index += _spgrSignals.size();
 			}
 			
 			//std::cout << "****************************************************" << std::endl;
@@ -193,6 +210,7 @@ class TwoComponent : public Functor<double>
 				
 				for (int p = 0; p < _rfPhases.size(); p++)
 				{
+					VectorXd signals(_ssfpAngles.size());
 					double phase = _rfPhases[p] + (B0 * _ssfpTR * 2. * M_PI);
 					// Can get away with this because the block structure of the
 					// matrix ensures that the zero blocks are always zero after
@@ -219,10 +237,15 @@ class TwoComponent : public Functor<double>
 						eye_mAR.noalias() = eye6 - (expA * R_rf);
 						solver.compute(eye_mAR);
 						Mobs.noalias() = solver.solve(eyema) * M0;
-						diffs[index] = sqrt(pow(Mobs[0] + Mobs[1], 2.) +
-											pow(Mobs[2] + Mobs[3], 2.)) - _ssfpSignals[p][i];
-						index++;
+						signals[i] = sqrt(pow(Mobs[0] + Mobs[1], 2.) +
+										  pow(Mobs[2] + Mobs[3], 2.));
 					}
+					
+					if (_normalise)
+						signals /= signals.mean();
+					
+					diffs.segment(index, _ssfpAngles.size()) = signals - _ssfpSignals[p];
+					index += _ssfpAngles.size();
 				}
 			}
 			return 0;
@@ -234,15 +257,18 @@ const double TwoComponent::hi3Bounds[] = { 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. 
 const double TwoComponent::lo7Bounds[] = { 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
 const double TwoComponent::hi7Bounds[] = { 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
 
+//******************************************************************************
 typedef Matrix<double, 9, 9> Matrix9d;
 typedef Matrix<double, 9, 1> Vector9d;
 class ThreeComponent : public Functor<double>
 {
-	public:
+	private:
+		const double _spgrTR, _ssfpTR, _B0, _B1, _M;
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
-		const double _spgrTR, _ssfpTR, _M0, _B0, _B1;
+		const bool _normalise;
 		
+	public:
 		static const int nP = 10;
 		static const char *names[];
 		static const double lo3Bounds[], hi3Bounds[], lo7Bounds[], hi7Bounds[];
@@ -260,14 +286,16 @@ class ThreeComponent : public Functor<double>
 		               const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					   const std::vector<VectorXd> &ssfpSignals,
 					   const double spgrTR, const double ssfpTR, 
-					   const double M0, const double B0, const double B1) :
-					   Functor(ThreeComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
+					   const double M0, const double B0, const double B1,
+					   const bool normalise) :
+					   Functor<double>(ThreeComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				       _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				       _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					   _ssfpSignals(ssfpSignals),
-					   _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M0(M0), _B0(B0), _B1(B1)
+					   _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M(M0), _B0(B0), _B1(B1),
+					   _normalise(normalise)
 				      {
-						
+					  	eigen_assert(_rfPhases.size() == _ssfpSignals.size());
 					  }
 	
 		int operator()(const VectorXd &params, VectorXd &diffs) const
@@ -305,7 +333,8 @@ class ThreeComponent : public Functor<double>
 				Matrix3d A;
 				const Matrix3d eye3 = Matrix3d::Identity();
 				Vector3d M0, Mobs;
-				M0 << _M0 * f_a, _M0 * f_b, _M0 * f_c;
+				VectorXd signals(_spgrSignals.size());
+				M0 << _M * f_a, _M * f_b, _M * f_c;
 				A << -(1./T1_a + k_ab),               k_ba, 0,
 								  k_ab,  -(1./T1_b + k_ba), 0,
 									 0,                  0, -1./T1_c;
@@ -317,9 +346,12 @@ class ThreeComponent : public Functor<double>
 				{
 					double a = _spgrAngles[i];
 					Mobs = (eye3 - A*cos(_B1 * a)).partialPivLu().solve(eyema * sin(_B1 * a)) * M0;
-					diffs[index] = Mobs.sum() - _spgrSignals[i];
-					index++;
+					signals[i] = Mobs.sum();
 				}
+				if (_normalise)
+					signals /= signals.mean();
+				diffs.head(_spgrSignals.size()) = signals - _spgrSignals;
+				index += _spgrSignals.size();
 			}
 			
 			//std::cout << "****************************************************" << std::endl;
@@ -349,10 +381,11 @@ class ThreeComponent : public Functor<double>
 				A(6, 8) = A(7, 8) = A(8, 6) = A(8, 7) = 0.;
 				A.topRightCorner(6, 3).setZero();
 				A.bottomLeftCorner(3, 6).setZero();
-				M0 << 0., 0., 0., 0., 0., 0., _M0 * f_a, _M0 * f_b, _M0 * f_c;
+				M0 << 0., 0., 0., 0., 0., 0., _M * f_a, _M * f_b, _M * f_c;
 				
 				for (int p = 0; p < _rfPhases.size(); p++)
 				{
+					VectorXd signals(_ssfpAngles.size());
 					double phase = _rfPhases[p] + (B0 * _ssfpTR * 2. * M_PI);
 					A(0, 3) = A(1, 4) = A(2, 5) = phase;
 					A(3, 0) = A(4, 1) = A(5, 2) = -phase;
@@ -370,19 +403,55 @@ class ThreeComponent : public Functor<double>
 						eye_mAR.noalias() = eye9 - (expA * R_rf);
 						solver.compute(eye_mAR);
 						Mobs.noalias() = solver.solve(eyema) * M0;
-						diffs[index] = sqrt(pow(Mobs[0] + Mobs[1] + Mobs[2], 2.) +
-											pow(Mobs[3] + Mobs[4] + Mobs[5], 2.)) - _ssfpSignals[p][i];
-						index++;
+						signals[i] = sqrt(pow(Mobs[0] + Mobs[1] + Mobs[2], 2.) +
+										  pow(Mobs[3] + Mobs[4] + Mobs[5], 2.));
 					}
+					
+					if (_normalise)
+						signals /= signals.mean();
+					diffs.segment(index, _ssfpSignals[p].size()) = signals - _ssfpSignals[p];
+					index += _ssfpSignals[p].size();
 				}
 			}
 			return 0;
 		}
 };
-const char *ThreeComponent::names[] = { "T1_a", "T1_b", "T1_c", "T2_a", "T2_b", "T2_c", "f_a", "f_c", "tau_a", "B0" };
+const char *ThreeComponent::names[] = { "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "3c_B0" };
 const double ThreeComponent::lo3Bounds[] = { 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. };
 const double ThreeComponent::hi3Bounds[] = { 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. };
 const double ThreeComponent::lo7Bounds[] = { 0.500, 1.50, 0.0001, 0.010, 0.0, 0.0, 0., 0., 0., 0. };
 const double ThreeComponent::hi7Bounds[] = { 1.000, 3.00, 0.0500, 0.500, 1.0, 1.0, 0., 0., 0., 0. };
+
+//******************************************************************************
+#pragma mark Utility functions
+//******************************************************************************
+template<typename Functor_t>
+void write_results(const std::string outPrefix, double **paramsData, double *residualData, FSLIO *hdr)
+{
+	std::string outPath;
+	short nx, ny, nz, nvol;
+	FslGetDim(hdr, &nx, &ny, &nz, &nvol);
+	FslSetDim(hdr, nx, ny, nz, 1);
+	FslSetDimensionality(hdr, 3);
+	FslSetDataType(hdr, NIFTI_TYPE_FLOAT32);	
+	for (int p = 0; p < Functor_t::nP; p++)
+	{
+		outPath = outPrefix + "_" + Functor_t::names[p] + ".nii.gz";
+		std::cout << "Writing parameter file: " << outPath << std::endl;
+		FSLIO *outFile = FslOpen(outPath.c_str(), "wb");
+		FslCloneHeader(outFile, hdr);
+		FslWriteHeader(outFile);
+		FslWriteVolumeFromDouble(outFile, paramsData[p], 0);
+		FslClose(outFile);
+	}
+	
+	outPath = outPrefix + "_residual.nii.gz";
+	std::cout << "Writing residual file: " << outPath << std::endl;
+	FSLIO *outFile = FslOpen(outPath.c_str(), "wb");
+	FslCloneHeader(outFile, hdr);
+	FslWriteHeader(outFile);
+	FslWriteVolumeFromDouble(outFile, residualData, 0);
+	FslClose(outFile);
+}
 
 #endif
