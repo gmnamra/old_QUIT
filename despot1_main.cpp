@@ -145,11 +145,11 @@ int main(int argc, char **argv)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
-			if (B1Data)
-				B1 = B1Data[sliceOffset + vox];
 			if ((!maskData) || (maskData[sliceOffset + vox] > 0.))
 			{
 				AtomicAdd(1, &voxCount);
+				if (B1Data)
+					B1 = B1Data[sliceOffset + vox];
 				ArrayXd spgrs(nSPGR);
 				for (int img = 0; img < nSPGR; img++)
 					spgrs[img] = SPGR[img * totalVoxels + sliceOffset + vox];

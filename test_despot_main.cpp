@@ -6,41 +6,85 @@
 //  Copyright (c) 2012 Tobias Wood. All rights reserved.
 //
 
+#include <getopt.h>
 #include "DESPOT_Functors.h"
 #include "fslio.h"
 #include "procpar.h"
 
-int main(int argc, const char * argv[])
+static int components = 1;
+static std::string outPrefix;
+static struct option long_options[] =
 {
+	{"components", required_argument, 0, 'c'},
+	{0, 0, 0, 0}
+};
+
+int main(int argc, char **argv)
+{
+	int indexptr = 0, c;
+	while ((c = getopt_long(argc, argv, "c:", long_options, &indexptr)) != -1)
+	{
+		switch (c)
+		{
+			case 'c':
+				components = atoi(optarg);
+				outPrefix = std::string("test_") + optarg + "c";
+				if ((components < 1) || (components > 3))
+				{
+					std::cout << "Valid models are 1 to 3 components." << std::endl;
+					exit(EXIT_FAILURE);
+				}
+				break;
+			default:
+				std::cout << "Unknown command line switch " << c << std::endl;
+		}
+	}
+
 	// Generate test images
 	
 	// Set up all the parameters
-	double spgrTR = 0.013;
-	double ssfpTR = 0.0105;
-	double M0 = 1.;
+	double spgrTR = 0.0087;
+	double ssfpTR = 0.002916;
+	double B0 = 0.;
 	double B1 = 1;
 	
-	VectorXd alphaSPGR(8); alphaSPGR << 2, 3, 4, 5, 6, 7, 10, 14;
-	VectorXd alphaSSFP(8); alphaSSFP << 11, 16, 19, 23, 27, 35, 50, 70;
-	VectorXd phases(2); phases << 0., 180.;
+	VectorXd alphaSPGR(6); alphaSPGR << 2, 4, 8, 16, 24, 32;
+	VectorXd alphaSSFP(6); alphaSSFP << 2, 4, 8, 16, 32, 64;
+	VectorXd phases(3); phases << 180., 135., 225.;
 	alphaSPGR *= M_PI / 180.;
 	alphaSSFP *= M_PI / 180.;
 	phases    *= M_PI / 180.;
+	VectorXd zeros(6); zeros.setZero();
+	std::vector<VectorXd> ssfpZeros;
+	for (int i = 0; i < phases.size(); i++)
+		ssfpZeros.push_back(zeros);
 	
 	std::cout << "RF Phases: " << phases.transpose() << std::endl;
 	std::cout << "SPGR flip: " << alphaSPGR.transpose() << std::endl;
 	std::cout << "SSFP flip: " << alphaSSFP.transpose() << std::endl;
 	
-	const char *param_names[] =
-	 { "T1_a", "T1_b", "T1_c", "T2_a", "T2_b", "T2_c", "f_a", "f_c", "tau_a", "B0" };
-	VectorXd params(10); params << 0.465, 0.965, 3.5, 0.012, 0.09, 0.25, 0., 0., 0.125, 0.;
-	VectorXd zeros(8); zeros.setZero();
-	std::vector<VectorXd> ssfpZeros;
-	for (int i = 0; i < phases.size(); i++)
-		ssfpZeros.push_back(zeros);
+	VectorXd params;
+	Functor<double> *model = NULL;
+	switch (components)
+	{
+		case 1:
+			params.resize(OneComponent::nP, 1);
+			params << 1.e5, 1., 0.015;
+			break;
+		case 2:
+			params.resize(TwoComponent::nP, 1);
+			params << 0.7, 2., 0.008, 0.02, 0., 0.125, 0.;
+			model = new TwoComponent(alphaSPGR, zeros, alphaSSFP, phases, ssfpZeros, spgrTR, ssfpTR, 1., 0., B1);
+			break;
+		case 3:
+			params.resize(ThreeComponent::nP, 1);
+			params << 0.7, 2., 8., 0.008, 0.02, 0.25, 0., 0., 0.125, 0.;
+			model = new ThreeComponent(alphaSPGR, zeros, alphaSSFP, phases, ssfpZeros, spgrTR, ssfpTR, 1., INFINITY, B1);
+			break;
+	}
 	
 	// Now create our images
-	int nx = 5, ny = 6, nz = 2;
+	int nx = 3, ny = 3, nz = 3;
 	int totalVoxels = nx * ny * nz;
 	double *dataSPGR = (double *)malloc(alphaSPGR.size() * totalVoxels * sizeof(double));
 	double *dataSSFP[phases.size()];
@@ -49,39 +93,42 @@ int main(int argc, const char * argv[])
 	double *dataParams[params.size()];
 	for (int p = 0; p < params.size(); p++)
 		dataParams[p] = (double *)malloc(totalVoxels * sizeof(double));
-	double *dataM0 = (double *)malloc(totalVoxels * sizeof(double));
+	double *dataB0 = (double *)malloc(totalVoxels * sizeof(double));
 	double *dataB1 = (double *)malloc(totalVoxels * sizeof(double));
-	
-	ThreeComponent tc(alphaSPGR, zeros, alphaSSFP, phases, ssfpZeros, spgrTR, ssfpTR, M0, INFINITY, B1, false);
-	VectorXd sig(tc.values());
-	
-	std::cout << "M0 " << M0 << " B1 " << B1 << std::endl;
 	
 	clock_t loopStart = clock();
 	for (short z = 0; z < nz; z++)
 	{	for (short y = 0; y < ny; y++)
-		{	
-			params[7] = ((double)y / (ny - 1)) * 0.6;
-			for (short x = 0; x < nx; x++)
+		{	for (short x = 0; x < nx; x++)
 			{
-				params[6] = ((double)x / (nx - 1)) * 0.2 + 0.05;
-				//std::cout << "P: " << params.transpose() << std::endl;				
-				tc(params, sig);
-				//std::cout << "SPGR: " << sig.head(alphaSPGR.size()).transpose() << std::endl;
+				switch (components)
+				{
+					case 1:
+						B0 = ((double)x / (nx - 1)) * 80. - 40.;
+						B1 = ((double)y / (ny - 1)) * 0.2 + 0.9;
+						model = new OneComponent(alphaSPGR, zeros, alphaSSFP, phases, ssfpZeros, spgrTR, ssfpTR, B0, B1);
+						break;
+					case 3:
+						params[6] = ((double)x / (nx - 1)) * 0.2 + 0.05;
+						params[7] = ((double)y / (ny - 1)) * 0.6;
+						break;
+				}
+				VectorXd sig(model->values());
+				model->operator()(params, sig);
 				int index = 0;
 				// Results are in one long vector
 				for (int i = 0; i < alphaSPGR.size(); i++)
 					dataSPGR[i*totalVoxels + (z*ny + y)*nx + x] = sig[index++];
 				for (int p = 0; p < phases.size(); p++)
 				{
-					//std::cout  << "SSFP Phase " << phases[p] << ": " << sig.segment(index, alphaSSFP.size()).transpose() << std::endl;
 					for (int i = 0; i < alphaSSFP.size(); i++)
 					{	dataSSFP[p][i * totalVoxels + (z*ny + y)*nx + x] = sig[index++];	}
 				}
 				for (int p = 0; p < params.size(); p++)
 					dataParams[p][(z*ny + y)*nx + x] = params[p];
-				dataM0[(z*ny + y)*nx + x] = M0;
+				dataB0[(z*ny + y)*nx + x] = B0;
 				dataB1[(z*ny + y)*nx + x] = B1;
+				delete model;
 			}
 		}
 	}
@@ -134,32 +181,28 @@ int main(int argc, const char * argv[])
 		fclose(procparfile);
 	}
 	
-	for (int p = 0; p < params.size(); p++)
-	{	
-		snprintf(outName, 1024, "%s_Noiseless.nii.gz", param_names[p]);
-		outFile = FslOpen(outName, "wb");
-		FslSetDim(outFile, nx, ny, nz, 1);
-		FslSetVoxDim(outFile, volSize / nx, volSize / ny, volSize / nz, 0.);
-		FslWriteHeader(outFile);
-		FslWriteAllVolumesFromDouble(outFile, dataParams[p]);
-		FslClose(outFile);
-	}
-	snprintf(outName, 1024, "M0_Noiseless.nii.gz");
+	snprintf(outName, 1024, "B0_Noiseless.nii.gz");
 	outFile = FslOpen(outName, "wb");
 	FslSetDim(outFile, nx, ny, nz, 1);
 	FslSetVoxDim(outFile, volSize / nx, volSize / ny, volSize / nz, 0.);
 	FslWriteHeader(outFile);
-	FslWriteAllVolumesFromDouble(outFile, dataM0);
+	FslWriteAllVolumesFromDouble(outFile, dataB0);
 	FslClose(outFile);
-
+	
 	snprintf(outName, 1024, "B1_Noiseless.nii.gz");
 	outFile = FslOpen(outName, "wb");
 	FslSetDim(outFile, nx, ny, nz, 1);
 	FslSetVoxDim(outFile, volSize / nx, volSize / ny, volSize / nz, 0.);
 	FslWriteHeader(outFile);
 	FslWriteAllVolumesFromDouble(outFile, dataB1);
+	
+	switch (components)
+	{
+		case 1: write_results<OneComponent>(outPrefix, dataParams, NULL, outFile); break;
+		case 2: write_results<TwoComponent>(outPrefix, dataParams, NULL, outFile); break;
+		case 3: write_results<ThreeComponent>(outPrefix, dataParams, NULL, outFile); break;
+	}
 	FslClose(outFile);
-		
     return 0;
 }
 

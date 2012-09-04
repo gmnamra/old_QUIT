@@ -26,25 +26,125 @@ template<typename _Scalar, int NX=Dynamic, int NY=Dynamic>
 class Functor
 {
 	public:
-  typedef _Scalar Scalar;
-  enum {
-    InputsAtCompileTime = NX,
-    ValuesAtCompileTime = NY
-  };
-  typedef Matrix<Scalar,InputsAtCompileTime,1> InputType;
-  typedef Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
-  typedef Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
-
-  const int m_inputs, m_values;
-
-  Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
-  Functor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
-
-  int inputs() const { return m_inputs; }
-  int values() const { return m_values; }
-  
-  virtual int operator()(const VectorXd &params, VectorXd &diffs) { return 0; }
+		typedef _Scalar Scalar;
+		enum {
+			InputsAtCompileTime = NX,
+			ValuesAtCompileTime = NY
+		};
+		typedef Matrix<Scalar,InputsAtCompileTime,1> InputType;
+		typedef Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
+		typedef Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
+		
+		const int m_inputs, m_values;
+		
+		Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
+		Functor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
+		
+		virtual ~Functor() {};
+		
+		int inputs() const { return m_inputs; }
+		int values() const { return m_values; }
+		
+		virtual int operator()(const VectorXd &params, VectorXd &diffs) const = 0;
 };
+//******************************************************************************
+VectorXd One_SPGR(const VectorXd&flipAngles, const VectorXd &params,
+				  const double TR, const double B1)
+{
+	double M0 = params[0], T1 = params[1];
+	VectorXd theory(flipAngles.size());
+	VectorXd sa = (flipAngles.array() * B1).sin();
+	VectorXd ca = (flipAngles.array() * B1).cos();
+	double expT1 = exp(-TR / T1);
+	theory = M0 * (1. - expT1) * sa.array() / (1. - expT1*ca.array());
+	
+	return theory;
+}
+
+VectorXd One_SSFP(const VectorXd &flipAngles, const VectorXd &params,
+                  const double rfPhase, const double TR, const double B0, const double B1)
+{
+	static Matrix3d A = Matrix3d::Zero(), R_rf = Matrix3d::Zero(),
+	                eye = Matrix3d::Identity(), expA, eyemA;
+	static Vector3d M0 = Vector3d::Zero(), Mobs;
+	R_rf(0, 0) = 1.;
+	M0[2] = params[0];
+	double T1 = params[1],
+	       T2 = params[2];
+	double phase = rfPhase / TR + (B0 * 2. * M_PI);
+	A(0, 0) = A(1, 1) = -1 / T2;
+	A(0, 1) =  phase;
+	A(1, 0) = -phase;
+	A(2, 2) = -1 / T1;
+	MatrixExponential<Matrix3d> expmA(A*TR);
+	expmA.compute(expA);
+	eyemA.noalias() = eye - expA;
+	
+	VectorXd theory(flipAngles.size());
+	for (int i = 0; i < flipAngles.size(); i++)
+	{
+		double a = flipAngles[i];
+		double ca = cos(B1 * a), sa = sin(B1 * a);
+		R_rf(1, 1) = R_rf(2, 2) = ca;
+		R_rf(1, 2) = sa; R_rf(2, 1) = -sa;
+		Mobs = (eye - (expA * R_rf)).partialPivLu().solve(eyemA) * M0;				
+		theory[i] = Mobs.head(2).norm();
+	}
+	return theory;
+}
+//******************************************************************************
+class OneComponent : public Functor<double>
+{
+	public:
+		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
+		const std::vector<VectorXd> &_ssfpSignals;
+		double _spgrTR, _ssfpTR, _B0, _B1;
+		
+		static const int nP = 3;
+		static const char *names[];
+		
+		static bool f_constraint(const VectorXd &params)
+		{
+			return true;
+		}
+		
+		OneComponent(const VectorXd &spgrAngles, const VectorXd &spgrSignals,
+		             const VectorXd &ssfpAngles, const VectorXd &rfPhases,
+					 const std::vector<VectorXd> &ssfpSignals,
+					 const double spgrTR, const double ssfpTR, 
+					 const double B0, const double B1) :
+					 Functor<double>(OneComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
+				     _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
+				     _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
+					 _ssfpSignals(ssfpSignals),
+					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _B0(B0), _B1(B1)
+				     {
+						
+					 }
+	
+		int operator()(const VectorXd &params, VectorXd &diffs) const
+		{
+			eigen_assert(diffs.size() == values());
+			
+			int index = 0;
+			//std::cout << "****************************************************" << std::endl;
+			//std::cout << "SPGR First" << std::endl;
+			VectorXd theory = One_SPGR(_spgrAngles, params, _spgrTR, _B1);
+			diffs.head(_spgrSignals.size()) = theory - _spgrSignals;
+			index += _spgrSignals.size();
+			
+			//std::cout << "****************************************************" << std::endl;
+			//std::cout << "Now SSFP" << std::endl;
+			for (int p = 0; p < _rfPhases.size(); p++)
+			{
+				theory = One_SSFP(_ssfpAngles, params, _rfPhases(p), _ssfpTR, _B0, _B1);
+				diffs.segment(index, _ssfpAngles.size()) = theory - _ssfpSignals[p];
+				index += _ssfpAngles.size();
+			}
+			return 0;
+		}
+};
+const char *OneComponent::names[] = { "M0", "T1", "T2" };
 
 //******************************************************************************
 class OneComponentSSFP : public Functor<double>
@@ -52,61 +152,39 @@ class OneComponentSSFP : public Functor<double>
 	public:
 		const VectorXd &_flipAngles, &_rfPhases;
 		const std::vector<VectorXd> &_signals;
-		const double _TR, _T1, _B1;
+		const double _TR, _B0, _B1;
 		
 		static const int nP = 3;
 		static const char *names[];
 		
 		OneComponentSSFP(const VectorXd &flipAngles, const VectorXd &rfPhases,
 		                 const std::vector<VectorXd> &signals,
-				         double TR, double T1, double B1) :
-				         Functor<double>(3, flipAngles.size() * rfPhases.size()),
+				         const double TR, const double B0, const double B1) :
+				         Functor<double>(OneComponentSSFP::nP, flipAngles.size() * rfPhases.size()),
 				         _flipAngles(flipAngles),
 				         _rfPhases(rfPhases),
 				         _signals(signals),
-				         _TR(TR), _T1(T1), _B1(B1)
+				         _TR(TR), _B0(B0), _B1(B1)
 				         {}
 			
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
-			Matrix3d A,
-					 R_rf = Matrix3d::Zero(),
-					 eye = Matrix3d::Identity(),
-					 eyema;
-			Vector3d M0, Mobs;
-			R_rf(0, 0) = 1.;
-			M0 << 0., 0., params[0];
-			double T2 = params[1],
-				   B0 = params[2];
+			eigen_assert(diffs.size() == values());
 			int index = 0;
 			for (int p = 0; p < _rfPhases.size(); p++)
 			{
-				eigen_assert(diffs.size() == values());
-				
-				double phase = _rfPhases(p) + (B0 * _TR * 2. * M_PI);
-				A << -_TR / T2,     phase,         0.,
-					    -phase, -_TR / T2,         0.,
-						    0.,        0., -_TR / _T1;
-				MatrixExponential<Matrix3d> expA(A);
-				expA.compute(A);
-				eyema.noalias() = eye - A;
-				for (int i = 0; i < _flipAngles.size(); i++)
-				{
-					double a = _flipAngles[i];
-					double ca = cos(_B1 * a), sa = sin(_B1 * a);
-					R_rf(1, 1) = R_rf(2, 2) = ca;
-					R_rf(1, 2) = sa; R_rf(2, 1) = -sa;
-					Mobs = (eye - (A * R_rf)).partialPivLu().solve(eyema) * M0;				
-					diffs[index] = Mobs.head(2).norm() - _signals[p][i];
-					index++;
-				}
+				diffs.segment(index, _flipAngles.size()) =
+					One_SSFP(_flipAngles, params, _rfPhases(p), _TR, _B0, _B1) - _signals[p];
+				index += _flipAngles.size();
 			}
 			return 0;
 		}
 };
-const char *OneComponentSSFP::names[] = { "M0", "T2", "B0" };
+const char *OneComponentSSFP::names[] = { "d2_M0", "d2_T1", "d2_T2" };
 
 //******************************************************************************
+// Set B0 to INFINITY if optimising
+// Set M0 to INFINITY to normalise signals to their mean
 typedef Matrix<double, 6, 6> Matrix6d;
 typedef Matrix<double, 6, 1> Vector6d;
 class TwoComponent : public Functor<double>
@@ -115,7 +193,6 @@ class TwoComponent : public Functor<double>
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
 		const double _spgrTR, _ssfpTR, _M0, _B0, _B1;
-		const bool _normalise;
 		
 		static const int nP = 7;
 		static const char *names[];
@@ -130,14 +207,12 @@ class TwoComponent : public Functor<double>
 		             const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					 const std::vector<VectorXd> &ssfpSignals,
 					 const double spgrTR, const double ssfpTR, 
-					 const double M0, const double B0, const double B1,
-					 const bool normalise) :
+					 const double M0, const double B0, const double B1) :
 					 Functor<double>(TwoComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				     _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				     _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					 _ssfpSignals(ssfpSignals),
-					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M0(M0), _B0(B0), _B1(B1),
-					 _normalise(normalise)
+					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M0(M0), _B0(B0), _B1(B1)
 				     {
 						
 					 }
@@ -153,11 +228,14 @@ class TwoComponent : public Functor<double>
 			       tau_a = params[5],
 			       tau_b = f_b * tau_a / f_a,
 				   B0 = params[6],
+				   PD = 1.,
 				   k_ab = 1. / tau_a,
 				   k_ba = 1. / tau_b;
 			
 			if (std::isfinite(_B0))
 				B0 = _B0;
+			if (std::isfinite(_M0))
+				PD = _M0;
 			// Only have 1 component, so no exchange
 			if ((f_a == 0.) || (f_b == 0.))
 			{
@@ -190,7 +268,7 @@ class TwoComponent : public Functor<double>
 					signals[i] = Mobs.sum();
 				}
 				
-				if (_normalise)
+				if (!std::isfinite(_M0))
 					signals /= signals.mean();
 				
 				diffs.head(_spgrSignals.size()) = signals - _spgrSignals;
@@ -241,7 +319,7 @@ class TwoComponent : public Functor<double>
 										  pow(Mobs[2] + Mobs[3], 2.));
 					}
 					
-					if (_normalise)
+					if (!std::isfinite(_M0))
 						signals /= signals.mean();
 					
 					diffs.segment(index, _ssfpAngles.size()) = signals - _ssfpSignals[p];
@@ -258,6 +336,8 @@ const double TwoComponent::lo7Bounds[] = { 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. 
 const double TwoComponent::hi7Bounds[] = { 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
 
 //******************************************************************************
+// Set B0 to INFINITY if optimising
+// Set M0 to INFINITY to normalise signals to their mean
 typedef Matrix<double, 9, 9> Matrix9d;
 typedef Matrix<double, 9, 1> Vector9d;
 class ThreeComponent : public Functor<double>
@@ -266,7 +346,6 @@ class ThreeComponent : public Functor<double>
 		const double _spgrTR, _ssfpTR, _B0, _B1, _M;
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
-		const bool _normalise;
 		
 	public:
 		static const int nP = 10;
@@ -286,14 +365,12 @@ class ThreeComponent : public Functor<double>
 		               const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					   const std::vector<VectorXd> &ssfpSignals,
 					   const double spgrTR, const double ssfpTR, 
-					   const double M0, const double B0, const double B1,
-					   const bool normalise) :
+					   const double M0, const double B0, const double B1) :
 					   Functor<double>(ThreeComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				       _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				       _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					   _ssfpSignals(ssfpSignals),
-					   _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M(M0), _B0(B0), _B1(B1),
-					   _normalise(normalise)
+					   _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M(M0), _B0(B0), _B1(B1)
 				      {
 					  	eigen_assert(_rfPhases.size() == _ssfpSignals.size());
 					  }
@@ -312,11 +389,14 @@ class ThreeComponent : public Functor<double>
 			       tau_a = params[8],
 			       tau_b = f_b * tau_a / f_a,
 				   B0 = params[9],
+				   PD = 1.,
 				   k_ab = 1. / tau_a,
 				   k_ba = 1. / tau_b;
 			
 			if (std::isfinite(_B0))
 				B0 = _B0;
+			if (std::isfinite(_M))
+				PD = _M;
 			// Only have 1 component, so no exchange
 			if ((f_a == 0.) || (f_b == 0.))
 			{
@@ -334,7 +414,7 @@ class ThreeComponent : public Functor<double>
 				const Matrix3d eye3 = Matrix3d::Identity();
 				Vector3d M0, Mobs;
 				VectorXd signals(_spgrSignals.size());
-				M0 << _M * f_a, _M * f_b, _M * f_c;
+				M0 << PD * f_a, PD * f_b, PD * f_c;
 				A << -(1./T1_a + k_ab),               k_ba, 0,
 								  k_ab,  -(1./T1_b + k_ba), 0,
 									 0,                  0, -1./T1_c;
@@ -348,7 +428,7 @@ class ThreeComponent : public Functor<double>
 					Mobs = (eye3 - A*cos(_B1 * a)).partialPivLu().solve(eyema * sin(_B1 * a)) * M0;
 					signals[i] = Mobs.sum();
 				}
-				if (_normalise)
+				if (!std::isfinite(_M))
 					signals /= signals.mean();
 				diffs.head(_spgrSignals.size()) = signals - _spgrSignals;
 				index += _spgrSignals.size();
@@ -381,7 +461,7 @@ class ThreeComponent : public Functor<double>
 				A(6, 8) = A(7, 8) = A(8, 6) = A(8, 7) = 0.;
 				A.topRightCorner(6, 3).setZero();
 				A.bottomLeftCorner(3, 6).setZero();
-				M0 << 0., 0., 0., 0., 0., 0., _M * f_a, _M * f_b, _M * f_c;
+				M0 << 0., 0., 0., 0., 0., 0., PD * f_a, PD * f_b, PD * f_c;
 				
 				for (int p = 0; p < _rfPhases.size(); p++)
 				{
@@ -407,7 +487,7 @@ class ThreeComponent : public Functor<double>
 										  pow(Mobs[3] + Mobs[4] + Mobs[5], 2.));
 					}
 					
-					if (_normalise)
+					if (!std::isfinite(_M))
 						signals /= signals.mean();
 					diffs.segment(index, _ssfpSignals[p].size()) = signals - _ssfpSignals[p];
 					index += _ssfpSignals[p].size();
@@ -445,13 +525,16 @@ void write_results(const std::string outPrefix, double **paramsData, double *res
 		FslClose(outFile);
 	}
 	
-	outPath = outPrefix + "_residual.nii.gz";
-	std::cout << "Writing residual file: " << outPath << std::endl;
-	FSLIO *outFile = FslOpen(outPath.c_str(), "wb");
-	FslCloneHeader(outFile, hdr);
-	FslWriteHeader(outFile);
-	FslWriteVolumeFromDouble(outFile, residualData, 0);
-	FslClose(outFile);
+	if (residualData)
+	{
+		outPath = outPrefix + "_residual.nii.gz";
+		std::cout << "Writing residual file: " << outPath << std::endl;
+		FSLIO *outFile = FslOpen(outPath.c_str(), "wb");
+		FslCloneHeader(outFile, hdr);
+		FslWriteHeader(outFile);
+		FslWriteVolumeFromDouble(outFile, residualData, 0);
+		FslClose(outFile);
+	}
 }
 
 #endif

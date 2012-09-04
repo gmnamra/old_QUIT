@@ -9,6 +9,15 @@
 
 #include "DESPOT.h"
 
+double clamp(double value, double low, double high)
+{
+	if (value < low)
+		return low;
+	if (value > high)
+		return high;
+	return value;
+}
+
 //******************************************************************************
 // Basic least squares fitting
 //******************************************************************************
@@ -28,7 +37,7 @@ void linearLeastSquares(double *X, double *Y, int nD,
 		sumXY += (x*y);
 	}
 	
-	*slope = (nD * sumXY - (sumX * sumY)) / (nD * sumXX - (sumX * sumX));
+	*slope = (sumXY - (sumX * sumY)/nD) / (sumXX - (sumX * sumX)/nD);
 	*inter = (sumY - (*slope) * sumX) / nD;
 	
 	if (res)
@@ -61,7 +70,6 @@ double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
                       double TR, double T1, double B1, double *M0, double *T2)
 {
 	// As above, linearise, then least-squares
-	// p[0] = M0, p[1] = T2
 	int n = flipAngles.size();
 	double X[n], Y[n], slope, inter, residual;
 	for (int i = 0; i < flipAngles.size(); i++)
@@ -72,8 +80,8 @@ double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
 	linearLeastSquares(X, Y, n, &slope, &inter, &residual);
 	double eT1 = exp(-TR / T1);
 	*T2 = -TR / log((eT1 - slope) / (1. - slope * eT1));
-	double eT2 = exp(-TR / *T2);
-	*M0 = inter * (1. - eT1 * eT2) / (1. - eT1);
+	double eT2 = exp(-TR / (*T2));
+	*M0 = inter * (1. - eT1 * eT2) / (eT2 * (1. - eT1));
 	return residual;
 }
 

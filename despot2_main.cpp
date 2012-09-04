@@ -242,17 +242,13 @@ int main(int argc, char **argv)
 		{
 			// Set up parameters and constants
 			double M0 = 0., T1 = 0., T2 = 0., B0 = 0, B1 = 1., residual = 0.;
-			T1 = T1Data[sliceOffset + vox];
-			if (B0Data)
-				B0 = B0Data[sliceOffset + vox];
-			if (B1Data)
-				B1 = B1Data[sliceOffset + vox];
-			if (M0Data)
-				M0 = M0Data[sliceOffset + vox];
 			if (!maskData || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				AtomicAdd(1, &voxCount);
-				// Gather signals. 180 Phase data is required to be the first file passed into program
+				T1 = T1Data[sliceOffset + vox];
+				if (B0Data) B0 = B0Data[sliceOffset + vox];
+				if (B1Data)	B1 = B1Data[sliceOffset + vox];
+				// Gather signals.
 				std::vector<VectorXd> signals;
 				for (int p = 0; p < nPhases; p++)
 				{
@@ -280,22 +276,28 @@ int main(int argc, char **argv)
 				if (levMar && std::isfinite(T2) && std::isfinite(M0))
 				{
 					OneComponentSSFP f(ssfpAngles, ssfpPhases, signals,
-							           ssfpTR, T1, B1);
+							           ssfpTR, B0, B1);
 					NumericalDiff<OneComponentSSFP> nf(f);
 					LevenbergMarquardt<NumericalDiff<OneComponentSSFP> > lm(nf);
-					if (M0Data)
-						M0 = M0Data[sliceOffset + vox];
+					if (M0Data)	M0 = M0Data[sliceOffset + vox];
 					VectorXd params(3);
-					params << M0, T2, B0;
-					lm.minimize(params);
+					params << M0, T1, T2;
+					int status = lm.minimizeInit(params);
+					do {
+						status = lm.minimizeOneStep(params);
+					} while (status == Eigen::HybridNonLinearSolverSpace::Running);
+					
+					if (status < 1)
+						std::cout << "Status = " << status << std::endl;
 					M0 = params[0];
-					T2 = params[1];
-					B0 = params[2];
+					T1 = params[1];
+					T2 = params[2];
 				}
 			}
 			paramsData[0][sliceOffset + vox] = clamp(M0, 0., 1.e7);
-			paramsData[1][sliceOffset + vox] = clamp(T2, 0.001, 0.250);
-			paramsData[2][sliceOffset + vox] = fmod(B0, 1./ssfpTR);
+			paramsData[1][sliceOffset + vox] = clamp(T1, 0., 20.);
+			paramsData[2][sliceOffset + vox] = clamp(T2, 0., 0.5);
+			//paramsData[2][sliceOffset + vox] = fmod(B0, 1./ssfpTR);
 			residualData[sliceOffset + vox] = residual;
 		};
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);

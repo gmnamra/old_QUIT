@@ -340,8 +340,6 @@ int main(int argc, char **argv)
 	std::cout << "Starting processing." << std::endl;
 	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	bool norm = true;
-	if (M0Data)
-		norm = false;
 	for (size_t slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose)
@@ -352,14 +350,14 @@ int main(int argc, char **argv)
 		//for (int vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
-			double M0 = 1, B0 = INFINITY, B1 = 1., residual = 0.;
-			if (M0Data) M0 = (double)M0Data[sliceOffset + vox];
-			if (B0Data) B0 = (double)B0Data[sliceOffset + vox];
-			if (B1Data) B1 = (double)B1Data[sliceOffset + vox];		
+			double M0 = INFINITY, B0 = INFINITY, B1 = 1., residual = 0.;
 			VectorXd params(nP); params.setZero();
 			if (!maskData || (maskData[sliceOffset + vox] > 0.))
 			{
 				AtomicAdd(1, &voxCount);
+				if (M0Data) M0 = (double)M0Data[sliceOffset + vox];
+				if (B0Data) B0 = (double)B0Data[sliceOffset + vox];
+				if (B1Data) B1 = (double)B1Data[sliceOffset + vox];
 				VectorXd SPGR_signal(nSPGR);
 				for (int vol = 0; vol < nSPGR; vol++)
 					SPGR_signal[vol] = SPGR[totalVoxels*vol + sliceOffset + vox];
@@ -377,12 +375,12 @@ int main(int argc, char **argv)
 				}
 				if (components == 2)
 				{
-					TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1, norm);
+					TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1);
 					residual = regionContraction<TwoComponent>(params, tc, loBounds, hiBounds,
 															   loConstraints, hiConstraints,
 															   samples, retain, contract, 0.05, expand, vox + time(NULL));
 				} else {
-					ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1, norm);
+					ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1);
 					residual = regionContraction<ThreeComponent>(params, tc, loBounds, hiBounds,
 																 loConstraints, hiConstraints,
 																 samples, retain, contract, 0.05, expand, vox + time(NULL));
