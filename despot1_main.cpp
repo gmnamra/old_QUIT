@@ -25,7 +25,8 @@ const char *usage = "Usage is: despot1 [options] spgr_input output_prefix \n\
 \
 Options:\n\
 	-m, --mask file : Mask input with specified file.\n\
-	--B1 file       : Correct flip angles with specified B1 ratio.\n";
+	--B1 file       : Correct flip angles with specified B1 ratio.\n\
+	-v, --verbose   : Print out more messages.\n";
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -43,16 +44,17 @@ int main(int argc, char **argv)
 	double *B1Data = NULL, *maskData = NULL;
 	FSLIO *spgrFile = NULL, *inFile = NULL;
 	par_t *pars;
-	
+	static int verbose = false;
 	static struct option long_options[] =
 	{
 		{"B1", required_argument, 0, '1'},
 		{"mask", required_argument, 0, 'm'},
+		{"verbose", no_argument, 0, 'v'},
 		{0, 0, 0, 0}
 	};
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "m:n:z", long_options, &indexptr)) != -1)
+	while ((c = getopt_long(argc, argv, "m:v", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
@@ -68,6 +70,11 @@ int main(int argc, char **argv)
 				maskData = FslGetVolumeAsScaledDouble(inFile, 0);
 				FslClose(inFile);
 				break;
+			case 'v':
+				verbose = true;
+				break;
+			case '?': // getopt will print an error message
+				abort();
 		}
 	}
 	if ((argc - optind) != 2)
@@ -96,9 +103,12 @@ int main(int argc, char **argv)
 		for (int i = 0; i < nSPGR; i++) std::cin >> spgrAngles[i];
 	}
 	spgrAngles *= M_PI / 180.;
-	fprintf(stdout, "SPGR TR=%f s. Flip-angles: ", spgrTR);
-	std::cout << spgrAngles.transpose() * 180. / M_PI << std::endl;
-	fprintf(stdout, "Ouput prefix will be: %s\n", argv[++optind]);
+	if (verbose)
+	{
+		fprintf(stdout, "SPGR TR=%f s. Flip-angles: ", spgrTR);
+		std::cout << spgrAngles.transpose() * 180. / M_PI << std::endl;
+		fprintf(stdout, "Ouput prefix will be: %s\n", argv[++optind]);
+	}
 	outPrefix = argv[optind];
 	//**************************************************************************	
 	// Allocate memory for slices
@@ -121,7 +131,8 @@ int main(int argc, char **argv)
 	for (int r = 0; r < NR; r++)
 	{
 		strcpy(outName, outPrefix); strcat(outName, names[r]); strcat(outName, outExt);
-		fprintf(stdout, "Writing result header:%s.\n", outName);
+		if (verbose)
+			fprintf(stdout, "Writing result header:%s.\n", outName);
 		resultsHeaders[r] = FslOpen(outName, "wb");
 		FslCloneHeader(resultsHeaders[r], spgrFile);
 		FslSetDim(resultsHeaders[r], nx, ny, nz, 1);
@@ -137,11 +148,12 @@ int main(int argc, char **argv)
 	{
 		clock_t loopStart, loopEnd;
 		// Read in data
-		fprintf(stdout, "Processing slice %d...\n", slice);
+		if (verbose)
+			fprintf(stdout, "Processing slice %d...\n", slice);
 		loopStart = clock();
 		voxCount = 0;
 		int sliceOffset = slice * voxelsPerSlice;
-		for (size_t vox = 0; vox < voxelsPerSlice; vox++)
+		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
@@ -165,15 +177,18 @@ int main(int argc, char **argv)
 		};
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		
-        loopEnd = clock();
-        fprintf(stdout, "Finished slice %d", slice);
-		if (voxCount)
+		if (verbose)
 		{
-			fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s.\n", 
-			        voxCount, (loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC));
+			loopEnd = clock();
+			fprintf(stdout, "Finished slice %d", slice);
+			if (voxCount)
+			{
+				fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s.\n", 
+						voxCount, (loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC));
+			}
+			else
+				fprintf(stdout, ", no unmasked voxels.\n");
 		}
-		else
-			fprintf(stdout, ", no unmasked voxels.\n");
 	}
 		
 	for (size_t r = 0; r < NR; r++)

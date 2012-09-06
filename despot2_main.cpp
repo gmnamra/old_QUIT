@@ -131,6 +131,8 @@ int main(int argc, char **argv)
 			case 0:
 				// Just a flag
 				break;
+			case '?': // getopt will print an error message
+				abort();
 		}
 	}
 	

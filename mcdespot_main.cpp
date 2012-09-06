@@ -164,13 +164,15 @@ int main(int argc, char **argv)
 						break;
 					default:
 						std::cout << "Unknown boundaries type " << optarg << std::endl;
-						exit(EXIT_FAILURE);
+						abort();
 						break;
 				}
 				break;
 			case 0:
 				// Just a flag
 				break;
+			case '?': // getopt will print an error message
+				abort();
 		}
 	}
 	outPrefix = argv[optind++];
