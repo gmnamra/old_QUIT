@@ -33,7 +33,7 @@ const char *usage = "Usage is: mcdespot [options] output_prefix spgr_file ssfp_f
 Options:\n\
 	-v, --verbose     : Print extra information.\n\
 	-m, --mask file   : Mask input with specified file.\n\
-	--2, --3          : Use a 2 or 3 component model (default 2).\n\
+	--1, --2, --3     : Use 1, 2 or 3 component model (default 2).\n\
 	--M0 file         : M0 Map file.\n\
 	--B0 file         : B0 Map file.\n\
 	--B1 file         : B1 Map file.\n\
@@ -64,6 +64,7 @@ static struct option long_options[] =
 	{"retain", required_argument, 0, 'r'},
 	{"contract", required_argument, 0, 'c'},
 	{"expand", required_argument, 0, 'e'},
+	{"1", no_argument, &components, 1},
 	{"2", no_argument, &components, 2},
 	{"3", no_argument, &components, 3},
 	{0, 0, 0, 0}
@@ -79,10 +80,12 @@ void int_handler(int sig);
 void int_handler(int sig)
 {
 	fprintf(stdout, "Processing terminated. Writing currently processed data.\n");
-	if (components == 2)
-		write_results<TwoComponent>(outPrefix, paramsData, residualData, savedHeader);
-	else
-		write_results<ThreeComponent>(outPrefix, paramsData, residualData, savedHeader);
+	switch (components)
+	{
+		case 1: write_results<OneComponent>(outPrefix, paramsData, residualData, savedHeader); break;
+		case 2: write_results<TwoComponent>(outPrefix, paramsData, residualData, savedHeader); break;
+		case 3: write_results<ThreeComponent>(outPrefix, paramsData, residualData, savedHeader); break;
+	}
 	exit(EXIT_FAILURE);
 }
 
@@ -265,13 +268,12 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Allocate results memory and set up boundaries
 	//**************************************************************************
-	if (components == 2)
+	std::cout << "Using " << components << " component model." << std::endl;
+	switch (components)
 	{
-		std::cout << "Using 2 component model." << std::endl;
-		nP = TwoComponent::nP;
-	} else {
-		std::cout << "Using 3 component model." << std::endl;
-		nP = ThreeComponent::nP;
+		case 1: nP = OneComponent::nP; break;
+		case 2: nP = TwoComponent::nP; break;
+		case 3: nP = ThreeComponent::nP; break;
 	}
 		
 	__block VectorXd loBounds(nP), hiBounds(nP);
@@ -287,38 +289,22 @@ int main(int argc, char **argv)
 		loConstraints[i] = true; hiConstraints[i] = true;
 		if (tesla == 3)
 		{
-			if (components == 2)
+			switch (components)
 			{
-				loBounds[i] = TwoComponent::lo3Bounds[i];
-				hiBounds[i] = TwoComponent::hi3Bounds[i];
-			} else {
-				loBounds[i] = ThreeComponent::lo3Bounds[i];
-				hiBounds[i] = ThreeComponent::hi3Bounds[i];
+				case 1: loBounds[i] = OneComponent::lo3Bounds[i]; hiBounds[i] = OneComponent::hi3Bounds[i]; break;
+				case 2: loBounds[i] = TwoComponent::lo3Bounds[i]; hiBounds[i] = TwoComponent::hi3Bounds[i]; break;
+				case 3: loBounds[i] = ThreeComponent::lo3Bounds[i]; hiBounds[i] = ThreeComponent::hi3Bounds[i]; break;
 			}
 		} else if (tesla == 7) {
-			if (components == 2)
+			switch (components)
 			{
-				loBounds[i] = TwoComponent::lo7Bounds[i];
-				hiBounds[i] = TwoComponent::hi7Bounds[i];
-			} else {
-				loBounds[i] = ThreeComponent::lo7Bounds[i];
-				hiBounds[i] = ThreeComponent::hi7Bounds[i];
+				case 1: loBounds[i] = OneComponent::lo7Bounds[i]; hiBounds[i] = OneComponent::hi7Bounds[i]; break;
+				case 2: loBounds[i] = TwoComponent::lo7Bounds[i]; hiBounds[i] = TwoComponent::hi7Bounds[i]; break;
+				case 3: loBounds[i] = ThreeComponent::lo7Bounds[i]; hiBounds[i] = ThreeComponent::hi7Bounds[i]; break;
 			}
 		} else {
 			std::cin >> loBounds[i] >> hiBounds[i];
 		}
-	}
-	if (B0Data)
-	{	// User is supplying a B0 estimate
-		loBounds(nP - 1) = 0.;
-		hiBounds(nP - 1) = 0.;
-	}
-	else
-	{	// Make sure the B0 bounds are sensible
-		loBounds(nP - 1) = (-0.5 / ssfpTR);
-		hiBounds(nP - 1) = (0.5 / ssfpTR);
-		loConstraints(nP - 1) = false;
-		hiConstraints(nP - 1) = false;
 	}
 	if (verbose)
 	{
@@ -339,7 +325,7 @@ int main(int argc, char **argv)
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	std::cout << "Starting processing." << std::endl;
 	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	bool norm = true;
+	bool norm = false;
 	for (size_t slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose)
@@ -350,14 +336,23 @@ int main(int argc, char **argv)
 		//for (int vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
-			double M0 = INFINITY, B0 = INFINITY, B1 = 1., residual = 0.;
+			double B0 = 0., B1 = 1., residual = 0.;
 			VectorXd params(nP); params.setZero();
-			if (!maskData || (maskData[sliceOffset + vox] > 0.))
+			if ((!maskData || (maskData[sliceOffset + vox] > 0.)) &&
+			    (!M0Data || (M0Data[sliceOffset + vox] > 0.)))
 			{
 				AtomicAdd(1, &voxCount);
-				if (M0Data) M0 = (double)M0Data[sliceOffset + vox];
+				// Must take copies before altering inside a block
+				VectorXd localLo = loBounds, localHi = hiBounds;
+				if (M0Data)
+				{
+					localLo(0) = (double)M0Data[sliceOffset + vox];
+					localHi(0) = (double)M0Data[sliceOffset + vox];
+				}
+				
 				if (B0Data) B0 = (double)B0Data[sliceOffset + vox];
 				if (B1Data) B1 = (double)B1Data[sliceOffset + vox];
+				
 				VectorXd SPGR_signal(nSPGR);
 				for (int vol = 0; vol < nSPGR; vol++)
 					SPGR_signal[vol] = SPGR[totalVoxels*vol + sliceOffset + vox];
@@ -373,17 +368,27 @@ int main(int argc, char **argv)
 						temp /= temp.mean();
 					SSFP_signals.push_back(temp);
 				}
-				if (components == 2)
+				
+				switch (components)
 				{
-					TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1);
-					residual = regionContraction<TwoComponent>(params, tc, loBounds, hiBounds,
-															   loConstraints, hiConstraints,
-															   samples, retain, contract, 0.05, expand, vox + time(NULL));
-				} else {
-					ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, M0, B0, B1);
-					residual = regionContraction<ThreeComponent>(params, tc, loBounds, hiBounds,
-																 loConstraints, hiConstraints,
-																 samples, retain, contract, 0.05, expand, vox + time(NULL));
+					case 1: {
+						OneComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1);
+						residual = regionContraction<OneComponent>(params, tc, localLo, localHi,
+															       loConstraints, hiConstraints,
+															       samples, retain, contract, 0.05, expand, vox + time(NULL));
+						break; }
+					case 2: {
+						TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1);
+						residual = regionContraction<TwoComponent>(params, tc, localLo, localHi,
+															       loConstraints, hiConstraints,
+															       samples, retain, contract, 0.05, expand, vox + time(NULL));
+						break; }
+					case 3: {
+						ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1);
+						residual = regionContraction<ThreeComponent>(params, tc, localLo, localHi,
+																 	loConstraints, hiConstraints,
+																 	samples, retain, contract, 0.05, expand, vox + time(NULL));
+						break; }
 				}
 			}
 			for (int p = 0; p < nP; p++)
@@ -407,10 +412,12 @@ int main(int argc, char **argv)
     strftime(theTime, MAXSTR, "%H:%M:%S", localEnd);
 	std::cout << "Finished processing at " << theTime << "Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << std::endl;
-	if (components == 2)
-		write_results<TwoComponent>(outPrefix, paramsData, residualData, savedHeader);
-	else
-		write_results<ThreeComponent>(outPrefix, paramsData, residualData, savedHeader);
+	switch (components)
+	{
+		case 1: write_results<OneComponent>(outPrefix, paramsData, residualData, savedHeader); break;
+		case 2: write_results<TwoComponent>(outPrefix, paramsData, residualData, savedHeader); break;
+		case 3: write_results<ThreeComponent>(outPrefix, paramsData, residualData, savedHeader); break;
+	}
 	// Clean up memory
 	free(SPGR);
 	for (int p = 0; p < nPhases; p++)

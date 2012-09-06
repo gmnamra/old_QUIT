@@ -275,29 +275,24 @@ int main(int argc, char **argv)
 				// Don't process if DESPOT2 failed.
 				if (levMar && std::isfinite(T2) && std::isfinite(M0))
 				{
+					if (M0Data)
+						M0 = M0Data[sliceOffset + vox];
 					OneComponentSSFP f(ssfpAngles, ssfpPhases, signals,
-							           ssfpTR, B0, B1);
+							           ssfpTR, M0, T1, B0, B1);
 					NumericalDiff<OneComponentSSFP> nf(f);
 					LevenbergMarquardt<NumericalDiff<OneComponentSSFP> > lm(nf);
-					if (M0Data)	M0 = M0Data[sliceOffset + vox];
-					VectorXd params(3);
-					params << M0, T1, T2;
+					VectorXd params(1);
+					params << T2;
 					int status = lm.minimizeInit(params);
 					do {
 						status = lm.minimizeOneStep(params);
 					} while (status == Eigen::HybridNonLinearSolverSpace::Running);
-					
 					if (status < 1)
 						std::cout << "Status = " << status << std::endl;
-					M0 = params[0];
-					T1 = params[1];
-					T2 = params[2];
+					T2 = params[0];
 				}
 			}
-			paramsData[0][sliceOffset + vox] = clamp(M0, 0., 1.e7);
-			paramsData[1][sliceOffset + vox] = clamp(T1, 0., 20.);
-			paramsData[2][sliceOffset + vox] = clamp(T2, 0., 0.5);
-			//paramsData[2][sliceOffset + vox] = fmod(B0, 1./ssfpTR);
+			paramsData[0][sliceOffset + vox] = clamp(T2, 0., 5.);
 			residualData[sliceOffset + vox] = residual;
 		};
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);

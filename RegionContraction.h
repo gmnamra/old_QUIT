@@ -56,17 +56,28 @@ double regionContraction(VectorXd &params, Functor_t &f,
 	
 	dsfmt_t dsfmt;
 	dsfmt_init_gen_rand(&dsfmt, seed);
+	
+	//dsfmt doesn't like filling small or non-even sized arrays
+	int tmp_size = dsfmt_get_min_array_size();
+	if (tmp_size < nP)
+		tmp_size = nP;
+	VectorXd tempSample(tmp_size);
 	for (c = 0; c < maxContractions; c++)
 	{
-		// Get in the range 0 to 1
-		//dsfmt_fill_array_open_open(&dsfmt, samples.data(), nP * nS);
+		// _open_open is in the range 0 to 1.
+		//std::cout << "Lo: " << loBounds.transpose() << " Hi: " << hiBounds.transpose() << " Best res: " << sampleRes[indices[0]] << std::endl;
+		dsfmt_fill_array_open_open(&dsfmt, samples.data(), nP * nS);
 		for (int s = 0; s < nS; s++)
 		{
-			do {
-				dsfmt_fill_array_open_open(&dsfmt, samples.col(s).data(), nP);
+			samples.col(s).array() *= regionSize.array();
+			samples.col(s) += loBounds;
+			while (!Functor_t::f_constraint(samples.col(s)))
+			{
+				dsfmt_fill_array_open_open(&dsfmt, tempSample.data(), tmp_size);
+				samples.col(s) = tempSample.head(nP);
 				samples.col(s).array() *= regionSize.array();
 				samples.col(s) += loBounds;
-			} while (!Functor_t::f_constraint(samples.col(s)));
+			}
 			f(samples.col(s), diffs);
 			sampleRes(s) = diffs.norm();
 			if (!std::isfinite(diffs.norm()))
@@ -94,7 +105,6 @@ double regionContraction(VectorXd &params, Functor_t &f,
 		// but don't go past initial boundaries if constrained
 		loBounds -= (regionSize * expand);
 		hiBounds += (regionSize * expand);
-		
 		for (int p = 0; p < nP; p++)
 		{
 			if (loConstrained[p] && (loBounds[p] < loStart[p]))
@@ -106,6 +116,7 @@ double regionContraction(VectorXd &params, Functor_t &f,
 	}
 	// Return the best evaluated solution so far
 	params = retained.col(0);
+	//std::cout << "Final: " << params.transpose() << " Res: " << sampleRes[indices[0]] << std::endl << std::endl;
 	return sampleRes[indices[0]];
 }
 

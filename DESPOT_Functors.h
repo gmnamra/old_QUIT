@@ -48,10 +48,10 @@ class Functor
 		virtual int operator()(const VectorXd &params, VectorXd &diffs) const = 0;
 };
 //******************************************************************************
-VectorXd One_SPGR(const VectorXd&flipAngles, const VectorXd &params,
-				  const double TR, const double B1)
+VectorXd One_SPGR(const VectorXd&flipAngles,
+                  const double TR, const double M0, const double T1,
+				  const double B1)
 {
-	double M0 = params[0], T1 = params[1];
 	VectorXd theory(flipAngles.size());
 	VectorXd sa = (flipAngles.array() * B1).sin();
 	VectorXd ca = (flipAngles.array() * B1).cos();
@@ -61,16 +61,16 @@ VectorXd One_SPGR(const VectorXd&flipAngles, const VectorXd &params,
 	return theory;
 }
 
-VectorXd One_SSFP(const VectorXd &flipAngles, const VectorXd &params,
-                  const double rfPhase, const double TR, const double B0, const double B1)
+VectorXd One_SSFP(const VectorXd &flipAngles, const double rfPhase,
+                  const double TR, const double M0,
+				  const double T1, const double T2,
+				  const double B0, const double B1)
 {
-	static Matrix3d A = Matrix3d::Zero(), R_rf = Matrix3d::Zero(),
+	Matrix3d A = Matrix3d::Zero(), R_rf = Matrix3d::Zero(),
 	                eye = Matrix3d::Identity(), expA, eyemA;
-	static Vector3d M0 = Vector3d::Zero(), Mobs;
+	Vector3d M = Vector3d::Zero(), Mobs;
+	M[2] = M0;
 	R_rf(0, 0) = 1.;
-	M0[2] = params[0];
-	double T1 = params[1],
-	       T2 = params[2];
 	double phase = rfPhase / TR + (B0 * 2. * M_PI);
 	A(0, 0) = A(1, 1) = -1 / T2;
 	A(0, 1) =  phase;
@@ -87,11 +87,13 @@ VectorXd One_SSFP(const VectorXd &flipAngles, const VectorXd &params,
 		double ca = cos(B1 * a), sa = sin(B1 * a);
 		R_rf(1, 1) = R_rf(2, 2) = ca;
 		R_rf(1, 2) = sa; R_rf(2, 1) = -sa;
-		Mobs = (eye - (expA * R_rf)).partialPivLu().solve(eyemA) * M0;				
+		Mobs = (eye - (expA * R_rf)).partialPivLu().solve(eyemA) * M;				
 		theory[i] = Mobs.head(2).norm();
 	}
 	return theory;
 }
+//******************************************************************************
+#pragma mark OneComponent
 //******************************************************************************
 class OneComponent : public Functor<double>
 {
@@ -102,6 +104,7 @@ class OneComponent : public Functor<double>
 		
 		static const int nP = 3;
 		static const char *names[];
+		static const double lo3Bounds[], hi3Bounds[], lo7Bounds[], hi7Bounds[];
 		
 		static bool f_constraint(const VectorXd &params)
 		{
@@ -129,7 +132,8 @@ class OneComponent : public Functor<double>
 			int index = 0;
 			//std::cout << "****************************************************" << std::endl;
 			//std::cout << "SPGR First" << std::endl;
-			VectorXd theory = One_SPGR(_spgrAngles, params, _spgrTR, _B1);
+			VectorXd theory = One_SPGR(_spgrAngles, _spgrTR, params[0], params[1], _B1);
+			//std::cout << "SPGR Theory: " << theory.transpose() << " Sig: " << _spgrSignals.transpose() << std::endl;
 			diffs.head(_spgrSignals.size()) = theory - _spgrSignals;
 			index += _spgrSignals.size();
 			
@@ -137,34 +141,44 @@ class OneComponent : public Functor<double>
 			//std::cout << "Now SSFP" << std::endl;
 			for (int p = 0; p < _rfPhases.size(); p++)
 			{
-				theory = One_SSFP(_ssfpAngles, params, _rfPhases(p), _ssfpTR, _B0, _B1);
+				theory = One_SSFP(_ssfpAngles, _rfPhases(p), _ssfpTR, params[0], params[1], params[2], _B0, _B1);
 				diffs.segment(index, _ssfpAngles.size()) = theory - _ssfpSignals[p];
+				//std::cout << "SSFP Theory: " << theory.transpose() << " Sig: " << _ssfpSignals[p].transpose() << std::endl;
 				index += _ssfpAngles.size();
 			}
+			//std::cout << "Diffs: " << diffs.transpose() << std::endl;
 			return 0;
 		}
 };
 const char *OneComponent::names[] = { "M0", "T1", "T2" };
+const double OneComponent::lo3Bounds[] = { 0., 0.1, 0.01 };
+const double OneComponent::hi3Bounds[] = { 1.e7, 3.0, 1.0 };
+const double OneComponent::lo7Bounds[] = { 0., 0., 0.005 };
+const double OneComponent::hi7Bounds[] = { 1.e7, 3., 0.1 };
 
 //******************************************************************************
+#pragma mark OneComponentSSFP
+//******************************************************************************
+
 class OneComponentSSFP : public Functor<double>
 {
 	public:
 		const VectorXd &_flipAngles, &_rfPhases;
 		const std::vector<VectorXd> &_signals;
-		const double _TR, _B0, _B1;
+		const double _TR, _T1, _M0, _B0, _B1;
 		
-		static const int nP = 3;
+		static const int nP = 1;
 		static const char *names[];
 		
 		OneComponentSSFP(const VectorXd &flipAngles, const VectorXd &rfPhases,
 		                 const std::vector<VectorXd> &signals,
-				         const double TR, const double B0, const double B1) :
+				         const double TR, const double M0, const double T1,
+						 const double B0, const double B1) :
 				         Functor<double>(OneComponentSSFP::nP, flipAngles.size() * rfPhases.size()),
 				         _flipAngles(flipAngles),
 				         _rfPhases(rfPhases),
 				         _signals(signals),
-				         _TR(TR), _B0(B0), _B1(B1)
+				         _TR(TR), _T1(T1), _M0(M0), _B0(B0), _B1(B1)
 				         {}
 			
 		int operator()(const VectorXd &params, VectorXd &diffs) const
@@ -173,18 +187,19 @@ class OneComponentSSFP : public Functor<double>
 			int index = 0;
 			for (int p = 0; p < _rfPhases.size(); p++)
 			{
-				diffs.segment(index, _flipAngles.size()) =
-					One_SSFP(_flipAngles, params, _rfPhases(p), _TR, _B0, _B1) - _signals[p];
+				VectorXd temp = One_SSFP(_flipAngles, _rfPhases(p), _TR, _M0, _T1, params[0], _B0, _B1);
+				diffs.segment(index, _flipAngles.size()) = temp - _signals[p];
 				index += _flipAngles.size();
 			}
 			return 0;
 		}
 };
-const char *OneComponentSSFP::names[] = { "d2_M0", "d2_T1", "d2_T2" };
+const char *OneComponentSSFP::names[] = { "T2" };
 
 //******************************************************************************
-// Set B0 to INFINITY if optimising
-// Set M0 to INFINITY to normalise signals to their mean
+#pragma mark Two Component
+//******************************************************************************
+
 typedef Matrix<double, 6, 6> Matrix6d;
 typedef Matrix<double, 6, 1> Vector6d;
 class TwoComponent : public Functor<double>
@@ -192,7 +207,7 @@ class TwoComponent : public Functor<double>
 	public:
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
-		const double _spgrTR, _ssfpTR, _M0, _B0, _B1;
+		const double _spgrTR, _ssfpTR, _B0, _B1;
 		
 		static const int nP = 7;
 		static const char *names[];
@@ -207,35 +222,29 @@ class TwoComponent : public Functor<double>
 		             const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					 const std::vector<VectorXd> &ssfpSignals,
 					 const double spgrTR, const double ssfpTR, 
-					 const double M0, const double B0, const double B1) :
+					 const double B0, const double B1) :
 					 Functor<double>(TwoComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				     _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				     _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					 _ssfpSignals(ssfpSignals),
-					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M0(M0), _B0(B0), _B1(B1)
+					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _B0(B0), _B1(B1)
 				     {
 						
 					 }
 	
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
-			double T1_a = params[0],
-			       T1_b = params[1],
-				   T2_a = params[2],
-				   T2_b = params[3],
-			       f_a  = params[4],
+			double PD   = params[0],
+			       T1_a = params[1],
+			       T1_b = params[2],
+				   T2_a = params[3],
+				   T2_b = params[4],
+			       f_a  = params[5],
 				   f_b = 1. - f_a,
-			       tau_a = params[5],
+			       tau_a = params[6],
 			       tau_b = f_b * tau_a / f_a,
-				   B0 = params[6],
-				   PD = 1.,
 				   k_ab = 1. / tau_a,
 				   k_ba = 1. / tau_b;
-			
-			if (std::isfinite(_B0))
-				B0 = _B0;
-			if (std::isfinite(_M0))
-				PD = _M0;
 			// Only have 1 component, so no exchange
 			if ((f_a == 0.) || (f_b == 0.))
 			{
@@ -254,7 +263,7 @@ class TwoComponent : public Functor<double>
 				Vector2d M0, Mobs;
 				VectorXd signals(_spgrSignals.size());
 				
-				M0 << _M0 * f_a, _M0 * f_b;
+				M0 << PD * f_a, PD * f_b;
 				A << -(_spgrTR/T1_a + _spgrTR*k_ab),                  _spgrTR*k_ba,
 									   _spgrTR*k_ab, -(_spgrTR/T1_b + _spgrTR*k_ba);
 				//std::cout << A << std::endl;
@@ -267,10 +276,6 @@ class TwoComponent : public Functor<double>
 					Mobs = (eye2 - A*cos(_B1 * a)).partialPivLu().solve(eyema * sin(_B1 * a)) * M0;
 					signals[i] = Mobs.sum();
 				}
-				
-				if (!std::isfinite(_M0))
-					signals /= signals.mean();
-				
 				diffs.head(_spgrSignals.size()) = signals - _spgrSignals;
 				index += _spgrSignals.size();
 			}
@@ -284,12 +289,12 @@ class TwoComponent : public Functor<double>
 				PartialPivLU<Matrix6d> solver;
 				A.setZero(); R_rf.setZero();
 				R_rf(0, 0) = R_rf(1, 1) = 1.;
-				M0 << 0., 0., 0., 0., _M0 * f_a, _M0 * f_b;
+				M0 << 0., 0., 0., 0., PD * f_a, PD * f_b;
 				
 				for (int p = 0; p < _rfPhases.size(); p++)
 				{
 					VectorXd signals(_ssfpAngles.size());
-					double phase = _rfPhases[p] + (B0 * _ssfpTR * 2. * M_PI);
+					double phase = _rfPhases[p] + (_B0 * _ssfpTR * 2. * M_PI);
 					// Can get away with this because the block structure of the
 					// matrix ensures that the zero blocks are always zero after
 					// the matrix exponential.
@@ -318,10 +323,6 @@ class TwoComponent : public Functor<double>
 						signals[i] = sqrt(pow(Mobs[0] + Mobs[1], 2.) +
 										  pow(Mobs[2] + Mobs[3], 2.));
 					}
-					
-					if (!std::isfinite(_M0))
-						signals /= signals.mean();
-					
 					diffs.segment(index, _ssfpAngles.size()) = signals - _ssfpSignals[p];
 					index += _ssfpAngles.size();
 				}
@@ -329,11 +330,11 @@ class TwoComponent : public Functor<double>
 			return 0;
 		}
 };
-const char *TwoComponent::names[] = { "T1_a", "T1_b", "T2_a", "T2_b", "f_a", "tau_a", "B0" };
-const double TwoComponent::lo3Bounds[] = { 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
-const double TwoComponent::hi3Bounds[] = { 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
-const double TwoComponent::lo7Bounds[] = { 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
-const double TwoComponent::hi7Bounds[] = { 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
+const char *TwoComponent::names[] = { "M0", "T1_a", "T1_b", "T2_a", "T2_b", "f_a", "tau_a" };
+const double TwoComponent::lo3Bounds[] = { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
+const double TwoComponent::hi3Bounds[] = { 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
+const double TwoComponent::lo7Bounds[] = { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
+const double TwoComponent::hi7Bounds[] = { 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
 
 //******************************************************************************
 // Set B0 to INFINITY if optimising
@@ -343,7 +344,7 @@ typedef Matrix<double, 9, 1> Vector9d;
 class ThreeComponent : public Functor<double>
 {
 	private:
-		const double _spgrTR, _ssfpTR, _B0, _B1, _M;
+		const double _spgrTR, _ssfpTR, _B0, _B1;
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
 		
@@ -365,38 +366,32 @@ class ThreeComponent : public Functor<double>
 		               const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					   const std::vector<VectorXd> &ssfpSignals,
 					   const double spgrTR, const double ssfpTR, 
-					   const double M0, const double B0, const double B1) :
+					   const double B0, const double B1) :
 					   Functor<double>(ThreeComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				       _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				       _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					   _ssfpSignals(ssfpSignals),
-					   _spgrTR(spgrTR), _ssfpTR(ssfpTR), _M(M0), _B0(B0), _B1(B1)
+					   _spgrTR(spgrTR), _ssfpTR(ssfpTR), _B0(B0), _B1(B1)
 				      {
 					  	eigen_assert(_rfPhases.size() == _ssfpSignals.size());
 					  }
 	
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
-			double T1_a = params[0],
-			       T1_b = params[1],
-				   T1_c = params[2],
-				   T2_a = params[3],
-				   T2_b = params[4],
-				   T2_c = params[5],
-			       f_a  = params[6],
-				   f_c  = params[7],
+			double PD   = params[0],
+			       T1_a = params[1],
+			       T1_b = params[2],
+				   T1_c = params[3],
+				   T2_a = params[4],
+				   T2_b = params[5],
+				   T2_c = params[6],
+			       f_a  = params[7],
+				   f_c  = params[8],
 				   f_b  = 1. - f_a - f_c,
-			       tau_a = params[8],
+			       tau_a = params[9],
 			       tau_b = f_b * tau_a / f_a,
-				   B0 = params[9],
-				   PD = 1.,
 				   k_ab = 1. / tau_a,
 				   k_ba = 1. / tau_b;
-			
-			if (std::isfinite(_B0))
-				B0 = _B0;
-			if (std::isfinite(_M))
-				PD = _M;
 			// Only have 1 component, so no exchange
 			if ((f_a == 0.) || (f_b == 0.))
 			{
@@ -428,8 +423,6 @@ class ThreeComponent : public Functor<double>
 					Mobs = (eye3 - A*cos(_B1 * a)).partialPivLu().solve(eyema * sin(_B1 * a)) * M0;
 					signals[i] = Mobs.sum();
 				}
-				if (!std::isfinite(_M))
-					signals /= signals.mean();
 				diffs.head(_spgrSignals.size()) = signals - _spgrSignals;
 				index += _spgrSignals.size();
 			}
@@ -466,7 +459,7 @@ class ThreeComponent : public Functor<double>
 				for (int p = 0; p < _rfPhases.size(); p++)
 				{
 					VectorXd signals(_ssfpAngles.size());
-					double phase = _rfPhases[p] + (B0 * _ssfpTR * 2. * M_PI);
+					double phase = _rfPhases[p] + (_B0 * _ssfpTR * 2. * M_PI);
 					A(0, 3) = A(1, 4) = A(2, 5) = phase;
 					A(3, 0) = A(4, 1) = A(5, 2) = -phase;
 					MatrixExponential<Matrix9d> exp(A);
@@ -486,9 +479,6 @@ class ThreeComponent : public Functor<double>
 						signals[i] = sqrt(pow(Mobs[0] + Mobs[1] + Mobs[2], 2.) +
 										  pow(Mobs[3] + Mobs[4] + Mobs[5], 2.));
 					}
-					
-					if (!std::isfinite(_M))
-						signals /= signals.mean();
 					diffs.segment(index, _ssfpSignals[p].size()) = signals - _ssfpSignals[p];
 					index += _ssfpSignals[p].size();
 				}
@@ -496,11 +486,11 @@ class ThreeComponent : public Functor<double>
 			return 0;
 		}
 };
-const char *ThreeComponent::names[] = { "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "3c_B0" };
-const double ThreeComponent::lo3Bounds[] = { 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. };
-const double ThreeComponent::hi3Bounds[] = { 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. };
-const double ThreeComponent::lo7Bounds[] = { 0.500, 1.50, 0.0001, 0.010, 0.0, 0.0, 0., 0., 0., 0. };
-const double ThreeComponent::hi7Bounds[] = { 1.000, 3.00, 0.0500, 0.500, 1.0, 1.0, 0., 0., 0., 0. };
+const char *ThreeComponent::names[] = { "M0", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a" };
+const double ThreeComponent::lo3Bounds[] = { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. };
+const double ThreeComponent::hi3Bounds[] = { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. };
+const double ThreeComponent::lo7Bounds[] = { 0., 0.500, 1.50, 0.0001, 0.010, 0.0, 0.0, 0., 0., 0., 0. };
+const double ThreeComponent::hi7Bounds[] = { 1.e7, 1.000, 3.00, 0.0500, 0.500, 1.0, 1.0, 0., 0., 0., 0. };
 
 //******************************************************************************
 #pragma mark Utility functions

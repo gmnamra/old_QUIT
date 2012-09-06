@@ -71,13 +71,6 @@
 			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
 			remoteInfo = procpar;
 		};
-		F679FB8815B6BF8700A2EC48 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6E4A20C1590D1FA00DA4001;
-			remoteInfo = Maths;
-		};
 		F679FB8A15B6BF8B00A2EC48 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
@@ -126,20 +119,6 @@
 			proxyType = 2;
 			remoteGlobalIDString = F6DB54D215ADD80E00208C11;
 			remoteInfo = procpar;
-		};
-		F6DB54DF15ADDCAD00208C11 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
-			remoteInfo = procpar;
-		};
-		F6E1F8DC1591E0F200DA918F /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6E4A20C1590D1FA00DA4001;
-			remoteInfo = Maths;
 		};
 		F6E1F9161592000600DA918F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -493,7 +472,6 @@
 			);
 			dependencies = (
 				F679FB8B15B6BF8B00A2EC48 /* PBXTargetDependency */,
-				F6DB54E015ADDCAD00208C11 /* PBXTargetDependency */,
 			);
 			name = despot1;
 			productName = despot1;
@@ -512,7 +490,6 @@
 			);
 			dependencies = (
 				F679FB8715B6BF8700A2EC48 /* PBXTargetDependency */,
-				F679FB8915B6BF8700A2EC48 /* PBXTargetDependency */,
 			);
 			name = despot2;
 			productName = despot2;
@@ -531,7 +508,6 @@
 			);
 			dependencies = (
 				F679FB8D15B6BF8F00A2EC48 /* PBXTargetDependency */,
-				F6E1F8DD1591E0F200DA918F /* PBXTargetDependency */,
 			);
 			name = mcdespot;
 			productName = mcdespot;
@@ -719,11 +695,6 @@
 			name = procpar;
 			targetProxy = F679FB8615B6BF8700A2EC48 /* PBXContainerItemProxy */;
 		};
-		F679FB8915B6BF8700A2EC48 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Maths;
-			targetProxy = F679FB8815B6BF8700A2EC48 /* PBXContainerItemProxy */;
-		};
 		F679FB8B15B6BF8B00A2EC48 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Maths;
@@ -743,16 +714,6 @@
 			isa = PBXTargetDependency;
 			name = Maths;
 			targetProxy = F6B8F93815CFFD7800AECF4F /* PBXContainerItemProxy */;
-		};
-		F6DB54E015ADDCAD00208C11 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = procpar;
-			targetProxy = F6DB54DF15ADDCAD00208C11 /* PBXContainerItemProxy */;
-		};
-		F6E1F8DD1591E0F200DA918F /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Maths;
-			targetProxy = F6E1F8DC1591E0F200DA918F /* PBXContainerItemProxy */;
 		};
 		F6E1F9171592000600DA918F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
