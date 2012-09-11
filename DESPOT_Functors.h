@@ -355,7 +355,7 @@ class ThreeComponent : public Functor<double>
 		
 		static bool f_constraint(const VectorXd &params)
 		{
-			if ((params[6] + params[7]) > 0.95)
+			if ((params[7] + params[8]) > 0.95)
 				return false;
 			else
 				return true;

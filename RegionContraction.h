@@ -87,6 +87,7 @@ double regionContraction(VectorXd &params, Functor_t &f,
 				std::cout << "Lo Bnds= " << loBounds.transpose() << std::endl;
 				std::cout << "Hi Bnds= " << hiBounds.transpose() << std::endl;
 				std::cout << "Diffs  = " << diffs.transpose() << std::endl;
+				abort();
 			}
 		}
 		indices = arg_partial_sort(sampleRes, nR);
