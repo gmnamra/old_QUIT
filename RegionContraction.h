@@ -41,9 +41,9 @@ double regionContraction(VectorXd &params, Functor_t &f,
                          const VectorXd &loStart, const VectorXd &hiStart,
 					     const VectorXi &loConstrained, const VectorXi &hiConstrained,
 					     const int nS, const int nR, const int maxContractions,
-						 const double thresh, const double expand, const uint32_t seed = 0)
+						 const double thresh, const double expand, const int seed = 0)
 {
-	size_t nP = params.size();
+	int nP = static_cast<int>(params.size());
 	MatrixXd samples(nP, nS);
 	MatrixXd retained(nP, nR);
 	VectorXd sampleRes(nS);
@@ -55,7 +55,7 @@ double regionContraction(VectorXd &params, Functor_t &f,
 	size_t c;
 	
 	dsfmt_t dsfmt;
-	dsfmt_init_gen_rand(&dsfmt, seed);
+	dsfmt_init_gen_rand(&dsfmt, static_cast<uint32_t>(seed));
 	
 	//dsfmt doesn't like filling small or non-even sized arrays
 	int tmp_size = dsfmt_get_min_array_size();

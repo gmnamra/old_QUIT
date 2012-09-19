@@ -21,7 +21,7 @@ double clamp(double value, double low, double high)
 //******************************************************************************
 // Basic least squares fitting
 //******************************************************************************
-void linearLeastSquares(double *X, double *Y, int nD,
+void linearLeastSquares(double *X, double *Y, long nD,
 						double *slope, double *inter, double *res)
 {
 	double sumX, sumY, sumXX, sumXY;
@@ -53,9 +53,9 @@ double classicDESPOT1(const ArrayXd &flipAngles, const ArrayXd &spgrVals,
 				      double TR, double B1, double *M0, double *T1)
 {
 	// Linearise the data, then least-squares
-	int n = flipAngles.size();
+	long n = flipAngles.size();
 	double X[n], Y[n], slope, inter, res;
-	for (int i = 0; i < flipAngles.size(); i++)
+	for (long i = 0; i < flipAngles.size(); i++)
 	{
 		X[i] = spgrVals[i] / tan(flipAngles[i] * B1);
 		Y[i] = spgrVals[i] / sin(flipAngles[i] * B1);
@@ -70,9 +70,9 @@ double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
                       double TR, double T1, double B1, double *M0, double *T2)
 {
 	// As above, linearise, then least-squares
-	int n = flipAngles.size();
+	long n = flipAngles.size();
 	double X[n], Y[n], slope, inter, residual;
-	for (int i = 0; i < flipAngles.size(); i++)
+	for (long i = 0; i < flipAngles.size(); i++)
 	{
 		X[i] = ssfpVals[i] / tan(flipAngles[i] * B1);
 		Y[i] = ssfpVals[i] / sin(flipAngles[i] * B1);

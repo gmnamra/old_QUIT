@@ -12,8 +12,6 @@
 #include <iostream>
 #include <Eigen/Dense>
 
-#include "fslio.h"
-
 using namespace Eigen;
 
 //******************************************************************************
@@ -21,7 +19,7 @@ using namespace Eigen;
 //******************************************************************************
 double clamp(double value, double low, double high);
 
-void linearLeastSquares(double *X, double *Y, int nD,
+void linearLeastSquares(double *X, double *Y, long nD,
 						double *slope, double *inter, double *res);
 double classicDESPOT1(const ArrayXd &flipAngles, const ArrayXd &spgrVals,
 				      double TR, double B1, double *M0, double *T1);

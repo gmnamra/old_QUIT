@@ -18,16 +18,16 @@
 #else
 	#define AtomicAdd(x, y) (*y) += x
 #endif
-#include "fslio.h"
+#include "nifti3_io.h"
 #include "procpar.h"
 #include "mathsArray.h"
 #include "mathsOps.h"
 
-char *usage = "Usage is: afi [options] input output \n\
+const std::string usage("Usage is: afi [options] input output \n\
 \
 Options:\n\
 	--mask, -m file  : Mask input with specified file.\n\
-	--smooth         : Smooth output with a gaussian.\n";
+	--smooth         : Smooth output with a gaussian.\n");
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -45,36 +45,32 @@ int main(int argc, char **argv)
 	};
 	
 	int indexptr = 0, c;
-	char procpar[MAXSTR], *prefix;
+	std::string procPath, outPrefix;
 	par_t *pars;
 	double n, nomFlip;
-	double *tr1, *tr2, *flip, *B1, 
-	       *smoothB1, *mask = NULL;
-	short nx, ny, nz, nvol;
-	int nvox;
-	FSLIO *in = NULL, *out = NULL, *maskHdr = NULL;
+	double *tr1, *tr2, *flip, *B1, *mask = NULL;
+	NiftiImage inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
 			case 'm':
-				maskHdr = FslOpen(optarg, "rb");
 				fprintf(stdout, "Reading mask.\n");
-				mask = FslGetVolumeAsScaledDouble(maskHdr, 0);
-				FslClose(maskHdr);
+				inFile.open(optarg, NIFTI_READ);
+				mask = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
 		}
 	}
 	if ((argc - optind) != 2)
 	{
-		fprintf(stderr, "%s", usage);
+		std::cout << usage << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	fprintf(stdout, "Opening input file %s...\n", argv[optind]);
-	in = FslOpen(argv[optind], "rb");
-	strncpy(procpar, argv[optind], MAXSTR);
-	strcat(procpar, ".procpar");
-	if ((pars = readProcpar(procpar)))
+	std::cout << "Opening input file " << argv[optind] << std::endl;
+	inFile.open(argv[optind], NIFTI_READ);
+	procPath = inFile.basename() + ".procpar";
+	if ((pars = readProcpar(procPath.c_str())))
 	{
 		// From Sam Hurley. The sequence is implemented by waiting afi_dummy
 		// periods after the first afi_tr.
@@ -88,19 +84,17 @@ int main(int argc, char **argv)
 		fscanf(stdin, "%lf %lf", &n, &nomFlip);
 	}
 	nomFlip = radians(nomFlip);
-	FslGetDim(in, &nx, &ny, &nz, &nvol);
-	nvox = nz*ny*nx;
-	tr1 = FslGetVolumeAsScaledDouble(in, 0);
-	tr2 = FslGetVolumeAsScaledDouble(in, 1);
-	prefix = argv[++optind];
-	fprintf(stdout, "Image dimensions: %d %d %d\n", nx, ny, nz);
-	flip  = malloc(nvox * sizeof(double));
-	B1    = malloc(nvox * sizeof(double));
-	arraySet(B1, 1.0, nvox);
-	fprintf(stdout, "Allocated output memory.\n");
-	fprintf(stdout, "Processing...");
-	for (size_t vox = 0; vox < nvox; vox++)
-	{	
+	tr1 = inFile.readVolume<double>(0);
+	tr2 = inFile.readVolume<double>(1);
+	inFile.close();
+	outPrefix = std::string(argv[++optind]);
+	flip = (double *)malloc(inFile.voxelsPerVolume() * sizeof(double));
+	B1   = (double *)malloc(inFile.voxelsPerVolume() * sizeof(double));
+	arraySet(B1, 1.0, inFile.voxelsPerVolume());
+	std::cout << "Allocated output memory." << std::endl;
+	std::cout << "Processing..." << std::endl;
+	for (size_t vox = 0; vox < inFile.voxelsPerVolume(); vox++)
+	{
 		if (!mask || mask[vox] > 0.)
 		{
 			double r = tr2[vox] / tr1[vox];
@@ -115,51 +109,41 @@ int main(int argc, char **argv)
 		}
 	}
 	fprintf(stdout, "done.\n");
-	char outfile[1024];
-	snprintf(outfile, 1024, "%s_flip.nii.gz", prefix);
-	fprintf(stdout, "Writing to %s...\n", outfile);
-	out = FslOpen(outfile, "wb");
-	FslCloneHeader(out, in);
-	FslSetDim(out, nx, ny, nz, 1);
-	FslSetDataType(out, NIFTI_TYPE_FLOAT32);
-	FslWriteHeader(out);
-	FslWriteVolumeFromDouble(out, flip, 0);
-	fprintf(stdout, "Wrote flip angle.\n");
-	FslClose(out);
-	snprintf(outfile, 1024, "%s_B1.nii.gz", prefix);
-	out = FslOpen(outfile, "wb");
-	FslCloneHeader(out, in);
-	FslSetDim(out, nx, ny, nz, 1);
-	FslSetDataType(out, NIFTI_TYPE_FLOAT32);
-	FslWriteHeader(out);
-	FslWriteVolumeFromDouble(out, B1, 0);
-	fprintf(stdout, "Wrote B1 ratio.\n");
-	FslClose(out);
+	NiftiImage outFile = inFile; // Could re-use infile, this is marginally clearer
+	std::string outPath = outPrefix + "_flip.nii.gz";
+	std::cout << "Writing actual flip angle to " << outPath << "..." << std::endl;
+	outFile.setnt(1);
+	outFile.setDatatype(NIFTI_TYPE_FLOAT32);
+	outFile.open(outPath, NIFTI_WRITE);
+	outFile.writeVolume(0, flip);
+	outFile.close();
+	
+	outPath = outPrefix + "_B1.nii.gz";
+	std::cout << "Writing B1 ratio to " << outPath << "..." << std::endl;
+	outFile.open(outPath, NIFTI_WRITE);
+	outFile.writeVolume(0, B1);
+	outFile.close();
+	
 	if (smooth)
 	{
 		fprintf(stdout, "Smoothing...");
-		smoothB1 = malloc(nvox * sizeof(double));
-		array3d_t *B1_3d = array3d_from_buffer(B1, nz, ny, nx);
+		array3d_t *B1_3d = array3d_from_buffer(B1, inFile.nx(), inFile.ny(), inFile.nz());
 		array3d_t *gauss = gaussian3D(5, 5, 5, 1.5, 1.5, 1.5);
-		array3d_t *smoothB1 = array3d_alloc(nz, ny, nx);
+		array3d_t *smoothB1 = array3d_alloc(inFile.nx(), inFile.ny(), inFile.nz());
 		convolve3D(smoothB1, B1_3d, gauss);
 		if (mask)
-			arrayMul(smoothB1->array->data, smoothB1->array->data, mask, nx * ny * nz);
+			arrayMul(smoothB1->array->data, smoothB1->array->data, mask, inFile.voxelsPerVolume());
 		fprintf(stdout, "done.\n");
-		snprintf(outfile, 1024, "%s_B1_smooth.nii.gz", prefix);
-		out = FslOpen(outfile, "wb");
-		FslCloneHeader(out, in);
-		FslSetDim(out, nx, ny, nz, 1);
-		FslSetDataType(out, NIFTI_TYPE_FLOAT32);
-		FslWriteHeader(out);
-		FslWriteVolumeFromDouble(out, smoothB1->array->data, 0);
-		FslClose(out);
-		fprintf(stdout, "Wrote smoothed B1 ratio.\n");
+		
+		outPath = outPrefix + "_B1_smooth.nii.gz";
+		std::cout << "Writing smoothed B1 ratio to " << outPath << "..." << std::endl;
+		outFile.open(outPath, NIFTI_WRITE);
+		outFile.writeVolume(0, smoothB1->array->data);
+		outFile.close();
 		array3d_free(smoothB1);
 		array3d_free(gauss);
 		array3d_free(B1_3d);
 	}
-	FslClose(in);
 	fprintf(stdout, "Success.\n");
     return EXIT_SUCCESS;
 }

@@ -20,7 +20,6 @@
 	#define AtomicAdd(x, y) (*y)++
 #endif
 
-#include "fslio.h"
 #include "procpar.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
@@ -28,7 +27,8 @@
 //******************************************************************************
 // Arguments / Usage
 //******************************************************************************
-const char *usage = "Usage is: mcdespot [options] output_prefix spgr_file ssfp_file1 (ssfp_fileN)\n\
+const std::string usage {
+"Usage is: mcdespot [options] output_prefix spgr_file ssfp_file1 (ssfp_fileN)\n\
 \
 Options:\n\
 	-v, --verbose     : Print extra information.\n\
@@ -45,7 +45,8 @@ Options:\n\
 	-e, --expand n    : Re-expand boundary by percentage n (Default 0).\n\
 	-b 3              : Boundaries suitable for 3T\n\
 	   7              : Boundaries suitable for 7T (default)\n\
-	   u              : User specified boundaries from stdin.\n";
+	   u              : User specified boundaries from stdin.\n"
+};
 
 static int verbose = false, start_slice = -1, end_slice = -1,
 		   samples = 2500, retain = 25, contract = 10, components = 2, tesla = 7, nP = 0;
@@ -72,7 +73,7 @@ static struct option long_options[] =
 //******************************************************************************
 // SIGTERM interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
-FSLIO *savedHeader;
+NiftiImage savedHeader;
 double **paramsData;
 double *residualData;
 
@@ -100,16 +101,16 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	if (argc < 4)
 	{
-		fprintf(stderr, "%s", usage);
+		std::cerr << usage << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	Eigen::initParallel();
 	__block double spgrTR, ssfpTR,
 	               *maskData = NULL, *M0Data = NULL,
 				   *B0Data = NULL, *B1Data = NULL;
-	FSLIO *inFile = NULL;
-	short nx, ny, nz, nSPGR, nPhases, nSSFP;
-	char procpar[MAXSTR];
+	NiftiImage inFile;
+	int nSPGR, nPhases, nSSFP;
+	std::string procPath;
 	par_t *pars;
 	
 	int indexptr = 0, c;
@@ -118,28 +119,28 @@ int main(int argc, char **argv)
 		switch (c)
 		{
 			case 'm':
-				fprintf(stdout, "Reading mask file %s.\n", optarg);
-				inFile = FslOpen(optarg, "rb");
-				maskData = FslGetVolumeAsScaledDouble(inFile, 0);
-				FslClose(inFile);
+				std::cout << "Reading mask file " << optarg << std::endl;
+				inFile.open(optarg, NIFTI_READ);
+				maskData = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
 			case '0':
-				fprintf(stdout, "Reading B0 file %s.\n", optarg);
-				inFile = FslOpen(optarg, "rb");
-				B0Data = FslGetVolumeAsScaledDouble(inFile, 0);
-				FslClose(inFile);
+				std::cout << "Reading B0 file " << optarg << std::endl;
+				inFile.open(optarg, NIFTI_READ);
+				B0Data = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
 			case '1':
-				fprintf(stdout, "Reading B1 file %s.\n", optarg);
-				inFile = FslOpen(optarg, "rb");
-				B1Data = FslGetVolumeAsScaledDouble(inFile, 0);
-				FslClose(inFile);
+				std::cout << "Reading B1 file " << optarg << std::endl;
+				inFile.open(optarg, NIFTI_READ);
+				B1Data = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
 			case 'M':
-				fprintf(stdout, "Reading M0 file %s.\n", optarg);
-				inFile = FslOpen(optarg, "rb");
-				M0Data = FslGetVolumeAsScaledDouble(inFile, 0);
-				FslClose(inFile);
+				std::cout << "Reading M0 file " << optarg << std::endl;
+				inFile.open(optarg, NIFTI_READ);
+				M0Data = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
 			case 'v': verbose = true; break;
 			case 'S': start_slice = atoi(optarg); break;
@@ -182,11 +183,11 @@ int main(int argc, char **argv)
 	// Gather SPGR Data
 	//**************************************************************************
 	std::cout << "Opening SPGR file: " << argv[optind] << std::endl;
-	inFile = FslOpen(argv[optind], "rb");
-	FslGetDim(inFile, &nx, &ny, &nz, &nSPGR);
+	inFile.open(argv[optind], NIFTI_READ);
+	nSPGR = inFile.nt();
 	VectorXd spgrAngles(nSPGR);
-	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
-	pars = readProcpar(procpar);
+	procPath = inFile.basename() + ".procpar";
+	pars = readProcpar(procPath.c_str());
 	if (pars)
 	{
 		spgrTR = realVal(pars, "tr", 0);
@@ -201,11 +202,12 @@ int main(int argc, char **argv)
 		for (int i = 0; i < nSPGR; i++) std::cin >> spgrAngles[i];
 	}
 	spgrAngles *= M_PI / 180.;
-	int voxelsPerSlice = nx * ny;
-	int totalVoxels = voxelsPerSlice * nz;
+	int voxelsPerSlice = inFile.nx() * inFile.ny();
+	int totalVoxels = inFile.voxelsPerVolume();
 	std::cout << "Reading SPGR data..." << std::endl;
-	__block double *SPGR = FslGetAllVolumesAsScaledDouble(inFile);	
+	__block double *SPGR = inFile.readAllVolumes<double>();
 	// Save this header to output the results files.
+	inFile.close();
 	savedHeader = inFile;
 	optind++;
 	//**************************************************************************
@@ -216,16 +218,13 @@ int main(int argc, char **argv)
 	__block double **SSFP = (double **)malloc(nPhases * sizeof(double *));
 	for (size_t p = 0; p < nPhases; p++)
 	{
-		short inX, inY, inZ, inVols;
 		std::cout << "Reading SSFP header from " << argv[optind] << std::endl;
-		inFile = FslOpen(argv[optind], "rb");
-		FslGetDim(inFile, &inX, &inY, &inZ, &inVols);
-		eigen_assert((inX == nx) && (inY == ny) && (inZ == nz));
-		snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
-		pars = readProcpar(procpar);		
+		inFile.open(argv[optind], NIFTI_READ);
+		procPath = inFile.basename() + ".procpar";
+		pars = readProcpar(procPath.c_str());
 		if (p == 0)
 		{	// Read nSSFP, TR and flip angles from first file
-			nSSFP = inVols;
+			nSSFP = inFile.nt();
 			ssfpAngles.resize(nSSFP, 1);
 			if (pars)
 			{
@@ -242,8 +241,11 @@ int main(int argc, char **argv)
 					std::cin >> ssfpAngles[i];
 			}
 		}
-		
-		eigen_assert((inVols == nSSFP));
+		// Check that all files have consistent dims
+		eigen_assert((inFile.nx() == savedHeader.nx()) &&
+		             (inFile.ny() == savedHeader.ny()) &&
+					 (inFile.nx() == savedHeader.nz()));
+		eigen_assert((inFile.nt() == nSSFP));
 		if (pars)
 		{
 			ssfpPhases[p] = realVal(pars, "rfphase", 0);
@@ -255,8 +257,8 @@ int main(int argc, char **argv)
 			std::cin >> ssfpPhases[p];
 		}
 		std::cout << "Reading SSFP data..." << std::endl;
-		SSFP[p] = FslGetAllVolumesAsScaledDouble(inFile);
-		FslClose(inFile);
+		SSFP[p] = inFile.readAllVolumes<double>();
+		inFile.close();
 		optind++;
 	}
 	ssfpAngles *= M_PI / 180.;
@@ -320,15 +322,15 @@ int main(int argc, char **argv)
 	// Do the fitting
 	//**************************************************************************
     time_t procStart = time(NULL);
-	if ((start_slice < 0) || (start_slice >= nz))
+	if ((start_slice < 0) || (start_slice >= savedHeader.nz()))
 		start_slice = 0;
-	if ((end_slice < 0) || (end_slice > nz))
-		end_slice = nz;
+	if ((end_slice < 0) || (end_slice > savedHeader.nz()))
+		end_slice = savedHeader.nz();
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	std::cout << "Starting processing." << std::endl;
 	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	bool norm = false;
-	for (size_t slice = start_slice; slice < end_slice; slice++)
+	for (int slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose)
 			std::cout << "Starting slice " << slice << "..." << std::flush;
@@ -371,25 +373,26 @@ int main(int argc, char **argv)
 					SSFP_signals.push_back(temp);
 				}
 				
+				int rSeed = static_cast<int>(time(NULL));
 				switch (components)
 				{
 					case 1: {
 						OneComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1);
 						residual = regionContraction<OneComponent>(params, tc, localLo, localHi,
 															       loConstraints, hiConstraints,
-															       samples, retain, contract, 0.05, expand, vox + time(NULL));
+															       samples, retain, contract, 0.05, expand, rSeed);
 						break; }
 					case 2: {
 						TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1);
 						residual = regionContraction<TwoComponent>(params, tc, localLo, localHi,
 															       loConstraints, hiConstraints,
-															       samples, retain, contract, 0.05, expand, vox + time(NULL));
+															       samples, retain, contract, 0.05, expand, rSeed);
 						break; }
 					case 3: {
 						ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1);
 						residual = regionContraction<ThreeComponent>(params, tc, localLo, localHi,
 																 	loConstraints, hiConstraints,
-																 	samples, retain, contract, 0.05, expand, vox + time(NULL));
+																 	samples, retain, contract, 0.05, expand, rSeed);
 						break; }
 				}
 			}

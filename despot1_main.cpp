@@ -19,7 +19,7 @@
 	#define AtomicAdd(x, y) (*y) += x
 #endif
 #include "DESPOT.h"
-#include "fslio.h"
+#include "nifti3_io.h"
 #include "procpar.h"
 const char *usage = "Usage is: despot1 [options] spgr_input output_prefix \n\
 \
@@ -36,13 +36,11 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	int nSPGR = 0;
-	short nx, ny, nz, nv;
-	const char *outPrefix = NULL, *outExt = ".nii.gz";
 	char procpar[MAXSTR];
 	double spgrTR = 0.;
+	int nSPGR;
 	double *B1Data = NULL, *maskData = NULL;
-	FSLIO *spgrFile = NULL, *inFile = NULL;
+	NiftiImage spgrFile, inFile;
 	par_t *pars;
 	static int verbose = false;
 	static struct option long_options[] =
@@ -60,15 +58,15 @@ int main(int argc, char **argv)
 		{
 			case '1':
 				fprintf(stdout, "Opening B1 file: %s\n", optarg);
-				inFile = FslOpen(optarg, "rb");
-				B1Data = FslGetVolumeAsScaledDouble(inFile, 0);
-				FslClose(inFile);
+				inFile.open(optarg, 'r');
+				B1Data = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
 			case 'm':
 				fprintf(stdout, "Opening mask file: %s\n", optarg);
-				inFile = FslOpen(optarg, "rb");
-				maskData = FslGetVolumeAsScaledDouble(inFile, 0);
-				FslClose(inFile);
+				inFile.open(optarg, 'r');
+				maskData = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
 			case 'v':
 				verbose = true;
@@ -83,10 +81,9 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	fprintf(stdout, "Opening SPGR file: %s\n", argv[optind]);
-	spgrFile = FslOpen(argv[optind], "rb");
-	FslGetDim(spgrFile, &nx, &ny, &nz, &nv);
-	nSPGR = nv;
-	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
+	spgrFile.open(argv[optind], 'r');
+	nSPGR = spgrFile.nt();
+	snprintf(procpar, MAXSTR, "%s.procpar", spgrFile.basename().c_str());
 	pars = readProcpar(procpar);
 	VectorXd spgrAngles(nSPGR);
 	if (pars)
@@ -103,48 +100,36 @@ int main(int argc, char **argv)
 		for (int i = 0; i < nSPGR; i++) std::cin >> spgrAngles[i];
 	}
 	spgrAngles *= M_PI / 180.;
+	const std::string outPrefix(argv[++optind]);
 	if (verbose)
 	{
-		fprintf(stdout, "SPGR TR=%f s. Flip-angles: ", spgrTR);
-		std::cout << spgrAngles.transpose() * 180. / M_PI << std::endl;
-		fprintf(stdout, "Ouput prefix will be: %s\n", argv[++optind]);
+		std::cout << "SPGR TR=" << spgrTR
+		          << " s. Flip-angles: " << spgrAngles.transpose() * 180. / M_PI << std::endl;
+		std::cout << "Ouput prefix will be: " << outPrefix << std::endl;
 	}
-	outPrefix = argv[optind];
-	//**************************************************************************	
+	//**************************************************************************
 	// Allocate memory for slices
 	//**************************************************************************	
-	int voxelsPerSlice = nx * ny;
-	int totalVoxels = voxelsPerSlice * nz;
+	int voxelsPerSlice = spgrFile.nx() * spgrFile.ny();
+	int totalVoxels = spgrFile.voxelsPerVolume();
 	__block int voxCount;
 	
 	fprintf(stdout, "Reading SPGR data...\n");
-	double *SPGR = FslGetAllVolumesAsScaledDouble(spgrFile);
+	double *SPGR = spgrFile.readAllVolumes<double>();
+	spgrFile.close();
 	fprintf(stdout, "done.\n");
 	//**************************************************************************
-	// Create results headers
+	// Create results data storage
 	//**************************************************************************
 	#define NR 3
-	FSLIO **resultsHeaders = (FSLIO **)malloc(NR * sizeof(FSLIO *));
 	double **resultsData   = (double **)malloc(NR * sizeof(double *));
-	const char *names[NR] = { "_M0", "_T1", "_despot1_res" };
-	char outName[strlen(outPrefix) + 64];
-	for (int r = 0; r < NR; r++)
-	{
-		strcpy(outName, outPrefix); strcat(outName, names[r]); strcat(outName, outExt);
-		if (verbose)
-			fprintf(stdout, "Writing result header:%s.\n", outName);
-		resultsHeaders[r] = FslOpen(outName, "wb");
-		FslCloneHeader(resultsHeaders[r], spgrFile);
-		FslSetDim(resultsHeaders[r], nx, ny, nz, 1);
-		FslSetDataType(resultsHeaders[r], NIFTI_TYPE_FLOAT32);
-		resultsData[r] = (double *)malloc(totalVoxels * sizeof(double));
-	}
-		
+	for (int i = 0; i < NR; i++)
+		resultsData[i] = (double *)malloc(totalVoxels * sizeof(double));
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
 	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	for (int slice = 0; slice < nz; slice++)
+	for (int slice = 0; slice < spgrFile.nz(); slice++)
 	{
 		clock_t loopStart, loopEnd;
 		// Read in data
@@ -190,12 +175,19 @@ int main(int argc, char **argv)
 				fprintf(stdout, ", no unmasked voxels.\n");
 		}
 	}
-		
-	for (size_t r = 0; r < NR; r++)
+	const char *names[NR] = { "_M0", "_T1", "_despot1_res" };
+	NiftiImage outFile(spgrFile);
+	spgrFile.setDatatype(DT_FLOAT32);
+	spgrFile.setDims(spgrFile.nx(), spgrFile.ny(), spgrFile.nz(), 1);
+	for (int r = 0; r < NR; r++)
 	{
-		FslWriteHeader(resultsHeaders[r]);
-		FslWriteVolumeFromDouble(resultsHeaders[r], resultsData[r], 0);
-		FslClose(resultsHeaders[r]);
+		std::string outName = outPrefix + names[r] + ".nii.gz";
+		if (verbose)
+			std::cout << "Writing result header: " << outName << std::endl;
+		spgrFile.open(outName, 'w');
+		spgrFile.writeVolume<double>(0, resultsData[r]);
+		spgrFile.close();
+		free(resultsData[r]);
 	}
 	// Clean up memory
 	free(SPGR);

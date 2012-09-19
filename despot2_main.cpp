@@ -23,10 +23,10 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
-#include "fslio.h"
+#include "nifti3_io.h"
 #include "procpar.h"
 
-const char *usage = "Usage is: despot2 [options] output_prefix T1_map ssfp_files\n\
+const std::string usage("Usage is: despot2 [options] output_prefix T1_map ssfp_files\n\
 \
 Options:\n\
 	--mask, -m file   : Mask input with specified file.\n\
@@ -36,7 +36,7 @@ Options:\n\
 	--lm              : Use Levenberg-Marquardt instead of Region Contraction.\n\
 	--verbose, -v     : Print slice processing times.\n\
 	--start_slice N   : Start processing from slice N.\n\
-	--end_slice   N   : Finish processing at slice N.\n";
+	--end_slice   N   : Finish processing at slice N.\n");
 
 static int levMar = false, verbose = false, start_slice = -1, end_slice = -1;
 static std::string outPrefix;
@@ -56,7 +56,7 @@ static struct option long_options[] =
 //******************************************************************************
 // SIGTERM interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
-FSLIO *savedHeader;
+NiftiImage savedHeader;
 double **paramsData;
 double *residualData;
 
@@ -77,17 +77,16 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	if (argc < 4)
 	{
-		fprintf(stderr, "%s", usage);
+		std::cerr << usage << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	Eigen::initParallel();
-	short nx, ny, nz;
 	int nSSFP, nPhases;
 	double ssfpTR;
-	FSLIO *inFile = NULL;
+	NiftiImage inFile;
 	double *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *T1Data = NULL,
 	       *M0Data = NULL;
-	char procpar[MAXSTR];
+	std::string procPath;
 	par_t *pars;
 	
 	int indexptr = 0, c;
@@ -97,27 +96,27 @@ int main(int argc, char **argv)
 		{
 			case 'm':
 				fprintf(stdout, "Reading mask file %s.\n", optarg);
-				inFile = FslOpen(optarg, "rb");
-				maskData = FslGetVolumeAsScaledDouble(inFile, 0);
-				FslClose(inFile);
+				inFile.open(optarg, 'r');
+				maskData = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
 			case '0':
 				fprintf(stdout, "Reading B0 file %s.\n", optarg);
-				inFile = FslOpen(optarg, "rb");
-				B0Data = FslGetVolumeAsScaledDouble(inFile, 0);
-				FslClose(inFile);
+				inFile.open(optarg, 'r');
+				B0Data = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
 			case '1':
 				fprintf(stdout, "Reading B1 file %s.\n", optarg);
-				inFile = FslOpen(optarg, "rb");
-				B1Data = FslGetVolumeAsScaledDouble(inFile, 0);
-				FslClose(inFile);
+				inFile.open(optarg, 'r');
+				B1Data = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
 			case 'M':
 				fprintf(stdout, "Reading M0 file %s.\n", optarg);
-				inFile = FslOpen(optarg, "rb");
-				M0Data = FslGetVolumeAsScaledDouble(inFile, 0);
-				FslClose(inFile);
+				inFile.open(optarg, 'r');
+				M0Data = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
 			case 'v':
 				verbose = true;
@@ -136,12 +135,12 @@ int main(int argc, char **argv)
 		}
 	}
 	
-	fprintf(stdout, "Output prefix will be: %s\n", argv[optind]);
+	std::cout << "Output prefix will be: " << argv[optind] << std::endl;
 	outPrefix = argv[optind++];
-	fprintf(stdout, "Reading T1 Map from: %s\n", argv[optind]);
-	inFile = FslOpen(argv[optind++], "rb");
-	T1Data = FslGetVolumeAsScaledDouble(inFile, 0);
-	FslClose(inFile);
+	std::cout << "Reading T1 Map from: " << argv[optind] << std::endl;
+	inFile.open(argv[optind++], 'r');
+	T1Data = inFile.readVolume<double>(0);
+	inFile.close();
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
@@ -151,17 +150,15 @@ int main(int argc, char **argv)
 	__block double **ssfpData = (double **)malloc(nPhases * sizeof(double *));
 	for (size_t p = 0; p < nPhases; p++)
 	{
-		short inX, inY, inZ, inVols;
 		std::cout << "Reading SSFP header from " << argv[optind] << std::endl;
-		inFile = FslOpen(argv[optind], "rb");
-		snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
-		pars = readProcpar(procpar);		
+		inFile.open(argv[optind], 'r');
+		procPath = inFile.basename() + ".procpar";
+		pars = readProcpar(procPath.c_str());
 		if (p == 0)
 		{	// Read nSSFP, TR and flip angles from first file
-			FslGetDim(inFile, &nx, &ny, &nz, &inVols);
-			nSSFP = inVols;
-			voxelsPerSlice = nx * ny;
-			totalVoxels = voxelsPerSlice * nz;
+			nSSFP = inFile.nt();
+			voxelsPerSlice = inFile.nx() * inFile.ny();
+			totalVoxels = voxelsPerSlice * inFile.nz();
 			ssfpAngles.resize(nSSFP, 1);
 			if (pars)
 			{
@@ -179,9 +176,6 @@ int main(int argc, char **argv)
 			}
 			savedHeader = inFile;
 		}
-		FslGetDim(inFile, &inX, &inY, &inZ, &inVols);
-		eigen_assert((inX == nx) && (inY == ny) && (inZ == nz));
-		eigen_assert((inVols == nSSFP));
 		if (pars)
 		{
 			ssfpPhases[p] = realVal(pars, "rfphase", 0);
@@ -193,11 +187,10 @@ int main(int argc, char **argv)
 			std::cin >> ssfpPhases[p];
 		}
 		std::cout << "Reading SSFP data..." << std::endl;
-		ssfpData[p] = FslGetAllVolumesAsScaledDouble(inFile);
+		ssfpData[p] = inFile.readAllVolumes<double>();
 		// Don't close the first header because we've saved it to write the
 		// results, and FSLIO gets fussy about cloning closed headers
-		if (p > 0)
-			FslClose(inFile);
+		inFile.close();
 		optind++;
 	}
 	ssfpAngles *= M_PI / 180.;
@@ -226,10 +219,10 @@ int main(int argc, char **argv)
 	// Do the fitting
 	//**************************************************************************
     time_t procStart = time(NULL);
-	if ((start_slice < 0) || (start_slice >= nz))
+	if ((start_slice < 0) || (start_slice >= inFile.nz()))
 		start_slice = 0;
-	if ((end_slice < 0) || (end_slice > nz))
-		end_slice = nz;
+	if ((end_slice < 0) || (end_slice > inFile.nz()))
+		end_slice = inFile.nz();
 	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);		
 	for (size_t slice = start_slice; slice < end_slice; slice++)
 	{

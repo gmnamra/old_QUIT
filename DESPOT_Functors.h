@@ -13,8 +13,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/MatrixFunctions>
-
-#include "fslio.h"
+#include "nifti3_io.h"
 
 using namespace Eigen;
 
@@ -35,15 +34,15 @@ class Functor
 		typedef Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
 		typedef Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
 		
-		const int m_inputs, m_values;
+		const long m_inputs, m_values;
 		
 		Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
-		Functor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
+		Functor(long inputs, long values) : m_inputs(inputs), m_values(values) {}
 		
 		virtual ~Functor() {};
 		
-		int inputs() const { return m_inputs; }
-		int values() const { return m_values; }
+		long inputs() const { return m_inputs; }
+		long values() const { return m_values; }
 		
 		virtual int operator()(const VectorXd &params, VectorXd &diffs) const = 0;
 };
@@ -337,8 +336,9 @@ const double TwoComponent::lo7Bounds[] = { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05,
 const double TwoComponent::hi7Bounds[] = { 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
 
 //******************************************************************************
-// Set B0 to INFINITY if optimising
-// Set M0 to INFINITY to normalise signals to their mean
+#pragma mark Three Component
+//******************************************************************************
+
 typedef Matrix<double, 9, 9> Matrix9d;
 typedef Matrix<double, 9, 1> Vector9d;
 class ThreeComponent : public Functor<double>
@@ -487,43 +487,37 @@ class ThreeComponent : public Functor<double>
 		}
 };
 const char *ThreeComponent::names[] = { "M0", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a" };
-const double ThreeComponent::lo3Bounds[] = { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. };
-const double ThreeComponent::hi3Bounds[] = { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. };
-const double ThreeComponent::lo7Bounds[] = { 0., 0.500, 1.50, 0.0001, 0.010, 0.0, 0.0, 0., 0., 0., 0. };
-const double ThreeComponent::hi7Bounds[] = { 1.e7, 1.000, 3.00, 0.0500, 0.500, 1.0, 1.0, 0., 0., 0., 0. };
+const double ThreeComponent::lo3Bounds[] = { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025 };
+const double ThreeComponent::hi3Bounds[] = { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500 };
+const double ThreeComponent::lo7Bounds[] = { 0., 0.500, 1.50, 0.0001, 0.010, 0.0, 0.0, 0., 0., 0. };
+const double ThreeComponent::hi7Bounds[] = { 1.e7, 1.000, 3.00, 0.0500, 0.500, 1.0, 1.0, 0., 0., 0. };
 
 //******************************************************************************
 #pragma mark Utility functions
 //******************************************************************************
 template<typename Functor_t>
-void write_results(const std::string outPrefix, double **paramsData, double *residualData, FSLIO *hdr)
+void write_results(const std::string outPrefix, double **paramsData,
+				   double *residualData, NiftiImage &hdr)
 {
 	std::string outPath;
-	short nx, ny, nz, nvol;
-	FslGetDim(hdr, &nx, &ny, &nz, &nvol);
-	FslSetDim(hdr, nx, ny, nz, 1);
-	FslSetDimensionality(hdr, 3);
-	FslSetDataType(hdr, NIFTI_TYPE_FLOAT32);	
+	hdr.setnt(1);
+	hdr.setDatatype(NIFTI_TYPE_FLOAT32);
 	for (int p = 0; p < Functor_t::nP; p++)
 	{
 		outPath = outPrefix + "_" + Functor_t::names[p] + ".nii.gz";
 		std::cout << "Writing parameter file: " << outPath << std::endl;
-		FSLIO *outFile = FslOpen(outPath.c_str(), "wb");
-		FslCloneHeader(outFile, hdr);
-		FslWriteHeader(outFile);
-		FslWriteVolumeFromDouble(outFile, paramsData[p], 0);
-		FslClose(outFile);
+		hdr.open(outPath, 'w');
+		hdr.writeVolume(0, paramsData[p]);
+		hdr.close();
 	}
 	
 	if (residualData)
 	{
 		outPath = outPrefix + "_residual.nii.gz";
 		std::cout << "Writing residual file: " << outPath << std::endl;
-		FSLIO *outFile = FslOpen(outPath.c_str(), "wb");
-		FslCloneHeader(outFile, hdr);
-		FslWriteHeader(outFile);
-		FslWriteVolumeFromDouble(outFile, residualData, 0);
-		FslClose(outFile);
+		hdr.open(outPath, 'w');
+		hdr.writeVolume(0, residualData);
+		hdr.close();
 	}
 }
 

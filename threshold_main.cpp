@@ -10,10 +10,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "fslio.h"
-#include "mathsNDArray.h"
+#include "nifti3_io.h"
 
-char *usage = "Usage is: threshold [options] input_file threshold output_file\n\
+const char *usage = "Usage is: threshold [options] input_file threshold output_file\n\
 \
 Options:\n\
 	-v N   : Use volume N from input file.\n\
@@ -53,55 +52,40 @@ int main(int argc, const char * argv[])
 		++thisArg;
 	}
 	
-	FSLIO *inHdr = FslOpen(argv[thisArg], "r");
-	size_t ndims;
-	short nx, ny, nz, nvol;
-	int nvox;
-	FslGetDimensionality(inHdr, &ndims);
-	FslGetDim(inHdr, &nx, &ny, &nz, &nvol);
-	nvox = nx * ny * nz;
-	
+	NiftiImage image;
+	image.open(argv[thisArg], 'r');
 	fprintf(stdout, "Opened file to mask %s.\n", argv[thisArg]);
-	fprintf(stdout, "%zu-D file, nx=%d, ny=%d, nz=%d, nvols=%d, nvox=%d.\n",
-					ndims, nx, ny, nz, nvol, nvox);
-	if (volume >= nvol)
-		volume = nvol - 1;
-	if (xl >= nx) xl = nx;
-	if (xh >= nx) xh = nx;
-	if (yl >= ny) yl = ny;
-	if (yh >= ny) yh = ny;
-	if (zl >= nz) zl = nz;
-	if (zh >= nz) zh = nz;
+	fprintf(stdout, "%d-D file, nx=%d, ny=%d, nz=%d, nvols=%d, nvox=%d.\n",
+					image.ndim(), image.nx(), image.ny(), image.nz(), image.nt(), image.nvox());
+	if (volume >= image.nt())
+		volume = image.nt() - 1;
+	if (xl >= image.nx()) xl = image.nx();
+	if (xh >= image.nx()) xh = image.nx();
+	if (yl >= image.ny()) yl = image.ny();
+	if (yh >= image.ny()) yh = image.ny();
+	if (zl >= image.nz()) zl = image.nz();
+	if (zh >= image.nz()) zh = image.nz();
 	fprintf(stdout, "x %d %d y %d %d z %d %d\n", xl, xh,
 	                                             yl, yh,
 												 zl, zh);
-	double *data = FslGetVolumeAsScaledDouble(inHdr, volume);
-	double ***dataPtrs = array_ptrs_3d(data, nz, ny, nx);
-	float *mask = calloc(sizeof(float), nvox);
+	double *data = image.readVolume<double>(volume);
+	image.close();
+	float *mask = (float *)calloc(sizeof(float), image.nvox());
 	double thresh = atof(argv[thisArg + 1]);
 	fprintf(stdout, "Threshold is %f.\n", thresh);
-	
-	for (size_t z = zl; z < zh; z++)
-	{	for (size_t y = yl; y < yh; y++)
-		{	for (size_t x = xl; x < xh; x++)
-			{
-				if (dataPtrs[z][y][x] >= thresh)
-					mask[(z*ny + y)*nx + x] = 1;
-			}
-		}
+	for (int i = 0; i < image.nvox(); i++)
+	{
+		if (data[i] >= thresh)
+			mask[i] = 1;
 	}
 	
-	FSLIO *outHdr = FslOpen(argv[thisArg + 2], "wb");// FSL_TYPE_NIFTI_GZ);
-	FslCloneHeader(outHdr, inHdr);
-	FslSetDim(outHdr, nx, ny, nz, 1);
-	FslSetDataType(outHdr, NIFTI_TYPE_FLOAT32);
-	FslWriteHeader(outHdr);
-	FslSeekVolume(outHdr, 0);
-	FslWriteVolumes(outHdr, mask, 1);
-	FslClose(inHdr);
-	FslClose(outHdr);
-	free_ptrs_3d(dataPtrs);
+	image.setDims(image.nx(), image.ny(), image.nz(), 1);
+	image.setDatatype(DT_FLOAT);
+	image.open(argv[thisArg + 2], 'w');
+	image.writeVolume<float>(0, mask);
+	image.close();
 	free(data);
+	free(mask);
     return EXIT_SUCCESS;
 }
 
