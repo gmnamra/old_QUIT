@@ -23,7 +23,6 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
-#include "nifti3_io.h"
 #include "procpar.h"
 
 const std::string usage("Usage is: despot2 [options] output_prefix T1_map ssfp_files\n\

@@ -9,7 +9,7 @@
 #include <string>
 #include <getopt.h>
 
-#include "nifti3_io.h"
+#include "NiftiImage.h"
 #include "procpar.h"
 #include "mathsOps.h"
 #include "mathsArray.h"

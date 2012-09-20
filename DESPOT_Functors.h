@@ -13,7 +13,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "nifti3_io.h"
+#include "NiftiImage.h"
 
 using namespace Eigen;
 

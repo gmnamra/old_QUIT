@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "nifti3_io.h"
+#include "NiftiImage.h"
 
 const char *usage = "Usage is: threshold [options] input_file threshold output_file\n\
 \

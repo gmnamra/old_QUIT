@@ -19,7 +19,7 @@
 	#define AtomicAdd(x, y) (*y) += x
 #endif
 #include "DESPOT.h"
-#include "nifti3_io.h"
+#include "NiftiImage.h"
 #include "procpar.h"
 const char *usage = "Usage is: despot1 [options] spgr_input output_prefix \n\
 \

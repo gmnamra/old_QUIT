@@ -18,7 +18,7 @@
 #else
 	#define AtomicAdd(x, y) (*y) += x
 #endif
-#include "nifti3_io.h"
+#include "NiftiImage.h"
 #include "procpar.h"
 #include "mathsArray.h"
 #include "mathsOps.h"
