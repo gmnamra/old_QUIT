@@ -214,7 +214,13 @@ class TwoComponent : public Functor<double>
 		
 		static bool f_constraint(const VectorXd &params)
 		{
-			return true;
+			if ((params[1] < params[2]) &&
+				(params[3] < params[4]) &&
+				(params[5] <= 1.0))
+				return true;
+			else
+				return false;
+
 		}
 		
 		TwoComponent(const VectorXd &spgrAngles, const VectorXd &spgrSignals,
@@ -355,10 +361,14 @@ class ThreeComponent : public Functor<double>
 		
 		static bool f_constraint(const VectorXd &params)
 		{
-			if ((params[7] + params[8]) > 0.95)
-				return false;
-			else
+			if ((params[1] < params[2]) &&
+			    (params[2] < params[3]) &&
+				(params[4] < params[5]) &&
+				(params[5] < params[6]) &&
+			    ((params[7] + params[8]) <= 0.95))
 				return true;
+			else
+				return false;
 		}
 		
 		
