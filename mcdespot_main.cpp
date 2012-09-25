@@ -332,7 +332,6 @@ int main(int argc, char **argv)
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	std::cout << "Starting processing." << std::endl;
 	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-	bool norm = false;
 	for (int slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose)
@@ -363,7 +362,7 @@ int main(int argc, char **argv)
 				VectorXd SPGR_signal(nSPGR);
 				for (int vol = 0; vol < nSPGR; vol++)
 					SPGR_signal[vol] = SPGR[totalVoxels*vol + sliceOffset + vox];
-				if (norm)
+				if (normalise)
 					SPGR_signal /= SPGR_signal.mean();
 				std::vector<VectorXd> SSFP_signals;
 				for (int p = 0; p < nPhases; p++)
@@ -371,7 +370,7 @@ int main(int argc, char **argv)
 					VectorXd temp(nSSFP);
 					for (int vol = 0; vol < nSSFP; vol++)
 						temp[vol] = SSFP[p][totalVoxels*vol + sliceOffset + vox];
-					if (norm)
+					if (normalise)
 						temp /= temp.mean();
 					SSFP_signals.push_back(temp);
 				}

@@ -136,7 +136,7 @@ class OneComponent : public Functor<double>
 			VectorXd theory = One_SPGR(_spgrAngles, _spgrTR, params[0], params[1], _B1);
 			//std::cout << "SPGR Theory: " << theory.transpose() << " Sig: " << _spgrSignals.transpose() << std::endl;
 			if (_normalise)
-				theory /= theory.maxCoeff();
+				theory /= theory.mean();
 			diffs.head(_spgrSignals.size()) = theory - _spgrSignals;
 			index += _spgrSignals.size();
 			
@@ -146,7 +146,7 @@ class OneComponent : public Functor<double>
 			{
 				theory = One_SSFP(_ssfpAngles, _rfPhases(p), _ssfpTR, params[0], params[1], params[2], _B0, _B1);
 				if (_normalise)
-					theory /= theory.maxCoeff();
+					theory /= theory.mean();
 				diffs.segment(index, _ssfpAngles.size()) = theory - _ssfpSignals[p];
 				//std::cout << "SSFP Theory: " << theory.transpose() << " Sig: " << _ssfpSignals[p].transpose() << std::endl;
 				index += _ssfpAngles.size();
@@ -196,7 +196,7 @@ class OneComponentSSFP : public Functor<double>
 			{
 				VectorXd temp = One_SSFP(_flipAngles, _rfPhases(p), _TR, _M0, _T1, params[0], _B0, _B1);
 				if (_normalise)
-					temp /= temp.maxCoeff();
+					temp /= temp.mean();
 				diffs.segment(index, _flipAngles.size()) = temp - _signals[p];
 				index += _flipAngles.size();
 			}
@@ -294,7 +294,7 @@ class TwoComponent : public Functor<double>
 					signals[i] = Mobs.sum();
 				}
 				if (_normalise)
-					signals /= signals.maxCoeff();
+					signals /= signals.mean();
 				diffs.head(_spgrSignals.size()) = signals - _spgrSignals;
 				index += _spgrSignals.size();
 			}
@@ -343,7 +343,7 @@ class TwoComponent : public Functor<double>
 										  pow(Mobs[2] + Mobs[3], 2.));
 					}
 					if (_normalise)
-						signals /= signals.maxCoeff();
+						signals /= signals.mean();
 					diffs.segment(index, _ssfpAngles.size()) = signals - _ssfpSignals[p];
 					index += _ssfpAngles.size();
 				}
@@ -452,7 +452,7 @@ class ThreeComponent : public Functor<double>
 					signals[i] = Mobs.sum();
 				}
 				if (_normalise)
-					signals /= signals.maxCoeff();
+					signals /= signals.mean();
 				diffs.head(_spgrSignals.size()) = signals - _spgrSignals;
 				index += _spgrSignals.size();
 			}
@@ -510,7 +510,7 @@ class ThreeComponent : public Functor<double>
 										  pow(Mobs[3] + Mobs[4] + Mobs[5], 2.));
 					}
 					if (_normalise)
-						signals /= signals.maxCoeff();
+						signals /= signals.mean();
 					diffs.segment(index, _ssfpSignals[p].size()) = signals - _ssfpSignals[p];
 					index += _ssfpSignals[p].size();
 				}
