@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F641095F161075AA00D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
+		F6410960161075B000D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
+		F6410961161075B400D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
+		F6410962161075B800D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
+		F6410963161075BC00D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
+		F6410964161075BF00D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
 		F648CBB215D51873009CAD99 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
@@ -19,12 +25,6 @@
 		F681257015E239C2007A3362 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F681257615E239D8007A3362 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F681257915E23F3A007A3362 /* test_despot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */; };
-		F6B19D5D160B1C63009F84C5 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6B19D5B160B1C4C009F84C5 /* libNiftiImage.a */; };
-		F6B19D5E160B2178009F84C5 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6B19D5B160B1C4C009F84C5 /* libNiftiImage.a */; };
-		F6B19D5F160B2185009F84C5 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6B19D5B160B1C4C009F84C5 /* libNiftiImage.a */; };
-		F6B19D60160B218B009F84C5 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6B19D5B160B1C4C009F84C5 /* libNiftiImage.a */; };
-		F6B19D61160B2190009F84C5 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6B19D5B160B1C4C009F84C5 /* libNiftiImage.a */; };
-		F6B19D62160B2195009F84C5 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6B19D5B160B1C4C009F84C5 /* libNiftiImage.a */; };
 		F6C06BE615E3A07C006AA770 /* dSFMT.c in Sources */ = {isa = PBXBuildFile; fileRef = F6C06BE315E3A06E006AA770 /* dSFMT.c */; };
 		F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
@@ -41,6 +41,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		F63EBC3D160C5DC100F4D0BD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F6B19DE8160B6748009F84C5;
+			remoteInfo = NiftiImage;
+		};
 		F679FB8315B6BF7300A2EC48 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
@@ -184,8 +191,7 @@
 		F61642A715CC1BBB0031F999 /* despot_hifi.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = despot_hifi.c; sourceTree = SOURCE_ROOT; };
 		F675C8CB15CC11E000BA95FC /* afi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = afi; sourceTree = BUILT_PRODUCTS_DIR; };
 		F675C8D515CC120100BA95FC /* afi_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = afi_main.cpp; sourceTree = SOURCE_ROOT; };
-		F6B19D5A160B1C37009F84C5 /* niftilib3.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = file; name = niftilib3.xcodeproj; path = ../niftilib3/niftilib3.xcodeproj; sourceTree = "<group>"; };
-		F6B19D5B160B1C4C009F84C5 /* libNiftiImage.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libNiftiImage.a; path = ../build/MR/Build/Products/Debug/libNiftiImage.a; sourceTree = "<group>"; };
+		F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = NiftiImage.xcodeproj; path = ../NiftiImage/NiftiImage.xcodeproj; sourceTree = "<group>"; };
 		F6C06BD715E3A06E006AA770 /* dSFMT-common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-common.h"; path = "../dSFMT/dSFMT-common.h"; sourceTree = "<group>"; };
 		F6C06BD815E3A06E006AA770 /* dSFMT-params.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params.h"; path = "../dSFMT/dSFMT-params.h"; sourceTree = "<group>"; };
 		F6C06BD915E3A06E006AA770 /* dSFMT-params521.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params521.h"; path = "../dSFMT/dSFMT-params521.h"; sourceTree = "<group>"; };
@@ -225,7 +231,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6B19D62160B2195009F84C5 /* libNiftiImage.a in Frameworks */,
+				F6410964161075BF00D91F69 /* libNiftiImage.a in Frameworks */,
 				F675C8D715CC16F800BA95FC /* libMaths.a in Frameworks */,
 				F675C8D815CC16F800BA95FC /* libprocpar.a in Frameworks */,
 				F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */,
@@ -236,7 +242,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6B19D61160B2190009F84C5 /* libNiftiImage.a in Frameworks */,
+				F6410963161075BC00D91F69 /* libNiftiImage.a in Frameworks */,
 				F6E1F9181592000C00DA918F /* libz.dylib in Frameworks */,
 				F6E1F9151591FFFF00DA918F /* libMaths.a in Frameworks */,
 				F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */,
@@ -247,7 +253,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6B19D5E160B2178009F84C5 /* libNiftiImage.a in Frameworks */,
+				F6410961161075B400D91F69 /* libNiftiImage.a in Frameworks */,
 				F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */,
 				F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */,
 			);
@@ -257,7 +263,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6B19D5F160B2185009F84C5 /* libNiftiImage.a in Frameworks */,
+				F6410960161075B000D91F69 /* libNiftiImage.a in Frameworks */,
 				F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */,
 				F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */,
 			);
@@ -267,7 +273,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6B19D60160B218B009F84C5 /* libNiftiImage.a in Frameworks */,
+				F641095F161075AA00D91F69 /* libNiftiImage.a in Frameworks */,
 				F648CBB215D51873009CAD99 /* libprocpar.a in Frameworks */,
 				F66F4A6815A48171006C91F1 /* libz.dylib in Frameworks */,
 			);
@@ -277,7 +283,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6B19D5D160B1C63009F84C5 /* libNiftiImage.a in Frameworks */,
+				F6410962161075B800D91F69 /* libNiftiImage.a in Frameworks */,
 				F6E1F8DF1591E20E00DA918F /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -315,6 +321,14 @@
 			name = External;
 			sourceTree = "<group>";
 		};
+		F63EBC36160C5DC100F4D0BD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		F6C3F6FD15ADD1DA00359F68 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -327,9 +341,8 @@
 		F6E4A2361590D9B000DA4001 = {
 			isa = PBXGroup;
 			children = (
-				F6B19D5B160B1C4C009F84C5 /* libNiftiImage.a */,
 				F6E1F8DE1591E20E00DA918F /* libz.dylib */,
-				F6B19D5A160B1C37009F84C5 /* niftilib3.xcodeproj */,
+				F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */,
 				F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */,
 				F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */,
 				F6335D2815DF9C4400F5EB26 /* External */,
@@ -532,6 +545,10 @@
 					ProjectRef = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
 				},
 				{
+					ProductGroup = F63EBC36160C5DC100F4D0BD /* Products */;
+					ProjectRef = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+				},
+				{
 					ProductGroup = F6C3F6FD15ADD1DA00359F68 /* Products */;
 					ProjectRef = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
 				},
@@ -550,6 +567,13 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
+		F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libNiftiImage.a;
+			remoteRef = F63EBC3D160C5DC100F4D0BD /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		F6B8F93415CFFD7100AECF4F /* maths_tests */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";

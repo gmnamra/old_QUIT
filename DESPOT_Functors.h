@@ -100,6 +100,7 @@ class OneComponent : public Functor<double>
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
 		double _spgrTR, _ssfpTR, _B0, _B1;
+		const bool _normalise;
 		
 		static const int nP = 3;
 		static const char *names[];
@@ -114,12 +115,13 @@ class OneComponent : public Functor<double>
 		             const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					 const std::vector<VectorXd> &ssfpSignals,
 					 const double spgrTR, const double ssfpTR, 
-					 const double B0, const double B1) :
+					 const double B0, const double B1, const bool normalise = false) :
 					 Functor<double>(OneComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				     _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				     _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					 _ssfpSignals(ssfpSignals),
-					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _B0(B0), _B1(B1)
+					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _B0(B0), _B1(B1),
+					 _normalise(normalise)
 				     {
 						
 					 }
@@ -133,6 +135,8 @@ class OneComponent : public Functor<double>
 			//std::cout << "SPGR First" << std::endl;
 			VectorXd theory = One_SPGR(_spgrAngles, _spgrTR, params[0], params[1], _B1);
 			//std::cout << "SPGR Theory: " << theory.transpose() << " Sig: " << _spgrSignals.transpose() << std::endl;
+			if (_normalise)
+				theory /= theory.maxCoeff();
 			diffs.head(_spgrSignals.size()) = theory - _spgrSignals;
 			index += _spgrSignals.size();
 			
@@ -141,6 +145,8 @@ class OneComponent : public Functor<double>
 			for (int p = 0; p < _rfPhases.size(); p++)
 			{
 				theory = One_SSFP(_ssfpAngles, _rfPhases(p), _ssfpTR, params[0], params[1], params[2], _B0, _B1);
+				if (_normalise)
+					theory /= theory.maxCoeff();
 				diffs.segment(index, _ssfpAngles.size()) = theory - _ssfpSignals[p];
 				//std::cout << "SSFP Theory: " << theory.transpose() << " Sig: " << _ssfpSignals[p].transpose() << std::endl;
 				index += _ssfpAngles.size();
@@ -165,6 +171,7 @@ class OneComponentSSFP : public Functor<double>
 		const VectorXd &_flipAngles, &_rfPhases;
 		const std::vector<VectorXd> &_signals;
 		const double _TR, _T1, _M0, _B0, _B1;
+		const bool _normalise;
 		
 		static const int nP = 1;
 		static const char *names[];
@@ -172,12 +179,13 @@ class OneComponentSSFP : public Functor<double>
 		OneComponentSSFP(const VectorXd &flipAngles, const VectorXd &rfPhases,
 		                 const std::vector<VectorXd> &signals,
 				         const double TR, const double M0, const double T1,
-						 const double B0, const double B1) :
+						 const double B0, const double B1, const bool normalise = false) :
 				         Functor<double>(OneComponentSSFP::nP, flipAngles.size() * rfPhases.size()),
 				         _flipAngles(flipAngles),
 				         _rfPhases(rfPhases),
 				         _signals(signals),
-				         _TR(TR), _T1(T1), _M0(M0), _B0(B0), _B1(B1)
+				         _TR(TR), _T1(T1), _M0(M0), _B0(B0), _B1(B1),
+						 _normalise(normalise)
 				         {}
 			
 		int operator()(const VectorXd &params, VectorXd &diffs) const
@@ -187,6 +195,8 @@ class OneComponentSSFP : public Functor<double>
 			for (int p = 0; p < _rfPhases.size(); p++)
 			{
 				VectorXd temp = One_SSFP(_flipAngles, _rfPhases(p), _TR, _M0, _T1, params[0], _B0, _B1);
+				if (_normalise)
+					temp /= temp.maxCoeff();
 				diffs.segment(index, _flipAngles.size()) = temp - _signals[p];
 				index += _flipAngles.size();
 			}
@@ -207,6 +217,7 @@ class TwoComponent : public Functor<double>
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
 		const double _spgrTR, _ssfpTR, _B0, _B1;
+		const bool _normalise;
 		
 		static const int nP = 7;
 		static const char *names[];
@@ -227,12 +238,13 @@ class TwoComponent : public Functor<double>
 		             const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					 const std::vector<VectorXd> &ssfpSignals,
 					 const double spgrTR, const double ssfpTR, 
-					 const double B0, const double B1) :
+					 const double B0, const double B1, const bool normalise = false) :
 					 Functor<double>(TwoComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				     _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				     _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					 _ssfpSignals(ssfpSignals),
-					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _B0(B0), _B1(B1)
+					 _spgrTR(spgrTR), _ssfpTR(ssfpTR), _B0(B0), _B1(B1),
+					 _normalise(normalise)
 				     {
 						
 					 }
@@ -281,6 +293,8 @@ class TwoComponent : public Functor<double>
 					Mobs = (eye2 - A*cos(_B1 * a)).partialPivLu().solve(eyema * sin(_B1 * a)) * M0;
 					signals[i] = Mobs.sum();
 				}
+				if (_normalise)
+					signals /= signals.maxCoeff();
 				diffs.head(_spgrSignals.size()) = signals - _spgrSignals;
 				index += _spgrSignals.size();
 			}
@@ -328,6 +342,8 @@ class TwoComponent : public Functor<double>
 						signals[i] = sqrt(pow(Mobs[0] + Mobs[1], 2.) +
 										  pow(Mobs[2] + Mobs[3], 2.));
 					}
+					if (_normalise)
+						signals /= signals.maxCoeff();
 					diffs.segment(index, _ssfpAngles.size()) = signals - _ssfpSignals[p];
 					index += _ssfpAngles.size();
 				}
@@ -353,6 +369,7 @@ class ThreeComponent : public Functor<double>
 		const double _spgrTR, _ssfpTR, _B0, _B1;
 		const VectorXd &_spgrAngles, &_ssfpAngles, &_rfPhases, &_spgrSignals;
 		const std::vector<VectorXd> &_ssfpSignals;
+		const bool _normalise;
 		
 	public:
 		static const int nP = 10;
@@ -376,12 +393,13 @@ class ThreeComponent : public Functor<double>
 		               const VectorXd &ssfpAngles, const VectorXd &rfPhases,
 					   const std::vector<VectorXd> &ssfpSignals,
 					   const double spgrTR, const double ssfpTR, 
-					   const double B0, const double B1) :
+					   const double B0, const double B1, const bool normalise = false) :
 					   Functor<double>(ThreeComponent::nP, spgrAngles.size() + ssfpAngles.size() * rfPhases.size()),
 				       _spgrAngles(spgrAngles), _spgrSignals(spgrSignals),
 				       _ssfpAngles(ssfpAngles), _rfPhases(rfPhases),
 					   _ssfpSignals(ssfpSignals),
-					   _spgrTR(spgrTR), _ssfpTR(ssfpTR), _B0(B0), _B1(B1)
+					   _spgrTR(spgrTR), _ssfpTR(ssfpTR), _B0(B0), _B1(B1),
+					   _normalise(normalise)
 				      {
 					  	eigen_assert(_rfPhases.size() == _ssfpSignals.size());
 					  }
@@ -433,6 +451,8 @@ class ThreeComponent : public Functor<double>
 					Mobs = (eye3 - A*cos(_B1 * a)).partialPivLu().solve(eyema * sin(_B1 * a)) * M0;
 					signals[i] = Mobs.sum();
 				}
+				if (_normalise)
+					signals /= signals.maxCoeff();
 				diffs.head(_spgrSignals.size()) = signals - _spgrSignals;
 				index += _spgrSignals.size();
 			}
@@ -489,6 +509,8 @@ class ThreeComponent : public Functor<double>
 						signals[i] = sqrt(pow(Mobs[0] + Mobs[1] + Mobs[2], 2.) +
 										  pow(Mobs[3] + Mobs[4] + Mobs[5], 2.));
 					}
+					if (_normalise)
+						signals /= signals.maxCoeff();
 					diffs.segment(index, _ssfpSignals[p].size()) = signals - _ssfpSignals[p];
 					index += _ssfpSignals[p].size();
 				}

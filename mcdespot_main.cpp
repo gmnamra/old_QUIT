@@ -39,6 +39,7 @@ Options:\n\
 	--B1 file         : B1 Map file.\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
+	-n, --normalise   : Normalise signals to maximum (Ignore M0).\n\
 	-s, --samples n   : Use n samples for region contraction (Default 5000).\n\
 	-r, --retain  n   : Retain n samples for new boundary (Default 50).\n\
 	-c, --contract n  : Contract a maximum of n times (Default 10).\n\
@@ -48,7 +49,7 @@ Options:\n\
 	   u              : User specified boundaries from stdin.\n"
 };
 
-static int verbose = false, start_slice = -1, end_slice = -1,
+static int verbose = false, normalise = false, start_slice = -1, end_slice = -1,
 		   samples = 2500, retain = 25, contract = 10, components = 2, tesla = 7, nP = 0;
 static double expand = 0.;
 static std::string outPrefix;
@@ -61,6 +62,7 @@ static struct option long_options[] =
 	{"verbose", no_argument, 0, 'v'},
 	{"start_slice", required_argument, 0, 'S'},
 	{"end_slice", required_argument, 0, 'E'},
+	{"normalise", no_argument, &normalise, true},
 	{"samples", required_argument, 0, 's'},
 	{"retain", required_argument, 0, 'r'},
 	{"contract", required_argument, 0, 'c'},
@@ -114,7 +116,7 @@ int main(int argc, char **argv)
 	par_t *pars;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "b:m:vzs:r:c:e:", long_options, &indexptr)) != -1)
+	while ((c = getopt_long(argc, argv, "b:m:vzns:r:c:e:", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
@@ -145,6 +147,7 @@ int main(int argc, char **argv)
 			case 'v': verbose = true; break;
 			case 'S': start_slice = atoi(optarg); break;
 			case 'E': end_slice = atoi(optarg); break;
+			case 'n': normalise = true; break;
 			case 's': samples  = atoi(optarg); break;
 			case 'r': retain   = atoi(optarg); break;
 			case 'c': contract = atoi(optarg); break;
@@ -377,19 +380,19 @@ int main(int argc, char **argv)
 				switch (components)
 				{
 					case 1: {
-						OneComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1);
+						OneComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1, normalise);
 						residual = regionContraction<OneComponent>(params, tc, localLo, localHi,
 															       loConstraints, hiConstraints,
 															       samples, retain, contract, 0.05, expand, rSeed);
 						break; }
 					case 2: {
-						TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1);
+						TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1, normalise);
 						residual = regionContraction<TwoComponent>(params, tc, localLo, localHi,
 															       loConstraints, hiConstraints,
 															       samples, retain, contract, 0.05, expand, rSeed);
 						break; }
 					case 3: {
-						ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1);
+						ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1, normalise);
 						residual = regionContraction<ThreeComponent>(params, tc, localLo, localHi,
 																 	loConstraints, hiConstraints,
 																 	samples, retain, contract, 0.05, expand, rSeed);
