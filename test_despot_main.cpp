@@ -7,8 +7,9 @@
 //
 
 #include <getopt.h>
+#include <stdio.h>
 #include "DESPOT_Functors.h"
-#include "fslio.h"
+#include "NiftiImage.h"
 #include "procpar.h"
 
 static int components = 1;
@@ -141,68 +142,58 @@ int main(int argc, char **argv)
 	alphaSPGR *= 180. / M_PI;
 	alphaSSFP *= 180. / M_PI;
 	phases *= 180. / M_PI;
-	FSLIO *outFile;
-	char outName[1024];
+	NiftiImage outFile(nx, ny, nz, alphaSPGR.size(),
+					   volSize / nx, volSize / ny, volSize / nz, spgrTR,
+					   NIFTI_TYPE_FLOAT32);
+	std::string outName;
 	FILE *procparfile;
 	par_t *pars[3];
 	double spgrPhase = 0.;
 	pars[0] = createPar("tr", PAR_REAL, 1, &spgrTR);
 	pars[1] = createPar("flip1", PAR_REAL, alphaSPGR.size(), alphaSPGR.data());
 	pars[2] = createPar("rfphase", PAR_REAL, 1, &spgrPhase);
-	snprintf(outName, 1024, "SPGR_Noiseless.nii.gz");
-	outFile = FslOpen(outName, "wb");
-	FslSetDim(outFile, nx, ny, nz, alphaSPGR.size());
-	FslSetVoxDim(outFile, volSize / nx, volSize / ny, volSize / nz, spgrTR);
-	FslWriteHeader(outFile);
-	FslWriteAllVolumesFromDouble(outFile, dataSPGR);
-	FslClose(outFile);
-	snprintf(outName, 1024, "SPGR_Noiseless.procpar");
-	procparfile = fopen(outName, "w");
+	outName = "SPGR_Noiseless.nii.gz";
+	outFile.open(outName, NIFTI_WRITE);
+	outFile.writeAllVolumes(dataSPGR);
+	outFile.close();
+	outName = "SPGR_Noiseless.procpar";
+	procparfile = fopen(outName.c_str(), "w");
 	for (int i = 0; i < 3; i++)
 		fprintPar(procparfile, pars[i]);
 	fclose(procparfile);
 	for (int p = 0; p < phases.size(); p++)
 	{	
 		double phaseDeg = phases[p];
-		snprintf(outName, 1024, "SSFP-%.00f_Noiseless.nii.gz", phaseDeg);
-		outFile = FslOpen(outName, "wb");
-		FslSetDim(outFile, nx, ny, nz, alphaSSFP.size());
-		FslSetVoxDim(outFile, volSize / nx, volSize / ny, volSize / nz, spgrTR);
-		FslWriteHeader(outFile);
-		FslWriteAllVolumesFromDouble(outFile, dataSSFP[p]);
-		FslClose(outFile);
-		snprintf(outName, 1024, "SSFP-%.00f_Noiseless.procpar", phaseDeg);
+		outName = (std::stringstream("SSFP-") << outName << phaseDeg << "_Noiseless.nii.gz").str();
+		outFile.setnt(alphaSSFP.size());
+		outFile.open(outName, NIFTI_WRITE);
+		outFile.writeAllVolumes(dataSSFP[p]);
+		outFile.close();
+		outName = (std::stringstream("SSFP-") << outName << phaseDeg << "_Noiseless.procpar").str();
 		setPar(pars[0], 1, &ssfpTR);
 		setPar(pars[1], alphaSSFP.size(), alphaSSFP.data());
 		setPar(pars[2], 1, &phaseDeg);
-		procparfile = fopen(outName, "w");
+		procparfile = fopen(outName.c_str(), "w");
 		for (int i = 0; i < 3; i++)
 			fprintPar(procparfile, pars[i]);
 		fclose(procparfile);
 	}
 	
-	snprintf(outName, 1024, "B0_Noiseless.nii.gz");
-	outFile = FslOpen(outName, "wb");
-	FslSetDim(outFile, nx, ny, nz, 1);
-	FslSetVoxDim(outFile, volSize / nx, volSize / ny, volSize / nz, 0.);
-	FslWriteHeader(outFile);
-	FslWriteAllVolumesFromDouble(outFile, dataB0);
-	FslClose(outFile);
-	
-	snprintf(outName, 1024, "B1_Noiseless.nii.gz");
-	outFile = FslOpen(outName, "wb");
-	FslSetDim(outFile, nx, ny, nz, 1);
-	FslSetVoxDim(outFile, volSize / nx, volSize / ny, volSize / nz, 0.);
-	FslWriteHeader(outFile);
-	FslWriteAllVolumesFromDouble(outFile, dataB1);
-	
+	outName = "B0_Noiseless.nii.gz";
+	outFile.setnt(1);
+	outFile.open(outName, NIFTI_WRITE);
+	outFile.writeAllVolumes(dataB0);
+	outFile.close();
+	outName = "B1_Noiseless.nii.gz";
+	outFile.open(outName, NIFTI_WRITE);
+	outFile.writeAllVolumes(dataB1);
+	outFile.close();
 	switch (components)
 	{
 		case 1: write_results<OneComponent>(outPrefix, dataParams, NULL, outFile); break;
 		case 2: write_results<TwoComponent>(outPrefix, dataParams, NULL, outFile); break;
 		case 3: write_results<ThreeComponent>(outPrefix, dataParams, NULL, outFile); break;
 	}
-	FslClose(outFile);
     return 0;
 }
 

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F61B26561615FECB00239F61 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
 		F641095F161075AA00D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
 		F6410960161075B000D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
 		F6410961161075B400D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
@@ -292,6 +293,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F61B26561615FECB00239F61 /* libNiftiImage.a in Frameworks */,
 				F681257615E239D8007A3362 /* libz.dylib in Frameworks */,
 				F681257015E239C2007A3362 /* libprocpar.a in Frameworks */,
 			);

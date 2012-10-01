@@ -39,6 +39,7 @@ Options:\n\
 	--B1 file         : B1 Map file.\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
+	-d, --drop        : Drop certain flip-angles (Read from standard in).\n\
 	-n, --normalise   : Normalise signals to maximum (Ignore M0).\n\
 	-s, --samples n   : Use n samples for region contraction (Default 5000).\n\
 	-r, --retain  n   : Retain n samples for new boundary (Default 50).\n\
@@ -49,7 +50,7 @@ Options:\n\
 	   u              : User specified boundaries from stdin.\n"
 };
 
-static int verbose = false, normalise = false, start_slice = -1, end_slice = -1,
+static int verbose = false, normalise = false, drop = false, start_slice = -1, end_slice = -1,
 		   samples = 2500, retain = 25, contract = 10, components = 2, tesla = 7, nP = 0;
 static double expand = 0.;
 static std::string outPrefix;
@@ -67,6 +68,7 @@ static struct option long_options[] =
 	{"retain", required_argument, 0, 'r'},
 	{"contract", required_argument, 0, 'c'},
 	{"expand", required_argument, 0, 'e'},
+	{"drop", no_argument, &drop, true},
 	{"1", no_argument, &components, 1},
 	{"2", no_argument, &components, 2},
 	{"3", no_argument, &components, 3},
@@ -116,7 +118,7 @@ int main(int argc, char **argv)
 	par_t *pars;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "b:m:vzns:r:c:e:", long_options, &indexptr)) != -1)
+	while ((c = getopt_long(argc, argv, "b:m:vznds:r:c:e:", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
@@ -148,6 +150,7 @@ int main(int argc, char **argv)
 			case 'S': start_slice = atoi(optarg); break;
 			case 'E': end_slice = atoi(optarg); break;
 			case 'n': normalise = true; break;
+			case 'd': drop = true; break;
 			case 's': samples  = atoi(optarg); break;
 			case 'r': retain   = atoi(optarg); break;
 			case 'c': contract = atoi(optarg); break;
@@ -266,7 +269,6 @@ int main(int argc, char **argv)
 	}
 	ssfpAngles *= M_PI / 180.;
 	ssfpPhases *= M_PI / 180.;
-	
 	if (optind != argc)
 	{
 		std::cerr << "Unprocessed arguments supplied.\n" << usage;
@@ -320,7 +322,35 @@ int main(int argc, char **argv)
 		std::cout << "Phase Cycling Patterns (degrees): " << ssfpPhases.transpose() * 180. / M_PI << std::endl;
 		std::cout << "Low bounds: " << loBounds.transpose() << std::endl;
 		std::cout << "Hi bounds:  " << hiBounds.transpose() << std::endl;
-	}	
+	}
+	//**************************************************************************
+	// Select which angles to use in the analysis
+	//**************************************************************************	
+	VectorXi spgrKeep(nSPGR), ssfpKeep(nSSFP);
+	if (drop)
+	{
+		std::cout << "Choose SPGR angles to use (1 to keep, 0 to drop, " << nSPGR << " values): ";
+		for (int i = 0; i < nSPGR; i++) std::cin >> spgrKeep[i];
+		std::cout << "Using " << spgrKeep.sum() << " SPGR angles. " << spgrKeep.transpose() << std::endl;
+		std::cout << "Choose SSFP angles to use (1 to keep, 0 to drop, " << nSSFP << " values): ";
+		for (int i = 0; i < nSSFP; i++) std::cin >> ssfpKeep[i];
+		std::cout << "Using " << ssfpKeep.sum() << " SSFP angles. " << ssfpKeep.transpose() << std::endl;
+		VectorXd temp = spgrAngles;
+		spgrAngles.resize(spgrKeep.sum());
+		int angle = 0;
+		for (int i = 0; i < nSPGR; i++)
+			if (spgrKeep(i)) spgrAngles(angle++) = temp(i);
+		temp = ssfpAngles;
+		ssfpAngles.resize(ssfpKeep.sum());
+		angle = 0;
+		for (int i = 0; i < nSSFP; i++)
+			if (ssfpKeep(i)) ssfpAngles(angle++) = temp(i);
+	}
+	else
+	{
+		spgrKeep.setOnes();
+		ssfpKeep.setOnes();
+	}
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -359,17 +389,25 @@ int main(int argc, char **argv)
 				if (B0Data) B0 = (double)B0Data[sliceOffset + vox];
 				if (B1Data) B1 = (double)B1Data[sliceOffset + vox];
 				
-				VectorXd SPGR_signal(nSPGR);
-				for (int vol = 0; vol < nSPGR; vol++)
-					SPGR_signal[vol] = SPGR[totalVoxels*vol + sliceOffset + vox];
+				VectorXd SPGR_signal(spgrKeep.sum());
+				int vol = 0;
+				for (int i = 0; i < nSPGR; i++)
+				{
+					if (spgrKeep(i))
+						SPGR_signal[vol++] = SPGR[totalVoxels*i + sliceOffset + vox];
+				}
 				if (normalise)
 					SPGR_signal /= SPGR_signal.mean();
 				std::vector<VectorXd> SSFP_signals;
 				for (int p = 0; p < nPhases; p++)
 				{
-					VectorXd temp(nSSFP);
-					for (int vol = 0; vol < nSSFP; vol++)
-						temp[vol] = SSFP[p][totalVoxels*vol + sliceOffset + vox];
+					VectorXd temp(ssfpKeep.sum());
+					vol = 0;
+					for (int i = 0; i < nSSFP; i++)
+					{
+						if (ssfpKeep(i))
+							temp[vol++] = SSFP[p][totalVoxels*i + sliceOffset + vox];
+					}
 					if (normalise)
 						temp /= temp.mean();
 					SSFP_signals.push_back(temp);
