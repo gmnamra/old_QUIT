@@ -158,7 +158,8 @@ int main(int argc, char** argv)
 		array3d_t *gauss = gaussian3D(7, 7, 7, 1.5, 1.5, 1.5);
 		array3d_t *smoothed = array3d_alloc(inFile.nx(), inFile.ny(), inFile.nz());
 		convolve3D(smoothed, B0_3d, gauss);
-		arrayMul(smoothed->array->data, smoothed->array->data, mask, inFile.voxelsPerVolume());
+		if (mask)
+			arrayMul(smoothed->array->data, smoothed->array->data, mask, inFile.voxelsPerVolume());
 		fprintf(stdout, "done.\n");
 		std::cout << "Writing smoothed B0 map." << std::endl;
 		outPath = outPrefix + "_B0_smooth.nii.gz";
