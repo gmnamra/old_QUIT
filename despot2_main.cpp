@@ -140,6 +140,7 @@ int main(int argc, char **argv)
 	inFile.open(argv[optind++], 'r');
 	T1Data = inFile.readVolume<double>(0);
 	inFile.close();
+	savedHeader = inFile;
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
