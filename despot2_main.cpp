@@ -173,7 +173,6 @@ int main(int argc, char **argv)
 				for (int i = 0; i < ssfpAngles.size(); i++)
 					std::cin >> ssfpAngles[i];
 			}
-			savedHeader = inFile;
 		}
 		if (pars)
 		{
