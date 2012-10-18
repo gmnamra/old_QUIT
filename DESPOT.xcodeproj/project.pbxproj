@@ -773,7 +773,7 @@
 				HEADER_SEARCH_PATHS = (
 					../Maths,
 					../procparse,
-					../eigen,
+					"$(SRCROOT)/../eigen",
 					../dSFMT,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
@@ -804,7 +804,7 @@
 				HEADER_SEARCH_PATHS = (
 					../Maths,
 					../procparse,
-					../eigen,
+					"$(SRCROOT)/../eigen",
 					../dSFMT,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
@@ -871,10 +871,6 @@
 		F6E4A2801590DAB500DA4001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../build/MR/Build/Products/Debug\"",
-				);
 				OTHER_CFLAGS = "-DDSFMT_MEXP=521";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -883,10 +879,6 @@
 		F6E4A2811590DAB500DA4001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../build/MR/Build/Products/Debug\"",
-				);
 				OTHER_CFLAGS = "-DDSFMT_MEXP=521";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

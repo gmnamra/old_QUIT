@@ -13,6 +13,11 @@
 #include <getopt.h>
 #include <signal.h>
 
+#include <iostream>
+#include <fstream>
+
+using namespace std;
+
 #ifdef __APPLE__
 	#include <libkern/OSAtomic.h>
 	#define AtomicAdd OSAtomicAdd32
@@ -27,16 +32,21 @@
 //******************************************************************************
 // Arguments / Usage
 //******************************************************************************
-const std::string usage {
-"Usage is: mcdespot [options] output_prefix spgr_file ssfp_file1 (ssfp_fileN)\n\
-\
+const string usage {
+"Usage is: mcdespot [options] input_file output_prefix\n\
+\n\
+The input file must consist of at least one line such as:\n\
+SPGR path_to_spgr_file (path_to_B1_file) \n\
+SSFP path_to_ssfp_file phase_cycling (path_to_B0) (path_to_B1) \n\
+\n\
+Phase-cycling is specified in degrees. If no B0/B1 correction is specified,\n\
+default values of B0 = 0 Hz and B1 = 1 will be used.\n\
+\n\
 Options:\n\
 	-v, --verbose     : Print extra information.\n\
 	-m, --mask file   : Mask input with specified file.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 2).\n\
 	--M0 file         : M0 Map file.\n\
-	--B0 file         : B0 Map file.\n\
-	--B1 file         : B1 Map file.\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
 	-d, --drop        : Drop certain flip-angles (Read from standard in).\n\
@@ -53,11 +63,9 @@ Options:\n\
 static int verbose = false, normalise = false, drop = false, start_slice = -1, end_slice = -1,
 		   samples = 2500, retain = 25, contract = 10, components = 2, tesla = 7, nP = 0;
 static double expand = 0.;
-static std::string outPrefix;
+static string outPrefix;
 static struct option long_options[] =
 {
-	{"B0", required_argument, 0, '0'},
-	{"B1", required_argument, 0, '1'},
 	{"M0", required_argument, 0, 'M'},
 	{"mask", required_argument, 0, 'm'},
 	{"verbose", no_argument, 0, 'v'},
@@ -105,16 +113,15 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	if (argc < 4)
 	{
-		std::cerr << usage << std::endl;
+		cerr << usage << endl;
 		exit(EXIT_FAILURE);
 	}
 	Eigen::initParallel();
 	__block double spgrTR, ssfpTR,
-	               *maskData = NULL, *M0Data = NULL,
-				   *B0Data = NULL, *B1Data = NULL;
-	NiftiImage inFile;
-	int nSPGR, nPhases, nSSFP;
-	std::string procPath;
+	               *maskData = NULL, *M0Data = NULL;
+	NiftiImage inHeader;
+	int nSPGR, nSSFP;
+	string procPath;
 	par_t *pars;
 	
 	int indexptr = 0, c;
@@ -123,28 +130,16 @@ int main(int argc, char **argv)
 		switch (c)
 		{
 			case 'm':
-				std::cout << "Reading mask file " << optarg << std::endl;
-				inFile.open(optarg, NIFTI_READ);
-				maskData = inFile.readVolume<double>(0);
-				inFile.close();
-				break;
-			case '0':
-				std::cout << "Reading B0 file " << optarg << std::endl;
-				inFile.open(optarg, NIFTI_READ);
-				B0Data = inFile.readVolume<double>(0);
-				inFile.close();
-				break;
-			case '1':
-				std::cout << "Reading B1 file " << optarg << std::endl;
-				inFile.open(optarg, NIFTI_READ);
-				B1Data = inFile.readVolume<double>(0);
-				inFile.close();
+				cout << "Reading mask file " << optarg << endl;
+				inHeader.open(optarg, NIFTI_READ);
+				maskData = inHeader.readVolume<double>(0);
+				inHeader.close();
 				break;
 			case 'M':
-				std::cout << "Reading M0 file " << optarg << std::endl;
-				inFile.open(optarg, NIFTI_READ);
-				M0Data = inFile.readVolume<double>(0);
-				inFile.close();
+				cout << "Reading M0 file " << optarg << endl;
+				inHeader.open(optarg, NIFTI_READ);
+				M0Data = inHeader.readVolume<double>(0);
+				inHeader.close();
 				break;
 			case 'v': verbose = true; break;
 			case 'S': start_slice = atoi(optarg); break;
@@ -159,18 +154,18 @@ int main(int argc, char **argv)
 				switch (*optarg)
 				{
 					case '3':
-						std::cout << "Using 3T boundaries.\n";
+						cout << "Using 3T boundaries.\n";
 						tesla = 3;
 						break;
 					case '7':
-						std::cout << "Using 7T boundaries.\n";
+						cout << "Using 7T boundaries.\n";
 						tesla = 7;
 						break;
 					case 'u':
 						tesla = -1;
 						break;
 					default:
-						std::cout << "Unknown boundaries type " << optarg << std::endl;
+						cout << "Unknown boundaries type " << optarg << endl;
 						abort();
 						break;
 				}
@@ -182,102 +177,121 @@ int main(int argc, char **argv)
 				abort();
 		}
 	}
+	if ((argc - optind) != 2)
+	{
+		cerr << "Incorrect number of arguments.";
+		exit(EXIT_FAILURE);
+	}
+
+	//**************************************************************************
+	// Read input file and set up corresponding SPGR & SSFP lists
+	//**************************************************************************
+	__block vector<double *> SPGR_vols, SPGR_B1s, SSFP_vols, SSFP_B0s, SSFP_B1s;
+	__block VectorXd spgrAngles, ssfpAngles;
+	vector<double> ssfpPhases;
+	cout << "Opening input file: " << argv[optind] << endl;
+	ifstream inFile(argv[optind++]);
+	string nextLine;
+	
+	while (getline(inFile, nextLine))
+	{
+		stringstream thisLine(nextLine);
+		
+		string type, path;
+		if (!(thisLine >> type >> path)) {
+			cerr << "Could not read image type and path from input file line: " << nextLine << endl;
+			exit(EXIT_FAILURE);
+		}
+		
+		inHeader.open(path, NIFTI_READ);
+		if ((SPGR_vols.size() == 0) && (SSFP_vols.size() == 0))
+			savedHeader = inHeader;
+		
+		if (!savedHeader.volumesCompatible(inHeader)) {
+			cerr << "Input files do not have compatible physical spaces." << endl;
+			exit(EXIT_FAILURE);
+		}
+		
+		double *data;
+		if (type == "SPGR") {
+			if (SPGR_vols.size() == 0) {
+				nSPGR = inHeader.nt();
+				spgrAngles.resize(nSPGR, 1);
+				pars = readProcpar((inHeader.basename() + ".procpar").c_str());
+				if (pars) {
+					spgrTR = realVal(pars, "tr", 0);
+					for (int i = 0; i < nSPGR; i++) spgrAngles[i] = realVal(pars, "flip1", i);
+					freeProcpar(pars);
+				} else {
+					thisLine >> spgrTR;
+					for (int i = 0; i < nSPGR; i++) thisLine >> spgrAngles[i];
+				}
+				spgrAngles *= M_PI / 180.;
+			}
+			data = inHeader.readAllVolumes<double>();
+			SPGR_vols.push_back(data);
+			inHeader.close();
+			if (thisLine >> path) {	// Read a path to B1 file
+				inHeader.open(path, NIFTI_READ);
+				data = inHeader.readVolume<double>(0);
+				inHeader.close();
+			} else {
+				data = NULL;
+			}
+			SPGR_B1s.push_back(data);
+		} else if (type == "SSFP") {
+			pars = readProcpar((inHeader.basename() + ".procpar").c_str());
+			double phase;
+			if (pars)
+				phase = realVal(pars, "rfphase", 0);
+			else
+				inFile >> phase;
+			ssfpPhases.push_back(phase * M_PI / 180.);
+			if (SSFP_vols.size() == 0) {
+				nSSFP = inHeader.nt();
+				ssfpAngles.resize(nSSFP, 1);
+				if (pars) {
+					ssfpTR = realVal(pars, "tr", 0);
+					for (int i = 0; i < nSSFP; i++)
+						ssfpAngles[i] = realVal(pars, "flip1", i);
+				} else {
+					inFile >> ssfpTR;
+					for (int i = 0; i < ssfpAngles.size(); i++) inFile >> ssfpAngles[i];
+				}
+				ssfpAngles *= M_PI / 180.;
+			}
+			freeProcpar(pars);
+			data = inHeader.readAllVolumes<double>();
+			SPGR_vols.push_back(data);
+			inFile.close();
+			if (thisLine >> path) {	// Read a path to B0 file
+				inHeader.open(path, NIFTI_READ);
+				data = inHeader.readVolume<double>(0);
+				inHeader.close();
+			} else data = NULL;
+			SSFP_B0s.push_back(data);
+			if (thisLine >> path) {	// Read a path to B1 file
+				inHeader.open(path, NIFTI_READ);
+				data = inHeader.readVolume<double>(0);
+				inHeader.close();
+			} else data = NULL;
+			SSFP_B1s.push_back(data);
+		} else {
+			cerr << "Unknown scan type: " << type << ", must be SPGR or SSFP." << endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	cout << "Read " << SPGR_vols.size() << " SPGR files and " << SSFP_vols.size() << " SSFP files from input." << endl;
 	outPrefix = argv[optind++];
 	if (verbose)
-		std::cout << "Output prefix will be: " << outPrefix << std::endl;
-	//**************************************************************************
-	// Gather SPGR Data
-	//**************************************************************************
-	std::cout << "Opening SPGR file: " << argv[optind] << std::endl;
-	inFile.open(argv[optind], NIFTI_READ);
-	nSPGR = inFile.nt();
-	VectorXd spgrAngles(nSPGR);
-	procPath = inFile.basename() + ".procpar";
-	pars = readProcpar(procPath.c_str());
-	if (pars)
-	{
-		spgrTR = realVal(pars, "tr", 0);
-		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = realVal(pars, "flip1", i);
-		freeProcpar(pars);
-	}
-	else
-	{
-		std::cout << "Enter SPGR TR (s): " << std::flush;
-		std::cin >> spgrTR;
-		std::cout << "Enter SPGR Flip Angles (degrees): " << std::flush;
-		for (int i = 0; i < nSPGR; i++) std::cin >> spgrAngles[i];
-	}
-	spgrAngles *= M_PI / 180.;
-	int voxelsPerSlice = inFile.nx() * inFile.ny();
-	int totalVoxels = inFile.voxelsPerVolume();
-	std::cout << "Reading SPGR data..." << std::endl;
-	__block double *SPGR = inFile.readAllVolumes<double>();
-	// Save this header to output the results files.
-	inFile.close();
-	savedHeader = inFile;
-	optind++;
-	//**************************************************************************
-	// Gather SSFP Data
-	//**************************************************************************
-	nPhases = argc - optind;
-	VectorXd ssfpPhases(nPhases), ssfpAngles;
-	__block double **SSFP = (double **)malloc(nPhases * sizeof(double *));
-	for (size_t p = 0; p < nPhases; p++)
-	{
-		std::cout << "Reading SSFP header from " << argv[optind] << std::endl;
-		inFile.open(argv[optind], NIFTI_READ);
-		procPath = inFile.basename() + ".procpar";
-		pars = readProcpar(procPath.c_str());
-		if (p == 0)
-		{	// Read nSSFP, TR and flip angles from first file
-			nSSFP = inFile.nt();
-			ssfpAngles.resize(nSSFP, 1);
-			if (pars)
-			{
-				ssfpTR = realVal(pars, "tr", 0);
-				for (int i = 0; i < nSSFP; i++)
-					ssfpAngles[i] = realVal(pars, "flip1", i);
-			}
-			else
-			{
-				std::cout << "Enter SSFP TR (s): " << std::flush;
-				std::cin >> ssfpTR;
-				std::cout << "Enter " << nSSFP << " flip angles (degrees): " << std::flush;
-				for (int i = 0; i < ssfpAngles.size(); i++)
-					std::cin >> ssfpAngles[i];
-			}
-		}
-		// Check that all files have consistent dims
-		eigen_assert((inFile.nx() == savedHeader.nx()) &&
-		             (inFile.ny() == savedHeader.ny()) &&
-					 (inFile.nx() == savedHeader.nz()));
-		eigen_assert((inFile.nt() == nSSFP));
-		if (pars)
-		{
-			ssfpPhases[p] = realVal(pars, "rfphase", 0);
-			freeProcpar(pars);
-		}
-		else
-		{
-			std::cout << "Enter phase-cycling (degrees): " << std::flush;
-			std::cin >> ssfpPhases[p];
-		}
-		std::cout << "Reading SSFP data..." << std::endl;
-		SSFP[p] = inFile.readAllVolumes<double>();
-		inFile.close();
-		optind++;
-	}
-	ssfpAngles *= M_PI / 180.;
-	ssfpPhases *= M_PI / 180.;
-	if (optind != argc)
-	{
-		std::cerr << "Unprocessed arguments supplied.\n" << usage;
-		exit(EXIT_FAILURE);
-	}	
+		cout << "Output prefix will be: " << outPrefix << endl;
+			
+	int voxelsPerSlice = savedHeader.nx() * savedHeader.ny();
+	int totalVoxels = savedHeader.voxelsPerVolume();
 	//**************************************************************************
 	// Allocate results memory and set up boundaries
 	//**************************************************************************
-	std::cout << "Using " << components << " component model." << std::endl;
+	cout << "Using " << components << " component model." << endl;
 	switch (components)
 	{
 		case 1: nP = OneComponent::nP; break;
@@ -291,7 +305,7 @@ int main(int argc, char **argv)
 	residualData = (double *)malloc(totalVoxels * sizeof(double));
 	paramsData = (double **)malloc(nP * sizeof(double *));
 	if (tesla < 0)
-		std::cout << "Enter " << nP << " parameter pairs (low then high): " << std::flush;
+		cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
 	for (int i = 0; i < nP; i++)
 	{
 		paramsData[i] = (double *)malloc(totalVoxels * sizeof(double));
@@ -312,16 +326,15 @@ int main(int argc, char **argv)
 				case 3: loBounds[i] = ThreeComponent::lo7Bounds[i]; hiBounds[i] = ThreeComponent::hi7Bounds[i]; break;
 			}
 		} else {
-			std::cin >> loBounds[i] >> hiBounds[i];
+			cin >> loBounds[i] >> hiBounds[i];
 		}
 	}
 	if (verbose)
 	{
-		std::cout << "SPGR TR (s): " << spgrTR << " SPGR flip angles (deg): " << spgrAngles.transpose() * 180. / M_PI << std::endl;		
-		std::cout << "SSFP TR (s): " << ssfpTR << " SSFP flip angles (deg): " << ssfpAngles.transpose() * 180. / M_PI << std::endl;	
-		std::cout << "Phase Cycling Patterns (degrees): " << ssfpPhases.transpose() * 180. / M_PI << std::endl;
-		std::cout << "Low bounds: " << loBounds.transpose() << std::endl;
-		std::cout << "Hi bounds:  " << hiBounds.transpose() << std::endl;
+		cout << "SPGR TR (s): " << spgrTR << " SPGR flip angles (deg): " << spgrAngles.transpose() * 180. / M_PI << endl;		
+		cout << "SSFP TR (s): " << ssfpTR << " SSFP flip angles (deg): " << ssfpAngles.transpose() * 180. / M_PI << endl;	
+		cout << "Low bounds: " << loBounds.transpose() << endl;
+		cout << "Hi bounds:  " << hiBounds.transpose() << endl;
 	}
 	//**************************************************************************
 	// Select which angles to use in the analysis
@@ -329,12 +342,12 @@ int main(int argc, char **argv)
 	VectorXi spgrKeep(nSPGR), ssfpKeep(nSSFP);
 	if (drop)
 	{
-		std::cout << "Choose SPGR angles to use (1 to keep, 0 to drop, " << nSPGR << " values): ";
-		for (int i = 0; i < nSPGR; i++) std::cin >> spgrKeep[i];
-		std::cout << "Using " << spgrKeep.sum() << " SPGR angles. " << spgrKeep.transpose() << std::endl;
-		std::cout << "Choose SSFP angles to use (1 to keep, 0 to drop, " << nSSFP << " values): ";
-		for (int i = 0; i < nSSFP; i++) std::cin >> ssfpKeep[i];
-		std::cout << "Using " << ssfpKeep.sum() << " SSFP angles. " << ssfpKeep.transpose() << std::endl;
+		cout << "Choose SPGR angles to use (1 to keep, 0 to drop, " << nSPGR << " values): ";
+		for (int i = 0; i < nSPGR; i++) cin >> spgrKeep[i];
+		cout << "Using " << spgrKeep.sum() << " SPGR angles. " << spgrKeep.transpose() << endl;
+		cout << "Choose SSFP angles to use (1 to keep, 0 to drop, " << nSSFP << " values): ";
+		for (int i = 0; i < nSSFP; i++) cin >> ssfpKeep[i];
+		cout << "Using " << ssfpKeep.sum() << " SSFP angles. " << ssfpKeep.transpose() << endl;
 		VectorXd temp = spgrAngles;
 		spgrAngles.resize(spgrKeep.sum());
 		int angle = 0;
@@ -360,19 +373,19 @@ int main(int argc, char **argv)
 	if ((end_slice < 0) || (end_slice > savedHeader.nz()))
 		end_slice = savedHeader.nz();
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
-	std::cout << "Starting processing." << std::endl;
+	cout << "Starting processing." << endl;
 	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	for (int slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose)
-			std::cout << "Starting slice " << slice << "..." << std::flush;
+			cout << "Starting slice " << slice << "..." << flush;
 		__block int voxCount = 0;
 		__block const int sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
 		//for (int vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
-			double B0 = 0., B1 = 1., residual = 0.;
+			double residual = 0.;
 			VectorXd params(nP); params.setZero();
 			if ((!maskData || (maskData[sliceOffset + vox] > 0.)) &&
 			    (!M0Data || (M0Data[sliceOffset + vox] > 0.)))
@@ -385,51 +398,63 @@ int main(int argc, char **argv)
 					localLo(0) = (double)M0Data[sliceOffset + vox];
 					localHi(0) = (double)M0Data[sliceOffset + vox];
 				}
+								
+				vector<VectorXd> SPGR_signals, SSFP_signals;
+				VectorXd SPGR_B1(SPGR_vols.size()),
+				         SSFP_B0(SSFP_vols.size()), SSFP_B1(SSFP_vols.size());
 				
-				if (B0Data) B0 = (double)B0Data[sliceOffset + vox];
-				if (B1Data) B1 = (double)B1Data[sliceOffset + vox];
-				
-				VectorXd SPGR_signal(spgrKeep.sum());
-				int vol = 0;
-				for (int i = 0; i < nSPGR; i++)
-				{
-					if (spgrKeep(i))
-						SPGR_signal[vol++] = SPGR[totalVoxels*i + sliceOffset + vox];
+				for (int i = 0; i < SPGR_vols.size(); i++) {
+					VectorXd temp(spgrKeep.sum());
+					int vol = 0;
+					for (int j = 0; j < nSPGR; j++) {
+						if (spgrKeep(j))
+							temp[vol] = temp[totalVoxels*j + sliceOffset + vox];
+					}
+					if (normalise)
+						temp /= temp.mean();
+					SPGR_signals.push_back(temp);
+					SPGR_B1[i] = SPGR_B1s[i] ? SPGR_B1s[i][sliceOffset + vox] : 1.;
 				}
-				if (normalise)
-					SPGR_signal /= SPGR_signal.mean();
-				std::vector<VectorXd> SSFP_signals;
-				for (int p = 0; p < nPhases; p++)
+				
+				for (int i = 0; i < SSFP_vols.size(); i++)
 				{
 					VectorXd temp(ssfpKeep.sum());
-					vol = 0;
-					for (int i = 0; i < nSSFP; i++)
+					int vol = 0;
+					for (int j = 0; j < nSSFP; j++)
 					{
-						if (ssfpKeep(i))
-							temp[vol++] = SSFP[p][totalVoxels*i + sliceOffset + vox];
+						if (ssfpKeep(j))
+							temp[vol++] = SSFP_vols[i][totalVoxels*j + sliceOffset + vox];
 					}
 					if (normalise)
 						temp /= temp.mean();
 					SSFP_signals.push_back(temp);
+					SSFP_B0[i] = SSFP_B0s[i] ? SSFP_B0s[i][sliceOffset + vox] : 0.;
+					SSFP_B1[i] = SSFP_B1s[i] ? SSFP_B1s[i][sliceOffset + vox] : 1.;
 				}
 				
 				int rSeed = static_cast<int>(time(NULL));
 				switch (components)
 				{
 					case 1: {
-						OneComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1, normalise);
+						OneComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
+						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
+										normalise);
 						residual = regionContraction<OneComponent>(params, tc, localLo, localHi,
 															       loConstraints, hiConstraints,
 															       samples, retain, contract, 0.05, expand, rSeed);
 						break; }
 					case 2: {
-						TwoComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1, normalise);
+						TwoComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
+						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
+										normalise);
 						residual = regionContraction<TwoComponent>(params, tc, localLo, localHi,
 															       loConstraints, hiConstraints,
 															       samples, retain, contract, 0.05, expand, rSeed);
 						break; }
 					case 3: {
-						ThreeComponent tc(spgrAngles, SPGR_signal, ssfpAngles, ssfpPhases, SSFP_signals, spgrTR, ssfpTR, B0, B1, normalise);
+						ThreeComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
+						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
+										normalise);
 						residual = regionContraction<ThreeComponent>(params, tc, localLo, localHi,
 																 	loConstraints, hiConstraints,
 																 	samples, retain, contract, 0.05, expand, rSeed);
@@ -446,17 +471,17 @@ int main(int argc, char **argv)
 		{
 			clock_t loopEnd = clock();
 			if (voxCount > 0)
-				std::cout << voxCount << " unmasked voxels, CPU time per voxel was "
+				cout << voxCount << " unmasked voxels, CPU time per voxel was "
 				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
-			std::cout << "finished." << std::endl;
+			cout << "finished." << endl;
 		}
 	}
     time_t procEnd = time(NULL);
     struct tm *localEnd = localtime(&procEnd);
 	char theTime[MAXSTR];
     strftime(theTime, MAXSTR, "%H:%M:%S", localEnd);
-	std::cout << "Finished processing at " << theTime << "Run-time was " 
-	          << difftime(procEnd, procStart) << " s." << std::endl;
+	cout << "Finished processing at " << theTime << "Run-time was " 
+	          << difftime(procEnd, procStart) << " s." << endl;
 	switch (components)
 	{
 		case 1: write_results<OneComponent>(outPrefix, paramsData, residualData, savedHeader); break;
@@ -464,13 +489,18 @@ int main(int argc, char **argv)
 		case 3: write_results<ThreeComponent>(outPrefix, paramsData, residualData, savedHeader); break;
 	}
 	// Clean up memory
-	free(SPGR);
-	for (int p = 0; p < nPhases; p++)
-		free(SSFP[p]);
-	free(SSFP);
+	for (int i = 0; i < SPGR_vols.size(); i++)
+	{
+		free(SPGR_vols[i]);
+		if (SPGR_B1s[i]) free(SPGR_B1s[i]);
+	}
+	for (int i = 0; i < SSFP_vols.size(); i++)
+	{
+		free(SSFP_vols[i]);
+		if (SSFP_B0s[i]) free(SSFP_B0s[i]);
+		if (SSFP_B1s[i]) free(SSFP_B1s[i]);
+	}
 	free(M0Data);
-	free(B0Data);
-	free(B1Data);
 	free(maskData);
 	exit(EXIT_SUCCESS);
 }
