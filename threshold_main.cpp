@@ -73,7 +73,7 @@ int main(int argc, const char * argv[])
 	float *mask = (float *)calloc(sizeof(float), image.nvox());
 	double thresh = atof(argv[thisArg + 1]);
 	fprintf(stdout, "Threshold is %f.\n", thresh);
-	for (int i = 0; i < image.nvox(); i++)
+	for (int i = 0; i < image.voxelsPerVolume(); i++)
 	{
 		if (data[i] >= thresh)
 			mask[i] = 1;
