@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 			savedHeader = inHeader;
 		
 		if (!savedHeader.volumesCompatible(inHeader)) {
-			cerr << "Input files do not have compatible physical spaces." << endl;
+			cerr << "Input file " << savedHeader.basename() << " and " << inHeader.basename() << " do not have compatible physical spaces." << endl;
 			exit(EXIT_FAILURE);
 		}
 		
