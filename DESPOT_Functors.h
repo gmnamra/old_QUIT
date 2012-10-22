@@ -127,18 +127,21 @@ class OneComponent : public Functor<double>
 					 _spgrTR(spgrTR), _ssfpTR(ssfpTR),
 					 _normalise(normalise)
 				     {
-						
+						//std::cout << "SPGR B1 " << _spgrB1.transpose() << " SSFP B0 " << _ssfpB0.transpose() << " B1 " << _ssfpB1.transpose() << std::endl;
 					 }
 	
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
-			double PD = params[0], T1 = params[1], T2 = params[3];
+			double PD = params[0], T1 = params[1], T2 = params[2];
 			eigen_assert(diffs.size() == values());
 			int index = 0;
 			for (int i = 0; i < _spgrSignals.size(); i++)
 			{
 				VectorXd theory = One_SPGR(_spgrAngles, _spgrTR, PD, T1, _spgrB1[i]);
+				//std::cout << "SPGR theory " << theory.transpose() << std::endl;
 				if (_normalise) theory /= theory.mean();
+				//std::cout << "SPGR normalise " << theory.transpose() << std::endl;
+				//std::cout << "SPGR signal " << _spgrSignals[i].transpose() << std::endl;
 				diffs.segment(index, _spgrAngles.size()) = theory - _spgrSignals[i];
 				index += _spgrAngles.size();
 			}
@@ -147,18 +150,22 @@ class OneComponent : public Functor<double>
 			{
 				VectorXd theory = One_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
 				                           PD, T1, T2, _ssfpB0[i], _ssfpB1[i]);
+				//std::cout << "SSFP theory " << theory.transpose() << std::endl;
 				if (_normalise) theory /= theory.mean();
+				//std::cout << "SSFP normalise " << theory.transpose() << std::endl;
+				//std::cout << "SSFP signal " << _ssfpSignals[i].transpose() << std::endl;
 				diffs.segment(index, _ssfpAngles.size()) = theory - _ssfpSignals[i];
 				index += _ssfpAngles.size();
 			}
+			//std::cout << "diffs " << diffs.transpose() << std::endl;
 			return 0;
 		}
 };
 const char *OneComponent::names[] = { "M0", "T1", "T2" };
-const double OneComponent::lo3Bounds[] = { 0., 0.1, 0.01 };
+const double OneComponent::lo3Bounds[] = { 0.,   0.1, 0.01 };
 const double OneComponent::hi3Bounds[] = { 1.e7, 3.0, 1.0 };
-const double OneComponent::lo7Bounds[] = { 0., 0., 0.005 };
-const double OneComponent::hi7Bounds[] = { 1.e7, 3., 0.1 };
+const double OneComponent::lo7Bounds[] = { 0.,   0.1, 0.005 };
+const double OneComponent::hi7Bounds[] = { 1.e7, 5.0, 0.5 };
 
 //******************************************************************************
 #pragma mark OneComponentSSFP
@@ -541,8 +548,8 @@ class ThreeComponent : public Functor<double>
 const char *ThreeComponent::names[] = { "M0", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a" };
 const double ThreeComponent::lo3Bounds[] = { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025 };
 const double ThreeComponent::hi3Bounds[] = { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500 };
-const double ThreeComponent::lo7Bounds[] = { 0., 0.500, 1.50, 0.0001, 0.010, 0.0, 0.0, 0., 0., 0. };
-const double ThreeComponent::hi7Bounds[] = { 1.e7, 1.000, 3.00, 0.0500, 0.500, 1.0, 1.0, 0., 0., 0. };
+const double ThreeComponent::lo7Bounds[] = { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0 };
+const double ThreeComponent::hi7Bounds[] = { 1.e7, 0.750, 3.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5 };
 
 //******************************************************************************
 #pragma mark Utility functions

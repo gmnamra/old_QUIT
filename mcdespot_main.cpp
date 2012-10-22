@@ -196,13 +196,14 @@ int main(int argc, char **argv)
 	while (getline(inFile, nextLine))
 	{
 		stringstream thisLine(nextLine);
-		
 		string type, path;
+		double *data;
+
 		if (!(thisLine >> type >> path)) {
 			cerr << "Could not read image type and path from input file line: " << nextLine << endl;
 			exit(EXIT_FAILURE);
 		}
-		
+				
 		inHeader.open(path, NIFTI_READ);
 		if ((SPGR_vols.size() == 0) && (SSFP_vols.size() == 0))
 			savedHeader = inHeader;
@@ -212,7 +213,6 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 		
-		double *data;
 		if (type == "SPGR") {
 			if (SPGR_vols.size() == 0) {
 				nSPGR = inHeader.nt();
@@ -262,8 +262,8 @@ int main(int argc, char **argv)
 			}
 			freeProcpar(pars);
 			data = inHeader.readAllVolumes<double>();
-			SPGR_vols.push_back(data);
-			inFile.close();
+			SSFP_vols.push_back(data);
+			inHeader.close();
 			if (thisLine >> path) {	// Read a path to B0 file
 				inHeader.open(path, NIFTI_READ);
 				data = inHeader.readVolume<double>(0);
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
 		cout << "Output prefix will be: " << outPrefix << endl;
 			
 	int voxelsPerSlice = savedHeader.nx() * savedHeader.ny();
-	int totalVoxels = savedHeader.voxelsPerVolume();
+	int voxelsPerVolume = savedHeader.voxelsPerVolume();
 	//**************************************************************************
 	// Allocate results memory and set up boundaries
 	//**************************************************************************
@@ -302,13 +302,13 @@ int main(int argc, char **argv)
 	__block VectorXd loBounds(nP), hiBounds(nP);
 	__block VectorXi loConstraints(nP), hiConstraints(nP);
 	
-	residualData = (double *)malloc(totalVoxels * sizeof(double));
+	residualData = (double *)malloc(voxelsPerVolume * sizeof(double));
 	paramsData = (double **)malloc(nP * sizeof(double *));
 	if (tesla < 0)
 		cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
 	for (int i = 0; i < nP; i++)
 	{
-		paramsData[i] = (double *)malloc(totalVoxels * sizeof(double));
+		paramsData[i] = (double *)malloc(voxelsPerVolume * sizeof(double));
 		loConstraints[i] = true; hiConstraints[i] = true;
 		if (tesla == 3)
 		{
@@ -328,6 +328,11 @@ int main(int argc, char **argv)
 		} else {
 			cin >> loBounds[i] >> hiBounds[i];
 		}
+	}
+	if (normalise)
+	{
+		loBounds[0] = 1.;
+		hiBounds[0] = 1.;
 	}
 	if (verbose)
 	{
@@ -408,7 +413,7 @@ int main(int argc, char **argv)
 					int vol = 0;
 					for (int j = 0; j < nSPGR; j++) {
 						if (spgrKeep(j))
-							temp[vol] = temp[totalVoxels*j + sliceOffset + vox];
+							temp[vol++] = SPGR_vols[i][voxelsPerVolume*j + sliceOffset + vox];
 					}
 					if (normalise)
 						temp /= temp.mean();
@@ -423,7 +428,7 @@ int main(int argc, char **argv)
 					for (int j = 0; j < nSSFP; j++)
 					{
 						if (ssfpKeep(j))
-							temp[vol++] = SSFP_vols[i][totalVoxels*j + sliceOffset + vox];
+							temp[vol++] = SSFP_vols[i][voxelsPerVolume*j + sliceOffset + vox];
 					}
 					if (normalise)
 						temp /= temp.mean();
