@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 	               *maskData = NULL, *M0Data = NULL;
 	__block vector<NiftiImage *> SPGR_files, SSFP_files, SPGR_B1_files, SSFP_B0_files, SSFP_B1_files;
 	NiftiImage inHeader;
-	int nSPGR, nSSFP;
+	int nSPGR = 0, nSSFP = 0;
 	string procPath;
 	par_t *pars;
 	
@@ -191,6 +191,11 @@ int main(int argc, char **argv)
 	vector<double> ssfpPhases;
 	cout << "Opening input file: " << argv[optind] << endl;
 	ifstream inFile(argv[optind++]);
+	if (!inFile)
+	{
+		cerr << "Could not open input file." << endl;
+		exit(EXIT_FAILURE);
+	}
 	string nextLine;
 	
 	while (getline(inFile, nextLine))
@@ -273,7 +278,11 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 	}
-	cout << "Read " << SPGR_files.size() << " SPGR files and " << SSFP_files.size() << " SSFP files from input." << endl;
+	if (SPGR_files.size() == 0 && SSFP_files.size() == 0)
+	{
+		cerr << "No input images specified." << endl;
+		exit(EXIT_FAILURE);
+	}
 	outPrefix = argv[optind++];
 	if (verbose)
 		cout << "Output prefix will be: " << outPrefix << endl;
@@ -378,7 +387,6 @@ int main(int argc, char **argv)
 			cout << "Starting slice " << slice << "..." << flush;
 		__block int voxCount = 0;
 		__block const int sliceOffset = slice * voxelsPerSlice;
-		clock_t loopStart = clock();
 		
 		// Read data for slice
 		vector<double *> SPGR_vols, SPGR_B1s, SSFP_vols, SSFP_B0s, SSFP_B1s;
@@ -403,6 +411,7 @@ int main(int argc, char **argv)
 				SSFP_B1s.push_back(NULL);
 		}
 		
+		clock_t loopStart = clock();
 		//for (int vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
