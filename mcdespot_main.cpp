@@ -119,6 +119,7 @@ int main(int argc, char **argv)
 	Eigen::initParallel();
 	__block double spgrTR, ssfpTR,
 	               *maskData = NULL, *M0Data = NULL;
+	__block vector<NiftiImage *> SPGR_files, SSFP_files, SPGR_B1_files, SSFP_B0_files, SSFP_B1_files;
 	NiftiImage inHeader;
 	int nSPGR, nSSFP;
 	string procPath;
@@ -186,7 +187,6 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Read input file and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	__block vector<double *> SPGR_vols, SPGR_B1s, SSFP_vols, SSFP_B0s, SSFP_B1s;
 	__block VectorXd spgrAngles, ssfpAngles;
 	vector<double> ssfpPhases;
 	cout << "Opening input file: " << argv[optind] << endl;
@@ -197,27 +197,28 @@ int main(int argc, char **argv)
 	{
 		stringstream thisLine(nextLine);
 		string type, path;
-		double *data;
-
+		NiftiImage *inHdr;
+		
 		if (!(thisLine >> type >> path)) {
 			cerr << "Could not read image type and path from input file line: " << nextLine << endl;
 			exit(EXIT_FAILURE);
 		}
-				
-		inHeader.open(path, NIFTI_READ);
-		if ((SPGR_vols.size() == 0) && (SSFP_vols.size() == 0))
-			savedHeader = inHeader;
 		
-		if (!savedHeader.volumesCompatible(inHeader)) {
-			cerr << "Input file " << savedHeader.basename() << " and " << inHeader.basename() << " do not have compatible physical spaces." << endl;
+		cout << "Opening image header: " << path << endl;
+		inHdr = new NiftiImage(path, NIFTI_READ);
+		if ((SPGR_files.size() == 0) && (SSFP_files.size() == 0))
+			savedHeader = *inHdr;
+		
+		if (!inHdr->volumesCompatible(savedHeader)) {
+			cerr << "Physical space is incompatible with first image." << endl;
 			exit(EXIT_FAILURE);
 		}
 		
 		if (type == "SPGR") {
-			if (SPGR_vols.size() == 0) {
-				nSPGR = inHeader.nt();
+			if (SPGR_files.size() == 0) {
+				nSPGR = inHdr->nt();
 				spgrAngles.resize(nSPGR, 1);
-				pars = readProcpar((inHeader.basename() + ".procpar").c_str());
+				pars = readProcpar((inHdr->basename() + ".procpar").c_str());
 				if (pars) {
 					spgrTR = realVal(pars, "tr", 0);
 					for (int i = 0; i < nSPGR; i++) spgrAngles[i] = realVal(pars, "flip1", i);
@@ -228,27 +229,22 @@ int main(int argc, char **argv)
 				}
 				spgrAngles *= M_PI / 180.;
 			}
-			data = inHeader.readAllVolumes<double>();
-			SPGR_vols.push_back(data);
-			inHeader.close();
-			if (thisLine >> path) {	// Read a path to B1 file
-				inHeader.open(path, NIFTI_READ);
-				data = inHeader.readVolume<double>(0);
-				inHeader.close();
-			} else {
-				data = NULL;
-			}
-			SPGR_B1s.push_back(data);
+			SPGR_files.push_back(inHdr);
+			if (thisLine >> path) // Read a path to B1 file
+				inHdr = new NiftiImage(path, NIFTI_READ);
+			else
+				inHdr = NULL;
+			SPGR_B1_files.push_back(inHdr);
 		} else if (type == "SSFP") {
-			pars = readProcpar((inHeader.basename() + ".procpar").c_str());
+			pars = readProcpar((inHdr->basename() + ".procpar").c_str());
 			double phase;
 			if (pars)
 				phase = realVal(pars, "rfphase", 0);
 			else
 				inFile >> phase;
 			ssfpPhases.push_back(phase * M_PI / 180.);
-			if (SSFP_vols.size() == 0) {
-				nSSFP = inHeader.nt();
+			if (SSFP_files.size() == 0) {
+				nSSFP = inHdr->nt();
 				ssfpAngles.resize(nSSFP, 1);
 				if (pars) {
 					ssfpTR = realVal(pars, "tr", 0);
@@ -261,27 +257,23 @@ int main(int argc, char **argv)
 				ssfpAngles *= M_PI / 180.;
 			}
 			freeProcpar(pars);
-			data = inHeader.readAllVolumes<double>();
-			SSFP_vols.push_back(data);
-			inHeader.close();
-			if (thisLine >> path) {	// Read a path to B0 file
-				inHeader.open(path, NIFTI_READ);
-				data = inHeader.readVolume<double>(0);
-				inHeader.close();
-			} else data = NULL;
-			SSFP_B0s.push_back(data);
-			if (thisLine >> path) {	// Read a path to B1 file
-				inHeader.open(path, NIFTI_READ);
-				data = inHeader.readVolume<double>(0);
-				inHeader.close();
-			} else data = NULL;
-			SSFP_B1s.push_back(data);
+			SSFP_files.push_back(inHdr);
+			if (thisLine >> path)	// Read a path to B0 file
+				inHdr = new NiftiImage(path, NIFTI_READ);
+			else
+				inHdr = NULL;
+			SSFP_B0_files.push_back(inHdr);
+			if (thisLine >> path) // Read a path to B1 file
+				inHdr = new NiftiImage(path, NIFTI_READ);
+			else
+				inHdr = NULL;
+			SSFP_B1_files.push_back(inHdr);
 		} else {
 			cerr << "Unknown scan type: " << type << ", must be SPGR or SSFP." << endl;
 			exit(EXIT_FAILURE);
 		}
 	}
-	cout << "Read " << SPGR_vols.size() << " SPGR files and " << SSFP_vols.size() << " SSFP files from input." << endl;
+	cout << "Read " << SPGR_files.size() << " SPGR files and " << SSFP_files.size() << " SSFP files from input." << endl;
 	outPrefix = argv[optind++];
 	if (verbose)
 		cout << "Output prefix will be: " << outPrefix << endl;
@@ -387,6 +379,30 @@ int main(int argc, char **argv)
 		__block int voxCount = 0;
 		__block const int sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
+		
+		// Read data for slice
+		vector<double *> SPGR_vols, SPGR_B1s, SSFP_vols, SSFP_B0s, SSFP_B1s;
+		for (int i = 0; i < SPGR_files.size(); i++)
+		{
+			SPGR_vols.push_back(SPGR_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1));
+			if (SPGR_B1_files[i])
+				SPGR_B1s.push_back(SPGR_B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1));
+			else
+				SPGR_B1s.push_back(NULL);
+		}
+		for (int i = 0; i < SSFP_files.size(); i++)
+		{
+			SSFP_vols.push_back(SSFP_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1));
+			if (SSFP_B0_files[i])
+				SSFP_B0s.push_back(SSFP_B0_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1));
+			else
+				SSFP_B0s.push_back(NULL);
+			if (SSFP_B1_files[i])
+				SSFP_B1s.push_back(SSFP_B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1));
+			else
+				SSFP_B1s.push_back(NULL);
+		}
+		
 		//for (int vox = 0; vox < voxelsPerSlice; vox++)
 		void (^processVoxel)(size_t vox) = ^(size_t vox)
 		{
@@ -413,12 +429,12 @@ int main(int argc, char **argv)
 					int vol = 0;
 					for (int j = 0; j < nSPGR; j++) {
 						if (spgrKeep(j))
-							temp[vol++] = SPGR_vols[i][voxelsPerVolume*j + sliceOffset + vox];
+							temp[vol++] = SPGR_vols[i][voxelsPerSlice*j + vox];
 					}
 					if (normalise)
 						temp /= temp.mean();
 					SPGR_signals.push_back(temp);
-					SPGR_B1[i] = SPGR_B1s[i] ? SPGR_B1s[i][sliceOffset + vox] : 1.;
+					SPGR_B1[i] = SPGR_B1s[i] ? SPGR_B1s[i][vox] : 1.;
 				}
 				
 				for (int i = 0; i < SSFP_vols.size(); i++)
@@ -428,13 +444,13 @@ int main(int argc, char **argv)
 					for (int j = 0; j < nSSFP; j++)
 					{
 						if (ssfpKeep(j))
-							temp[vol++] = SSFP_vols[i][voxelsPerVolume*j + sliceOffset + vox];
+							temp[vol++] = SSFP_vols[i][voxelsPerSlice*j + vox];
 					}
 					if (normalise)
 						temp /= temp.mean();
 					SSFP_signals.push_back(temp);
-					SSFP_B0[i] = SSFP_B0s[i] ? SSFP_B0s[i][sliceOffset + vox] : 0.;
-					SSFP_B1[i] = SSFP_B1s[i] ? SSFP_B1s[i][sliceOffset + vox] : 1.;
+					SSFP_B0[i] = SSFP_B0s[i] ? SSFP_B0s[i][vox] : 0.;
+					SSFP_B1[i] = SSFP_B1s[i] ? SSFP_B1s[i][vox] : 1.;
 				}
 				
 				int rSeed = static_cast<int>(time(NULL));
@@ -472,6 +488,19 @@ int main(int argc, char **argv)
 		};
 		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
 		
+		// Clean up memory
+		for (int i = 0; i < SPGR_vols.size(); i++)
+		{
+			free(SPGR_vols[i]);
+			if (SPGR_B1s[i]) free(SPGR_B1s[i]);
+		}
+		for (int i = 0; i < SSFP_vols.size(); i++)
+		{
+			free(SSFP_vols[i]);
+			if (SSFP_B0s[i]) free(SSFP_B0s[i]);
+			if (SSFP_B1s[i]) free(SSFP_B1s[i]);
+		}
+		
 		if (verbose)
 		{
 			clock_t loopEnd = clock();
@@ -493,17 +522,17 @@ int main(int argc, char **argv)
 		case 2: write_results<TwoComponent>(outPrefix, paramsData, residualData, savedHeader); break;
 		case 3: write_results<ThreeComponent>(outPrefix, paramsData, residualData, savedHeader); break;
 	}
-	// Clean up memory
-	for (int i = 0; i < SPGR_vols.size(); i++)
+
+	for (int i = 0; i < SPGR_files.size(); i++)
 	{
-		free(SPGR_vols[i]);
-		if (SPGR_B1s[i]) free(SPGR_B1s[i]);
+		SPGR_files[i]->close();
+		if (SPGR_B1_files[i]) SPGR_files[i]->close();
 	}
-	for (int i = 0; i < SSFP_vols.size(); i++)
+	for (int i = 0; i < SSFP_files.size(); i++)
 	{
-		free(SSFP_vols[i]);
-		if (SSFP_B0s[i]) free(SSFP_B0s[i]);
-		if (SSFP_B1s[i]) free(SSFP_B1s[i]);
+		SSFP_files[i]->close();
+		if (SSFP_B0_files[i]) SSFP_B0_files[i]->close();
+		if (SSFP_B1_files[i]) SSFP_B1_files[i]->close();
 	}
 	free(M0Data);
 	free(maskData);
