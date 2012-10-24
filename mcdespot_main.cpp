@@ -132,13 +132,13 @@ int main(int argc, char **argv)
 		{
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
-				inHeader.open(optarg, NIFTI_READ);
+				inHeader.open(optarg, NiftiImage::NIFTI_READ);
 				maskData = inHeader.readVolume<double>(0);
 				inHeader.close();
 				break;
 			case 'M':
 				cout << "Reading M0 file " << optarg << endl;
-				inHeader.open(optarg, NIFTI_READ);
+				inHeader.open(optarg, NiftiImage::NIFTI_READ);
 				M0Data = inHeader.readVolume<double>(0);
 				inHeader.close();
 				break;
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
 		}
 		
 		cout << "Opening image header: " << path << endl;
-		inHdr = new NiftiImage(path, NIFTI_READ);
+		inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 		if ((SPGR_files.size() == 0) && (SSFP_files.size() == 0))
 			savedHeader = *inHdr;
 		
@@ -236,7 +236,7 @@ int main(int argc, char **argv)
 			}
 			SPGR_files.push_back(inHdr);
 			if (thisLine >> path) // Read a path to B1 file
-				inHdr = new NiftiImage(path, NIFTI_READ);
+				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 			else
 				inHdr = NULL;
 			SPGR_B1_files.push_back(inHdr);
@@ -264,12 +264,12 @@ int main(int argc, char **argv)
 			freeProcpar(pars);
 			SSFP_files.push_back(inHdr);
 			if (thisLine >> path)	// Read a path to B0 file
-				inHdr = new NiftiImage(path, NIFTI_READ);
+				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 			else
 				inHdr = NULL;
 			SSFP_B0_files.push_back(inHdr);
 			if (thisLine >> path) // Read a path to B1 file
-				inHdr = new NiftiImage(path, NIFTI_READ);
+				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 			else
 				inHdr = NULL;
 			SSFP_B1_files.push_back(inHdr);
@@ -283,15 +283,35 @@ int main(int argc, char **argv)
 		cerr << "No input images specified." << endl;
 		exit(EXIT_FAILURE);
 	}
+	//**************************************************************************
+	// Select which angles to use in the analysis
+	//**************************************************************************	
+	VectorXi spgrKeep(nSPGR), ssfpKeep(nSSFP);
+	spgrKeep.setOnes(); ssfpKeep.setOnes();
+	if (drop) {
+		cout << "Choose SPGR angles to use (1 to keep, 0 to drop, " << nSPGR << " values): ";
+		for (int i = 0; i < nSPGR; i++) cin >> spgrKeep[i];
+		cout << "Choose SSFP angles to use (1 to keep, 0 to drop, " << nSSFP << " values): ";
+		for (int i = 0; i < nSSFP; i++) cin >> ssfpKeep[i];
+		VectorXd temp = spgrAngles;
+		spgrAngles.resize(spgrKeep.sum());
+		int angle = 0;
+		for (int i = 0; i < nSPGR; i++)
+			if (spgrKeep(i)) spgrAngles(angle++) = temp(i);
+		temp = ssfpAngles;
+		ssfpAngles.resize(ssfpKeep.sum());
+		angle = 0;
+		for (int i = 0; i < nSSFP; i++)
+			if (ssfpKeep(i)) ssfpAngles(angle++) = temp(i);
+	}
 	outPrefix = argv[optind++];
 	if (verbose)
 		cout << "Output prefix will be: " << outPrefix << endl;
-			
-	int voxelsPerSlice = savedHeader.nx() * savedHeader.ny();
-	int voxelsPerVolume = savedHeader.voxelsPerVolume();
 	//**************************************************************************
 	// Allocate results memory and set up boundaries
 	//**************************************************************************
+	int voxelsPerSlice = savedHeader.voxelsPerSlice();
+	int voxelsPerVolume = savedHeader.voxelsPerVolume();	
 	cout << "Using " << components << " component model." << endl;
 	switch (components)
 	{
@@ -343,34 +363,6 @@ int main(int argc, char **argv)
 		cout << "Hi bounds:  " << hiBounds.transpose() << endl;
 	}
 	//**************************************************************************
-	// Select which angles to use in the analysis
-	//**************************************************************************	
-	VectorXi spgrKeep(nSPGR), ssfpKeep(nSSFP);
-	if (drop)
-	{
-		cout << "Choose SPGR angles to use (1 to keep, 0 to drop, " << nSPGR << " values): ";
-		for (int i = 0; i < nSPGR; i++) cin >> spgrKeep[i];
-		cout << "Using " << spgrKeep.sum() << " SPGR angles. " << spgrKeep.transpose() << endl;
-		cout << "Choose SSFP angles to use (1 to keep, 0 to drop, " << nSSFP << " values): ";
-		for (int i = 0; i < nSSFP; i++) cin >> ssfpKeep[i];
-		cout << "Using " << ssfpKeep.sum() << " SSFP angles. " << ssfpKeep.transpose() << endl;
-		VectorXd temp = spgrAngles;
-		spgrAngles.resize(spgrKeep.sum());
-		int angle = 0;
-		for (int i = 0; i < nSPGR; i++)
-			if (spgrKeep(i)) spgrAngles(angle++) = temp(i);
-		temp = ssfpAngles;
-		ssfpAngles.resize(ssfpKeep.sum());
-		angle = 0;
-		for (int i = 0; i < nSSFP; i++)
-			if (ssfpKeep(i)) ssfpAngles(angle++) = temp(i);
-	}
-	else
-	{
-		spgrKeep.setOnes();
-		ssfpKeep.setOnes();
-	}
-	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
     time_t procStart = time(NULL);
@@ -420,6 +412,7 @@ int main(int argc, char **argv)
 			if ((!maskData || (maskData[sliceOffset + vox] > 0.)) &&
 			    (!M0Data || (M0Data[sliceOffset + vox] > 0.)))
 			{
+				//cout << "Voxel " << (vox % savedHeader.nx()) << " " << (vox / savedHeader.nx()) << endl;
 				AtomicAdd(1, &voxCount);
 				// Must take copies before altering inside a block
 				VectorXd localLo = loBounds, localHi = hiBounds;
