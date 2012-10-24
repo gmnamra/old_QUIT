@@ -9,8 +9,7 @@
 #ifndef DESPOT_RegionContraction_h
 #define DESPOT_RegionContraction_h
 
-#define DSFMT_MEXP 521
-#include "dSFMT.h"
+#include <random>
 
 typedef Array<bool, Dynamic, Dynamic> ArrayXb;
 typedef std::pair<int, double> argsort_pair;
@@ -54,30 +53,22 @@ double regionContraction(VectorXd &params, Functor_t &f,
 	VectorXd diffs(f.values());
 	size_t c;
 	
-	dsfmt_t dsfmt;
-	dsfmt_init_gen_rand(&dsfmt, static_cast<uint32_t>(seed));
+	std::mt19937 twist(seed);
+	std::uniform_real_distribution<double> uniform(0., 1.);
 	
-	//dsfmt doesn't like filling small or non-even sized arrays
-	int tmp_size = dsfmt_get_min_array_size();
-	if (tmp_size < nP)
-		tmp_size = nP;
-	VectorXd tempSample(tmp_size);
 	for (c = 0; c < maxContractions; c++)
 	{
-		// _open_open is in the range 0 to 1.
-		//std::cout << "Lo: " << loBounds.transpose() << " Hi: " << hiBounds.transpose() << " Best res: " << sampleRes[indices[0]] << std::endl;
-		dsfmt_fill_array_open_open(&dsfmt, samples.data(), nP * nS);
 		for (int s = 0; s < nS; s++)
 		{
-			samples.col(s).array() *= regionSize.array();
-			samples.col(s) += loBounds;
-			while (!Functor_t::f_constraint(samples.col(s)))
+			VectorXd tempSample(nP);
+			do
 			{
-				dsfmt_fill_array_open_open(&dsfmt, tempSample.data(), tmp_size);
-				samples.col(s) = tempSample.head(nP);
-				samples.col(s).array() *= regionSize.array();
-				samples.col(s) += loBounds;
-			}
+				for (int p = 0; p < nP; p++)
+					tempSample(p) = uniform(twist);
+				tempSample.array() *= regionSize.array();
+				tempSample += loBounds;
+			} while (!Functor_t::f_constraint(tempSample));
+			samples.col(s) = tempSample;
 			f(samples.col(s), diffs);
 			sampleRes(s) = diffs.norm();
 			if (!std::isfinite(diffs.norm()))
