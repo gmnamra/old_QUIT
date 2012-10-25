@@ -8,13 +8,14 @@
  */
 
 #include <time.h>
-#include <stdbool.h>
-#include <dispatch/dispatch.h>
 #include <getopt.h>
 #include <signal.h>
 
 #include <iostream>
 #include <fstream>
+
+#include <functional>
+#include <thread>
 
 using namespace std;
 
@@ -117,9 +118,9 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	Eigen::initParallel();
-	__block double spgrTR, ssfpTR,
+	double spgrTR, ssfpTR,
 	               *maskData = NULL, *M0Data = NULL;
-	__block vector<NiftiImage *> SPGR_files, SSFP_files, SPGR_B1_files, SSFP_B0_files, SSFP_B1_files;
+	vector<NiftiImage *> SPGR_files, SSFP_files, SPGR_B1_files, SSFP_B0_files, SSFP_B1_files;
 	NiftiImage inHeader;
 	int nSPGR = 0, nSSFP = 0;
 	string procPath;
@@ -187,7 +188,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Read input file and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	__block VectorXd spgrAngles, ssfpAngles;
+	VectorXd spgrAngles, ssfpAngles;
 	vector<double> ssfpPhases;
 	cout << "Opening input file: " << argv[optind] << endl;
 	ifstream inFile(argv[optind++]);
@@ -320,8 +321,8 @@ int main(int argc, char **argv)
 		case 3: nP = ThreeComponent::nP; break;
 	}
 		
-	__block VectorXd loBounds(nP), hiBounds(nP);
-	__block VectorXi loConstraints(nP), hiConstraints(nP);
+	VectorXd loBounds(nP), hiBounds(nP);
+	VectorXi loConstraints(nP), hiConstraints(nP);
 	
 	residualData = (double *)malloc(voxelsPerVolume * sizeof(double));
 	paramsData = (double **)malloc(nP * sizeof(double *));
@@ -372,13 +373,12 @@ int main(int argc, char **argv)
 		end_slice = savedHeader.nz();
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	cout << "Starting processing." << endl;
-	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	for (int slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose)
 			cout << "Starting slice " << slice << "..." << flush;
-		__block int voxCount = 0;
-		__block const int sliceOffset = slice * voxelsPerSlice;
+		int voxCount = 0;
+		const int sliceOffset = slice * voxelsPerSlice;
 		
 		// Read data for slice
 		vector<double *> SPGR_vols, SPGR_B1s, SSFP_vols, SSFP_B0s, SSFP_B1s;
@@ -405,7 +405,8 @@ int main(int argc, char **argv)
 		
 		clock_t loopStart = clock();
 		//for (int vox = 0; vox < voxelsPerSlice; vox++)
-		void (^processVoxel)(size_t vox) = ^(size_t vox)
+		//void (^processVoxel)(size_t vox) = ^(size_t vox)
+		function<void (const size_t&)> processVox = [&] (const size_t &vox)
 		{
 			double residual = 0.;
 			VectorXd params(nP); params.setZero();
@@ -488,7 +489,11 @@ int main(int argc, char **argv)
 				paramsData[p][sliceOffset + vox]  = params[p];
 			residualData[sliceOffset + vox] = residual;
 		};
-		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+		
+		vector<thread> thread_pool;
+		for (int i = 0; i < thread::hardware_concurrency())
+			thread_pool.push_back(thread(processVox));
+		
 		
 		// Clean up memory
 		for (int i = 0; i < SPGR_vols.size(); i++)
