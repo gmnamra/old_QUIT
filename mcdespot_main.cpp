@@ -26,21 +26,17 @@ using namespace std;
 
 void apply_for(const int max, const function<void(int)> f) {
 	vector<thread> pool;
+	const int num_threads = thread::hardware_concurrency();
 	
-	atomic<int> complete{0};
-	
-	function<void()> worker = [&complete, &max, &f]() {
-		cout << "Worker " << this_thread::get_id() << " launched" << endl;
-		while (complete < max) {
-			int local = atomic_fetch_add(&complete, 1);
+	function<void(int)> worker = [&max, &f, &num_threads](int local) {
+		while (local < max) {
 			f(local);
+			local += num_threads;
 		}
-		cout << "Worker " << this_thread::get_id() << " finished" << endl;
 	};
 	
-	cout << "Hardware concurrency: " << thread::hardware_concurrency() << endl;
-	for (int t = 0; t < thread::hardware_concurrency(); t++)
-		pool.push_back(thread(worker));
+	for (int t = 0; t < num_threads; t++)
+		pool.push_back(thread(worker, t));
 	for (int t = 0; t < pool.size(); t++)
 		pool[t].join();
 
