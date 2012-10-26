@@ -16,19 +16,36 @@
 
 #include <functional>
 #include <thread>
+#include <atomic>
 
 using namespace std;
-
-#ifdef __APPLE__
-	#include <libkern/OSAtomic.h>
-	#define AtomicAdd OSAtomicAdd32
-#else
-	#define AtomicAdd(x, y) (*y)++
-#endif
 
 #include "procpar.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
+
+void apply_for(const int max, const function<void(int)> f) {
+	vector<thread> pool;
+	
+	atomic<int> complete{0};
+	
+	function<void()> worker = [&complete, &max, &f]() {
+		cout << "Worker " << this_thread::get_id() << " launched" << endl;
+		while (complete < max) {
+			int local = atomic_fetch_add(&complete, 1);
+			f(local);
+		}
+		cout << "Worker " << this_thread::get_id() << " finished" << endl;
+	};
+	
+	cout << "Hardware concurrency: " << thread::hardware_concurrency() << endl;
+	for (int t = 0; t < thread::hardware_concurrency(); t++)
+		pool.push_back(thread(worker));
+	for (int t = 0; t < pool.size(); t++)
+		pool[t].join();
+
+}
+
 
 //******************************************************************************
 // Arguments / Usage
@@ -377,7 +394,7 @@ int main(int argc, char **argv)
 	{
 		if (verbose)
 			cout << "Starting slice " << slice << "..." << flush;
-		int voxCount = 0;
+		atomic<int> voxCount{0};
 		const int sliceOffset = slice * voxelsPerSlice;
 		
 		// Read data for slice
@@ -414,7 +431,7 @@ int main(int argc, char **argv)
 			    (!M0Data || (M0Data[sliceOffset + vox] > 0.)))
 			{
 				//cout << "Voxel " << (vox % savedHeader.nx()) << " " << (vox / savedHeader.nx()) << endl;
-				AtomicAdd(1, &voxCount);
+				voxCount++;
 				// Must take copies before altering inside a block
 				VectorXd localLo = loBounds, localHi = hiBounds;
 				if (M0Data)
@@ -490,9 +507,7 @@ int main(int argc, char **argv)
 			residualData[sliceOffset + vox] = residual;
 		};
 		
-		vector<thread> thread_pool;
-		for (int i = 0; i < thread::hardware_concurrency())
-			thread_pool.push_back(thread(processVox));
+		apply_for(voxelsPerSlice, processVox);
 		
 		
 		// Clean up memory
