@@ -549,8 +549,8 @@ int main(int argc, char **argv)
 			delete[] SSFP_B1s[i];
 		}
 	}
-	free(M0Data);
-	free(maskData);
+	delete[] M0Data;
+	delete[] maskData;
 	exit(EXIT_SUCCESS);
 }
 
