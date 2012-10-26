@@ -24,9 +24,8 @@ using namespace std;
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
 
-void apply_for(const int max, const function<void(int)> f) {
+void apply_for(const int max, const function<void(int)> f, const int num_threads = thread::hardware_concurrency()) {
 	vector<thread> pool;
-	const int num_threads = thread::hardware_concurrency();
 	
 	function<void(int)> worker = [&max, &f, &num_threads](int local) {
 		while (local < max) {
@@ -41,7 +40,6 @@ void apply_for(const int max, const function<void(int)> f) {
 		pool[t].join();
 
 }
-
 
 //******************************************************************************
 // Arguments / Usage
@@ -322,10 +320,25 @@ int main(int argc, char **argv)
 	if (verbose)
 		cout << "Output prefix will be: " << outPrefix << endl;
 	//**************************************************************************
-	// Allocate results memory and set up boundaries
+	// Allocate memory and set up boundaries.
+	// Use NULL to indicate that default values should be used -
+	// 0 for B0, 1 for B1
 	//**************************************************************************
 	int voxelsPerSlice = savedHeader.voxelsPerSlice();
-	int voxelsPerVolume = savedHeader.voxelsPerVolume();	
+	int voxelsPerVolume = savedHeader.voxelsPerVolume();
+	
+	vector<double *> SPGR_vols(SPGR_files.size(), NULL), SPGR_B1s(SPGR_files.size(), NULL);
+	vector<double *> SSFP_vols(SSFP_files.size(), NULL), SSFP_B0s(SSFP_files.size(), NULL), SSFP_B1s(SSFP_files.size(), NULL);
+	for (int i = 0; i < SPGR_files.size(); i++) {
+		SPGR_vols[i] = new double[voxelsPerSlice * nSPGR];
+		if (SPGR_B1_files[i]) SPGR_B1s[i] = new double[voxelsPerSlice * nSPGR];
+	}
+	for (int i = 0; i < SSFP_files.size(); i++) {
+		SSFP_vols[i] = new double[voxelsPerSlice * nSSFP];
+		if (SSFP_B0_files[i]) SSFP_B0s[i] = new double[voxelsPerSlice * nSSFP];
+		if (SSFP_B1_files[i]) SSFP_B1s[i] = new double[voxelsPerSlice * nSSFP];
+	}
+	
 	cout << "Using " << components << " component model." << endl;
 	switch (components)
 	{
@@ -386,6 +399,7 @@ int main(int argc, char **argv)
 		end_slice = savedHeader.nz();
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	cout << "Starting processing." << endl;
+	
 	for (int slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose)
@@ -393,33 +407,19 @@ int main(int argc, char **argv)
 		atomic<int> voxCount{0};
 		const int sliceOffset = slice * voxelsPerSlice;
 		
-		// Read data for slice
-		vector<double *> SPGR_vols, SPGR_B1s, SSFP_vols, SSFP_B0s, SSFP_B1s;
-		for (int i = 0; i < SPGR_files.size(); i++)
-		{
-			SPGR_vols.push_back(SPGR_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1));
-			if (SPGR_B1_files[i])
-				SPGR_B1s.push_back(SPGR_B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1));
-			else
-				SPGR_B1s.push_back(NULL);
+		// Read data for slices
+		for (int i = 0; i < SPGR_files.size(); i++) {
+			SPGR_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SPGR_vols[i]);
+			if (SPGR_B1_files[i]) SPGR_B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SPGR_B1s[i]);
 		}
-		for (int i = 0; i < SSFP_files.size(); i++)
-		{
-			SSFP_vols.push_back(SSFP_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1));
-			if (SSFP_B0_files[i])
-				SSFP_B0s.push_back(SSFP_B0_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1));
-			else
-				SSFP_B0s.push_back(NULL);
-			if (SSFP_B1_files[i])
-				SSFP_B1s.push_back(SSFP_B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1));
-			else
-				SSFP_B1s.push_back(NULL);
+		for (int i = 0; i < SSFP_files.size(); i++) {
+			SSFP_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SSFP_vols[i]);
+			if (SSFP_B0_files[i]) SSFP_B0_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SSFP_B0s[i]);
+			if (SSFP_B1_files[i]) SSFP_B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SSFP_B1s[i]);
 		}
 		
 		clock_t loopStart = clock();
-		//for (int vox = 0; vox < voxelsPerSlice; vox++)
-		//void (^processVoxel)(size_t vox) = ^(size_t vox)
-		function<void (const size_t&)> processVox = [&] (const size_t &vox)
+		function<void (const int&)> processVox = [&] (const int &vox)
 		{
 			double residual = 0.;
 			VectorXd params(nP); params.setZero();
@@ -468,8 +468,8 @@ int main(int argc, char **argv)
 					SSFP_B0[i] = SSFP_B0s[i] ? SSFP_B0s[i][vox] : 0.;
 					SSFP_B1[i] = SSFP_B1s[i] ? SSFP_B1s[i][vox] : 1.;
 				}
-				
-				int rSeed = static_cast<int>(time(NULL));
+				// Add the voxel number to the time to get a decent random seed
+				int rSeed = static_cast<int>(time(NULL)) + vox;
 				switch (components)
 				{
 					case 1: {
@@ -502,22 +502,7 @@ int main(int argc, char **argv)
 				paramsData[p][sliceOffset + vox]  = params[p];
 			residualData[sliceOffset + vox] = residual;
 		};
-		
 		apply_for(voxelsPerSlice, processVox);
-		
-		
-		// Clean up memory
-		for (int i = 0; i < SPGR_vols.size(); i++)
-		{
-			free(SPGR_vols[i]);
-			if (SPGR_B1s[i]) free(SPGR_B1s[i]);
-		}
-		for (int i = 0; i < SSFP_vols.size(); i++)
-		{
-			free(SSFP_vols[i]);
-			if (SSFP_B0s[i]) free(SSFP_B0s[i]);
-			if (SSFP_B1s[i]) free(SSFP_B1s[i]);
-		}
 		
 		if (verbose)
 		{
@@ -541,16 +526,28 @@ int main(int argc, char **argv)
 		case 3: write_results<ThreeComponent>(outPrefix, paramsData, residualData, savedHeader); break;
 	}
 
+	// Clean up memory
 	for (int i = 0; i < SPGR_files.size(); i++)
 	{
 		SPGR_files[i]->close();
-		if (SPGR_B1_files[i]) SPGR_files[i]->close();
+		delete[] SPGR_vols[i];
+		if (SPGR_B1_files[i]) {
+			SPGR_files[i]->close();
+			delete[] SPGR_B1s[i];
+		}
 	}
 	for (int i = 0; i < SSFP_files.size(); i++)
 	{
 		SSFP_files[i]->close();
-		if (SSFP_B0_files[i]) SSFP_B0_files[i]->close();
-		if (SSFP_B1_files[i]) SSFP_B1_files[i]->close();
+		delete[] SSFP_vols[i];
+		if (SSFP_B0_files[i]) {
+			SSFP_B0_files[i]->close();
+			delete[] SSFP_B0s[i];
+		}
+		if (SSFP_B1_files[i]) {
+			SSFP_B1_files[i]->close();
+			delete[] SSFP_B1s[i];
+		}
 	}
 	free(M0Data);
 	free(maskData);
