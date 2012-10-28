@@ -7,17 +7,11 @@
  *
  */
 
-#include <string.h>
 #include <time.h>
-#include <stdbool.h>
 #include <getopt.h>
-#include <dispatch/dispatch.h>
-#ifdef __APPLE__
-	#include <libkern/OSAtomic.h>
-	#define AtomicAdd OSAtomicAdd32
-#else
-	#define AtomicAdd(x, y) (*y) += x
-#endif
+
+#include <atomic>
+
 #include "DESPOT.h"
 #include "NiftiImage.h"
 #include "procpar.h"
@@ -112,7 +106,6 @@ int main(int argc, char **argv)
 	//**************************************************************************	
 	int voxelsPerSlice = spgrFile.nx() * spgrFile.ny();
 	int totalVoxels = spgrFile.voxelsPerVolume();
-	__block int voxCount;
 	
 	fprintf(stdout, "Reading SPGR data...\n");
 	double *SPGR = spgrFile.readAllVolumes<double>();
@@ -128,23 +121,21 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	for (int slice = 0; slice < spgrFile.nz(); slice++)
 	{
-		clock_t loopStart, loopEnd;
+		clock_t loopStart;
 		// Read in data
 		if (verbose)
-			fprintf(stdout, "Processing slice %d...\n", slice);
+			cout << "Starting slice " << slice << "..." << flush;
 		loopStart = clock();
-		voxCount = 0;
+		atomic<int> voxCount{0};
 		int sliceOffset = slice * voxelsPerSlice;
-		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
-		void (^processVoxel)(size_t vox) = ^(size_t vox)
-		{
+		
+		function<void (const int&)> processVox = [&] (const int &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
 			if ((!maskData) || (maskData[sliceOffset + vox] > 0.))
 			{
-				AtomicAdd(1, &voxCount);
+				voxCount++;
 				if (B1Data)
 					B1 = B1Data[sliceOffset + vox];
 				ArrayXd spgrs(nSPGR);
@@ -160,19 +151,14 @@ int main(int argc, char **argv)
 			resultsData[1][sliceOffset + vox] = T1;
 			resultsData[2][sliceOffset + vox] = res;
 		};
-		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+		apply_for(voxelsPerSlice, processVox);
 		
-		if (verbose)
-		{
-			loopEnd = clock();
-			fprintf(stdout, "Finished slice %d", slice);
-			if (voxCount)
-			{
-				fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s.\n", 
-						voxCount, (loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC));
-			}
-			else
-				fprintf(stdout, ", no unmasked voxels.\n");
+		if (verbose) {
+			clock_t loopEnd = clock();
+			if (voxCount > 0)
+				cout << voxCount << " unmasked voxels, CPU time per voxel was "
+				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
+			cout << "finished." << endl;
 		}
 	}
 	const char *names[NR] = { "_M0", "_T1", "_despot1_res" };

@@ -13,33 +13,14 @@
 
 #include <iostream>
 #include <fstream>
-
-#include <functional>
-#include <thread>
 #include <atomic>
 
 using namespace std;
 
 #include "procpar.h"
+#include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
-
-void apply_for(const int max, const function<void(int)> f, const int num_threads = thread::hardware_concurrency()) {
-	vector<thread> pool;
-	
-	function<void(int)> worker = [&max, &f, &num_threads](int local) {
-		while (local < max) {
-			f(local);
-			local += num_threads;
-		}
-	};
-	
-	for (int t = 0; t < num_threads; t++)
-		pool.push_back(thread(worker, t));
-	for (int t = 0; t < pool.size(); t++)
-		pool[t].join();
-
-}
 
 //******************************************************************************
 // Arguments / Usage
@@ -504,8 +485,7 @@ int main(int argc, char **argv)
 		};
 		apply_for(voxelsPerSlice, processVox);
 		
-		if (verbose)
-		{
+		if (verbose) {
 			clock_t loopEnd = clock();
 			if (voxCount > 0)
 				cout << voxCount << " unmasked voxels, CPU time per voxel was "

@@ -10,14 +10,20 @@
 #define __DESPOT__
 
 #include <iostream>
+#include <thread>
+#include <functional>
+#include <vector>
 #include <Eigen/Dense>
 
+using namespace std;
 using namespace Eigen;
 
 //******************************************************************************
 #pragma mark Convenience stuff
 //******************************************************************************
 double clamp(double value, double low, double high);
+void apply_for(const int max, const function<void(int)> f,
+               const int num_threads = thread::hardware_concurrency());
 
 void linearLeastSquares(double *X, double *Y, long nD,
 						double *slope, double *inter, double *res);

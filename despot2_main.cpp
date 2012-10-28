@@ -7,18 +7,10 @@
  *
  */
 
-#include <string.h>
 #include <time.h>
-#include <stdbool.h>
 #include <getopt.h>
-#include <dispatch/dispatch.h>
 
-#ifdef __APPLE__
-	#include <libkern/OSAtomic.h>
-	#define AtomicAdd OSAtomicAdd32
-#else
-	#define AtomicAdd(x, y) (*y) += x
-#endif
+#include <atomic>
 
 #include <unsupported/Eigen/NonLinearOptimization>
 #include "DESPOT.h"
@@ -147,7 +139,7 @@ int main(int argc, char **argv)
 	nPhases = argc - optind;
 	VectorXd ssfpPhases(nPhases), ssfpAngles;
 	int voxelsPerSlice, totalVoxels;
-	__block double **ssfpData = (double **)malloc(nPhases * sizeof(double *));
+	double **ssfpData = (double **)malloc(nPhases * sizeof(double *));
 	for (size_t p = 0; p < nPhases; p++)
 	{
 		std::cout << "Reading SSFP header from " << argv[optind] << std::endl;
@@ -222,23 +214,20 @@ int main(int argc, char **argv)
 		start_slice = 0;
 	if ((end_slice < 0) || (end_slice > inFile.nz()))
 		end_slice = inFile.nz();
-	dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);		
-	for (size_t slice = start_slice; slice < end_slice; slice++)
-	{
+	for (int slice = start_slice; slice < end_slice; slice++) {
 		// Read in data
 		if (verbose)
-			fprintf(stdout, "Starting slice %zu...\n", slice);
-		__block int voxCount = 0;
-		int sliceOffset = slice * voxelsPerSlice;
+			cout << "Starting slice " << slice << "..." << flush;
+		
+		atomic<int> voxCount{0};
+		const int sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
-		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
-		void (^processVoxel)(size_t vox) = ^(size_t vox)
-		{
+		function<void (const int&)> processVox = [&] (const int &vox) {
 			// Set up parameters and constants
 			double M0 = 0., T1 = 0., T2 = 0., B0 = 0, B1 = 1., residual = 0.;
 			if (!maskData || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
-				AtomicAdd(1, &voxCount);
+				voxCount++;
 				T1 = T1Data[sliceOffset + vox];
 				if (B0Data) B0 = B0Data[sliceOffset + vox];
 				if (B1Data)	B1 = B1Data[sliceOffset + vox];
@@ -289,18 +278,14 @@ int main(int argc, char **argv)
 			paramsData[0][sliceOffset + vox] = clamp(T2, 0., 5.);
 			residualData[sliceOffset + vox] = residual;
 		};
-		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+		apply_for(voxelsPerSlice, processVox);
 		
-		if (verbose)
-		{
+		if (verbose) {
 			clock_t loopEnd = clock();
-			fprintf(stdout, "Finished slice %zu", slice);
 			if (voxCount > 0)
-			{
-				fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s", 
-						voxCount, (loopEnd - loopStart) / ((double)voxCount * CLOCKS_PER_SEC));
-			}
-			fprintf(stdout, ".\n");
+				cout << voxCount << " unmasked voxels, CPU time per voxel was "
+				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
+			cout << "finished." << endl;
 		}
 	}
     time_t procEnd = time(NULL);
