@@ -9,6 +9,7 @@
 
 #include <time.h>
 #include <getopt.h>
+#include <signal.h>
 
 #include <atomic>
 
