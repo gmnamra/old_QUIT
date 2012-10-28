@@ -55,8 +55,6 @@ int main(int argc, const char * argv[])
 	NiftiImage image;
 	image.open(argv[thisArg], 'r');
 	fprintf(stdout, "Opened file to mask %s.\n", argv[thisArg]);
-	fprintf(stdout, "%d-D file, nx=%d, ny=%d, nz=%d, nvols=%d, nvox=%d.\n",
-					image.ndim(), image.nx(), image.ny(), image.nz(), image.nt(), image.nvox());
 	if (volume >= image.nt())
 		volume = image.nt() - 1;
 	if (xl >= image.nx()) xl = image.nx();
@@ -70,7 +68,7 @@ int main(int argc, const char * argv[])
 												 zl, zh);
 	double *data = image.readVolume<double>(volume);
 	image.close();
-	float *mask = (float *)calloc(sizeof(float), image.nvox());
+	float *mask = (float *)calloc(sizeof(float), image.voxelsPerVolume());
 	double thresh = atof(argv[thisArg + 1]);
 	fprintf(stdout, "Threshold is %f.\n", thresh);
 	for (int i = 0; i < image.voxelsPerVolume(); i++)
