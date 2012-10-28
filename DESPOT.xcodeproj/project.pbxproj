@@ -19,19 +19,16 @@
 		F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F66F4A6815A48171006C91F1 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F675C8D615CC120100BA95FC /* afi_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F675C8D515CC120100BA95FC /* afi_main.cpp */; };
-		F675C8D715CC16F800BA95FC /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F675C8D815CC16F800BA95FC /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F681257015E239C2007A3362 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F681257615E239D8007A3362 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F681257915E23F3A007A3362 /* test_despot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */; };
-		F6C06BE615E3A07C006AA770 /* dSFMT.c in Sources */ = {isa = PBXBuildFile; fileRef = F6C06BE315E3A06E006AA770 /* dSFMT.c */; };
 		F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6E1F8DF1591E20E00DA918F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F6E1F9141591FFF200DA918F /* phasemap_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */; };
-		F6E1F9151591FFFF00DA918F /* libMaths.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E4A2A51590DB7800DA4001 /* libMaths.a */; };
 		F6E1F9181592000C00DA918F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F6E4A2971590DB5300DA4001 /* despot1_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */; };
@@ -63,13 +60,6 @@
 			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
 			remoteInfo = procpar;
 		};
-		F679FB8A15B6BF8B00A2EC48 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6E4A20C1590D1FA00DA4001;
-			remoteInfo = Maths;
-		};
 		F679FB8C15B6BF8F00A2EC48 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
@@ -84,13 +74,6 @@
 			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
 			remoteInfo = procpar;
 		};
-		F6B8F93315CFFD7100AECF4F /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F61642B215CC329C0031F999;
-			remoteInfo = maths_tests;
-		};
 		F6C3F70015ADD1DA00359F68 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
@@ -104,20 +87,6 @@
 			proxyType = 2;
 			remoteGlobalIDString = F6DB54D215ADD80E00208C11;
 			remoteInfo = procpar;
-		};
-		F6E1F9161592000600DA918F /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6E4A20C1590D1FA00DA4001;
-			remoteInfo = Maths;
-		};
-		F6E4A2A41590DB7800DA4001 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F6E4A20D1590D1FA00DA4001;
-			remoteInfo = Maths;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -193,20 +162,6 @@
 		F675C8CB15CC11E000BA95FC /* afi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = afi; sourceTree = BUILT_PRODUCTS_DIR; };
 		F675C8D515CC120100BA95FC /* afi_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = afi_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = NiftiImage.xcodeproj; path = ../NiftiImage/NiftiImage.xcodeproj; sourceTree = "<group>"; };
-		F6C06BD715E3A06E006AA770 /* dSFMT-common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-common.h"; path = "../dSFMT/dSFMT-common.h"; sourceTree = "<group>"; };
-		F6C06BD815E3A06E006AA770 /* dSFMT-params.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params.h"; path = "../dSFMT/dSFMT-params.h"; sourceTree = "<group>"; };
-		F6C06BD915E3A06E006AA770 /* dSFMT-params521.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params521.h"; path = "../dSFMT/dSFMT-params521.h"; sourceTree = "<group>"; };
-		F6C06BDA15E3A06E006AA770 /* dSFMT-params1279.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params1279.h"; path = "../dSFMT/dSFMT-params1279.h"; sourceTree = "<group>"; };
-		F6C06BDB15E3A06E006AA770 /* dSFMT-params2203.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params2203.h"; path = "../dSFMT/dSFMT-params2203.h"; sourceTree = "<group>"; };
-		F6C06BDC15E3A06E006AA770 /* dSFMT-params4253.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params4253.h"; path = "../dSFMT/dSFMT-params4253.h"; sourceTree = "<group>"; };
-		F6C06BDD15E3A06E006AA770 /* dSFMT-params11213.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params11213.h"; path = "../dSFMT/dSFMT-params11213.h"; sourceTree = "<group>"; };
-		F6C06BDE15E3A06E006AA770 /* dSFMT-params19937.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params19937.h"; path = "../dSFMT/dSFMT-params19937.h"; sourceTree = "<group>"; };
-		F6C06BDF15E3A06E006AA770 /* dSFMT-params44497.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params44497.h"; path = "../dSFMT/dSFMT-params44497.h"; sourceTree = "<group>"; };
-		F6C06BE015E3A06E006AA770 /* dSFMT-params86243.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params86243.h"; path = "../dSFMT/dSFMT-params86243.h"; sourceTree = "<group>"; };
-		F6C06BE115E3A06E006AA770 /* dSFMT-params132049.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params132049.h"; path = "../dSFMT/dSFMT-params132049.h"; sourceTree = "<group>"; };
-		F6C06BE215E3A06E006AA770 /* dSFMT-params216091.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "dSFMT-params216091.h"; path = "../dSFMT/dSFMT-params216091.h"; sourceTree = "<group>"; };
-		F6C06BE315E3A06E006AA770 /* dSFMT.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dSFMT.c; path = ../dSFMT/dSFMT.c; sourceTree = "<group>"; };
-		F6C06BE415E3A06E006AA770 /* dSFMT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dSFMT.h; path = ../dSFMT/dSFMT.h; sourceTree = "<group>"; };
 		F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = procparse.xcodeproj; path = ../procparse/procparse.xcodeproj; sourceTree = "<group>"; };
 		F6E1F8DE1591E20E00DA918F /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = phasemap_main.cpp; sourceTree = SOURCE_ROOT; };
@@ -221,7 +176,6 @@
 		F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = despot2_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = mcdespot_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E4A2961590DB4D00DA4001 /* threshold_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = threshold_main.cpp; sourceTree = SOURCE_ROOT; };
-		F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Maths.xcodeproj; path = ../Maths/Maths.xcodeproj; sourceTree = "<group>"; };
 		F6EA0A7E15DE3C490059E436 /* test_despot */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = test_despot; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6EA0ADC15DE67960059E436 /* RegionContraction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RegionContraction.h; sourceTree = SOURCE_ROOT; };
 		F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = test_despot_main.cpp; sourceTree = SOURCE_ROOT; };
@@ -233,7 +187,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6410964161075BF00D91F69 /* libNiftiImage.a in Frameworks */,
-				F675C8D715CC16F800BA95FC /* libMaths.a in Frameworks */,
 				F675C8D815CC16F800BA95FC /* libprocpar.a in Frameworks */,
 				F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */,
 			);
@@ -245,7 +198,6 @@
 			files = (
 				F6410963161075BC00D91F69 /* libNiftiImage.a in Frameworks */,
 				F6E1F9181592000C00DA918F /* libz.dylib in Frameworks */,
-				F6E1F9151591FFFF00DA918F /* libMaths.a in Frameworks */,
 				F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -302,27 +254,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		F6335D2815DF9C4400F5EB26 /* External */ = {
-			isa = PBXGroup;
-			children = (
-				F6C06BD715E3A06E006AA770 /* dSFMT-common.h */,
-				F6C06BD815E3A06E006AA770 /* dSFMT-params.h */,
-				F6C06BD915E3A06E006AA770 /* dSFMT-params521.h */,
-				F6C06BDA15E3A06E006AA770 /* dSFMT-params1279.h */,
-				F6C06BDB15E3A06E006AA770 /* dSFMT-params2203.h */,
-				F6C06BDC15E3A06E006AA770 /* dSFMT-params4253.h */,
-				F6C06BDD15E3A06E006AA770 /* dSFMT-params11213.h */,
-				F6C06BDE15E3A06E006AA770 /* dSFMT-params19937.h */,
-				F6C06BDF15E3A06E006AA770 /* dSFMT-params44497.h */,
-				F6C06BE015E3A06E006AA770 /* dSFMT-params86243.h */,
-				F6C06BE115E3A06E006AA770 /* dSFMT-params132049.h */,
-				F6C06BE215E3A06E006AA770 /* dSFMT-params216091.h */,
-				F6C06BE315E3A06E006AA770 /* dSFMT.c */,
-				F6C06BE415E3A06E006AA770 /* dSFMT.h */,
-			);
-			name = External;
-			sourceTree = "<group>";
-		};
 		F63EBC36160C5DC100F4D0BD /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -346,8 +277,6 @@
 				F6E1F8DE1591E20E00DA918F /* libz.dylib */,
 				F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */,
 				F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */,
-				F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */,
-				F6335D2815DF9C4400F5EB26 /* External */,
 				F6E4A2441590D9B000DA4001 /* DESPOT */,
 				F6E4A2421590D9B000DA4001 /* Products */,
 			);
@@ -386,15 +315,6 @@
 			path = DESPOT;
 			sourceTree = "<group>";
 		};
-		F6E4A29E1590DB7800DA4001 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				F6E4A2A51590DB7800DA4001 /* libMaths.a */,
-				F6B8F93415CFFD7100AECF4F /* maths_tests */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -427,7 +347,6 @@
 			);
 			dependencies = (
 				F679FB8415B6BF7300A2EC48 /* PBXTargetDependency */,
-				F6E1F9171592000600DA918F /* PBXTargetDependency */,
 			);
 			name = phasemap;
 			productName = phasemap;
@@ -445,7 +364,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				F679FB8B15B6BF8B00A2EC48 /* PBXTargetDependency */,
 			);
 			name = despot1;
 			productName = despot1;
@@ -543,10 +461,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = F6E4A29E1590DB7800DA4001 /* Products */;
-					ProjectRef = F6E4A29D1590DB7800DA4001 /* Maths.xcodeproj */;
-				},
-				{
 					ProductGroup = F63EBC36160C5DC100F4D0BD /* Products */;
 					ProjectRef = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
 				},
@@ -576,13 +490,6 @@
 			remoteRef = F63EBC3D160C5DC100F4D0BD /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		F6B8F93415CFFD7100AECF4F /* maths_tests */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = maths_tests;
-			remoteRef = F6B8F93315CFFD7100AECF4F /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
 		F6C3F70115ADD1DA00359F68 /* procparse */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
@@ -595,13 +502,6 @@
 			fileType = archive.ar;
 			path = libprocpar.a;
 			remoteRef = F6DB54DA15ADD84600208C11 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		F6E4A2A51590DB7800DA4001 /* libMaths.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libMaths.a;
-			remoteRef = F6E4A2A41590DB7800DA4001 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -645,7 +545,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6C06BE615E3A07C006AA770 /* dSFMT.c in Sources */,
 				F6E4A29A1590DB6000DA4001 /* mcdespot_main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -679,11 +578,6 @@
 			name = procpar;
 			targetProxy = F679FB8615B6BF8700A2EC48 /* PBXContainerItemProxy */;
 		};
-		F679FB8B15B6BF8B00A2EC48 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Maths;
-			targetProxy = F679FB8A15B6BF8B00A2EC48 /* PBXContainerItemProxy */;
-		};
 		F679FB8D15B6BF8F00A2EC48 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = procpar;
@@ -694,21 +588,12 @@
 			name = procpar;
 			targetProxy = F681257715E23EC6007A3362 /* PBXContainerItemProxy */;
 		};
-		F6E1F9171592000600DA918F /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Maths;
-			targetProxy = F6E1F9161592000600DA918F /* PBXContainerItemProxy */;
-		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		F675C8D315CC11E000BA95FC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../build/MR/Build/Products/Debug\"",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -716,10 +601,6 @@
 		F675C8D415CC11E000BA95FC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../build/MR/Build/Products/Debug\"",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -727,11 +608,6 @@
 		F6E1F9121591FFD200DA918F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
-					"\"$(SRCROOT)/../build/MR/Build/Products/Debug\"",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -739,11 +615,6 @@
 		F6E1F9131591FFD200DA918F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
-					"\"$(SRCROOT)/../build/MR/Build/Products/Debug\"",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -751,7 +622,6 @@
 		F6E4A2491590D9B000DA4001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -771,10 +641,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					../Maths,
 					../procparse,
 					"$(SRCROOT)/../eigen",
-					../dSFMT,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
@@ -787,7 +655,6 @@
 		F6E4A24A1590D9B000DA4001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -802,10 +669,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					../Maths,
 					../procparse,
 					"$(SRCROOT)/../eigen",
-					../dSFMT,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
@@ -818,12 +683,6 @@
 		F6E4A2621590DA9100DA4001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
-					/usr/local/lib,
-					"\"$(SRCROOT)/../build/MR/Build/Products/Debug\"",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -831,12 +690,6 @@
 		F6E4A2631590DA9100DA4001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../nifticlib-2.0.0/lib\"",
-					/usr/local/lib,
-					"\"$(SRCROOT)/../build/MR/Build/Products/Debug\"",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -871,7 +724,6 @@
 		F6E4A2801590DAB500DA4001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				OTHER_CFLAGS = "-DDSFMT_MEXP=521";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -879,7 +731,6 @@
 		F6E4A2811590DAB500DA4001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				OTHER_CFLAGS = "-DDSFMT_MEXP=521";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

@@ -11,17 +11,9 @@
 #include <time.h>
 #include <stdbool.h>
 #include <getopt.h>
-#include <dispatch/dispatch.h>
-#ifdef __APPLE__
-	#include <libkern/OSAtomic.h>
-	#define AtomicAdd OSAtomicAdd32
-#else
-	#define AtomicAdd(x, y) (*y) += x
-#endif
+
 #include "NiftiImage.h"
 #include "procpar.h"
-#include "mathsArray.h"
-#include "mathsOps.h"
 
 const std::string usage("Usage is: afi [options] input output \n\
 \
@@ -55,8 +47,8 @@ int main(int argc, char **argv)
 		switch (c)
 		{
 			case 'm':
-				fprintf(stdout, "Reading mask.\n");
-				inFile.open(optarg, NIFTI_READ);
+				std::cout << "Reading mask." << std::endl;
+				inFile.open(optarg, NiftiImage::NIFTI_READ);
 				mask = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
@@ -68,7 +60,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	std::cout << "Opening input file " << argv[optind] << std::endl;
-	inFile.open(argv[optind], NIFTI_READ);
+	inFile.open(argv[optind], NiftiImage::NIFTI_READ);
 	procPath = inFile.basename() + ".procpar";
 	if ((pars = readProcpar(procPath.c_str())))
 	{
@@ -83,20 +75,17 @@ int main(int argc, char **argv)
 		fprintf(stdout, "Enter TR2/TR1 (ratio) and flip-angle (degrees): ");
 		fscanf(stdin, "%lf %lf", &n, &nomFlip);
 	}
-	nomFlip = radians(nomFlip);
+	nomFlip = nomFlip * M_PI / 180.;
 	tr1 = inFile.readVolume<double>(0);
 	tr2 = inFile.readVolume<double>(1);
 	inFile.close();
 	outPrefix = std::string(argv[++optind]);
 	flip = (double *)malloc(inFile.voxelsPerVolume() * sizeof(double));
 	B1   = (double *)malloc(inFile.voxelsPerVolume() * sizeof(double));
-	arraySet(B1, 1.0, inFile.voxelsPerVolume());
 	std::cout << "Allocated output memory." << std::endl;
 	std::cout << "Processing..." << std::endl;
-	for (size_t vox = 0; vox < inFile.voxelsPerVolume(); vox++)
-	{
-		if (!mask || mask[vox] > 0.)
-		{
+	for (size_t vox = 0; vox < inFile.voxelsPerVolume(); vox++) {
+		if (!mask || mask[vox] > 0.) {
 			double r = tr2[vox] / tr1[vox];
 			double temp = (r*n - 1.) / (n - r);
 			if (temp > 1.)
@@ -104,47 +93,28 @@ int main(int argc, char **argv)
 			if (temp < -1.)
 				temp = -1.;
 			double alpha = acos(temp);
-			flip[vox] = degrees(alpha);
+			flip[vox] = alpha * 180. / M_PI;
 			B1[vox]   = alpha / nomFlip;
 		}
+		else
+			B1[vox] = 1.; // So smoothing doesn't get messed up
 	}
-	fprintf(stdout, "done.\n");
 	NiftiImage outFile = inFile; // Could re-use infile, this is marginally clearer
 	std::string outPath = outPrefix + "_flip.nii.gz";
 	std::cout << "Writing actual flip angle to " << outPath << "..." << std::endl;
 	outFile.setnt(1);
 	outFile.setDatatype(NIFTI_TYPE_FLOAT32);
-	outFile.open(outPath, NIFTI_WRITE);
+	outFile.open(outPath, NiftiImage::NIFTI_WRITE);
 	outFile.writeVolume(0, flip);
 	outFile.close();
 	
 	outPath = outPrefix + "_B1.nii.gz";
 	std::cout << "Writing B1 ratio to " << outPath << "..." << std::endl;
-	outFile.open(outPath, NIFTI_WRITE);
+	outFile.open(outPath, NiftiImage::NIFTI_WRITE);
 	outFile.writeVolume(0, B1);
 	outFile.close();
 	
-	if (smooth)
-	{
-		fprintf(stdout, "Smoothing...");
-		array3d_t *B1_3d = array3d_from_buffer(B1, inFile.nx(), inFile.ny(), inFile.nz());
-		array3d_t *gauss = gaussian3D(5, 5, 5, 1.5, 1.5, 1.5);
-		array3d_t *smoothB1 = array3d_alloc(inFile.nx(), inFile.ny(), inFile.nz());
-		convolve3D(smoothB1, B1_3d, gauss);
-		if (mask)
-			arrayMul(smoothB1->array->data, smoothB1->array->data, mask, inFile.voxelsPerVolume());
-		fprintf(stdout, "done.\n");
-		
-		outPath = outPrefix + "_B1_smooth.nii.gz";
-		std::cout << "Writing smoothed B1 ratio to " << outPath << "..." << std::endl;
-		outFile.open(outPath, NIFTI_WRITE);
-		outFile.writeVolume(0, smoothB1->array->data);
-		outFile.close();
-		array3d_free(smoothB1);
-		array3d_free(gauss);
-		array3d_free(B1_3d);
-	}
-	fprintf(stdout, "Success.\n");
+	std::cout << "Finished." << std::endl;
     return EXIT_SUCCESS;
 }
 
