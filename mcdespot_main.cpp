@@ -102,7 +102,7 @@ void int_handler(int sig)
 int main(int argc, char **argv)
 {
 	//**************************************************************************
-	// Argument Processing
+	#pragma mark Argument Processing
 	//**************************************************************************
 	if (argc < 4)
 	{
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 	}
 
 	//**************************************************************************
-	// Read input file and set up corresponding SPGR & SSFP lists
+	#pragma mark  Read input file and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
 	VectorXd spgrAngles, ssfpAngles;
 	vector<double> ssfpPhases;
@@ -202,17 +202,13 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 		
-		cout << "Opening image header: " << path << endl;
 		inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 		if ((SPGR_files.size() == 0) && (SSFP_files.size() == 0))
 			savedHeader = *inHdr;
-		
-		if (!inHdr->volumesCompatible(savedHeader)) {
-			cerr << "Physical space is incompatible with first image." << endl;
-			exit(EXIT_FAILURE);
-		}
+		inHdr->checkCompatible(savedHeader);
 		
 		if (type == "SPGR") {
+			cout << "Opened SPGR header: " << path << endl;
 			if (SPGR_files.size() == 0) {
 				nSPGR = inHdr->nt();
 				spgrAngles.resize(nSPGR, 1);
@@ -228,12 +224,15 @@ int main(int argc, char **argv)
 				spgrAngles *= M_PI / 180.;
 			}
 			SPGR_files.push_back(inHdr);
-			if (thisLine >> path) // Read a path to B1 file
+			if (thisLine >> path) { // Read a path to B1 file
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-			else
+				inHdr->checkCompatible(savedHeader);
+				cout << "Opened B1 correction header: " << path << endl;
+			} else
 				inHdr = NULL;
 			SPGR_B1_files.push_back(inHdr);
 		} else if (type == "SSFP") {
+			cout << "Opened SSFP header: " << path << endl;
 			pars = readProcpar((inHdr->basename() + ".procpar").c_str());
 			double phase;
 			if (pars)
@@ -256,16 +255,20 @@ int main(int argc, char **argv)
 			}
 			freeProcpar(pars);
 			SSFP_files.push_back(inHdr);
-			if (thisLine >> path)	// Read a path to B0 file
+			if (thisLine >> path) { // Read a path to B1 file
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-			else
-				inHdr = NULL;
-			SSFP_B0_files.push_back(inHdr);
-			if (thisLine >> path) // Read a path to B1 file
-				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-			else
+				inHdr->checkCompatible(savedHeader);
+				cout << "Opened B1 correction header: " << path << endl;
+			} else
 				inHdr = NULL;
 			SSFP_B1_files.push_back(inHdr);
+			if (thisLine >> path) {	// Read a path to B0 file
+				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
+				inHdr->checkCompatible(savedHeader);
+				cout << "Opened B0 correction header: " << path << endl;
+			} else
+				inHdr = NULL;
+			SSFP_B0_files.push_back(inHdr);
 		} else {
 			cerr << "Unknown scan type: " << type << ", must be SPGR or SSFP." << endl;
 			exit(EXIT_FAILURE);
@@ -277,7 +280,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	//**************************************************************************
-	// Select which angles to use in the analysis
+	#pragma mark Select which angles to use in the analysis
 	//**************************************************************************	
 	VectorXi spgrKeep(nSPGR), ssfpKeep(nSSFP);
 	spgrKeep.setOnes(); ssfpKeep.setOnes();
@@ -301,7 +304,7 @@ int main(int argc, char **argv)
 	if (verbose)
 		cout << "Output prefix will be: " << outPrefix << endl;
 	//**************************************************************************
-	// Allocate memory and set up boundaries.
+	#pragma mark Allocate memory and set up boundaries.
 	// Use NULL to indicate that default values should be used -
 	// 0 for B0, 1 for B1
 	//**************************************************************************
@@ -335,21 +338,17 @@ int main(int argc, char **argv)
 	paramsData = (double **)malloc(nP * sizeof(double *));
 	if (tesla < 0)
 		cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
-	for (int i = 0; i < nP; i++)
-	{
+	for (int i = 0; i < nP; i++) {
 		paramsData[i] = (double *)malloc(voxelsPerVolume * sizeof(double));
 		loConstraints[i] = true; hiConstraints[i] = true;
-		if (tesla == 3)
-		{
-			switch (components)
-			{
+		if (tesla == 3) {
+			switch (components) {
 				case 1: loBounds[i] = OneComponent::lo3Bounds[i]; hiBounds[i] = OneComponent::hi3Bounds[i]; break;
 				case 2: loBounds[i] = TwoComponent::lo3Bounds[i]; hiBounds[i] = TwoComponent::hi3Bounds[i]; break;
 				case 3: loBounds[i] = ThreeComponent::lo3Bounds[i]; hiBounds[i] = ThreeComponent::hi3Bounds[i]; break;
 			}
 		} else if (tesla == 7) {
-			switch (components)
-			{
+			switch (components) {
 				case 1: loBounds[i] = OneComponent::lo7Bounds[i]; hiBounds[i] = OneComponent::hi7Bounds[i]; break;
 				case 2: loBounds[i] = TwoComponent::lo7Bounds[i]; hiBounds[i] = TwoComponent::hi7Bounds[i]; break;
 				case 3: loBounds[i] = ThreeComponent::lo7Bounds[i]; hiBounds[i] = ThreeComponent::hi7Bounds[i]; break;
@@ -358,11 +357,12 @@ int main(int argc, char **argv)
 			cin >> loBounds[i] >> hiBounds[i];
 		}
 	}
-	if (normalise)
-	{
+	if (normalise) {
 		loBounds[0] = 1.;
 		hiBounds[0] = 1.;
 	}
+	loBounds[nP - 1] = -0.5 / ssfpTR;
+	hiBounds[nP - 1] =  0.5 / ssfpTR;
 	if (verbose)
 	{
 		cout << "SPGR TR (s): " << spgrTR << " SPGR flip angles (deg): " << spgrAngles.transpose() * 180. / M_PI << endl;		

@@ -105,7 +105,7 @@ class OneComponent : public Functor<double>
 		double _spgrTR, _ssfpTR;
 		const bool _normalise;
 		
-		static const int nP = 3;
+		static const int nP = 4;
 		static const char *names[];
 		static const double lo3Bounds[], hi3Bounds[], lo7Bounds[], hi7Bounds[];
 		
@@ -132,7 +132,7 @@ class OneComponent : public Functor<double>
 	
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
-			double PD = params[0], T1 = params[1], T2 = params[2];
+			double PD = params[0], T1 = params[1], T2 = params[2], B0 = params[3];
 			eigen_assert(diffs.size() == values());
 			int index = 0;
 			for (int i = 0; i < _spgrSignals.size(); i++)
@@ -149,7 +149,7 @@ class OneComponent : public Functor<double>
 			for (int i = 0; i < _ssfpSignals.size(); i++)
 			{
 				VectorXd theory = One_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
-				                           PD, T1, T2, _ssfpB0[i], _ssfpB1[i]);
+				                           PD, T1, T2, B0, _ssfpB1[i]);
 				//std::cout << "SSFP theory " << theory.transpose() << std::endl;
 				if (_normalise) theory /= theory.mean();
 				//std::cout << "SSFP normalise " << theory.transpose() << std::endl;
@@ -161,11 +161,11 @@ class OneComponent : public Functor<double>
 			return 0;
 		}
 };
-const char *OneComponent::names[] = { "M0", "T1", "T2" };
-const double OneComponent::lo3Bounds[] = { 0.,   0.1, 0.01 };
-const double OneComponent::hi3Bounds[] = { 1.e7, 3.0, 1.0 };
-const double OneComponent::lo7Bounds[] = { 0.,   0.1, 0.005 };
-const double OneComponent::hi7Bounds[] = { 1.e7, 5.0, 0.5 };
+const char *OneComponent::names[] = { "M0", "T1", "T2", "B0" };
+const double OneComponent::lo3Bounds[] = { 0.,   0.1, 0.01, -150. };
+const double OneComponent::hi3Bounds[] = { 1.e7, 3.0, 1.0, 150. };
+const double OneComponent::lo7Bounds[] = { 0.,   0.1, 0.005, -150. };
+const double OneComponent::hi7Bounds[] = { 1.e7, 5.0, 0.05, 150. };
 
 //******************************************************************************
 #pragma mark OneComponentSSFP
@@ -304,7 +304,7 @@ class TwoComponent : public Functor<double>
 		const double _spgrTR, _ssfpTR;
 		const bool _normalise;
 		
-		static const int nP = 7;
+		static const int nP = 8;
 		static const char *names[];
 		static const double lo3Bounds[], hi3Bounds[], lo7Bounds[], hi7Bounds[];
 		
@@ -344,7 +344,8 @@ class TwoComponent : public Functor<double>
 				   T2_a = params[3],   T2_b = params[4],
 			       f_a  = params[5],    f_b = 1. - f_a,
 			       tau_a = params[6], tau_b = f_b * tau_a / f_a,
-				   k_ab = 1. / tau_a,  k_ba = 1. / tau_b;
+				   k_ab = 1. / tau_a,  k_ba = 1. / tau_b,
+				   B0 = params[7];
 			// Only have 1 component, so no exchange
 			if ((f_a == 0.) || (f_b == 0.))
 			{
@@ -364,7 +365,7 @@ class TwoComponent : public Functor<double>
 			for (int i = 0; i < _ssfpSignals.size(); i++)
 			{
 				VectorXd theory = Two_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
-				                           PD, _ssfpB0[i], _ssfpB1[i],
+				                           PD, B0, _ssfpB1[i],
 				                           T1_a, T1_b, T2_a, T2_b,
 										   f_a, f_b, k_ab, k_ba);
 				if (_normalise) theory /= theory.mean();
@@ -374,7 +375,7 @@ class TwoComponent : public Functor<double>
 			return 0;
 		}
 };
-const char *TwoComponent::names[] = { "M0", "T1_a", "T1_b", "T2_a", "T2_b", "f_a", "tau_a" };
+const char *TwoComponent::names[] = { "M0", "T1_a", "T1_b", "T2_a", "T2_b", "f_a", "tau_a", "B0" };
 const double TwoComponent::lo3Bounds[] = { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
 const double TwoComponent::hi3Bounds[] = { 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
 const double TwoComponent::lo7Bounds[] = { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
@@ -473,7 +474,7 @@ class ThreeComponent : public Functor<double>
 		const bool _normalise;
 		
 	public:
-		static const int nP = 10;
+		static const int nP = 11;
 		static const char *names[];
 		static const double lo3Bounds[], hi3Bounds[], lo7Bounds[], hi7Bounds[];
 		
@@ -515,7 +516,8 @@ class ThreeComponent : public Functor<double>
 				   T2_a = params[4], T2_b = params[5], T2_c = params[6],
 			       f_a  = params[7], f_c  = params[8], f_b  = 1. - f_a - f_c,
 			       tau_a = params[9], tau_b = f_b * tau_a / f_a,
-				   k_ab = 1. / tau_a, k_ba = 1. / tau_b;
+				   k_ab = 1. / tau_a, k_ba = 1. / tau_b,
+				   B0 = params[10];
 			// Only have 1 component, so no exchange
 			if ((f_a == 0.) || (f_b == 0.))
 			{
@@ -535,7 +537,7 @@ class ThreeComponent : public Functor<double>
 			for (int i = 0; i < _ssfpSignals.size(); i++)
 			{
 				VectorXd theory = Three_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
-				                           PD, _ssfpB0[i], _ssfpB1[i],
+				                           PD, B0, _ssfpB1[i],
 				                           T1_a, T1_b, T1_c, T2_a, T2_b, T2_c,
 										   f_a, f_b, f_c, k_ab, k_ba);
 				if (_normalise) theory /= theory.mean();
@@ -545,11 +547,11 @@ class ThreeComponent : public Functor<double>
 			return 0;
 		}
 };
-const char *ThreeComponent::names[] = { "M0", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a" };
-const double ThreeComponent::lo3Bounds[] = { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025 };
-const double ThreeComponent::hi3Bounds[] = { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500 };
-const double ThreeComponent::lo7Bounds[] = { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0 };
-const double ThreeComponent::hi7Bounds[] = { 1.e7, 0.750, 3.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5 };
+const char *ThreeComponent::names[] = { "M0", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "B0" };
+const double ThreeComponent::lo3Bounds[] = { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. };
+const double ThreeComponent::hi3Bounds[] = { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. };
+const double ThreeComponent::lo7Bounds[] = { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0, 0. };
+const double ThreeComponent::hi7Bounds[] = { 1.e7, 0.750, 3.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5, 0. };
 
 //******************************************************************************
 #pragma mark Utility functions
