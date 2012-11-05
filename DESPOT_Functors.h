@@ -49,7 +49,8 @@ class Functor
 		
 		virtual int operator()(const VectorXd &params, VectorXd &diffs) const = 0;
 		
-		virtual VectorXd signals() = 0;
+		virtual const VectorXd theory(const VectorXd &params) const = 0;
+		virtual const VectorXd signals() const = 0;
 };
 
 // DESPOT Base Functor
@@ -87,7 +88,7 @@ class DESPOT_Functor : public Functor<double, nPt>
 						//std::cout << "SPGR B1 " << _spgrB1.transpose() << " SSFP B0 " << _ssfpB0.transpose() << " B1 " << _ssfpB1.transpose() << std::endl;
 					  }
 		
-		VectorXd signals()
+		const VectorXd signals() const
 		{
 			VectorXd v(this->values());
 			int index = 0;
@@ -102,6 +103,15 @@ class DESPOT_Functor : public Functor<double, nPt>
 				index += _ssfpAngles.size();
 			}
 			return v;
+		}
+		
+		int operator()(const VectorXd &params, VectorXd &diffs) const
+		{
+			eigen_assert(diffs.size() == this->values());
+			VectorXd t = this->theory(params);
+			VectorXd s = signals();
+			diffs = t - s;
+			return 0;
 		}
 };
 		
@@ -171,19 +181,16 @@ class OneComponent : public DESPOT_Functor<4>
 		static const array<string, nP> names;
 		static const array<double, nP> lo3Bounds, hi3Bounds, lo7Bounds, hi7Bounds;
 		
-		int operator()(const VectorXd &params, VectorXd &diffs) const
+		const VectorXd theory(const VectorXd &params) const
 		{
+			VectorXd t(values());
 			double PD = params[0], T1 = params[1], T2 = params[2], B0 = params[3];
-			eigen_assert(diffs.size() == values());
 			int index = 0;
 			for (int i = 0; i < _spgrSignals.size(); i++)
 			{
 				VectorXd theory = One_SPGR(_spgrAngles, _spgrTR, PD, T1, _spgrB1[i]);
-				//std::cout << "SPGR theory " << theory.transpose() << std::endl;
 				if (_normalise) theory /= theory.mean();
-				//std::cout << "SPGR normalise " << theory.transpose() << std::endl;
-				//std::cout << "SPGR signal " << _spgrSignals[i].transpose() << std::endl;
-				diffs.segment(index, _spgrAngles.size()) = theory - _spgrSignals[i];
+				t.segment(index, _spgrAngles.size()) = theory;
 				index += _spgrAngles.size();
 			}
 
@@ -191,15 +198,11 @@ class OneComponent : public DESPOT_Functor<4>
 			{
 				VectorXd theory = One_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
 										   PD, T1, T2, B0, _ssfpB1[i]);
-				//std::cout << "SSFP theory " << theory.transpose() << std::endl;
 				if (_normalise) theory /= theory.mean();
-				//std::cout << "SSFP normalise " << theory.transpose() << std::endl;
-				//std::cout << "SSFP signal " << _ssfpSignals[i].transpose() << std::endl;
-				diffs.segment(index, _ssfpAngles.size()) = theory - _ssfpSignals[i];
+				t.segment(index, _ssfpAngles.size()) = theory;
 				index += _ssfpAngles.size();
 			}
-			//std::cout << "diffs " << diffs.transpose() << std::endl;
-			return 0;
+			return t;
 		}
 };
 const array<string, OneComponent::nP> OneComponent::names{ { string("M0"), "T1", "T2", "B0" } };
@@ -364,9 +367,8 @@ class TwoComponent : public DESPOT_Functor<8>
 
 		}
 	
-		int operator()(const VectorXd &params, VectorXd &diffs) const
+		const VectorXd theory(const VectorXd &params) const
 		{
-			eigen_assert(diffs.size() == values());
 			double PD   = params[0],
 			       T1_a = params[1],   T1_b = params[2],
 				   T2_a = params[3],   T2_b = params[4],
@@ -374,33 +376,31 @@ class TwoComponent : public DESPOT_Functor<8>
 			       tau_a = params[6], tau_b = f_b * tau_a / f_a,
 				   k_ab = 1. / tau_a,  k_ba = 1. / tau_b,
 				   B0 = params[7];
+			VectorXd t(values());
 			// Only have 1 component, so no exchange
-			if ((f_a == 0.) || (f_b == 0.))
-			{
+			if ((f_a == 0.) || (f_b == 0.)) {
 				k_ab = 0.;
 				k_ba = 0.;
 			}
 			int index = 0;
-			for (int i = 0; i < _spgrSignals.size(); i++)
-			{
+			for (int i = 0; i < _spgrSignals.size(); i++) {
 				VectorXd theory = Two_SPGR(_spgrAngles, _spgrTR, PD, _spgrB1[i],
 				                           T1_a, T1_b, f_a, f_b, k_ab, k_ba);
 				if (_normalise) theory /= theory.mean();
-				diffs.segment(index, _spgrAngles.size()) = theory - _spgrSignals[i];
+				t.segment(index, _spgrAngles.size()) = theory;
 				index += _spgrAngles.size();
 			}
 
-			for (int i = 0; i < _ssfpSignals.size(); i++)
-			{
+			for (int i = 0; i < _ssfpSignals.size(); i++) {
 				VectorXd theory = Two_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
 				                           PD, B0, _ssfpB1[i],
 				                           T1_a, T1_b, T2_a, T2_b,
 										   f_a, f_b, k_ab, k_ba);
 				if (_normalise) theory /= theory.mean();
-				diffs.segment(index, _ssfpAngles.size()) = theory - _ssfpSignals[i];
+				t.segment(index, _ssfpAngles.size()) = theory;
 				index += _ssfpAngles.size();
 			}
-			return 0;
+			return t;
 		}
 };
 const array<string, TwoComponent::nP> TwoComponent::names{ { "M0", "T1_a", "T1_b", "T2_a", "T2_b", "f_a", "tau_a", "B0" } };
@@ -518,9 +518,8 @@ class ThreeComponent : public DESPOT_Functor<11>
 				return false;
 		}
 		
-		int operator()(const VectorXd &params, VectorXd &diffs) const
+		const VectorXd theory(const VectorXd &params) const
 		{
-			eigen_assert(diffs.size() == values());
 			double PD   = params[0],
 			       T1_a = params[1], T1_b = params[2], T1_c = params[3],
 				   T2_a = params[4], T2_b = params[5], T2_c = params[6],
@@ -528,33 +527,31 @@ class ThreeComponent : public DESPOT_Functor<11>
 			       tau_a = params[9], tau_b = f_b * tau_a / f_a,
 				   k_ab = 1. / tau_a, k_ba = 1. / tau_b,
 				   B0 = params[10];
+			VectorXd t;
 			// Only have 1 component, so no exchange
-			if ((f_a == 0.) || (f_b == 0.))
-			{
+			if ((f_a == 0.) || (f_b == 0.)) {
 				k_ab = 0.;
 				k_ba = 0.;
 			}
 			int index = 0;
-			for (int i = 0; i < _spgrSignals.size(); i++)
-			{
+			for (int i = 0; i < _spgrSignals.size(); i++) {
 				VectorXd theory = Three_SPGR(_spgrAngles, _spgrTR, PD, _spgrB1[i],
 				                           T1_a, T1_b, T1_c, f_a, f_b, f_c, k_ab, k_ba);
 				if (_normalise) theory /= theory.mean();
-				diffs.segment(index, _spgrAngles.size()) = theory - _spgrSignals[i];
+				t.segment(index, _spgrAngles.size()) = theory;
 				index += _spgrAngles.size();
 			}
 
-			for (int i = 0; i < _ssfpSignals.size(); i++)
-			{
+			for (int i = 0; i < _ssfpSignals.size(); i++) {
 				VectorXd theory = Three_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
 				                           PD, B0, _ssfpB1[i],
 				                           T1_a, T1_b, T1_c, T2_a, T2_b, T2_c,
 										   f_a, f_b, f_c, k_ab, k_ba);
 				if (_normalise) theory /= theory.mean();
-				diffs.segment(index, _ssfpAngles.size()) = theory - _ssfpSignals[i];
+				t.segment(index, _ssfpAngles.size()) = theory;
 				index += _ssfpAngles.size();
 			}
-			return 0;
+			return t;
 		}
 };
 const array<string, ThreeComponent::nP> ThreeComponent::names{ { "M0", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "B0" } };

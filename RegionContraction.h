@@ -68,19 +68,18 @@ double regionContraction(VectorXd &params, Functor_t &f,
 				tempSample.array() *= regionSize.array();
 				tempSample += loBounds;
 			} while (!f.constraint(tempSample));
-			samples.col(s) = tempSample;
-			f(samples.col(s), diffs);
+			f(tempSample, diffs);
 			sampleRes(s) = diffs.norm();
-			if (!std::isfinite(diffs.norm()))
-			{
+			if (!std::isfinite(diffs.norm())) {
 				std::cout << "Infinite Diff" << std::endl;
 				std::cout << "Sample = " << samples.col(s).transpose() << std::endl;
 				std::cout << "Lo Bnds= " << loBounds.transpose() << std::endl;
 				std::cout << "Hi Bnds= " << hiBounds.transpose() << std::endl;
 				std::cout << "Signals= " << f.signals().transpose() << std::endl;
-				std::cout << "Diffs  = " << diffs.transpose() << std::endl;
+				std::cout << "Theory = " << f.theory(tempSample).transpose() << std::endl;
 				abort();
 			}
+			samples.col(s) = tempSample;
 		}
 		indices = arg_partial_sort(sampleRes, nR);
 		for (int i = 0; i < nR; i++)
