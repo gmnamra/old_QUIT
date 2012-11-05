@@ -48,6 +48,8 @@ class Functor
 		long values() const { return m_values; }
 		
 		virtual int operator()(const VectorXd &params, VectorXd &diffs) const = 0;
+		
+		virtual VectorXd signals() = 0;
 };
 
 // DESPOT Base Functor
@@ -66,8 +68,8 @@ class DESPOT_Functor : public Functor<double, nPt>
 		static const int nP = nPt;
 		static const array<string, nPt> names;
 		static const array<double, nPt> lo3Bounds, hi3Bounds, lo7Bounds, hi7Bounds;
-
-	
+		
+		
 		const bool constraint(const VectorXd &params) const { return true; }
 
 		DESPOT_Functor(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
@@ -84,6 +86,23 @@ class DESPOT_Functor : public Functor<double, nPt>
 				      {
 						//std::cout << "SPGR B1 " << _spgrB1.transpose() << " SSFP B0 " << _ssfpB0.transpose() << " B1 " << _ssfpB1.transpose() << std::endl;
 					  }
+		
+		VectorXd signals()
+		{
+			VectorXd v(this->values());
+			int index = 0;
+			for (int i = 0; i < _spgrSignals.size(); i++)
+			{
+				v.segment(index, _spgrAngles.size()) = _spgrSignals[i];
+				index += _spgrAngles.size();
+			}
+			for (int i = 0; i < _ssfpSignals.size(); i++)
+			{
+				v.segment(index, _ssfpAngles.size()) = _ssfpSignals[i];
+				index += _ssfpAngles.size();
+			}
+			return v;
+		}
 };
 		
 
