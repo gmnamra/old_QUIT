@@ -58,7 +58,7 @@ class Functor
 template<int nPt=Dynamic>
 class DESPOT_Functor : public Functor<double, nPt>
 {
-	protected:
+	public:
 		const VectorXd &_spgrAngles, &_spgrB1,
 					   &_ssfpAngles, &_ssfpB0, &_ssfpB1;
 		const vector<VectorXd> &_spgrSignals, &_ssfpSignals;
@@ -189,7 +189,7 @@ class OneComponent : public DESPOT_Functor<4>
 			for (int i = 0; i < _spgrSignals.size(); i++)
 			{
 				VectorXd theory = One_SPGR(_spgrAngles, _spgrTR, PD, T1, _spgrB1[i]);
-				if (normalise) theory /= theory.mean();
+				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
 				t.segment(index, _spgrAngles.size()) = theory;
 				index += _spgrAngles.size();
 			}
@@ -200,7 +200,7 @@ class OneComponent : public DESPOT_Functor<4>
 					B0 = _ssfpB0[i];
 				VectorXd theory = One_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
 										   PD, T1, T2, B0, _ssfpB1[i]);
-				if (normalise) theory /= theory.mean();
+				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
 				t.segment(index, _ssfpAngles.size()) = theory;
 				index += _ssfpAngles.size();
 			}
@@ -388,7 +388,7 @@ class TwoComponent : public DESPOT_Functor<8>
 			for (int i = 0; i < _spgrSignals.size(); i++) {
 				VectorXd theory = Two_SPGR(_spgrAngles, _spgrTR, PD, _spgrB1[i],
 				                           T1_a, T1_b, f_a, f_b, k_ab, k_ba);
-				if (normalise) theory /= theory.mean();
+				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
 				t.segment(index, _spgrAngles.size()) = theory;
 				index += _spgrAngles.size();
 			}
@@ -400,7 +400,7 @@ class TwoComponent : public DESPOT_Functor<8>
 				                           PD, B0, _ssfpB1[i],
 				                           T1_a, T1_b, T2_a, T2_b,
 										   f_a, f_b, k_ab, k_ba);
-				if (normalise) theory /= theory.mean();
+				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
 				t.segment(index, _ssfpAngles.size()) = theory;
 				index += _ssfpAngles.size();
 			}
@@ -541,7 +541,7 @@ class ThreeComponent : public DESPOT_Functor<11>
 			for (int i = 0; i < _spgrSignals.size(); i++) {
 				VectorXd theory = Three_SPGR(_spgrAngles, _spgrTR, PD, _spgrB1[i],
 				                           T1_a, T1_b, T1_c, f_a, f_b, f_c, k_ab, k_ba);
-				if (normalise) theory /= theory.mean();
+				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
 				t.segment(index, _spgrAngles.size()) = theory;
 				index += _spgrAngles.size();
 			}
@@ -553,7 +553,7 @@ class ThreeComponent : public DESPOT_Functor<11>
 				                           PD, B0, _ssfpB1[i],
 				                           T1_a, T1_b, T1_c, T2_a, T2_b, T2_c,
 										   f_a, f_b, f_c, k_ab, k_ba);
-				if (normalise) theory /= theory.mean();
+				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
 				t.segment(index, _ssfpAngles.size()) = theory;
 				index += _ssfpAngles.size();
 			}
