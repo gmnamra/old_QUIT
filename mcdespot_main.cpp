@@ -30,7 +30,7 @@ const string usage {
 \n\
 The input file must consist of at least one line such as:\n\
 SPGR path_to_spgr_file (path_to_B1_file) \n\
-SSFP path_to_ssfp_file phase_cycling (path_to_B0) (path_to_B1) \n\
+SSFP path_to_ssfp_file phase_cycling (path_to_B1) (path_to_B0) \n\
 \n\
 Phase-cycling is specified in degrees. If no B0/B1 correction is specified,\n\
 default values of B0 = 0 Hz and B1 = 1 will be used.\n\

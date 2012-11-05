@@ -10,6 +10,7 @@
 #define DESPOT_Functors_h
 
 #include <vector>
+#include <array>
 #include <iostream>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/MatrixFunctions>
@@ -19,7 +20,7 @@ using namespace std;
 using namespace Eigen;
 
 //******************************************************************************
-#pragma mark Functors
+#pragma mark Functor Base Classes
 //******************************************************************************
 // From Nonlinear Tests in Eigen 
 template<typename _Scalar, int NX=Dynamic, int NY=Dynamic>
@@ -39,6 +40,7 @@ class Functor
 		
 		Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
 		Functor(long inputs, long values) : m_inputs(inputs), m_values(values) {}
+		Functor(long values) : m_inputs(InputsAtCompileTime), m_values(values) {}
 		
 		virtual ~Functor() {};
 		
@@ -47,6 +49,46 @@ class Functor
 		
 		virtual int operator()(const VectorXd &params, VectorXd &diffs) const = 0;
 };
+
+// DESPOT Base Functor
+template<int nPt=Dynamic>
+class DESPOT_Functor : public Functor<double, nPt>
+{
+	protected:
+		const VectorXd &_spgrAngles, &_spgrB1,
+					   &_ssfpAngles, &_ssfpB0, &_ssfpB1;
+		const vector<VectorXd> &_spgrSignals, &_ssfpSignals;
+		const vector<double> &_ssfpPhases;
+		double _spgrTR, _ssfpTR;
+		const bool _normalise, _fitB0;
+			
+	public:
+		static const int nP = nPt;
+		static const array<string, nPt> names;
+		static const array<double, nPt> lo3Bounds, hi3Bounds, lo7Bounds, hi7Bounds;
+
+	
+		const bool constraint(const VectorXd &params) const { return true; }
+
+		DESPOT_Functor(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
+					   const VectorXd &spgrB1, const double &spgrTR,
+		               const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
+					   const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
+					   const bool &normalise = false, const bool &fitB0 = true) :
+					   Functor<double, nP>(spgrAngles.size() * spgrSignals.size() + ssfpAngles.size() * ssfpSignals.size()),
+				       _spgrAngles(spgrAngles), _spgrSignals(spgrSignals), _spgrB1(spgrB1),
+				       _ssfpAngles(ssfpAngles), _ssfpPhases(ssfpPhases), _ssfpSignals(ssfpSignals),
+					   _ssfpB0(ssfpB0), _ssfpB1(ssfpB1),
+					   _spgrTR(spgrTR), _ssfpTR(ssfpTR),
+					   _normalise(normalise), _fitB0(fitB0)
+				      {
+						//std::cout << "SPGR B1 " << _spgrB1.transpose() << " SSFP B0 " << _ssfpB0.transpose() << " B1 " << _ssfpB1.transpose() << std::endl;
+					  }
+};
+		
+
+//******************************************************************************
+#pragma mark One Component Signals
 //******************************************************************************
 VectorXd One_SPGR(const VectorXd&flipAngles,
                   const double TR, const double M0, const double T1,
@@ -93,43 +135,23 @@ VectorXd One_SSFP(const VectorXd &flipAngles, const double rfPhase,
 	return theory;
 }
 //******************************************************************************
-#pragma mark OneComponent
+#pragma mark OneComponent Functor
 //******************************************************************************
-class OneComponent : public Functor<double>
+class OneComponent : public DESPOT_Functor<4>
 {
 	public:
-		const VectorXd &_spgrAngles, &_spgrB1,
-					   &_ssfpAngles, &_ssfpB0, &_ssfpB1;
-		const vector<VectorXd> &_spgrSignals, &_ssfpSignals;
-		const vector<double> &_ssfpPhases;
-		double _spgrTR, _ssfpTR;
-		const bool _normalise;
-		
-		static const int nP = 4;
-		static const char *names[];
-		static const double lo3Bounds[], hi3Bounds[], lo7Bounds[], hi7Bounds[];
-		
-		static bool f_constraint(const VectorXd &params)
-		{
-			return true;
-		}
-		
 		OneComponent(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
-					 const VectorXd &spgrB1, const double spgrTR,
-		             const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
-					 const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double ssfpTR,
-					 const bool normalise = false) :
-					 Functor<double>(OneComponent::nP, spgrAngles.size() * spgrSignals.size() +
-					                                   ssfpAngles.size() * ssfpSignals.size()),
-				     _spgrAngles(spgrAngles), _spgrSignals(spgrSignals), _spgrB1(spgrB1),
-				     _ssfpAngles(ssfpAngles), _ssfpPhases(ssfpPhases), _ssfpSignals(ssfpSignals),
-					 _ssfpB0(ssfpB0), _ssfpB1(ssfpB1),
-					 _spgrTR(spgrTR), _ssfpTR(ssfpTR),
-					 _normalise(normalise)
-				     {
-						//std::cout << "SPGR B1 " << _spgrB1.transpose() << " SSFP B0 " << _ssfpB0.transpose() << " B1 " << _ssfpB1.transpose() << std::endl;
-					 }
-	
+					 const VectorXd &spgrB1, const double &spgrTR,
+					 const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
+					 const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
+					 const bool &normalise = false, const bool &fitB0 = true)
+					: DESPOT_Functor(spgrAngles, spgrSignals, spgrB1, spgrTR,
+					                 ssfpAngles, ssfpPhases, ssfpSignals, ssfpB0, ssfpB1, ssfpTR,
+					                 normalise, true)
+					{}
+		static const array<string, nP> names;
+		static const array<double, nP> lo3Bounds, hi3Bounds, lo7Bounds, hi7Bounds;
+		
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
 			double PD = params[0], T1 = params[1], T2 = params[2], B0 = params[3];
@@ -149,7 +171,7 @@ class OneComponent : public Functor<double>
 			for (int i = 0; i < _ssfpSignals.size(); i++)
 			{
 				VectorXd theory = One_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
-				                           PD, T1, T2, B0, _ssfpB1[i]);
+										   PD, T1, T2, B0, _ssfpB1[i]);
 				//std::cout << "SSFP theory " << theory.transpose() << std::endl;
 				if (_normalise) theory /= theory.mean();
 				//std::cout << "SSFP normalise " << theory.transpose() << std::endl;
@@ -161,11 +183,11 @@ class OneComponent : public Functor<double>
 			return 0;
 		}
 };
-const char *OneComponent::names[] = { "M0", "T1", "T2", "B0" };
-const double OneComponent::lo3Bounds[] = { 0.,   0.1, 0.01, -150. };
-const double OneComponent::hi3Bounds[] = { 1.e7, 3.0, 1.0, 150. };
-const double OneComponent::lo7Bounds[] = { 0.,   0.1, 0.005, -150. };
-const double OneComponent::hi7Bounds[] = { 1.e7, 5.0, 0.05, 150. };
+const array<string, OneComponent::nP> OneComponent::names{ { string("M0"), "T1", "T2", "B0" } };
+const array<double, OneComponent::nP> OneComponent::lo3Bounds{ { 0.,   0.1, 0.01, -150. } };
+const array<double, OneComponent::nP> OneComponent::hi3Bounds{ { 1.e7, 3.0, 1.0, 150. } };
+const array<double, OneComponent::nP> OneComponent::lo7Bounds{ { 0.,   0.1, 0.005, -150. } };
+const array<double, OneComponent::nP> OneComponent::hi7Bounds{ { 1.e7, 5.0, 0.05, 150. } };
 
 //******************************************************************************
 #pragma mark OneComponentSSFP
@@ -212,7 +234,7 @@ class OneComponentSSFP : public Functor<double>
 const char *OneComponentSSFP::names[] = { "T2" };
 
 //******************************************************************************
-#pragma mark Two Component
+#pragma mark Two Component Signals
 //******************************************************************************
 typedef Matrix<double, 6, 6> Matrix6d;
 typedef Matrix<double, 6, 1> Vector6d;
@@ -294,21 +316,25 @@ VectorXd Two_SSFP(const VectorXd&flipAngles, const double &rfPhase,
 	return signal;
 }
 
-class TwoComponent : public Functor<double>
+//******************************************************************************
+#pragma mark Two Component Functor
+//******************************************************************************
+class TwoComponent : public DESPOT_Functor<8>
 {
 	public:
-		const VectorXd &_spgrAngles, &_spgrB1,
-		               &_ssfpAngles, &_ssfpB0, &_ssfpB1;
-		const vector<VectorXd> &_spgrSignals, &_ssfpSignals;
-		const vector<double> &_ssfpPhases;
-		const double _spgrTR, _ssfpTR;
-		const bool _normalise;
+		TwoComponent(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
+					 const VectorXd &spgrB1, const double &spgrTR,
+					 const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
+					 const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
+					 const bool &normalise = false, const bool &fitB0 = true)
+					: DESPOT_Functor(spgrAngles, spgrSignals, spgrB1, spgrTR,
+					                 ssfpAngles, ssfpPhases, ssfpSignals, ssfpB0, ssfpB1, ssfpTR,
+					                 normalise, true)
+					{}
+		static const array<string, nP> names;
+		static const array<double, nP> lo3Bounds, hi3Bounds, lo7Bounds, hi7Bounds;
 		
-		static const int nP = 8;
-		static const char *names[];
-		static const double lo3Bounds[], hi3Bounds[], lo7Bounds[], hi7Bounds[];
-		
-		static bool f_constraint(const VectorXd &params)
+		static bool constraint(const VectorXd &params)
 		{
 			if ((params[1] < params[2]) &&
 				(params[3] < params[4]) &&
@@ -318,23 +344,6 @@ class TwoComponent : public Functor<double>
 				return false;
 
 		}
-		
-		TwoComponent(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
-					 const VectorXd &spgrB1, const double spgrTR,
-		             const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
-					 const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double ssfpTR,
-					 const bool normalise = false) :
-					 Functor<double>(TwoComponent::nP, spgrAngles.size() * spgrSignals.size() +
-					                                   ssfpAngles.size() * ssfpSignals.size()),
-				     _spgrAngles(spgrAngles), _spgrSignals(spgrSignals), _spgrB1(spgrB1),
-				     _ssfpAngles(ssfpAngles), _ssfpPhases(ssfpPhases), _ssfpSignals(ssfpSignals),
-					 _ssfpB0(ssfpB0), _ssfpB1(ssfpB1),
-					 _spgrTR(spgrTR), _ssfpTR(ssfpTR),
-					 _normalise(normalise)
-				     {
-						
-					 }
-
 	
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
@@ -375,11 +384,11 @@ class TwoComponent : public Functor<double>
 			return 0;
 		}
 };
-const char *TwoComponent::names[] = { "M0", "T1_a", "T1_b", "T2_a", "T2_b", "f_a", "tau_a", "B0" };
-const double TwoComponent::lo3Bounds[] = { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
-const double TwoComponent::hi3Bounds[] = { 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
-const double TwoComponent::lo7Bounds[] = { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. };
-const double TwoComponent::hi7Bounds[] = { 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. };
+const array<string, TwoComponent::nP> TwoComponent::names{ { "M0", "T1_a", "T1_b", "T2_a", "T2_b", "f_a", "tau_a", "B0" } };
+const array<double, TwoComponent::nP> TwoComponent::lo3Bounds{ { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. } };
+const array<double, TwoComponent::nP> TwoComponent::hi3Bounds{ { 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. } };
+const array<double, TwoComponent::nP> TwoComponent::lo7Bounds{ { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. } };
+const array<double, TwoComponent::nP> TwoComponent::hi7Bounds{ { 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. } };
 
 //******************************************************************************
 #pragma mark Three Component
@@ -463,22 +472,22 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const double &rfPhase,
 	return signal;
 }
 
-class ThreeComponent : public Functor<double>
+class ThreeComponent : public DESPOT_Functor<11>
 {
-	private:
-		const double _spgrTR, _ssfpTR;
-		const VectorXd &_spgrAngles, &_spgrB1,
-		               &_ssfpAngles, &_ssfpB0, &_ssfpB1;
-		const vector<VectorXd> &_spgrSignals, &_ssfpSignals;
-		const vector<double> &_ssfpPhases;
-		const bool _normalise;
-		
 	public:
-		static const int nP = 11;
-		static const char *names[];
-		static const double lo3Bounds[], hi3Bounds[], lo7Bounds[], hi7Bounds[];
+		ThreeComponent(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
+					   const VectorXd &spgrB1, const double &spgrTR,
+					   const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
+					   const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
+					   const bool &normalise = false, const bool &fitB0 = true)
+					  : DESPOT_Functor(spgrAngles, spgrSignals, spgrB1, spgrTR,
+					                 ssfpAngles, ssfpPhases, ssfpSignals, ssfpB0, ssfpB1, ssfpTR,
+					                 normalise, true)
+					  {}
+		static const array<string, nP> names;
+		static const array<double, nP> lo3Bounds, hi3Bounds, lo7Bounds, hi7Bounds;
 		
-		static bool f_constraint(const VectorXd &params)
+		static bool constraint(const VectorXd &params)
 		{
 			if ((params[1] < params[2]) &&
 			    (params[2] < params[3]) &&
@@ -490,24 +499,6 @@ class ThreeComponent : public Functor<double>
 				return false;
 		}
 		
-		
-		ThreeComponent(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
-					   const VectorXd &spgrB1, const double spgrTR,
-		               const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
-					   const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double ssfpTR,
-					   const bool normalise = false) :
-					   Functor<double>(ThreeComponent::nP, spgrAngles.size() * spgrSignals.size() +
-					                                       ssfpAngles.size() * ssfpSignals.size()),
-				       _spgrAngles(spgrAngles), _spgrSignals(spgrSignals), _spgrB1(spgrB1),
-				       _ssfpAngles(ssfpAngles), _ssfpPhases(ssfpPhases), _ssfpSignals(ssfpSignals),
-					   _ssfpB0(ssfpB0), _ssfpB1(ssfpB1),
-					   _spgrTR(spgrTR), _ssfpTR(ssfpTR),
-					   _normalise(normalise)
-				     {
-						
-					 }
-
-	
 		int operator()(const VectorXd &params, VectorXd &diffs) const
 		{
 			eigen_assert(diffs.size() == values());
@@ -547,11 +538,11 @@ class ThreeComponent : public Functor<double>
 			return 0;
 		}
 };
-const char *ThreeComponent::names[] = { "M0", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "B0" };
-const double ThreeComponent::lo3Bounds[] = { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. };
-const double ThreeComponent::hi3Bounds[] = { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. };
-const double ThreeComponent::lo7Bounds[] = { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0, 0. };
-const double ThreeComponent::hi7Bounds[] = { 1.e7, 0.750, 3.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5, 0. };
+const array<string, ThreeComponent::nP> ThreeComponent::names{ { "M0", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "B0" } };
+const array<double, ThreeComponent::nP> ThreeComponent::lo3Bounds{ { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. } };
+const array<double, ThreeComponent::nP> ThreeComponent::hi3Bounds{ { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. } };
+const array<double, ThreeComponent::nP> ThreeComponent::lo7Bounds{ { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0, 0. } };
+const array<double, ThreeComponent::nP> ThreeComponent::hi7Bounds{ { 1.e7, 0.750, 3.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5, 0. } };
 
 //******************************************************************************
 #pragma mark Utility functions

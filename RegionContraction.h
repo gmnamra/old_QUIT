@@ -67,7 +67,7 @@ double regionContraction(VectorXd &params, Functor_t &f,
 					tempSample(p) = uniform(twist);
 				tempSample.array() *= regionSize.array();
 				tempSample += loBounds;
-			} while (!Functor_t::f_constraint(tempSample));
+			} while (!f.constraint(tempSample));
 			samples.col(s) = tempSample;
 			f(samples.col(s), diffs);
 			sampleRes(s) = diffs.norm();
