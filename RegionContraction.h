@@ -72,11 +72,12 @@ double regionContraction(VectorXd &params, Functor_t &f,
 			sampleRes(s) = diffs.norm();
 			if (!std::isfinite(diffs.norm())) {
 				std::cout << "Infinite Diff" << std::endl;
-				std::cout << "Sample = " << samples.col(s).transpose() << std::endl;
+				std::cout << "Sample = " << tempSample.transpose() << std::endl;
 				std::cout << "Lo Bnds= " << loBounds.transpose() << std::endl;
 				std::cout << "Hi Bnds= " << hiBounds.transpose() << std::endl;
 				std::cout << "Signals= " << f.signals().transpose() << std::endl;
-				std::cout << "Theory = " << f.theory(tempSample).transpose() << std::endl;
+				std::cout << "Unnorm = " << f.theory(tempSample, false).transpose() << std::endl;
+				std::cout << "Normed = " << f.theory(tempSample, true).transpose() << std::endl;
 				abort();
 			}
 			samples.col(s) = tempSample;

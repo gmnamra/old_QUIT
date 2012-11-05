@@ -49,8 +49,9 @@ class Functor
 		
 		virtual int operator()(const VectorXd &params, VectorXd &diffs) const = 0;
 		
-		virtual const VectorXd theory(const VectorXd &params) const = 0;
+		virtual const VectorXd theory(const VectorXd &params, const bool &normalise) const = 0;
 		virtual const VectorXd signals() const = 0;
+		virtual void debug() const {};
 };
 
 // DESPOT Base Functor
@@ -88,8 +89,7 @@ class DESPOT_Functor : public Functor<double, nPt>
 						//std::cout << "SPGR B1 " << _spgrB1.transpose() << " SSFP B0 " << _ssfpB0.transpose() << " B1 " << _ssfpB1.transpose() << std::endl;
 					  }
 		
-		const VectorXd signals() const
-		{
+		const VectorXd signals() const {
 			VectorXd v(this->values());
 			int index = 0;
 			for (int i = 0; i < _spgrSignals.size(); i++)
@@ -105,14 +105,14 @@ class DESPOT_Functor : public Functor<double, nPt>
 			return v;
 		}
 		
-		int operator()(const VectorXd &params, VectorXd &diffs) const
-		{
+		int operator()(const VectorXd &params, VectorXd &diffs) const {
 			eigen_assert(diffs.size() == this->values());
-			VectorXd t = this->theory(params);
-			VectorXd s = signals();
+			VectorXd t = this->theory(params, _normalise);
+			VectorXd s = this->signals();
 			diffs = t - s;
 			return 0;
 		}
+		
 };
 		
 
@@ -181,7 +181,7 @@ class OneComponent : public DESPOT_Functor<4>
 		static const array<string, nP> names;
 		static const array<double, nP> lo3Bounds, hi3Bounds, lo7Bounds, hi7Bounds;
 		
-		const VectorXd theory(const VectorXd &params) const
+		const VectorXd theory(const VectorXd &params, const bool &normalise) const
 		{
 			VectorXd t(values());
 			double PD = params[0], T1 = params[1], T2 = params[2], B0 = params[3];
@@ -189,16 +189,18 @@ class OneComponent : public DESPOT_Functor<4>
 			for (int i = 0; i < _spgrSignals.size(); i++)
 			{
 				VectorXd theory = One_SPGR(_spgrAngles, _spgrTR, PD, T1, _spgrB1[i]);
-				if (_normalise) theory /= theory.mean();
+				if (normalise) theory /= theory.mean();
 				t.segment(index, _spgrAngles.size()) = theory;
 				index += _spgrAngles.size();
 			}
 
 			for (int i = 0; i < _ssfpSignals.size(); i++)
 			{
+				if (!_fitB0)
+					B0 = _ssfpB0[i];
 				VectorXd theory = One_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
 										   PD, T1, T2, B0, _ssfpB1[i]);
-				if (_normalise) theory /= theory.mean();
+				if (normalise) theory /= theory.mean();
 				t.segment(index, _ssfpAngles.size()) = theory;
 				index += _ssfpAngles.size();
 			}
@@ -367,7 +369,7 @@ class TwoComponent : public DESPOT_Functor<8>
 
 		}
 	
-		const VectorXd theory(const VectorXd &params) const
+		const VectorXd theory(const VectorXd &params, const bool &normalise) const
 		{
 			double PD   = params[0],
 			       T1_a = params[1],   T1_b = params[2],
@@ -386,17 +388,19 @@ class TwoComponent : public DESPOT_Functor<8>
 			for (int i = 0; i < _spgrSignals.size(); i++) {
 				VectorXd theory = Two_SPGR(_spgrAngles, _spgrTR, PD, _spgrB1[i],
 				                           T1_a, T1_b, f_a, f_b, k_ab, k_ba);
-				if (_normalise) theory /= theory.mean();
+				if (normalise) theory /= theory.mean();
 				t.segment(index, _spgrAngles.size()) = theory;
 				index += _spgrAngles.size();
 			}
 
 			for (int i = 0; i < _ssfpSignals.size(); i++) {
+				if (!_fitB0)
+					B0 = _ssfpB0[i];
 				VectorXd theory = Two_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
 				                           PD, B0, _ssfpB1[i],
 				                           T1_a, T1_b, T2_a, T2_b,
 										   f_a, f_b, k_ab, k_ba);
-				if (_normalise) theory /= theory.mean();
+				if (normalise) theory /= theory.mean();
 				t.segment(index, _ssfpAngles.size()) = theory;
 				index += _ssfpAngles.size();
 			}
@@ -518,7 +522,7 @@ class ThreeComponent : public DESPOT_Functor<11>
 				return false;
 		}
 		
-		const VectorXd theory(const VectorXd &params) const
+		const VectorXd theory(const VectorXd &params, const bool &normalise) const
 		{
 			double PD   = params[0],
 			       T1_a = params[1], T1_b = params[2], T1_c = params[3],
@@ -537,17 +541,19 @@ class ThreeComponent : public DESPOT_Functor<11>
 			for (int i = 0; i < _spgrSignals.size(); i++) {
 				VectorXd theory = Three_SPGR(_spgrAngles, _spgrTR, PD, _spgrB1[i],
 				                           T1_a, T1_b, T1_c, f_a, f_b, f_c, k_ab, k_ba);
-				if (_normalise) theory /= theory.mean();
+				if (normalise) theory /= theory.mean();
 				t.segment(index, _spgrAngles.size()) = theory;
 				index += _spgrAngles.size();
 			}
 
 			for (int i = 0; i < _ssfpSignals.size(); i++) {
+				if (!_fitB0)
+					B0 = _ssfpB0[i];
 				VectorXd theory = Three_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
 				                           PD, B0, _ssfpB1[i],
 				                           T1_a, T1_b, T1_c, T2_a, T2_b, T2_c,
 										   f_a, f_b, f_c, k_ab, k_ba);
-				if (_normalise) theory /= theory.mean();
+				if (normalise) theory /= theory.mean();
 				t.segment(index, _ssfpAngles.size()) = theory;
 				index += _ssfpAngles.size();
 			}
