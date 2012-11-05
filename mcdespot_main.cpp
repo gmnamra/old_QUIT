@@ -30,16 +30,18 @@ const string usage {
 \n\
 The input file must consist of at least one line such as:\n\
 SPGR path_to_spgr_file (path_to_B1_file) \n\
-SSFP path_to_ssfp_file phase_cycling (path_to_B1) (path_to_B0) \n\
+SSFP path_to_ssfp_file (path_to_B1) (path_to_B0) \n\
 \n\
 Phase-cycling is specified in degrees. If no B0/B1 correction is specified,\n\
-default values of B0 = 0 Hz and B1 = 1 will be used.\n\
+default values of B0 = 0 Hz and B1 = 1 will be used. B0 value is only used if\n\
+--B0 option specified, otherwise it is a free parameter.\n\
 \n\
 Options:\n\
 	-v, --verbose     : Print extra information.\n\
 	-m, --mask file   : Mask input with specified file.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 2).\n\
 	--M0 file         : M0 Map file.\n\
+	--B0              : Use the default or specified B0 value (don't fit).\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
 	-d, --drop        : Drop certain flip-angles (Read from standard in).\n\
@@ -53,8 +55,10 @@ Options:\n\
 	   u              : User specified boundaries from stdin.\n"
 };
 
-static int verbose = false, normalise = false, drop = false, start_slice = -1, end_slice = -1,
-		   samples = 2500, retain = 25, contract = 10, components = 2, tesla = 7, nP = 0;
+static int verbose = false, normalise = false, drop = false, fitB0 = true,
+           start_slice = -1, end_slice = -1, slice = 0,
+		   samples = 2500, retain = 25, contract = 10,
+		   components = 2, tesla = 7, nP = 0;
 static double expand = 0.;
 static string outPrefix;
 static struct option long_options[] =
@@ -73,12 +77,14 @@ static struct option long_options[] =
 	{"1", no_argument, &components, 1},
 	{"2", no_argument, &components, 2},
 	{"3", no_argument, &components, 3},
+	{"B0", no_argument, &fitB0, false},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
 // SIGTERM interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
 NiftiImage savedHeader;
+NiftiImage *paramsHdrs, residualHdr;
 double **paramsData;
 double *residualData;
 
@@ -86,12 +92,12 @@ void int_handler(int sig);
 void int_handler(int sig)
 {
 	fprintf(stdout, "Processing terminated. Writing currently processed data.\n");
-	switch (components)
-	{
-		case 1: write_results<OneComponent>(outPrefix, paramsData, residualData, savedHeader); break;
-		case 2: write_results<TwoComponent>(outPrefix, paramsData, residualData, savedHeader); break;
-		case 3: write_results<ThreeComponent>(outPrefix, paramsData, residualData, savedHeader); break;
+	for (int p = 0; p < nP; p++) {
+		paramsHdrs[p].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
+		paramsHdrs[p].close();
 	}
+	residualHdr.writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, residualData);
+	residualHdr.close();
 	exit(EXIT_FAILURE);
 }
 
@@ -309,7 +315,7 @@ int main(int argc, char **argv)
 	// 0 for B0, 1 for B1
 	//**************************************************************************
 	int voxelsPerSlice = savedHeader.voxelsPerSlice();
-	int voxelsPerVolume = savedHeader.voxelsPerVolume();
+	//int voxelsPerVolume = savedHeader.voxelsPerVolume();
 	
 	vector<double *> SPGR_vols(SPGR_files.size(), NULL), SPGR_B1s(SPGR_files.size(), NULL);
 	vector<double *> SSFP_vols(SSFP_files.size(), NULL), SSFP_B0s(SSFP_files.size(), NULL), SSFP_B1s(SSFP_files.size(), NULL);
@@ -334,12 +340,23 @@ int main(int argc, char **argv)
 	VectorXd loBounds(nP), hiBounds(nP);
 	VectorXi loConstraints(nP), hiConstraints(nP);
 	
-	residualData = (double *)malloc(voxelsPerVolume * sizeof(double));
-	paramsData = (double **)malloc(nP * sizeof(double *));
+	residualData = new double[voxelsPerSlice];
+	paramsData = new double *[nP];
 	if (tesla < 0)
 		cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
+	paramsHdrs = new NiftiImage[nP];
+	residualHdr = savedHeader;
+	residualHdr.setnt(1); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
+	residualHdr.open(outPrefix + "_residual.nii.gz", NiftiImage::NIFTI_WRITE);
 	for (int i = 0; i < nP; i++) {
-		paramsData[i] = (double *)malloc(voxelsPerVolume * sizeof(double));
+		paramsData[i] = new double[voxelsPerSlice];
+		paramsHdrs[i] = savedHeader;
+		paramsHdrs[i].setnt(1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
+		switch (components) {
+			case 1:	paramsHdrs[i].open(outPrefix + "_" + OneComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
+			case 2:	paramsHdrs[i].open(outPrefix + "_" + TwoComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
+			case 3:	paramsHdrs[i].open(outPrefix + "_" + ThreeComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
+		}
 		loConstraints[i] = true; hiConstraints[i] = true;
 		if (tesla == 3) {
 			switch (components) {
@@ -357,12 +374,20 @@ int main(int argc, char **argv)
 			cin >> loBounds[i] >> hiBounds[i];
 		}
 	}
+	// If normalising, don't bother fitting for M0
 	if (normalise) {
 		loBounds[0] = 1.;
 		hiBounds[0] = 1.;
 	}
-	loBounds[nP - 1] = -0.5 / ssfpTR;
-	hiBounds[nP - 1] =  0.5 / ssfpTR;
+	// If fitting, give a suitable range. Otherwise fix and let the functors
+	// pick up the specified value
+	if (fitB0) {
+		loBounds[nP - 1] = -0.5 / ssfpTR;
+		hiBounds[nP - 1] =  0.5 / ssfpTR;
+	} else {
+		loBounds[nP - 1] = 0.;
+		hiBounds[nP - 1] = 0.;
+	}
 	if (verbose)
 	{
 		cout << "SPGR TR (s): " << spgrTR << " SPGR flip angles (deg): " << spgrAngles.transpose() * 180. / M_PI << endl;		
@@ -381,7 +406,7 @@ int main(int argc, char **argv)
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	cout << "Starting processing." << endl;
 	
-	for (int slice = start_slice; slice < end_slice; slice++)
+	for (slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose)
 			cout << "Starting slice " << slice << "..." << flush;
@@ -456,7 +481,7 @@ int main(int argc, char **argv)
 					case 1: {
 						OneComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
 						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
-										normalise);
+										normalise, fitB0);
 						residual = regionContraction<OneComponent>(params, tc, localLo, localHi,
 															       loConstraints, hiConstraints,
 															       samples, retain, contract, 0.05, expand, rSeed);
@@ -464,7 +489,7 @@ int main(int argc, char **argv)
 					case 2: {
 						TwoComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
 						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
-										normalise);
+										normalise, fitB0);
 						residual = regionContraction<TwoComponent>(params, tc, localLo, localHi,
 															       loConstraints, hiConstraints,
 															       samples, retain, contract, 0.05, expand, rSeed);
@@ -472,7 +497,7 @@ int main(int argc, char **argv)
 					case 3: {
 						ThreeComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
 						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
-										normalise);
+										normalise, fitB0);
 						residual = regionContraction<ThreeComponent>(params, tc, localLo, localHi,
 																 	loConstraints, hiConstraints,
 																 	samples, retain, contract, 0.05, expand, rSeed);
@@ -480,8 +505,8 @@ int main(int argc, char **argv)
 				}
 			}
 			for (int p = 0; p < nP; p++)
-				paramsData[p][sliceOffset + vox]  = params[p];
-			residualData[sliceOffset + vox] = residual;
+				paramsData[p][vox]  = params[p];
+			residualData[vox] = residual;
 		};
 		apply_for(voxelsPerSlice, processVox);
 		
@@ -492,6 +517,10 @@ int main(int argc, char **argv)
 				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
 			cout << "finished." << endl;
 		}
+		
+		for (int p = 0; p < nP; p++)
+			paramsHdrs[p].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
+		residualHdr.writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, residualData);
 	}
     time_t procEnd = time(NULL);
     struct tm *localEnd = localtime(&procEnd);
@@ -499,35 +528,25 @@ int main(int argc, char **argv)
     strftime(theTime, MAXSTR, "%H:%M:%S", localEnd);
 	cout << "Finished processing at " << theTime << "Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << endl;
-	switch (components)
-	{
-		case 1: write_results<OneComponent>(outPrefix, paramsData, residualData, savedHeader); break;
-		case 2: write_results<TwoComponent>(outPrefix, paramsData, residualData, savedHeader); break;
-		case 3: write_results<ThreeComponent>(outPrefix, paramsData, residualData, savedHeader); break;
-	}
-
-	// Clean up memory
-	for (int i = 0; i < SPGR_files.size(); i++)
-	{
-		SPGR_files[i]->close();
+	
+	// Clean up memory and close files (automatically done in destructor)
+	delete[] paramsHdrs;
+	for (int p = 0; p < nP; p++)
+		delete[] paramsData[p];
+	delete[] paramsData;
+	delete[] residualData;
+	for (int i = 0; i < SPGR_files.size(); i++)	{
 		delete[] SPGR_vols[i];
-		if (SPGR_B1_files[i]) {
-			SPGR_files[i]->close();
+		if (SPGR_B1_files[i])
 			delete[] SPGR_B1s[i];
-		}
 	}
 	for (int i = 0; i < SSFP_files.size(); i++)
 	{
-		SSFP_files[i]->close();
 		delete[] SSFP_vols[i];
-		if (SSFP_B0_files[i]) {
-			SSFP_B0_files[i]->close();
+		if (SSFP_B0_files[i])
 			delete[] SSFP_B0s[i];
-		}
-		if (SSFP_B1_files[i]) {
-			SSFP_B1_files[i]->close();
+		if (SSFP_B1_files[i])
 			delete[] SSFP_B1s[i];
-		}
 	}
 	delete[] M0Data;
 	delete[] maskData;

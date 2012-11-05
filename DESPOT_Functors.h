@@ -51,7 +51,6 @@ class Functor
 		
 		virtual const VectorXd theory(const VectorXd &params, const bool &normalise) const = 0;
 		virtual const VectorXd signals() const = 0;
-		virtual void debug() const {};
 };
 
 // DESPOT Base Functor
@@ -68,12 +67,8 @@ class DESPOT_Functor : public Functor<double, nPt>
 			
 	public:
 		static const int nP = nPt;
-		static const array<string, nPt> names;
-		static const array<double, nPt> lo3Bounds, hi3Bounds, lo7Bounds, hi7Bounds;
-		
-		
 		const bool constraint(const VectorXd &params) const { return true; }
-
+		
 		DESPOT_Functor(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
 					   const VectorXd &spgrB1, const double &spgrTR,
 		               const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
@@ -565,34 +560,5 @@ const array<double, ThreeComponent::nP> ThreeComponent::lo3Bounds{ { 0., 0.250, 
 const array<double, ThreeComponent::nP> ThreeComponent::hi3Bounds{ { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. } };
 const array<double, ThreeComponent::nP> ThreeComponent::lo7Bounds{ { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0, 0. } };
 const array<double, ThreeComponent::nP> ThreeComponent::hi7Bounds{ { 1.e7, 0.750, 3.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5, 0. } };
-
-//******************************************************************************
-#pragma mark Utility functions
-//******************************************************************************
-template<typename Functor_t>
-void write_results(const string outPrefix, double **paramsData,
-				   double *residualData, NiftiImage &hdr)
-{
-	string outPath;
-	hdr.setnt(1);
-	hdr.setDatatype(NIFTI_TYPE_FLOAT32);
-	for (int p = 0; p < Functor_t::nP; p++)
-	{
-		outPath = outPrefix + "_" + Functor_t::names[p] + ".nii.gz";
-		cout << "Writing parameter file: " << outPath << endl;
-		hdr.open(outPath, 'w');
-		hdr.writeVolume(0, paramsData[p]);
-		hdr.close();
-	}
-	
-	if (residualData)
-	{
-		outPath = outPrefix + "_residual.nii.gz";
-		cout << "Writing residual file: " << outPath << endl;
-		hdr.open(outPath, 'w');
-		hdr.writeVolume(0, residualData);
-		hdr.close();
-	}
-}
 
 #endif
