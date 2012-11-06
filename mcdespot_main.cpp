@@ -26,11 +26,13 @@ using namespace std;
 // Arguments / Usage
 //******************************************************************************
 const string usage {
-"Usage is: mcdespot [options] input_file output_prefix\n\
+"Usage is: mcdespot [options]\n\
 \n\
-The input file must consist of at least one line such as:\n\
+The input must consist of at least one line such as:\n\
 SPGR path_to_spgr_file (path_to_B1_file) \n\
 SSFP path_to_ssfp_file (path_to_B1) (path_to_B0) \n\
+\n\
+If -d or --drop is specified further input will be prompted for from stdin.\n\
 \n\
 Phase-cycling is specified in degrees. If no B0/B1 correction is specified,\n\
 default values of B0 = 0 Hz and B1 = 1 will be used. B0 value is only used if\n\
@@ -39,12 +41,13 @@ default values of B0 = 0 Hz and B1 = 1 will be used. B0 value is only used if\n\
 Options:\n\
 	-v, --verbose     : Print extra information.\n\
 	-m, --mask file   : Mask input with specified file.\n\
+	-o, --out path    : Add a prefix to the output filenames.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 2).\n\
 	--M0 file         : M0 Map file.\n\
 	--B0              : Use the default or specified B0 value (don't fit).\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
-	-d, --drop        : Drop certain flip-angles (Read from standard in).\n\
+	-d, --drop        : Drop certain flip-angles (Read from stdin).\n\
 	-n, --normalise   : Normalise signals to maximum (Ignore M0).\n\
 	-s, --samples n   : Use n samples for region contraction (Default 5000).\n\
 	-r, --retain  n   : Retain n samples for new boundary (Default 50).\n\
@@ -58,7 +61,7 @@ Options:\n\
 static int verbose = false, normalise = false, drop = false, fitB0 = true,
            start_slice = -1, end_slice = -1, slice = 0,
 		   samples = 2500, retain = 25, contract = 10,
-		   components = 2, tesla = 7, nP = 0;
+		   components = 2, tesla = -1, nP = 0;
 static double expand = 0.;
 static string outPrefix;
 static struct option long_options[] =
@@ -81,7 +84,7 @@ static struct option long_options[] =
 	{0, 0, 0, 0}
 };
 //******************************************************************************
-// SIGTERM interrupt handler - for ensuring data gets saved even on a ctrl-c
+#pragma mark SIGTERM interrupt handler - for ensuring data is saved on a ctrl-c
 //******************************************************************************
 NiftiImage savedHeader;
 NiftiImage *paramsHdrs, residualHdr;
@@ -100,7 +103,6 @@ void int_handler(int sig)
 	residualHdr.close();
 	exit(EXIT_FAILURE);
 }
-
 
 //******************************************************************************
 // Main
@@ -125,7 +127,7 @@ int main(int argc, char **argv)
 	par_t *pars;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "b:m:vznds:r:c:e:", long_options, &indexptr)) != -1)
+	while ((c = getopt_long(argc, argv, "b:m:o:vznds:r:c:e:", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
@@ -141,6 +143,9 @@ int main(int argc, char **argv)
 				M0Data = inHeader.readVolume<double>(0);
 				inHeader.close();
 				break;
+			case 'o':
+				outPrefix = optarg;
+				cout << "Output prefix will be: " << outPrefix << endl;
 			case 'v': verbose = true; break;
 			case 'S': start_slice = atoi(optarg); break;
 			case 'E': end_slice = atoi(optarg); break;
@@ -177,34 +182,31 @@ int main(int argc, char **argv)
 				abort();
 		}
 	}
-	if ((argc - optind) != 2)
+	if ((argc - optind) != 0)
 	{
 		cerr << "Incorrect number of arguments.";
 		exit(EXIT_FAILURE);
 	}
 
 	//**************************************************************************
-	#pragma mark  Read input file and set up corresponding SPGR & SSFP lists
+	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
 	VectorXd spgrAngles, ssfpAngles;
 	vector<double> ssfpPhases;
-	cout << "Opening input file: " << argv[optind] << endl;
-	ifstream inFile(argv[optind++]);
-	if (!inFile)
-	{
-		cerr << "Could not open input file." << endl;
-		exit(EXIT_FAILURE);
-	}
 	string nextLine;
 	
-	while (getline(inFile, nextLine))
+	cout << "Specify input SPGR/SSFP images: " << endl;
+	while (getline(cin, nextLine))
 	{
 		stringstream thisLine(nextLine);
 		string type, path;
 		NiftiImage *inHdr;
 		
+		if (nextLine == "")
+			break;
+		
 		if (!(thisLine >> type >> path)) {
-			cerr << "Could not read image type and path from input file line: " << nextLine << endl;
+			cerr << "Could not read image type and path from input: " << nextLine << endl;
 			exit(EXIT_FAILURE);
 		}
 		
@@ -244,7 +246,7 @@ int main(int argc, char **argv)
 			if (pars)
 				phase = realVal(pars, "rfphase", 0);
 			else
-				inFile >> phase;
+				cin >> phase;
 			ssfpPhases.push_back(phase * M_PI / 180.);
 			if (SSFP_files.size() == 0) {
 				nSSFP = inHdr->nt();
@@ -254,8 +256,8 @@ int main(int argc, char **argv)
 					for (int i = 0; i < nSSFP; i++)
 						ssfpAngles[i] = realVal(pars, "flip1", i);
 				} else {
-					inFile >> ssfpTR;
-					for (int i = 0; i < ssfpAngles.size(); i++) inFile >> ssfpAngles[i];
+					cin >> ssfpTR;
+					for (int i = 0; i < ssfpAngles.size(); i++) cin >> ssfpAngles[i];
 				}
 				ssfpAngles *= M_PI / 180.;
 			}
@@ -306,9 +308,6 @@ int main(int argc, char **argv)
 		for (int i = 0; i < nSSFP; i++)
 			if (ssfpKeep(i)) ssfpAngles(angle++) = temp(i);
 	}
-	outPrefix = argv[optind++];
-	if (verbose)
-		cout << "Output prefix will be: " << outPrefix << endl;
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	// Use NULL to indicate that default values should be used -
@@ -330,24 +329,37 @@ int main(int argc, char **argv)
 	}
 	
 	cout << "Using " << components << " component model." << endl;
+	// The lo/hiBounds methods will make sure these vectors are the right
+	// length, even for tesla == -1
+	VectorXd loBounds, hiBounds;
 	switch (components)
 	{
-		case 1: nP = OneComponent::nP; break;
-		case 2: nP = TwoComponent::nP; break;
-		case 3: nP = ThreeComponent::nP; break;
+		case 1:
+			nP = OneComponent::nP;
+			loBounds = OneComponent::loBounds(tesla);
+			hiBounds = OneComponent::hiBounds(tesla);
+			break;
+		case 2: nP = TwoComponent::nP;
+			loBounds = TwoComponent::loBounds(tesla);
+			hiBounds = TwoComponent::hiBounds(tesla);
+			break;
+		case 3: nP = ThreeComponent::nP;
+			loBounds = ThreeComponent::loBounds(tesla);
+			hiBounds = ThreeComponent::hiBounds(tesla);
+			break;
 	}
-		
-	VectorXd loBounds(nP), hiBounds(nP);
 	VectorXi loConstraints(nP), hiConstraints(nP);
-	
+	loConstraints.setConstant(true); hiConstraints.setConstant(true);
+		
 	residualData = new double[voxelsPerSlice];
-	paramsData = new double *[nP];
-	if (tesla < 0)
-		cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
-	paramsHdrs = new NiftiImage[nP];
 	residualHdr = savedHeader;
 	residualHdr.setnt(1); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
 	residualHdr.open(outPrefix + "_residual.nii.gz", NiftiImage::NIFTI_WRITE);
+	
+	paramsData = new double *[nP];
+	paramsHdrs = new NiftiImage[nP];
+	if (tesla < 0)
+		cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
 	for (int i = 0; i < nP; i++) {
 		paramsData[i] = new double[voxelsPerSlice];
 		paramsHdrs[i] = savedHeader;
@@ -357,22 +369,8 @@ int main(int argc, char **argv)
 			case 2:	paramsHdrs[i].open(outPrefix + "_" + TwoComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
 			case 3:	paramsHdrs[i].open(outPrefix + "_" + ThreeComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
 		}
-		loConstraints[i] = true; hiConstraints[i] = true;
-		if (tesla == 3) {
-			switch (components) {
-				case 1: loBounds[i] = OneComponent::lo3Bounds[i]; hiBounds[i] = OneComponent::hi3Bounds[i]; break;
-				case 2: loBounds[i] = TwoComponent::lo3Bounds[i]; hiBounds[i] = TwoComponent::hi3Bounds[i]; break;
-				case 3: loBounds[i] = ThreeComponent::lo3Bounds[i]; hiBounds[i] = ThreeComponent::hi3Bounds[i]; break;
-			}
-		} else if (tesla == 7) {
-			switch (components) {
-				case 1: loBounds[i] = OneComponent::lo7Bounds[i]; hiBounds[i] = OneComponent::hi7Bounds[i]; break;
-				case 2: loBounds[i] = TwoComponent::lo7Bounds[i]; hiBounds[i] = TwoComponent::hi7Bounds[i]; break;
-				case 3: loBounds[i] = ThreeComponent::lo7Bounds[i]; hiBounds[i] = ThreeComponent::hi7Bounds[i]; break;
-			}
-		} else {
+		if (tesla == -1)
 			cin >> loBounds[i] >> hiBounds[i];
-		}
 	}
 	// If normalising, don't bother fitting for M0
 	if (normalise) {
@@ -396,7 +394,7 @@ int main(int argc, char **argv)
 		cout << "Hi bounds:  " << hiBounds.transpose() << endl;
 	}
 	//**************************************************************************
-	// Do the fitting
+	#pragma mark Do the fitting
 	//**************************************************************************
     time_t procStart = time(NULL);
 	if ((start_slice < 0) || (start_slice >= savedHeader.nz()))
@@ -525,10 +523,11 @@ int main(int argc, char **argv)
     struct tm *localEnd = localtime(&procEnd);
 	char theTime[MAXSTR];
     strftime(theTime, MAXSTR, "%H:%M:%S", localEnd);
-	cout << "Finished processing at " << theTime << "Run-time was " 
+	cout << "Finished processing at " << theTime << ". Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << endl;
 	
 	// Clean up memory and close files (automatically done in destructor)
+	residualHdr.close();
 	delete[] paramsHdrs;
 	for (int p = 0; p < nP; p++)
 		delete[] paramsData[p];
