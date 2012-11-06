@@ -526,7 +526,7 @@ class ThreeComponent : public DESPOT_Functor<11>
 			       tau_a = params[9], tau_b = f_b * tau_a / f_a,
 				   k_ab = 1. / tau_a, k_ba = 1. / tau_b,
 				   B0 = params[10];
-			VectorXd t;
+			VectorXd t(values());
 			// Only have 1 component, so no exchange
 			if ((f_a == 0.) || (f_b == 0.)) {
 				k_ab = 0.;

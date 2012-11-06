@@ -408,8 +408,7 @@ int main(int argc, char **argv)
 	
 	for (slice = start_slice; slice < end_slice; slice++)
 	{
-		if (verbose)
-			cout << "Starting slice " << slice << "..." << flush;
+		if (verbose) cout << "Reading data for slice " << slice << "..." << flush;
 		atomic<int> voxCount{0};
 		const int sliceOffset = slice * voxelsPerSlice;
 		
@@ -423,7 +422,7 @@ int main(int argc, char **argv)
 			if (SSFP_B0_files[i]) SSFP_B0_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SSFP_B0s[i]);
 			if (SSFP_B1_files[i]) SSFP_B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SSFP_B1s[i]);
 		}
-		
+		if (verbose) cout << "processing..." << flush;
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
