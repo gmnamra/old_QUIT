@@ -230,8 +230,8 @@ class OneComponent : public DESPOT_Functor<4>
 		}
 		// Until Eigen comes up with decent initializers...
 		static BoundsType hiBounds(int tesla) {
-			auto it = lo.find(tesla);
-			if (it != lo.end()) {
+			auto it = hi.find(tesla);
+			if (it != hi.end()) {
 				BoundsType temp;
 				for (int i = 0; i < nP; i++)
 					temp[i] = it->second[i];
@@ -431,8 +431,8 @@ class TwoComponent : public DESPOT_Functor<8>
 		}
 		// Until Eigen comes up with decent initializers...
 		static BoundsType hiBounds(int tesla) {
-			auto it = lo.find(tesla);
-			if (it != lo.end()) {
+			auto it = hi.find(tesla);
+			if (it != hi.end()) {
 				BoundsType temp;
 				for (int i = 0; i < nP; i++)
 					temp[i] = it->second[i];
@@ -608,8 +608,8 @@ class ThreeComponent : public DESPOT_Functor<11>
 		}
 		// Until Eigen comes up with decent initializers...
 		static BoundsType hiBounds(int tesla) {
-			auto it = lo.find(tesla);
-			if (it != lo.end()) {
+			auto it = hi.find(tesla);
+			if (it != hi.end()) {
 				BoundsType temp;
 				for (int i = 0; i < nP; i++)
 					temp[i] = it->second[i];
