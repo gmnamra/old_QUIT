@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 		inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 		if ((SPGR_files.size() == 0) && (SSFP_files.size() == 0))
 			savedHeader = *inHdr;
-		inHdr->checkCompatible(savedHeader);
+		inHdr->checkVoxelsCompatible(savedHeader);
 		
 		if (type == "SPGR") {
 			cout << "Opened SPGR header: " << path << endl;
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
 			SPGR_files.push_back(inHdr);
 			if (thisLine >> path) { // Read a path to B1 file
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-				inHdr->checkCompatible(savedHeader);
+				inHdr->checkVoxelsCompatible(savedHeader);
 				cout << "Opened B1 correction header: " << path << endl;
 			} else
 				inHdr = NULL;
@@ -242,11 +242,11 @@ int main(int argc, char **argv)
 		} else if (type == "SSFP") {
 			cout << "Opened SSFP header: " << path << endl;
 			pars = readProcpar((inHdr->basename() + ".procpar").c_str());
-			double phase;
+			double phase = -1;
 			if (pars)
 				phase = realVal(pars, "rfphase", 0);
 			else
-				cin >> phase;
+				thisLine >> phase;
 			ssfpPhases.push_back(phase * M_PI / 180.);
 			if (SSFP_files.size() == 0) {
 				nSSFP = inHdr->nt();
@@ -256,8 +256,8 @@ int main(int argc, char **argv)
 					for (int i = 0; i < nSSFP; i++)
 						ssfpAngles[i] = realVal(pars, "flip1", i);
 				} else {
-					cin >> ssfpTR;
-					for (int i = 0; i < ssfpAngles.size(); i++) cin >> ssfpAngles[i];
+					thisLine >> ssfpTR;
+					for (int i = 0; i < ssfpAngles.size(); i++) thisLine >> ssfpAngles[i];
 				}
 				ssfpAngles *= M_PI / 180.;
 			}
@@ -265,14 +265,14 @@ int main(int argc, char **argv)
 			SSFP_files.push_back(inHdr);
 			if (thisLine >> path) { // Read a path to B1 file
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-				inHdr->checkCompatible(savedHeader);
+				inHdr->checkVoxelsCompatible(savedHeader);
 				cout << "Opened B1 correction header: " << path << endl;
 			} else
 				inHdr = NULL;
 			SSFP_B1_files.push_back(inHdr);
 			if (thisLine >> path) {	// Read a path to B0 file
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-				inHdr->checkCompatible(savedHeader);
+				inHdr->checkVoxelsCompatible(savedHeader);
 				cout << "Opened B0 correction header: " << path << endl;
 			} else
 				inHdr = NULL;
