@@ -24,15 +24,18 @@ par_t *readProcpar(const char *filename)
 
 void freeProcpar(par_t *p)
 {
-	par_t *current, *tmp;
-	HASH_ITER(hh, p, current, tmp)
+	if (p)
 	{
-		free(current->vals);
-		if (current->nallowed > 0)
-			free(current->allowed);
-		HASH_DEL(p, current); 
+		par_t *current, *tmp;
+		HASH_ITER(hh, p, current, tmp)
+		{
+			free(current->vals);
+			if (current->nallowed > 0)
+				free(current->allowed);
+			HASH_DEL(p, current); 
+		}
+		p = NULL;
 	}
-	p = NULL;
 }
 
 par_t *readPar(FILE *in)
