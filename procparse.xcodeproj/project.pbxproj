@@ -7,11 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F6B6672415AC5D880078252F /* procpar.c in Sources */ = {isa = PBXBuildFile; fileRef = F6B6672315AC5D880078252F /* procpar.c */; };
-		F6DB54D615ADD81700208C11 /* procpar.c in Sources */ = {isa = PBXBuildFile; fileRef = F6B6672315AC5D880078252F /* procpar.c */; };
+		F6D581EF1652B431000DA0FF /* procpar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6D581ED1652B415000DA0FF /* procpar.cpp */; };
+		F6D581F01652B43A000DA0FF /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54D215ADD80E00208C11 /* libprocpar.a */; };
 		F6DB54D715ADD82000208C11 /* procpar.h in Headers */ = {isa = PBXBuildFile; fileRef = F6B6672615AC5D980078252F /* procpar.h */; };
 		F6FA56C715AC1B8E006A347A /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6FA56C615AC1B8E006A347A /* main.c */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F6CE768916550D5B00FE50BD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6FA56B015AC1B5B006A347A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
+			remoteInfo = procpar;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		F6FA56B715AC1B5B006A347A /* CopyFiles */ = {
@@ -26,12 +36,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		F6B6672315AC5D880078252F /* procpar.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = procpar.c; sourceTree = SOURCE_ROOT; };
-		F6B6672615AC5D980078252F /* procpar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = procpar.h; sourceTree = SOURCE_ROOT; };
+		F6B6672615AC5D980078252F /* procpar.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = procpar.h; sourceTree = SOURCE_ROOT; };
+		F6D581ED1652B415000DA0FF /* procpar.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = procpar.cpp; sourceTree = SOURCE_ROOT; };
 		F6DB54D215ADD80E00208C11 /* libprocpar.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libprocpar.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6FA56B915AC1B5B006A347A /* procparse */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = procparse; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6FA56C615AC1B8E006A347A /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = SOURCE_ROOT; };
-		F6FA56C815AC1BC9006A347A /* uthash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = uthash.h; sourceTree = SOURCE_ROOT; };
+		F6FA56C615AC1B8E006A347A /* main.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = main.c; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -46,6 +55,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6D581F01652B43A000DA0FF /* libprocpar.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,10 +82,9 @@
 		F6FA56BC15AC1B5B006A347A /* procparse */ = {
 			isa = PBXGroup;
 			children = (
-				F6FA56C815AC1BC9006A347A /* uthash.h */,
+				F6D581ED1652B415000DA0FF /* procpar.cpp */,
 				F6FA56C615AC1B8E006A347A /* main.c */,
 				F6B6672615AC5D980078252F /* procpar.h */,
-				F6B6672315AC5D880078252F /* procpar.c */,
 			);
 			path = procparse;
 			sourceTree = "<group>";
@@ -122,6 +131,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				F6CE768A16550D5B00FE50BD /* PBXTargetDependency */,
 			);
 			name = procparse;
 			productName = procparse;
@@ -159,7 +169,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6DB54D615ADD81700208C11 /* procpar.c in Sources */,
+				F6D581EF1652B431000DA0FF /* procpar.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -168,17 +178,27 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6FA56C715AC1B8E006A347A /* main.c in Sources */,
-				F6B6672415AC5D880078252F /* procpar.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		F6CE768A16550D5B00FE50BD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F6DB54D115ADD80E00208C11 /* procpar */;
+			targetProxy = F6CE768916550D5B00FE50BD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
 		F6DB54D415ADD80E00208C11 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
 				EXECUTABLE_PREFIX = lib;
+				GCC_C_LANGUAGE_STANDARD = c99;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -186,7 +206,10 @@
 		F6DB54D515ADD80E00208C11 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
 				EXECUTABLE_PREFIX = lib;
+				GCC_C_LANGUAGE_STANDARD = c99;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -240,6 +263,9 @@
 		F6FA56C415AC1B5B006A347A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				GCC_C_LANGUAGE_STANDARD = c99;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -247,6 +273,9 @@
 		F6FA56C515AC1B5B006A347A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				GCC_C_LANGUAGE_STANDARD = c99;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

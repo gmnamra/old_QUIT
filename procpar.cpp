@@ -8,358 +8,364 @@
 
 #include "procpar.h"
 
-par_t *readProcpar(const char *filename)
+namespace ProcPar {
+
+//******************************************************************************
+#pragma mark Constructors
+//******************************************************************************
+Parameter::Parameter()
 {
-	FILE *procpar = fopen(filename, "r");
-	if (!procpar)
-	{
-		fprintf(stderr, "Cannot open procpar file: %s\n", filename);
-		return NULL;
-	}
-	par_t *par, *pars = NULL;
-	while ((par = readPar(procpar)))
-		HASH_ADD_KEYPTR(hh, pars, par->name, strlen(par->name), par);
-	return pars;
+
+
 }
 
-void freeProcpar(par_t *p)
+Parameter::Parameter(const string &name, const int &st, const string &val)
 {
-	if (p)
-	{
-		par_t *current, *tmp;
-		HASH_ITER(hh, p, current, tmp)
-		{
-			free(current->vals);
-			if (current->nallowed > 0)
-				free(current->allowed);
-			HASH_DEL(p, current); 
-		}
-		p = NULL;
-	}
-}
-
-par_t *readPar(FILE *in)
-{
-	par_t par;	// Local, make sure we have a complete par before returning
-	char temp[MAXSTR];
-	
-	if (fscanf(in, "%s", temp) == EOF)
-		return NULL;
-	par.name = malloc((strlen(temp) + 1) * sizeof(char));
-	strcpy(par.name, temp);
-	
-	if (fscanf(in, "%d %d %lf %lf %lf %d %d %d %d %d",
-	            &(par.subtype), &(par.type),
-		        &(par.max), &(par.min), &(par.step),
-		        &(par.ggroup), &(par.dgroup),
-		        &(par.protection), &(par.active), &(par.intptr)) == EOF)
-		return NULL;
-	
-	// Make sure to eat the space after nvals, or string reading breaks
-	if (fscanf(in, "%d ", &(par.nvals)) == EOF)
-		return NULL;
-	
-	switch (par.type)
-	{
-		// Even ints have to be read as reals (doubles) because VnmrJ doesn't
-		// output them as ints.
-		case TYPE_REAL:
-		{
-			par.vals = malloc(par.nvals * sizeof(double));
-			double inVal;
-			for (size_t i = 0; i < par.nvals; i++)
-			{
-				fscanf(in, "%lf", &inVal);
-				((double *)par.vals)[i] = inVal;
-			}
-			if (feof(in))
-				return NULL;
-		}
-		break;
-		case TYPE_STRING:
-			par.vals = malloc(par.nvals * sizeof(char *));
-			char nextString[MAXSTR];
-			for (size_t i = 0; i < par.nvals; i++)
-			{
-				fgets(nextString, MAXSTR, in);
-				char *nextQuote = strtok(nextString, "\"");
-				// nextQuote = strtok(NULL, "\""); // Eat first "
-				// strtok does not neatly detect null tokens (ie "")
-				// It sets the first delimiter to \0 and moves the pointer
-				// on to the first non-delimiter character. For vals, which are
-				// written 1 per line, can just check for the trailing newline
-				if (*nextQuote == '\n') // We have an empty string
-					((char **)par.vals)[i] = "";
-				else
-				{
-					((char **)par.vals)[i] = malloc((strlen(nextQuote) + 1) * sizeof(char));
-					strcpy(((char **)par.vals)[i], nextQuote);
-				}
-			}
-		break;
-	}
-	
-	if (fscanf(in, "%d ", &(par.nallowed)) == EOF)
-		return NULL;
-	if (par.nallowed > 0)
-	{
-		switch (par.type)
-		{
-			case TYPE_REAL:
-			{
-				par.allowed = malloc(par.nallowed * sizeof(double));
-				double inVal;
-				for (size_t i = 0; i < par.nallowed; i++)
-				{
-					fscanf(in, "%lf", &inVal);
-					((double *)par.allowed)[i] = inVal;
-				}
-				if (feof(in))
-					return NULL;
-			}
+	switch (st) {
+		case SUB_REAL: case SUB_DELAY: case SUB_FREQ: case SUB_PULSE: case SUB_INT:
+			PROCPAR_FAIL("Tried to create string parameter " + _name + " with a real subtype");
 			break;
-			case TYPE_STRING:
-			{
-				par.allowed = malloc(par.nallowed * sizeof(char *));
-				char restOfLine[MAXSTR];
-				fgets(restOfLine, MAXSTR, in);
-				char *nextQuote = strtok(restOfLine, "\"");
-				char *lastQuote = nextQuote;
-				for (size_t i = 0; i < par.nallowed; i++)
-				{
-					// See above about strtok
-					// If we've got more than 3 chars difference, there was an
-					// empty string	
-					if (lastQuote - nextQuote > 3)
-						((char **)par.allowed)[i] = "";
-					else
-					{
-						((char **)par.allowed)[i] = malloc((strlen(nextQuote) + 1) * sizeof(char));
-						strcpy(((char **)par.allowed)[i], nextQuote);
-					}
-					// Eat spaces in between "
-					lastQuote = nextQuote;
-					nextQuote = strtok(NULL, "\" ");
-				}
-			}
+		case SUB_STRING: case SUB_FLAG:
 			break;
-		}
-	}
-	
-	// Got to here without hitting EOF, have a complete parameter
-	// so can safely allocate some memory without leaking
-	par_t *p = malloc(sizeof(par_t));
-	memcpy(p, &par, sizeof(par_t));
-	return p;
-}
-
-par_t *createPar(const char *name, int subtype, int nvals, void *vals)
-{
-	par_t *par = calloc(1, sizeof(par_t));	// Local, make sure we have a complete par before returning
-	par->name = malloc((strlen(name) + 1) * sizeof(char));
-	strcpy(par->name, name);
-	par->subtype = subtype;
-	switch (subtype)
-	{
-		case PAR_REAL:
-		case PAR_DELAY:
-		case PAR_FREQ:
-		case PAR_PULSE:
-		case PAR_INT:
-			par->type = TYPE_REAL;
+		case 0:
+			// It's the stupid "junk" parameter
 			break;
-		case PAR_STRING:
-		case PAR_FLAG:
-			par->type = TYPE_STRING;
-			break;
-	}
-	setPar(par, nvals, vals);
-	return par;
-}
-
-void setPar(par_t *par, int nvals, void *vals)
-{
-	par->nvals = nvals;
-	switch (par->type)
-	{
-		case TYPE_REAL:
-		{
-			if (par->vals)
-				free(par->vals);
-			par->vals = malloc(par->nvals * sizeof(double));
-			memcpy(par->vals, vals, par->nvals * sizeof(double));
-		}
-		break;
-		case TYPE_STRING:
-			if (par->vals)
-			{
-				for (size_t i = 0; i < par->nvals; i++)
-					free(((char **)par->vals)[i]);
-				free(par->vals);
-			}
-			par->vals = malloc(par->nvals * sizeof(char *));
-			for (size_t i = 0; i < par->nvals; i++)
-			{
-				((char **)par->vals)[i] = malloc((strlen(((char **)vals)[i]) + 1) * sizeof(char));
-				strcpy(((char **)par->vals)[i], ((char **)vals)[i]);
-			}
-		break;
-	}
-}
-
-void fprintPar(FILE* f, par_t *p)
-{
-	fprintf(f, "%s %d %d %g %g %g %d %d %d %d %d\n%d ",
-	        p->name, p->subtype, p->type,
-		    p->max, p->min, p->step,
-		    p->ggroup, p->dgroup,
-		    p->protection, p->active, p->intptr,
-			p->nvals);
-	fprintVals(f, p);
-	fprintf(f, "%d ", p->nallowed);
-	fprintAllowedVals(f, p);
-}
-
-void fprintVals(FILE* f, par_t *p)
-{
-	for (size_t i = 0; i < p->nvals; i++)
-	{
-		switch (p->type)
-		{
-			case TYPE_REAL:
-				fprintf(f, "%g ", ((double*)p->vals)[i]);
-				break;
-			case TYPE_STRING:
-				fprintf(f, "\"%s\"\n", ((char **)p->vals)[i]);
-				break;	
-		}
-	}
-	if (p->type == TYPE_REAL)
-		fprintf(f, "\n");
-}
-
-void fprintAllowedVals(FILE *f, par_t *p)
-{
-	for (size_t i = 0; i < p->nallowed; i++)
-	{
-		switch (p->type)
-		{
-			case TYPE_REAL:
-				fprintf(f, "%g ", ((double*)p->allowed)[i]);
-				break;
-			case TYPE_STRING:
-				fprintf(f, "\"%s\" ", ((char **)p->allowed)[i]);
-				break;	
-		}
-	}
-	fprintf(f, "\n");
-}
-
-const char *parTypeStr(int type)
-{
-	switch (type)
-	{
-		case TYPE_REAL:
-		    return "real";
-		case TYPE_STRING:
-			return "string";
 		default:
-			return "INVALID";
-	    break;
+			PROCPAR_FAIL("Unknown subtype.");
 	}
+	_name = name;
+	_type = TYPE_STRING;
+	_subtype = st;
+	_stringValues.push_back(val);
 }
 
-const char *parSubTypeStr(int subtype)
+// The default value of 8 for max is taken from observations of procpar
+Parameter::Parameter(const string &name, const int &st,
+					 const vector<string> &vals, const vector<string> &allowed = vector<string>(),
+					 const int ggroup = 0, const int dgroup = 0,
+					 const double max = 8,
+					 const double min = 0,
+					 const double step = 0,
+					 const int protection = 0, const int active = 0, const int intptr = 0) :
+					 _ggroup(ggroup), _dgroup(dgroup), _protection(protection),
+				     _active(active), _intptr(intptr), _max(max), _min(min), _step(step)
 {
-	switch (subtype)
-	{
-		case PAR_REAL:
-    		return "real";
-		case PAR_STRING:
-			return "string";
-		case PAR_DELAY:
-			return "delay";
-		case PAR_FLAG:
-			return "flag";
-		case PAR_FREQ:
-			return "frequency";
-		case PAR_PULSE:
-			return "pulse";
-		case PAR_INT:
-			return "integer";
+	switch (st) {
+		case SUB_REAL: case SUB_DELAY: case SUB_FREQ: case SUB_PULSE: case SUB_INT:
+			PROCPAR_FAIL("Tried to create string parameter " + _name + " with a real subtype");
+			break;
+		case SUB_STRING: case SUB_FLAG:
+			break;
+		case 0:
+			// Junk subtype
+			break;
 		default:
-			return "INVALID";
+			PROCPAR_FAIL("Unknown subtype.");
+	}
+	_name = name;
+	_subtype = st;
+	_type = TYPE_STRING;
+	_stringValues = vals;
+	_stringAllowed = allowed;
+}
+
+Parameter::Parameter(const string &name, const int &st, const double &val)
+{
+	switch (st) {
+		case SUB_REAL: case SUB_DELAY: case SUB_FREQ: case SUB_PULSE: case SUB_INT:
+			break;
+		case SUB_STRING: case SUB_FLAG:
+			PROCPAR_FAIL("Tried to create real parameter " + _name + " with a string subtype");
+			break;
+		case 0:
+			break;
+		default:
+			PROCPAR_FAIL("Unknown subtype.");
+	}
+	_name = name;
+	_type = TYPE_REAL;
+	_subtype = st;
+	_realValues.push_back(val);
+}
+
+Parameter::Parameter(const string &name, const int &st,
+                     const vector<double> &vals, const vector<double> &allowed = vector<double>(),
+					 const int ggroup = 0, const int dgroup = 0,
+					 const double max = numeric_limits<double>::max(),
+					 const double min = -numeric_limits<double>::max(),
+					 const double step = 0,
+					 const int protection = 0, const int active = 0, const int intptr = 0) :
+					 _ggroup(ggroup), _dgroup(dgroup), _protection(protection),
+				     _active(active), _intptr(intptr), _max(max), _min(min), _step(step)
+{
+	switch (st) {
+		case SUB_REAL: case SUB_DELAY: case SUB_FREQ: case SUB_PULSE: case SUB_INT:
+			break;
+		case SUB_STRING: case SUB_FLAG:
+			PROCPAR_FAIL("Tried to create real parameter " + _name + " with a string subtype");
+			break;
+		case 0:
+			// Junk subtype
+			break;
+		default:
+			PROCPAR_FAIL("Unknown subtype.");
+	}
+	_name = name;
+	_type = TYPE_REAL;
+	_subtype = st;
+	_realValues = vals;
+	_realAllowed = allowed;
+}
+
+Parameter::Parameter(const string &name, const int &st, const int n)
+{
+	_name = name;
+	_subtype = st;
+	switch (st) {
+		case SUB_REAL: case SUB_DELAY: case SUB_FREQ: case SUB_PULSE: case SUB_INT:
+			_type = TYPE_STRING;
+			_stringValues.resize(n);
+			break;
+		case SUB_STRING: case SUB_FLAG:
+			_type = TYPE_REAL;
+			_realValues.resize(n);
+			break;
+		case 0:
+			// Junk subtype, appears to be a string
+			_type = TYPE_STRING;
+			_stringValues.resize(n);
+			break;
+		default:
+			PROCPAR_FAIL("Unknown subtype.");
 	}
 }
 
-double realVal(par_t *pars, const char *name, int i)
-{
-	par_t *p;
-	HASH_FIND_STR(pars, name, p);
-	if (p)
-	{
-		if (i < p->nvals)
-			return ((double *)p->vals)[i];
-		else
-			fprintf(stderr, "Tried to access element %d of parameter %s, only %d values.\n",
-		    	            i, name, p->nvals);
-	}
+//******************************************************************************
+#pragma mark Property accessors
+//******************************************************************************
+const string &Parameter::name() const { return _name; }
+
+const size_t Parameter::nvals() const {
+	if (_type == TYPE_STRING)
+		return _stringValues.size();
 	else
-		fprintf(stderr, "Parameter %s not found.\n", name);
-	return 0;
+		return _realValues.size();
 }
 
-char *stringVal(par_t *pars, const char*name, int i)
-{
-	par_t *p;
-	HASH_FIND_STR(pars, name, p);
-	if (p)
-	{
-		if (i < p->nvals)
-			return ((char **)p->vals)[i];
-		else
-			fprintf(stderr, "Tried to access element %d of parameter %s, only %d values.\n",
-		    	            i, name, p->nvals);
-	}
+const size_t Parameter::nallowed() const {
+	if (_type == TYPE_STRING)
+		return _stringAllowed.size();
 	else
-		fprintf(stderr, "Parameter %s not found.\n", name);
-	return 0;
+		return _realAllowed.size();
 }
 
-double *realVals(par_t *pars, const char *name, int *nvals)
-{
-	par_t *p;
-	HASH_FIND_STR(pars, name, p);
-	if (p)
-	{
-		if (p->type == TYPE_REAL)
-		{
-			if (nvals)
-				*nvals = p->nvals;
-			return (double *)p->vals;
+const string &Parameter::stringValue(const int i = 0) const {
+	if (_type == TYPE_STRING) {
+		if (i < _stringValues.size())
+			return _stringValues[i];
+		else {
+			stringstream ss;
+			ss << "Tried to access element " << i << " of string parameter " << _name << " with only " << _stringValues.size() << " values.";
+			PROCPAR_FAIL(ss.str());
 		}
-		fprintf(stderr, "Parameter %s is not a real.\n", name);
 	}
 	else
-		fprintf(stderr, "Parameter %s not found.\n", name);
-	return NULL;
+		PROCPAR_FAIL("Tried to read a string value from a real parameter.");
 }
 
-char **stringVals(par_t *pars, const char *name, int *nvals)
-{
-	par_t *p;
-	HASH_FIND_STR(pars, name, p);
-	if (p)
-	{
-		if (p->type == TYPE_STRING)
-		{
-			if (nvals)
-				*nvals = p->nvals;
-			return (char **)p->vals;
+const double &Parameter::realValue(const int i = 0) const {
+	if (_type == TYPE_REAL) {
+		if (i < _realValues.size())
+			return _realValues[i];
+		else {
+			stringstream ss;
+			ss << "Tried to access element " << i << " of real parameter " << _name << " with only " << _realValues.size() << " values.";
+			PROCPAR_FAIL(ss.str());
 		}
-		fprintf(stderr, "Parameter %s is not a string.\n", name);
 	}
 	else
-		fprintf(stderr, "Parameter %s not found.\n", name);
-	return NULL;
+		PROCPAR_FAIL("Tried to read a real value from string parameter " + _name + ".");
 }
+
+const vector<string> &Parameter::stringValues() const {
+	if (_type == TYPE_STRING)
+		return _stringValues;
+	else
+		PROCPAR_FAIL("Tried to read string values from real parameter " + _name + ".");
+}
+
+const vector<double> &Parameter::realValues() const {
+	if (_type == TYPE_REAL)
+		return _realValues;
+	else
+		PROCPAR_FAIL("Tried to read real values from string parameter " + _name + ".");
+}
+
+const string &Parameter::type_name() const
+{
+	static const string types[3] = { "", "Real", "String" };
+	return types[_type];
+}
+
+const string &Parameter::subtype_name() const
+{
+	static const string subtypes[8] = { "", "Real", "String", "Delay",
+									  "Flag", "Frequency", "Pulse", "Integer" };
+	return subtypes[_subtype];
+}
+
+const string Parameter::print_values() const {
+	stringstream s;
+	
+	if (_type == TYPE_REAL) {
+		for (vector<double>::const_iterator it = _realValues.begin(); it < _realValues.end(); it++)
+			s << *it << " ";
+	} else {
+		for (vector<string>::const_iterator it = _stringValues.begin(); it < _stringValues.end(); it++)
+			s << "\"" << *it << "\"" << endl;
+	}
+	return s.str();
+}
+
+const string Parameter::print_allowed() const {
+	stringstream s;
+	
+	if (_type == TYPE_REAL) {
+		for (vector<double>::const_iterator it = _realAllowed.begin(); it < _realAllowed.end(); it++)
+			s << *it;
+	} else {
+		for (vector<string>::const_iterator it = _stringAllowed.begin(); it < _stringAllowed.end(); it++)
+			s << "\"" << *it << "\"" << endl;;
+	}
+	return s.str();
+}
+
+const string Parameter::print() const {
+	stringstream s;
+
+	s << _name << " " << _subtype << " " << _type << " "
+	  << _max << " " << _min << " " << _step << " "
+	  << _ggroup << " " << _dgroup << " " << _protection << " " << _active << " " << _intptr << endl;
+	if (_type == TYPE_REAL) {
+		s << _realValues.size() << " " << print_values() << endl
+		  << _realAllowed.size() << " " << print_allowed() << endl;
+	} else {
+		s << _stringValues.size() << " " << print_values() << endl
+		  << _stringAllowed.size() << " " << print_allowed() << endl;
+	}
+	return s.str();
+}
+
+ostream& operator<<(ostream &os, const Parameter &p) {
+	os << p.print();
+	return os;
+}
+
+istream& operator>>(istream &is, Parameter &p) {
+	string name;
+	int subtype, type, ggroup, dgroup, protection, active, intptr, nvals, nallowed;
+	double max, min, step;
+	vector<double> realVals, realAllowed;
+	vector<string> stringVals, stringAllowed;
+	if (is >> name >> subtype >> type
+	       >> max >> min >> step
+		   >> ggroup >> dgroup >> protection >> active >> intptr)
+	{
+		if (!(is >> nvals))
+			PROCPAR_FAIL("Failed while reading number of values for parameter " + name);
+		if (type == TYPE_REAL) {
+			realVals.resize(nvals);
+			for (int i = 0; i < nvals; i++)
+				is >> realVals[i];
+		} else if (type == TYPE_STRING) {
+			stringVals.resize(nvals);
+			string temp;
+			is.get(); // Consume one space
+			for (int i = 0; i < nvals; i++) {
+				getline(is, temp);
+				//cout << "temp: " << endl << temp << endl;
+				temp.erase(remove(temp.begin(), temp.end(), '"'), temp.end());
+				//cout << "no quotes: " << endl << temp << endl;
+				stringVals[i] = temp;
+			}
+		} else
+			PROCPAR_ERROR("Invalid type value for parameter " + name + ", no values read");
+		if (!is)
+			PROCPAR_FAIL("Failed while reading allowed values for parameter " + name + " from procpar file");
+		if (!(is >> nallowed))
+			PROCPAR_FAIL("Failed while reading number of allowed values for parameter " + name);
+		if (type == TYPE_REAL) {
+			realAllowed.resize(nallowed);
+			for (int i = 0; i < nallowed; i++)
+				is >> realAllowed[i];
+		} else if (type == TYPE_STRING) {
+			stringAllowed.resize(nallowed);
+			string temp;
+			for (int i = 0; i < nallowed; i++) {
+				is >> temp;
+				temp.erase(remove(temp.begin(), temp.end(), '"'), temp.end());
+				stringAllowed[i] = temp;
+			}
+		}
+		if (!is)
+			PROCPAR_FAIL("Failed while reading allowed values for parameter " + name + " from procpar file");
+		
+		if (type == TYPE_REAL)
+			p = Parameter(name, subtype, realVals, realAllowed,
+			              ggroup, dgroup, max, min, step, protection, active, intptr);
+		else if (type == TYPE_STRING)
+			p = Parameter(name, subtype, stringVals, stringAllowed,
+			              ggroup, dgroup, max, min, step, protection, active, intptr);
+		return is;
+	} else {
+		// An eof here is probably not an error, as procpar files have a trailing line
+		// Anything else is an error.
+		if (is.eof())
+			return is;
+		else
+			PROCPAR_FAIL("Error while reading parameter definition line.");
+	}
+}
+
+const bool Parameter::operator==(const Parameter &other)
+{
+	if (_type != other._type)
+		return false;
+	if (_subtype != other._subtype)
+		return false;
+	
+	if (_type == TYPE_STRING) {
+		if (_stringValues.size() != other._stringValues.size())
+			return false;
+		for (int i = 0; i < _stringValues.size(); i++)
+			if (_stringValues[i] != other._stringValues[i]) return false;
+	} else if (_type == TYPE_REAL) {
+		if (_realValues.size() != other._realValues.size())
+			return false;
+		for (int i = 0; i < _realValues.size(); i++)
+			if (_realValues[i] != other._realValues[i]) return false;
+	}
+	return true;
+}
+
+ParameterList ReadProcpar(const string &path)
+{
+	fstream fpp;
+	fpp.open(path.c_str());
+	if (!fpp)
+		PROCPAR_FAIL("Cannot open procpar file for reading: " + path);
+	
+	ParameterList pp;
+	Parameter p;
+	
+	while(fpp >> p)
+	{
+		cout << p << endl;
+		pp.insert(pair<string, Parameter>(p.name(), p));
+	}
+	
+	return pp;
+}
+
+
+}; // End namespace ProcPar
