@@ -214,6 +214,9 @@ const string &Parameter::subtype_name() const
 	return subtypes[_subtype];
 }
 
+//******************************************************************************
+#pragma mark Output
+//******************************************************************************
 const string Parameter::print_values() const {
 	stringstream s;
 	
@@ -263,6 +266,9 @@ ostream& operator<<(ostream &os, const Parameter &p) {
 	return os;
 }
 
+//******************************************************************************
+#pragma mark Input
+//******************************************************************************
 string readQuotedString(istream & is) {
 	stringstream dummy, quoted;
 	if (!is.get(*dummy.rdbuf(), '\"')) {
@@ -357,9 +363,11 @@ const bool Parameter::operator==(const Parameter &other)
 	return true;
 }
 
-ParameterList ReadProcpar(const string &path)
-{
-	fstream fpp;
+//******************************************************************************
+#pragma mark Convenience
+//******************************************************************************
+ParameterList ReadProcpar(const string &path) {
+	ifstream fpp;
 	fpp.open(path.c_str());
 	if (!fpp)
 		PROCPAR_FAIL("Cannot open procpar file for reading: " + path);
@@ -368,13 +376,22 @@ ParameterList ReadProcpar(const string &path)
 	Parameter p;
 	
 	while(fpp >> p)
-	{
-		cout << p << endl;
 		pp.insert(pair<string, Parameter>(p.name(), p));
-	}
 	
+	fpp.close();
 	return pp;
 }
 
+void WriteProcpar(const string &path, ParameterList pp) {
+	ofstream fpp;
+	fpp.open(path.c_str());
+	if (!fpp)
+		PROCPAR_FAIL("Cannot open procpar file for writing: " + path);
+	
+	ParameterList::const_iterator p;
+	for (p = pp.begin(); p < p.end(); p++)
+		fpp << *p << endl;
+	fpp.close();
+}
 
 }; // End namespace ProcPar

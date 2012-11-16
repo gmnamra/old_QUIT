@@ -85,7 +85,7 @@ namespace ProcPar {
 	typedef map<string, Parameter> ParameterList;
 
 	ParameterList ReadProcpar(const string &path);
-	void PrintProcpar(const ParameterList &pp);
+	void WriteProcpar(const string &path, ParameterList pp);
 
 } // End namespace ProcPar
 
