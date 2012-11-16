@@ -221,8 +221,10 @@ const string Parameter::print_values() const {
 		for (vector<double>::const_iterator it = _realValues.begin(); it < _realValues.end(); it++)
 			s << *it << " ";
 	} else {
-		for (vector<string>::const_iterator it = _stringValues.begin(); it < _stringValues.end(); it++)
-			s << "\"" << *it << "\"" << endl;
+		vector<string>::const_iterator it = _stringValues.begin();
+		s << "\"" << *it << "\"";
+		for (it++; it < _stringValues.end(); it++)
+			s << endl << "\"" << *it << "\"";
 	}
 	return s.str();
 }
@@ -235,7 +237,7 @@ const string Parameter::print_allowed() const {
 			s << *it;
 	} else {
 		for (vector<string>::const_iterator it = _stringAllowed.begin(); it < _stringAllowed.end(); it++)
-			s << "\"" << *it << "\"" << endl;;
+			s << "\"" << *it << "\" ";
 	}
 	return s.str();
 }
@@ -248,10 +250,10 @@ const string Parameter::print() const {
 	  << _ggroup << " " << _dgroup << " " << _protection << " " << _active << " " << _intptr << endl;
 	if (_type == TYPE_REAL) {
 		s << _realValues.size() << " " << print_values() << endl
-		  << _realAllowed.size() << " " << print_allowed() << endl;
+		  << _realAllowed.size() << " " << print_allowed();
 	} else {
 		s << _stringValues.size() << " " << print_values() << endl
-		  << _stringAllowed.size() << " " << print_allowed() << endl;
+		  << _stringAllowed.size() << " " << print_allowed();
 	}
 	return s.str();
 }
@@ -259,6 +261,24 @@ const string Parameter::print() const {
 ostream& operator<<(ostream &os, const Parameter &p) {
 	os << p.print();
 	return os;
+}
+
+string readQuotedString(istream & is) {
+	stringstream dummy, quoted;
+	if (!is.get(*dummy.rdbuf(), '\"')) {
+		PROCPAR_ERROR("Could not find an opening quote.");
+		return "";
+	}
+	is.get(); // Consume the quote, get(...,delim) does not consume it
+	if (is.peek() == '\"') {
+		// We have an empty string
+		is.get(); // Consume closing quote
+		return "";
+	} else if (!is.get(*quoted.rdbuf(), '\"')) {
+		PROCPAR_ERROR("Could not find a closing quote.");
+	} else
+		is.get(); // Consume the quote
+	return quoted.str();
 }
 
 istream& operator>>(istream &is, Parameter &p) {
@@ -279,15 +299,8 @@ istream& operator>>(istream &is, Parameter &p) {
 				is >> realVals[i];
 		} else if (type == TYPE_STRING) {
 			stringVals.resize(nvals);
-			string temp;
-			is.get(); // Consume one space
-			for (int i = 0; i < nvals; i++) {
-				getline(is, temp);
-				//cout << "temp: " << endl << temp << endl;
-				temp.erase(remove(temp.begin(), temp.end(), '"'), temp.end());
-				//cout << "no quotes: " << endl << temp << endl;
-				stringVals[i] = temp;
-			}
+			for (int i = 0; i < nvals; i++)
+				stringVals[i] = readQuotedString(is);
 		} else
 			PROCPAR_ERROR("Invalid type value for parameter " + name + ", no values read");
 		if (!is)
@@ -300,12 +313,8 @@ istream& operator>>(istream &is, Parameter &p) {
 				is >> realAllowed[i];
 		} else if (type == TYPE_STRING) {
 			stringAllowed.resize(nallowed);
-			string temp;
-			for (int i = 0; i < nallowed; i++) {
-				is >> temp;
-				temp.erase(remove(temp.begin(), temp.end(), '"'), temp.end());
-				stringAllowed[i] = temp;
-			}
+			for (int i = 0; i < nallowed; i++)
+				stringAllowed[i] = readQuotedString(is);
 		}
 		if (!is)
 			PROCPAR_FAIL("Failed while reading allowed values for parameter " + name + " from procpar file");
