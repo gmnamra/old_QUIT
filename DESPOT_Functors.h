@@ -712,7 +712,7 @@ VectorXd Three_SSFP_Echo(const VectorXd&flipAngles, const double &rfPhase,
 	const Matrix9d eyema = eye9 - expATR;
 	A /= 2.;
 	MatrixExponential<Matrix9d> exp2(A);
-	exp.compute(expATE);
+	exp2.compute(expATE);
 	for (int i = 0; i < flipAngles.size(); i++)
 	{
 		double a = flipAngles[i];
