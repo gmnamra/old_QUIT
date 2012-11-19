@@ -49,16 +49,6 @@ static struct option long_options[] =
 // SIGTERM interrupt handler - for ensuring data gets saved even on a ctrl-c
 //******************************************************************************
 NiftiImage savedHeader;
-double **paramsData;
-double *residualData;
-
-void int_handler(int sig);
-void int_handler(int sig)
-{
-	fprintf(stdout, "Processing terminated. Writing currently processed data.\n");
-	write_results<OneComponentSSFP>(outPrefix, paramsData, residualData, savedHeader);
-	exit(EXIT_FAILURE);
-}
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -200,13 +190,10 @@ int main(int argc, char **argv)
 		          << "SSFP Phases (deg): " << ssfpPhases.transpose() * 180 / M_PI << std::endl;
 	}
 	//**************************************************************************
-	// Set up results data and register signal handler
+	// Set up results data
 	//**************************************************************************
-	residualData = (double *)malloc(totalVoxels * sizeof(double));
-	paramsData = (double **)malloc(OneComponentSSFP::nP * sizeof(double *));
-	for (int p = 0; p < OneComponentSSFP::nP; p++)
-		paramsData[p] = (double *)malloc(totalVoxels * sizeof(double));
-	signal(SIGINT, int_handler);
+	double *residualData = new double[totalVoxels];
+	double *T2Data = new double[totalVoxels];
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -254,29 +241,8 @@ int main(int argc, char **argv)
 					}
 				}
 				residual = classicDESPOT2(ssfpAngles, signals[index], ssfpTR, T1, B1, &M0, &T2);
-				if (nPhases > 1)
-					residual = index;
-				// Don't process if DESPOT2 failed.
-				if (levMar && std::isfinite(T2) && std::isfinite(M0))
-				{
-					if (M0Data)
-						M0 = M0Data[sliceOffset + vox];
-					OneComponentSSFP f(ssfpAngles, ssfpPhases, signals,
-							           ssfpTR, M0, T1, B0, B1);
-					NumericalDiff<OneComponentSSFP> nf(f);
-					LevenbergMarquardt<NumericalDiff<OneComponentSSFP> > lm(nf);
-					VectorXd params(1);
-					params << T2;
-					int status = lm.minimizeInit(params);
-					do {
-						status = lm.minimizeOneStep(params);
-					} while (status == Eigen::HybridNonLinearSolverSpace::Running);
-					if (status < 1)
-						std::cout << "Status = " << status << std::endl;
-					T2 = params[0];
-				}
 			}
-			paramsData[0][sliceOffset + vox] = clamp(T2, 0., 5.);
+			T2Data[sliceOffset + vox] = clamp(T2, 0., 0.5);
 			residualData[sliceOffset + vox] = residual;
 		};
 		apply_for(voxelsPerSlice, processVox);
@@ -294,8 +260,11 @@ int main(int argc, char **argv)
 	char theTime[MAXSTR];
     strftime(theTime, MAXSTR, "%H:%M:%S", localEnd);
 	fprintf(stdout, "Finished processing at %s. Run-time was %f s.\n", theTime, difftime(procEnd, procStart));
-	
-	write_results<OneComponentSSFP>(outPrefix, paramsData, residualData, savedHeader);
+	savedHeader.setnt(1);
+	savedHeader.setDatatype(NIFTI_TYPE_FLOAT32);
+	savedHeader.open(outPrefix + "_T2.nii.gz", NiftiImage::NIFTI_WRITE);
+	savedHeader.writeVolume(0, T2Data);
+	savedHeader.close();
 	// Clean up memory
 	for (int p = 0; p < nPhases; p++)
 		free(ssfpData[p]);

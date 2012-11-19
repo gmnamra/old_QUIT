@@ -22,6 +22,8 @@ using namespace std;
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
 
+using namespace ProcPar;
+
 //******************************************************************************
 // Arguments / Usage
 //******************************************************************************
@@ -80,6 +82,7 @@ static struct option long_options[] =
 	{"1", no_argument, &components, 1},
 	{"2", no_argument, &components, 2},
 	{"3", no_argument, &components, 3},
+	{"4", no_argument, &components, 4},
 	{"B0", no_argument, &fitB0, false},
 	{0, 0, 0, 0}
 };
@@ -118,13 +121,12 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	Eigen::initParallel();
-	double spgrTR, ssfpTR,
-	               *maskData = NULL, *M0Data = NULL;
-	vector<NiftiImage *> SPGR_files, SSFP_files, SPGR_B1_files, SSFP_B0_files, SSFP_B1_files;
 	NiftiImage inHeader;
+	ParameterList pars;
+	double spgrTR, ssfpTR,
+		   *maskData = NULL, *M0Data = NULL;
+	vector<NiftiImage *> SPGR_files, SSFP_files, SPGR_B1_files, SSFP_B0_files, SSFP_B1_files;
 	int nSPGR = 0, nSSFP = 0;
-	string procPath;
-	par_t *pars;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "b:m:o:vznds:r:c:e:", long_options, &indexptr)) != -1)
@@ -220,11 +222,9 @@ int main(int argc, char **argv)
 			if (SPGR_files.size() == 0) {
 				nSPGR = inHdr->nt();
 				spgrAngles.resize(nSPGR, 1);
-				pars = readProcpar((inHdr->basename() + ".procpar").c_str());
-				if (pars) {
-					spgrTR = realVal(pars, "tr", 0);
-					for (int i = 0; i < nSPGR; i++) spgrAngles[i] = realVal(pars, "flip1", i);
-					freeProcpar(pars);
+				if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
+					spgrTR = RealValue(pars, "tr");
+					for (int i = 0; i < nSPGR; i++) spgrAngles[i] = RealValue(pars, "flip1", i);
 				} else {
 					thisLine >> spgrTR;
 					for (int i = 0; i < nSPGR; i++) thisLine >> spgrAngles[i];
@@ -241,27 +241,24 @@ int main(int argc, char **argv)
 			SPGR_B1_files.push_back(inHdr);
 		} else if (type == "SSFP") {
 			cout << "Opened SSFP header: " << path << endl;
-			pars = readProcpar((inHdr->basename() + ".procpar").c_str());
 			double phase = -1;
-			if (pars)
-				phase = realVal(pars, "rfphase", 0);
+			if (ReadProcpar(inHdr->basename() + ".procpar", pars))
+				phase = RealValue(pars, "rfphase");
 			else
 				thisLine >> phase;
 			ssfpPhases.push_back(phase * M_PI / 180.);
 			if (SSFP_files.size() == 0) {
 				nSSFP = inHdr->nt();
 				ssfpAngles.resize(nSSFP, 1);
-				if (pars) {
-					ssfpTR = realVal(pars, "tr", 0);
-					for (int i = 0; i < nSSFP; i++)
-						ssfpAngles[i] = realVal(pars, "flip1", i);
+				if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
+					ssfpTR = RealValue(pars, "tr");
+					for (int i = 0; i < nSSFP; i++) ssfpAngles[i] = RealValue(pars, "flip1", i);
 				} else {
 					thisLine >> ssfpTR;
 					for (int i = 0; i < ssfpAngles.size(); i++) thisLine >> ssfpAngles[i];
 				}
 				ssfpAngles *= M_PI / 180.;
 			}
-			freeProcpar(pars);
 			SSFP_files.push_back(inHdr);
 			if (thisLine >> path) { // Read a path to B1 file
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
@@ -347,6 +344,10 @@ int main(int argc, char **argv)
 			loBounds = ThreeComponent::loBounds(tesla);
 			hiBounds = ThreeComponent::hiBounds(tesla);
 			break;
+		case 4: nP = ThreeComponentEcho::nP;
+			loBounds = ThreeComponentEcho::loBounds(tesla);
+			hiBounds = ThreeComponentEcho::hiBounds(tesla);
+			break;
 	}
 	VectorXi loConstraints(nP), hiConstraints(nP);
 	loConstraints.setConstant(true); hiConstraints.setConstant(true);
@@ -368,6 +369,7 @@ int main(int argc, char **argv)
 			case 1:	paramsHdrs[i].open(outPrefix + "_" + OneComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
 			case 2:	paramsHdrs[i].open(outPrefix + "_" + TwoComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
 			case 3:	paramsHdrs[i].open(outPrefix + "_" + ThreeComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
+			case 4: paramsHdrs[i].open(outPrefix + "_" + ThreeComponentEcho::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
 		}
 		if (tesla == -1)
 			cin >> loBounds[i] >> hiBounds[i];
@@ -482,7 +484,7 @@ int main(int argc, char **argv)
 						residual = regionContraction<OneComponent>(params, tc, localLo, localHi,
 															       loConstraints, hiConstraints,
 															       samples, retain, contract, 0.05, expand, rSeed);
-						break; }
+						} break;
 					case 2: {
 						TwoComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
 						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
@@ -490,7 +492,7 @@ int main(int argc, char **argv)
 						residual = regionContraction<TwoComponent>(params, tc, localLo, localHi,
 															       loConstraints, hiConstraints,
 															       samples, retain, contract, 0.05, expand, rSeed);
-						break; }
+						} break;
 					case 3: {
 						ThreeComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
 						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
@@ -498,7 +500,15 @@ int main(int argc, char **argv)
 						residual = regionContraction<ThreeComponent>(params, tc, localLo, localHi,
 																 	loConstraints, hiConstraints,
 																 	samples, retain, contract, 0.05, expand, rSeed);
-						break; }
+						} break;
+					case 4: {
+						ThreeComponentEcho tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
+						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
+										normalise, fitB0);
+						residual = regionContraction<ThreeComponentEcho>(params, tc, localLo, localHi,
+																 	loConstraints, hiConstraints,
+																 	samples, retain, contract, 0.05, expand, rSeed);
+						} break;
 				}
 			}
 			for (int p = 0; p < nP; p++)
@@ -521,8 +531,8 @@ int main(int argc, char **argv)
 	}
     time_t procEnd = time(NULL);
     struct tm *localEnd = localtime(&procEnd);
-	char theTime[MAXSTR];
-    strftime(theTime, MAXSTR, "%H:%M:%S", localEnd);
+	char theTime[512];
+    strftime(theTime, 512, "%H:%M:%S", localEnd);
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << endl;
 	

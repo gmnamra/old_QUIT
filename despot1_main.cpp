@@ -15,12 +15,14 @@
 #include "DESPOT.h"
 #include "NiftiImage.h"
 #include "procpar.h"
+using namespace ProcPar;
 const char *usage = "Usage is: despot1 [options] spgr_input output_prefix \n\
 \
 Options:\n\
 	-m, --mask file : Mask input with specified file.\n\
 	--B1 file       : Correct flip angles with specified B1 ratio.\n\
-	-v, --verbose   : Print out more messages.\n";
+	-v, --verbose   : Print out more messages.\n\
+	-d, --drop      : Drop certain flip-angles (Read from stdin).\n";
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -30,13 +32,11 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	char procpar[MAXSTR];
 	double spgrTR = 0.;
 	int nSPGR;
 	double *B1Data = NULL, *maskData = NULL;
 	NiftiImage spgrFile, inFile;
-	par_t *pars;
-	static int verbose = false;
+	static int verbose = false, drop = false;
 	static struct option long_options[] =
 	{
 		{"B1", required_argument, 0, '1'},
@@ -46,54 +46,60 @@ int main(int argc, char **argv)
 	};
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "m:v", long_options, &indexptr)) != -1)
+	while ((c = getopt_long(argc, argv, "m:vd", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
 			case '1':
-				fprintf(stdout, "Opening B1 file: %s\n", optarg);
+				cout << "Opening B1 file: " << optarg << endl;
 				inFile.open(optarg, 'r');
 				B1Data = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
 			case 'm':
-				fprintf(stdout, "Opening mask file: %s\n", optarg);
+				cout << "Opening mask file: " << optarg << endl;
 				inFile.open(optarg, 'r');
 				maskData = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
-			case 'v':
-				verbose = true;
-				break;
+			case 'v': verbose = true; break;
+			case 'd': drop = true; break;
 			case '?': // getopt will print an error message
-				abort();
+				exit(EXIT_FAILURE);
 		}
 	}
-	if ((argc - optind) != 2)
-	{
-		fprintf(stderr, "Incorrect number of arguments.\n%s", usage);
+	if ((argc - optind) != 2) {
+		cout << "Incorrect number of arguments." << endl << usage << endl;
 		exit(EXIT_FAILURE);
 	}
-	fprintf(stdout, "Opening SPGR file: %s\n", argv[optind]);
+	cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind], 'r');
 	nSPGR = spgrFile.nt();
-	snprintf(procpar, MAXSTR, "%s.procpar", spgrFile.basename().c_str());
-	pars = readProcpar(procpar);
 	VectorXd spgrAngles(nSPGR);
-	if (pars)
-	{
-		spgrTR = realVal(pars, "tr", 0);
-		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = realVal(pars, "flip1", i);
-		freeProcpar(pars);
-	}
-	else
-	{
-		fprintf(stdout, "Enter SPGR TR (s):");
-		fscanf(stdin, "%lf", &spgrTR);
-		fprintf(stdout, "Enter SPGR Flip Angles (degrees):");
+	ParameterList pars;
+	if (ReadProcpar(spgrFile.basename() + ".procpar", pars)) {
+		spgrTR = RealValue(pars, "tr");
+		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = RealValue(pars, "flip1", i);
+	} else {
+		cout << "Enter SPGR TR (s):"; cin >> spgrTR;
+		cout << "Enter SPGR Flip Angles (degrees):";
 		for (int i = 0; i < nSPGR; i++) std::cin >> spgrAngles[i];
 	}
 	spgrAngles *= M_PI / 180.;
+	//**************************************************************************
+	#pragma mark Select which angles to use in the analysis
+	//**************************************************************************	
+	VectorXi spgrKeep(nSPGR);
+	spgrKeep.setOnes();
+	if (drop) {
+		cout << "Choose SPGR angles to use (1 to keep, 0 to drop, " << nSPGR << " values): ";
+		for (int i = 0; i < nSPGR; i++) cin >> spgrKeep[i];
+		VectorXd temp = spgrAngles;
+		spgrAngles.resize(spgrKeep.sum());
+		int angle = 0;
+		for (int i = 0; i < nSPGR; i++)
+			if (spgrKeep(i)) spgrAngles(angle++) = temp(i);
+	}
 	const std::string outPrefix(argv[++optind]);
 	if (verbose)
 	{
@@ -139,8 +145,11 @@ int main(int argc, char **argv)
 				if (B1Data)
 					B1 = B1Data[sliceOffset + vox];
 				ArrayXd spgrs(nSPGR);
-				for (int img = 0; img < nSPGR; img++)
-					spgrs[img] = SPGR[img * totalVoxels + sliceOffset + vox];
+				int vol = 0;
+				for (int img = 0; img < nSPGR; img++) {
+					if (spgrKeep(img))
+						spgrs[vol++] = SPGR[img * totalVoxels + sliceOffset + vox];
+				}
 				res = classicDESPOT1(spgrAngles, spgrs, spgrTR, B1, &M0, &T1);
 				
 				// Sanity check

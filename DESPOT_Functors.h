@@ -675,4 +675,155 @@ const ThreeComponent::BoundsMapType ThreeComponent::lo {
 const ThreeComponent::BoundsMapType ThreeComponent::hi {
 	{3, { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. } },
 	{7, { 1.e7, 0.750, 3.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5, 0. } } };
+
+//******************************************************************************
+#pragma mark Three Component with Echo Timing
+//******************************************************************************
+VectorXd Three_SSFP_Echo(const VectorXd&flipAngles, const double &rfPhase,
+                    const double &TR, const double &PD,
+				    const double &B0, const double &B1,
+				    const double &T1_a, const double &T1_b, const double &T1_c,
+				    const double &T2_a, const double &T2_b, const double &T2_c,
+				    const double &f_a, const double &f_b, const double &f_c,
+				    const double &k_ab, const double &k_ba)
+{
+	VectorXd signal(flipAngles.size());
+	Matrix9d A = Matrix9d::Zero(), expATR, expATE, R_rf = Matrix9d::Zero(), eye_mAR;
+	const Matrix9d eye9 = Matrix9d::Identity();
+	Vector9d M0, Mobs;
+	PartialPivLU<Matrix9d> solver;
+	// Set up the 'A' matrix. It's quite complex.
+	A(0, 0) = A(3, 3) = -TR * (1./T2_a + k_ab);
+	A(1, 1) = A(4, 4) = -TR * (1./T2_b + k_ba);
+	A(2, 2) = A(5, 5) = -TR * (1./T2_c);
+	A(0, 1) = A(3, 4) = A(6, 7) = TR * k_ba;
+	A(1, 0) = A(4, 3) = A(7, 6) = TR * k_ab;
+	A(6, 6) = -TR * (1./T1_a + k_ab);
+	A(7, 7) = -TR * (1./T1_b + k_ba);
+	A(8, 8) = -TR * (1./T1_c);
+	R_rf(0, 0) = R_rf(1, 1) = R_rf(2, 2) = 1.;
+	M0 << 0., 0., 0., 0., 0., 0., PD * f_a, PD * f_b, PD * f_c;
+	
+	double phase = rfPhase + (B0 * TR * 2. * M_PI);
+	A(0, 3) = A(1, 4) = A(2, 5) = phase;
+	A(3, 0) = A(4, 1) = A(5, 2) = -phase;
+	MatrixExponential<Matrix9d> exp(A);
+	exp.compute(expATR);
+	const Matrix9d eyema = eye9 - expATR;
+	A /= 2.;
+	MatrixExponential<Matrix9d> exp2(A);
+	exp.compute(expATE);
+	for (int i = 0; i < flipAngles.size(); i++)
+	{
+		double a = flipAngles[i];
+		double ca = cos(B1 * a), sa = sin(B1 * a);
+		R_rf(3, 3) = R_rf(4, 4) = R_rf(5, 5) =
+		R_rf(6, 6) = R_rf(7, 7) = R_rf(8, 8) =  ca;
+		R_rf(3, 6) = R_rf(4, 7) = R_rf(5, 8) =  sa;
+		R_rf(6, 3) = R_rf(7, 4) = R_rf(8, 5) = -sa;
+		eye_mAR.noalias() = eye9 - (expATR * R_rf);
+		solver.compute(eye_mAR);
+		Mobs.noalias() = expATE * solver.solve(eyema) * M0;
+		signal[i] = sqrt(pow(Mobs[0] + Mobs[1] + Mobs[2], 2.) +
+						 pow(Mobs[3] + Mobs[4] + Mobs[5], 2.));
+	}
+	return signal;
+}
+
+class ThreeComponentEcho : public DESPOT_Functor<11>
+{
+	public:
+		ThreeComponentEcho(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
+					   const VectorXd &spgrB1, const double &spgrTR,
+					   const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
+					   const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
+					   const bool &normalise = false, const bool &fitB0 = true)
+					  : DESPOT_Functor(spgrAngles, spgrSignals, spgrB1, spgrTR,
+					                 ssfpAngles, ssfpPhases, ssfpSignals, ssfpB0, ssfpB1, ssfpTR,
+					                 normalise, true)
+					  {}
+		static const StringArray names;
+		static const BoundsMapType lo, hi;
+		
+		// Until Eigen comes up with decent initializers...
+		static BoundsType loBounds(int tesla) {
+			auto it = lo.find(tesla);
+			if (it != lo.end()) {
+				BoundsType temp;
+				for (int i = 0; i < nP; i++)
+					temp[i] = it->second[i];
+				return temp;
+			} else
+				return BoundsType::Zero();
+		}
+		// Until Eigen comes up with decent initializers...
+		static BoundsType hiBounds(int tesla) {
+			auto it = hi.find(tesla);
+			if (it != hi.end()) {
+				BoundsType temp;
+				for (int i = 0; i < nP; i++)
+					temp[i] = it->second[i];
+				return temp;
+			} else
+				return BoundsType::Zero();
+		}
+		
+		static bool constraint(const VectorXd &params)
+		{
+			if ((params[1] < params[2]) &&
+			    (params[2] < params[3]) &&
+				(params[4] < params[5]) &&
+				(params[5] < params[6]) &&
+			    ((params[7] + params[8]) <= 0.95))
+				return true;
+			else
+				return false;
+		}
+		
+		const VectorXd theory(const VectorXd &params, const bool &normalise) const
+		{
+			double PD   = params[0],
+			       T1_a = params[1], T1_b = params[2], T1_c = params[3],
+				   T2_a = params[4], T2_b = params[5], T2_c = params[6],
+			       f_a  = params[7], f_c  = params[8], f_b  = 1. - f_a - f_c,
+			       tau_a = params[9], tau_b = f_b * tau_a / f_a,
+				   k_ab = 1. / tau_a, k_ba = 1. / tau_b,
+				   B0 = params[10];
+			VectorXd t(values());
+			// Only have 1 component, so no exchange
+			if ((f_a == 0.) || (f_b == 0.)) {
+				k_ab = 0.;
+				k_ba = 0.;
+			}
+			int index = 0;
+			for (int i = 0; i < _spgrSignals.size(); i++) {
+				VectorXd theory = Three_SPGR(_spgrAngles, _spgrTR, PD, _spgrB1[i],
+				                           T1_a, T1_b, T1_c, f_a, f_b, f_c, k_ab, k_ba);
+				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
+				t.segment(index, _spgrAngles.size()) = theory;
+				index += _spgrAngles.size();
+			}
+
+			for (int i = 0; i < _ssfpSignals.size(); i++) {
+				if (!_fitB0)
+					B0 = _ssfpB0[i];
+				VectorXd theory = Three_SSFP_Echo(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
+				                           PD, B0, _ssfpB1[i],
+				                           T1_a, T1_b, T1_c, T2_a, T2_b, T2_c,
+										   f_a, f_b, f_c, k_ab, k_ba);
+				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
+				t.segment(index, _ssfpAngles.size()) = theory;
+				index += _ssfpAngles.size();
+			}
+			return t;
+		}
+};
+const ThreeComponentEcho::StringArray ThreeComponentEcho::names{ { "3c_M0", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "3c_B0" } };
+const ThreeComponentEcho::BoundsMapType ThreeComponentEcho::lo {
+	{3, { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. } },
+	{7, { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0, 0. } } };
+const ThreeComponentEcho::BoundsMapType ThreeComponentEcho::hi {
+	{3, { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. } },
+	{7, { 1.e7, 0.750, 3.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5, 0. } } };
+
 #endif
