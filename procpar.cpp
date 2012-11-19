@@ -342,6 +342,9 @@ istream& operator>>(istream &is, Parameter &p) {
 	}
 }
 
+//******************************************************************************
+#pragma mark Equality
+//******************************************************************************
 const bool Parameter::operator==(const Parameter &other)
 {
 	if (_type != other._type)
@@ -363,35 +366,58 @@ const bool Parameter::operator==(const Parameter &other)
 	return true;
 }
 
+const bool Parameter::operator!=(const Parameter &other) { return !(operator==(other)); }
 //******************************************************************************
 #pragma mark Convenience
 //******************************************************************************
-ParameterList ReadProcpar(const string &path) {
+/*
+ *  Returns false if it can't find a procpar file, otherwise reads it into pp
+ *
+ */
+bool ReadProcpar(const string &path, ParameterList &pp) {
 	ifstream fpp;
 	fpp.open(path.c_str());
 	if (!fpp)
-		PROCPAR_FAIL("Cannot open procpar file for reading: " + path);
+		return false;
 	
-	ParameterList pp;
+	pp.clear();
 	Parameter p;
-	
 	while(fpp >> p)
 		pp.insert(pair<string, Parameter>(p.name(), p));
 	
 	fpp.close();
-	return pp;
+	return true;
 }
 
-void WriteProcpar(const string &path, ParameterList pp) {
+bool WriteProcpar(const string &path, ParameterList &pp) {
 	ofstream fpp;
 	fpp.open(path.c_str());
-	if (!fpp)
-		PROCPAR_FAIL("Cannot open procpar file for writing: " + path);
+	if (!fpp) {
+		PROCPAR_ERROR("Cannot open procpar file for writing: " + path);
+		return false;
+	}
 	
 	ParameterList::const_iterator p;
-	for (p = pp.begin(); p < p.end(); p++)
-		fpp << *p << endl;
+	for (p = pp.begin(); p != pp.end(); p++)
+		fpp << p->second << endl;
 	fpp.close();
+	return true;
+}
+
+const double RealValue(const ParameterList &pl, const string &name, const int index) {
+	ParameterList::const_iterator p = pl.find(name);
+	if (p == pl.end())
+		PROCPAR_FAIL("Could not find parameter " + name);
+	else
+		return p->second.realValue(index);
+}
+
+const string &StringValue(const ParameterList &pl, const string &name, const int index) {
+	ParameterList::const_iterator p = pl.find(name);
+	if (p == pl.end())
+		PROCPAR_FAIL("Could not find parameter " + name);
+	else
+		return p->second.stringValue(index);
 }
 
 }; // End namespace ProcPar

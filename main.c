@@ -53,15 +53,27 @@ int main(int argc, char **argv)
 	
 	ParameterList pars, cmpPars;
 	ParameterList::iterator par, cmpPar;
-		
+	
+	if ((argc - optind) <= 0) {
+		cout << "No procpar file specified." << endl << usage << endl;
+		exit(EXIT_FAILURE);
+	}
+	
 	procparFile = string(argv[optind++]);
 	if (verbose)
 		cout << "Reading procpar file: " << procparFile << endl;
-	pars = ReadProcpar(procparFile);
+	
+	if (!ReadProcpar(procparFile, pars)) {
+		cout << "Could not find procpar file.";
+		exit(EXIT_FAILURE);
+	}
 	if (cmpFile != "") {
 		if (verbose)
 			cout << "Reading comparison procpar file: " << cmpFile;
-		cmpPars = ReadProcpar(cmpFile);
+		if (!ReadProcpar(cmpFile, cmpPars)) {
+			cout << "Could not find procpar file.";
+			exit(EXIT_FAILURE);
+		}
 	}
 	
 	if (optind == argc && cmpFile != "") {

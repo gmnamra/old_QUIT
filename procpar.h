@@ -78,15 +78,18 @@ namespace ProcPar {
 			const string print() const;
 			
 			const bool operator==(const Parameter &other);
+			const bool operator!=(const Parameter &other);
 			friend ostream& operator<<(ostream &os, const Parameter &p);
 			friend istream& operator>>(istream &is, const Parameter &p);
 	};
 	
 	typedef map<string, Parameter> ParameterList;
-
-	ParameterList ReadProcpar(const string &path);
-	void WriteProcpar(const string &path, ParameterList pp);
-
+	
+	bool ReadProcpar(const string &path, ParameterList &pl);
+	bool WriteProcpar(const string &path, ParameterList &pl);
+	
+	const double RealValue(const ParameterList &pl, const string &name, const int index = 0);
+	const string &StringValue(const ParameterList &pl, const string &name, const int index = 0);
 } // End namespace ProcPar
 
 #endif
