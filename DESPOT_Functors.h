@@ -681,7 +681,7 @@ const ThreeComponent::BoundsMapType ThreeComponent::hi {
 //******************************************************************************
 VectorXd Three_SSFP_Echo(const VectorXd&flipAngles, const double &rfPhase,
                     const double &TR, const double &PD,
-				    const double &B0, const double &B1,
+				    const double &B0_a, const double &B0_b, const double &B0_c, const double &B1,
 				    const double &T1_a, const double &T1_b, const double &T1_c,
 				    const double &T2_a, const double &T2_b, const double &T2_c,
 				    const double &f_a, const double &f_b, const double &f_c,
@@ -704,13 +704,22 @@ VectorXd Three_SSFP_Echo(const VectorXd&flipAngles, const double &rfPhase,
 	R_rf(0, 0) = R_rf(1, 1) = R_rf(2, 2) = 1.;
 	M0 << 0., 0., 0., 0., 0., 0., PD * f_a, PD * f_b, PD * f_c;
 	
-	double phase = rfPhase + (B0 * TR * 2. * M_PI);
-	A(0, 3) = A(1, 4) = A(2, 5) = phase;
-	A(3, 0) = A(4, 1) = A(5, 2) = -phase;
+	A(0, 3) = rfPhase + (B0_a * TR * 2. * M_PI);
+	A(3, 0) = -A(0, 3);
+	A(1, 4) = rfPhase + (B0_b * TR * 2. * M_PI);
+	A(4, 1) = -A(1, 4);
+	A(2, 5) = rfPhase + (B0_c * TR * 2. * M_PI);
+	A(5, 2) = -A(2, 5);
 	MatrixExponential<Matrix9d> exp(A);
 	exp.compute(expATR);
 	const Matrix9d eyema = eye9 - expATR;
 	A /= 2.;
+	A(0, 3) = (B0_a * TR * M_PI);
+	A(3, 0) = -A(0, 3);
+	A(1, 4) = (B0_b * TR * M_PI);
+	A(4, 1) = -A(1, 4);
+	A(2, 5) = (B0_c * TR * M_PI);
+	A(5, 2) = -A(2, 5);
 	MatrixExponential<Matrix9d> exp2(A);
 	exp2.compute(expATE);
 	for (int i = 0; i < flipAngles.size(); i++)
@@ -730,7 +739,7 @@ VectorXd Three_SSFP_Echo(const VectorXd&flipAngles, const double &rfPhase,
 	return signal;
 }
 
-class ThreeComponentEcho : public DESPOT_Functor<11>
+class ThreeComponentEcho : public DESPOT_Functor<13>
 {
 	public:
 		ThreeComponentEcho(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
@@ -788,7 +797,7 @@ class ThreeComponentEcho : public DESPOT_Functor<11>
 			       f_a  = params[7], f_c  = params[8], f_b  = 1. - f_a - f_c,
 			       tau_a = params[9], tau_b = f_b * tau_a / f_a,
 				   k_ab = 1. / tau_a, k_ba = 1. / tau_b,
-				   B0 = params[10];
+				   B0_a = params[10], B0_b = params[11], B0_c = params[12];
 			VectorXd t(values());
 			// Only have 1 component, so no exchange
 			if ((f_a == 0.) || (f_b == 0.)) {
@@ -805,10 +814,11 @@ class ThreeComponentEcho : public DESPOT_Functor<11>
 			}
 
 			for (int i = 0; i < _ssfpSignals.size(); i++) {
-				if (!_fitB0)
-					B0 = _ssfpB0[i];
+				if (!_fitB0) {
+					B0_a = B0_b = B0_c = _ssfpB0[i];
+				}
 				VectorXd theory = Three_SSFP_Echo(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
-				                           PD, B0, _ssfpB1[i],
+				                           PD, B0_a, B0_b, B0_c, _ssfpB1[i],
 				                           T1_a, T1_b, T1_c, T2_a, T2_b, T2_c,
 										   f_a, f_b, f_c, k_ab, k_ba);
 				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
@@ -818,7 +828,11 @@ class ThreeComponentEcho : public DESPOT_Functor<11>
 			return t;
 		}
 };
-const ThreeComponentEcho::StringArray ThreeComponentEcho::names{ { "3c_M0", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "3c_B0" } };
+const ThreeComponentEcho::StringArray ThreeComponentEcho::names
+{ { "3c_M0", "3c_T1_a", "3c_T1_b", "3c_T1_c",
+             "3c_T2_a", "3c_T2_b", "3c_T2_c",
+			 "3c_f_a", "3c_f_c", "3c_tau_a",
+			 "3c_B0_a", "3c_B0_b", "3c_B0_c" } };
 const ThreeComponentEcho::BoundsMapType ThreeComponentEcho::lo {
 	{3, { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. } },
 	{7, { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0, 0. } } };
