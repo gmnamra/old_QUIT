@@ -812,7 +812,7 @@ class ThreeComponentEcho : public DESPOT_Functor<13>
 				t.segment(index, _spgrAngles.size()) = theory;
 				index += _spgrAngles.size();
 			}
-
+			
 			for (int i = 0; i < _ssfpSignals.size(); i++) {
 				if (!_fitB0) {
 					B0_a = B0_b = B0_c = _ssfpB0[i];
