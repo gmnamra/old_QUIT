@@ -384,6 +384,10 @@ int main(int argc, char **argv)
 	if (fitB0) {
 		loBounds[nP - 1] = -0.5 / ssfpTR;
 		hiBounds[nP - 1] =  0.5 / ssfpTR;
+		if (components == 4) {
+			loBounds[nP - 3] = loBounds[nP - 2] = loBounds[nP - 1];
+			hiBounds[nP - 3] = hiBounds[nP - 2] = hiBounds[nP - 1];
+		}
 	} else {
 		loBounds[nP - 1] = 0.;
 		hiBounds[nP - 1] = 0.;
