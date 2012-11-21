@@ -7,10 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F6687667165D2E15005490D1 /* fid.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687665165D2E15005490D1 /* fid.cpp */; };
+		F6687677165D2EB1005490D1 /* nrecon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687676165D2EB1005490D1 /* nrecon.cpp */; };
 		F6D581EF1652B431000DA0FF /* procpar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6D581ED1652B415000DA0FF /* procpar.cpp */; };
 		F6D581F01652B43A000DA0FF /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54D215ADD80E00208C11 /* libprocpar.a */; };
 		F6DB54D715ADD82000208C11 /* procpar.h in Headers */ = {isa = PBXBuildFile; fileRef = F6B6672615AC5D980078252F /* procpar.h */; };
-		F6FA56C715AC1B8E006A347A /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = F6FA56C615AC1B8E006A347A /* main.c */; };
+		F6FA56C715AC1B8E006A347A /* main_procparse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6FA56C615AC1B8E006A347A /* main_procparse.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,6 +26,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		F668766A165D2E3E005490D1 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		F6FA56B715AC1B5B006A347A /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -36,14 +47,25 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F6687665165D2E15005490D1 /* fid.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fid.cpp; sourceTree = "<group>"; };
+		F6687666165D2E15005490D1 /* fid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fid.h; sourceTree = "<group>"; };
+		F668766C165D2E3E005490D1 /* Nrecon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Nrecon; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6687676165D2EB1005490D1 /* nrecon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = nrecon.cpp; sourceTree = SOURCE_ROOT; };
 		F6B6672615AC5D980078252F /* procpar.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = procpar.h; sourceTree = SOURCE_ROOT; };
 		F6D581ED1652B415000DA0FF /* procpar.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = procpar.cpp; sourceTree = SOURCE_ROOT; };
 		F6DB54D215ADD80E00208C11 /* libprocpar.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libprocpar.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6FA56B915AC1B5B006A347A /* procparse */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = procparse; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6FA56C615AC1B8E006A347A /* main.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = main.c; sourceTree = SOURCE_ROOT; };
+		F6FA56C615AC1B8E006A347A /* main_procparse.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = main_procparse.cpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F6687669165D2E3E005490D1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F6DB54CF15ADD80E00208C11 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -62,10 +84,29 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		F6687663165D2E05005490D1 /* fid */ = {
+			isa = PBXGroup;
+			children = (
+				F6687665165D2E15005490D1 /* fid.cpp */,
+				F6687666165D2E15005490D1 /* fid.h */,
+			);
+			name = fid;
+			sourceTree = "<group>";
+		};
+		F668766E165D2E3E005490D1 /* Nrecon */ = {
+			isa = PBXGroup;
+			children = (
+				F6687676165D2EB1005490D1 /* nrecon.cpp */,
+			);
+			path = Nrecon;
+			sourceTree = "<group>";
+		};
 		F6FA56AE15AC1B5B006A347A = {
 			isa = PBXGroup;
 			children = (
+				F6687663165D2E05005490D1 /* fid */,
 				F6FA56BC15AC1B5B006A347A /* procparse */,
+				F668766E165D2E3E005490D1 /* Nrecon */,
 				F6FA56BA15AC1B5B006A347A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -75,6 +116,7 @@
 			children = (
 				F6FA56B915AC1B5B006A347A /* procparse */,
 				F6DB54D215ADD80E00208C11 /* libprocpar.a */,
+				F668766C165D2E3E005490D1 /* Nrecon */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,7 +125,7 @@
 			isa = PBXGroup;
 			children = (
 				F6D581ED1652B415000DA0FF /* procpar.cpp */,
-				F6FA56C615AC1B8E006A347A /* main.c */,
+				F6FA56C615AC1B8E006A347A /* main_procparse.cpp */,
 				F6B6672615AC5D980078252F /* procpar.h */,
 			);
 			path = procparse;
@@ -103,6 +145,23 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		F668766B165D2E3E005490D1 /* Nrecon */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6687673165D2E3E005490D1 /* Build configuration list for PBXNativeTarget "Nrecon" */;
+			buildPhases = (
+				F6687668165D2E3E005490D1 /* Sources */,
+				F6687669165D2E3E005490D1 /* Frameworks */,
+				F668766A165D2E3E005490D1 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Nrecon;
+			productName = Nrecon;
+			productReference = F668766C165D2E3E005490D1 /* Nrecon */;
+			productType = "com.apple.product-type.tool";
+		};
 		F6DB54D115ADD80E00208C11 /* procpar */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F6DB54D315ADD80E00208C11 /* Build configuration list for PBXNativeTarget "procpar" */;
@@ -160,11 +219,20 @@
 			targets = (
 				F6FA56B815AC1B5B006A347A /* procparse */,
 				F6DB54D115ADD80E00208C11 /* procpar */,
+				F668766B165D2E3E005490D1 /* Nrecon */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F6687668165D2E3E005490D1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6687677165D2EB1005490D1 /* nrecon.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F6DB54CE15ADD80E00208C11 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -177,7 +245,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6FA56C715AC1B8E006A347A /* main.c in Sources */,
+				F6FA56C715AC1B8E006A347A /* main_procparse.cpp in Sources */,
+				F6687667165D2E15005490D1 /* fid.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -192,6 +261,29 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		F6687674165D2E3E005490D1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F6687675165D2E3E005490D1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		F6DB54D415ADD80E00208C11 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -283,6 +375,14 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F6687673165D2E3E005490D1 /* Build configuration list for PBXNativeTarget "Nrecon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6687674165D2E3E005490D1 /* Debug */,
+				F6687675165D2E3E005490D1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
 		F6DB54D315ADD80E00208C11 /* Build configuration list for PBXNativeTarget "procpar" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
