@@ -9,13 +9,14 @@
 #ifndef __Nrecon__FID__
 #define __Nrecon__FID__
 
+#include <string>
 #include <iostream>
 
-#include <recon_util.h>
-#include <FIDFile.h>
-#include <procpar.h>
+#include "recon_util.h"
+#include "FIDFile.h"
+#include "procpar.h"
 
-namespace Nrecon {
+namespace Recon {
 
 class FID {
 

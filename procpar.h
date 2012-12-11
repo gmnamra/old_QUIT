@@ -22,7 +22,7 @@ using namespace std;
 #define PROCPAR_ERROR( err ) do { std::cerr << __PRETTY_FUNCTION__ << ": " << ( err ) << std::flush << std::endl; } while(0)
 #define PROCPAR_FAIL( err ) do { PROCPAR_ERROR( err ); exit(EXIT_FAILURE); } while(0)
 
-namespace ProcPar {
+namespace Recon {
 
 	enum Type {
 		TYPE_REAL = 1,
@@ -90,6 +90,6 @@ namespace ProcPar {
 	
 	const double RealValue(const ParameterList &pl, const string &name, const int index = 0);
 	const string &StringValue(const ParameterList &pl, const string &name, const int index = 0);
-} // End namespace ProcPar
+} // End namespace Recon
 
 #endif

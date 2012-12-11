@@ -22,8 +22,8 @@ enum Endianness {
 Endianness HostEndianness();
 
 template <typename T>
-void SwapEndianness(T *ptr, size_t n = 1) {
-	for (size_t i = 0; i < n; i++) {
+void SwapEndianness(T *ptr, int n = 1) {
+	for (int i = 0; i < n; i++) {
 		char swap;
 		char *lo = reinterpret_cast<char *>(ptr);
 		char *hi = lo + (sizeof(T) - 1);
