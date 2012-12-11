@@ -34,8 +34,19 @@ void FIDFile::SwapBlockHeader(BlockHeader *hdr) {
 	SwapEndianness(&hdr->tlt);
 }
 
+FIDFile::FIDFile() :
+	_numBlocks(0), _numTraces(0), _numPoints(0),
+	_bytesPerPoint(0), _bytesPerTrace(0), _bytesPerBlock(0),
+	_status(0), _version_id(0), _numBlockHeaders(0)
+{
+
+}
+
 FIDFile::FIDFile(const string& path) {
-	
+	open(path);
+}
+
+void FIDFile::open(const string& path) {
 	FileHeader hdr;
 	_file.open(path, ios::in | ios::binary);
 	if (_file.read(reinterpret_cast<char *>(&hdr), sizeof(hdr))) {

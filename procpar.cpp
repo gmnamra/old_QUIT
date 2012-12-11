@@ -404,6 +404,13 @@ bool WriteProcpar(const string &path, ParameterList &pp) {
 	return true;
 }
 
+const bool ParExists(const ParameterList &pl, const string &name) {
+	ParameterList::const_iterator p = pl.find(name);
+	if (p == pl.end())
+		return false;
+	return true;
+}
+
 const double RealValue(const ParameterList &pl, const string &name, const int index) {
 	ParameterList::const_iterator p = pl.find(name);
 	if (p == pl.end())

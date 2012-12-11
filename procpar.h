@@ -88,6 +88,7 @@ namespace Recon {
 	bool ReadProcpar(const string &path, ParameterList &pl);
 	bool WriteProcpar(const string &path, ParameterList &pl);
 	
+	const bool ParExists(const ParameterList &pl, const string &name);
 	const double RealValue(const ParameterList &pl, const string &name, const int index = 0);
 	const string &StringValue(const ParameterList &pl, const string &name, const int index = 0);
 } // End namespace Recon
