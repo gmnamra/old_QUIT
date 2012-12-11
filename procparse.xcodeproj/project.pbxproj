@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		F6687667165D2E15005490D1 /* fid.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687665165D2E15005490D1 /* fid.cpp */; };
 		F6687677165D2EB1005490D1 /* nrecon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687676165D2EB1005490D1 /* nrecon.cpp */; };
+		F6687678165D2FB8005490D1 /* fid.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687665165D2E15005490D1 /* fid.cpp */; };
 		F6D581EF1652B431000DA0FF /* procpar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6D581ED1652B415000DA0FF /* procpar.cpp */; };
 		F6D581F01652B43A000DA0FF /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54D215ADD80E00208C11 /* libprocpar.a */; };
 		F6DB54D715ADD82000208C11 /* procpar.h in Headers */ = {isa = PBXBuildFile; fileRef = F6B6672615AC5D980078252F /* procpar.h */; };
@@ -93,11 +94,13 @@
 			name = fid;
 			sourceTree = "<group>";
 		};
-		F668766E165D2E3E005490D1 /* Nrecon */ = {
+		F668766E165D2E3E005490D1 /* Executables */ = {
 			isa = PBXGroup;
 			children = (
+				F6FA56C615AC1B8E006A347A /* main_procparse.cpp */,
 				F6687676165D2EB1005490D1 /* nrecon.cpp */,
 			);
+			name = Executables;
 			path = Nrecon;
 			sourceTree = "<group>";
 		};
@@ -106,7 +109,7 @@
 			children = (
 				F6687663165D2E05005490D1 /* fid */,
 				F6FA56BC15AC1B5B006A347A /* procparse */,
-				F668766E165D2E3E005490D1 /* Nrecon */,
+				F668766E165D2E3E005490D1 /* Executables */,
 				F6FA56BA15AC1B5B006A347A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -125,7 +128,6 @@
 			isa = PBXGroup;
 			children = (
 				F6D581ED1652B415000DA0FF /* procpar.cpp */,
-				F6FA56C615AC1B8E006A347A /* main_procparse.cpp */,
 				F6B6672615AC5D980078252F /* procpar.h */,
 			);
 			path = procparse;
@@ -229,6 +231,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6687678165D2FB8005490D1 /* fid.cpp in Sources */,
 				F6687677165D2EB1005490D1 /* nrecon.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -382,6 +385,7 @@
 				F6687675165D2E3E005490D1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F6DB54D315ADD80E00208C11 /* Build configuration list for PBXNativeTarget "procpar" */ = {
 			isa = XCConfigurationList;

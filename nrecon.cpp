@@ -6,13 +6,21 @@
 //
 //
 
+#include <string>
 #include <iostream>
+using namespace std;
+#include "fid.h"
 
 int main(int argc, const char * argv[])
 {
-
-	// insert code here...
-	std::cout << "Hello, World!\n";
+	string path(argv[1]);
+	
+	Recon::FID_File thisFid(path);
+	cout << thisFid.print_header() << endl;
+	const complex<double> *one = thisFid.readBlock(0);
+	cout << one[0] << endl;
+	const complex<double> *two = thisFid.readBlock(22);
+	cout << two[0] << endl;
     return 0;
 }
 

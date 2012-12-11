@@ -14,6 +14,8 @@
 #include <bitset>
 #include <complex>
 
+#include <sys/_endian.h>
+
 using namespace std;
 
 //! Data file header status bits  (0-9)
@@ -105,7 +107,28 @@ using namespace std;
 #define DATA_FILE	0x80
 #define PHAS_FILE	0xc0
 
-class FID {
+namespace Recon {
+
+enum Endianness {
+	LittleEndian = 0,
+	BigEndian
+};
+Endianness HostEndianness();
+template <typename T>
+void SwapEndianness(T *ptr, size_t n = 1) {
+	for (size_t i = 0; i < n; i++) {
+		char swap;
+		char *lo = reinterpret_cast<char *>(ptr);
+		char *hi = lo + (sizeof(T) - 1);
+		while (hi > lo) {
+			swap = *lo; *lo = *hi; *hi = swap;
+			lo++; hi--;
+		}
+		ptr++;
+	}
+}
+
+class FID_File {
 
 	private:
 		//! Used at the beginning of each data file (fid's, spectra, 2D)
@@ -148,19 +171,41 @@ class FID {
 		   float   f_spare2; //!< float word:  spare
 		} HyperComplexHeader;
 		
+		static void SwapFileHeader(FileHeader *hdr);
+		static void SwapBlockHeader(BlockHeader *hdr);
+		
 		//! Actual member variables
+		ifstream _file;
 		int _numBlocks, _numTraces, _numPoints, _numBlockHeaders,
 		    _bytesPerPoint, _bytesPerTrace, _bytesPerBlock;
 		bitset<16> _status, _version_id;
 		bool _swap;
 		
 	public:
-		FID(const string &path);
-		hasData();
-		isFID();
-		complex<double> *readVolume(int vol);
+		enum FIDType {
+			Float32Type = 0,
+			Int32Type,
+			Int16Type
+		};
 		
-		const string print_info() const;
-}
+		FID_File(const string &path);
+		~FID_File();
+		bool hasData();
+		bool isFID();
+		
+		const int nBlocks() const; //!< The number of blocks in the file
+		const int nTraces() const; //!< The number of traces per block
+		const int nPointsPerTrace() const; //!< The number of samples per trace
+		const int nPointsPerBlock() const; //!< The number of samples per block
+		const int nComplexPerTrace() const; //!< The number of complex points per trace (nPoints / 2)
+		const int nComplexPerBlock() const; //!< The number of complex points per block (nPoints / 2)
+		FIDType dataType() const; //!< The sample data type
+		
+		const complex<double> *readBlock(int block);
+		
+		const string print_header() const;
+};
+
+}; // End namespace Recon
 
 #endif /* defined(__Nrecon__fid__) */
