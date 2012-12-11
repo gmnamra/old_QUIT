@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F6687667165D2E15005490D1 /* fid.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687665165D2E15005490D1 /* fid.cpp */; };
+		F6687667165D2E15005490D1 /* FIDFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687665165D2E15005490D1 /* FIDFile.cpp */; };
 		F6687677165D2EB1005490D1 /* nrecon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687676165D2EB1005490D1 /* nrecon.cpp */; };
-		F6687678165D2FB8005490D1 /* fid.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687665165D2E15005490D1 /* fid.cpp */; };
+		F6687678165D2FB8005490D1 /* FIDFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687665165D2E15005490D1 /* FIDFile.cpp */; };
 		F6D581EF1652B431000DA0FF /* procpar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6D581ED1652B415000DA0FF /* procpar.cpp */; };
 		F6D581F01652B43A000DA0FF /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54D215ADD80E00208C11 /* libprocpar.a */; };
 		F6DB54D715ADD82000208C11 /* procpar.h in Headers */ = {isa = PBXBuildFile; fileRef = F6B6672615AC5D980078252F /* procpar.h */; };
@@ -48,8 +48,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		F6687665165D2E15005490D1 /* fid.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fid.cpp; sourceTree = "<group>"; };
-		F6687666165D2E15005490D1 /* fid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fid.h; sourceTree = "<group>"; };
+		F6465B1C1677789800444730 /* FID.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FID.cpp; sourceTree = "<group>"; };
+		F6465B1D1677789800444730 /* FID.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FID.h; sourceTree = "<group>"; };
+		F6687665165D2E15005490D1 /* FIDFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIDFile.cpp; sourceTree = "<group>"; };
+		F6687666165D2E15005490D1 /* FIDFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FIDFile.h; sourceTree = "<group>"; };
 		F668766C165D2E3E005490D1 /* Nrecon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Nrecon; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6687676165D2EB1005490D1 /* nrecon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = nrecon.cpp; sourceTree = SOURCE_ROOT; };
 		F6B6672615AC5D980078252F /* procpar.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = procpar.h; sourceTree = SOURCE_ROOT; };
@@ -88,8 +90,10 @@
 		F6687663165D2E05005490D1 /* fid */ = {
 			isa = PBXGroup;
 			children = (
-				F6687665165D2E15005490D1 /* fid.cpp */,
-				F6687666165D2E15005490D1 /* fid.h */,
+				F6687665165D2E15005490D1 /* FIDFile.cpp */,
+				F6687666165D2E15005490D1 /* FIDFile.h */,
+				F6465B1C1677789800444730 /* FID.cpp */,
+				F6465B1D1677789800444730 /* FID.h */,
 			);
 			name = fid;
 			sourceTree = "<group>";
@@ -207,7 +211,7 @@
 			attributes = {
 				LastUpgradeCheck = 0430;
 			};
-			buildConfigurationList = F6FA56B315AC1B5B006A347A /* Build configuration list for PBXProject "procparse" */;
+			buildConfigurationList = F6FA56B315AC1B5B006A347A /* Build configuration list for PBXProject "Nrecon" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -231,7 +235,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6687678165D2FB8005490D1 /* fid.cpp in Sources */,
+				F6687678165D2FB8005490D1 /* FIDFile.cpp in Sources */,
 				F6687677165D2EB1005490D1 /* nrecon.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -249,7 +253,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6FA56C715AC1B8E006A347A /* main_procparse.cpp in Sources */,
-				F6687667165D2E15005490D1 /* fid.cpp in Sources */,
+				F6687667165D2E15005490D1 /* FIDFile.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -396,7 +400,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F6FA56B315AC1B5B006A347A /* Build configuration list for PBXProject "procparse" */ = {
+		F6FA56B315AC1B5B006A347A /* Build configuration list for PBXProject "Nrecon" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F6FA56C115AC1B5B006A347A /* Debug */,
