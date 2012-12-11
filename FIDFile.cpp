@@ -10,22 +10,7 @@
 
 namespace Recon {
 
-Endianness HostEndianness() {
-	union {
-		unsigned char ch[sizeof(short)];
-		short         ss;
-	} byteOrder;
-	// Little endian will put this in byteOrder.ch[0],
-	// big endian will put this in byteOrder.ch[1]
-	byteOrder.ss = 1;
-	if (byteOrder.ch[1] == 1)
-		return BigEndian;
-	else
-		return LittleEndian;
-}
-
-
-void FID_File::SwapFileHeader(FileHeader *hdr) {
+void FIDFile::SwapFileHeader(FileHeader *hdr) {
 	SwapEndianness(&hdr->nblocks);
 	SwapEndianness(&hdr->ntraces);
 	SwapEndianness(&hdr->np);
@@ -37,7 +22,7 @@ void FID_File::SwapFileHeader(FileHeader *hdr) {
 	SwapEndianness(&hdr->nbheaders);
 }
 
-void FID_File::SwapBlockHeader(BlockHeader *hdr) {
+void FIDFile::SwapBlockHeader(BlockHeader *hdr) {
 	SwapEndianness(&hdr->scale);
 	SwapEndianness(&hdr->status);
 	SwapEndianness(&hdr->index);
@@ -49,7 +34,7 @@ void FID_File::SwapBlockHeader(BlockHeader *hdr) {
 	SwapEndianness(&hdr->tlt);
 }
 
-FID_File::FID_File(const string& path) {
+FIDFile::FIDFile(const string& path) {
 	
 	FileHeader hdr;
 	_file.open(path, ios::in | ios::binary);
@@ -71,17 +56,17 @@ FID_File::FID_File(const string& path) {
 	}
 }
 
-FID_File::~FID_File() {
+FIDFile::~FIDFile() {
 	_file.close();
 }
 
-const int FID_File::nBlocks() const { return _numBlocks; }
-const int FID_File::nTraces() const { return _numTraces; }
-const int FID_File::nPointsPerTrace() const { return _numPoints; }
-const int FID_File::nPointsPerBlock() const { return _numPoints * _numTraces; }
-const int FID_File::nComplexPerTrace() const { return _numPoints / 2; }
-const int FID_File::nComplexPerBlock() const { return _numPoints * _numTraces / 2; }
-FID_File::FIDType FID_File::dataType() const {
+const int FIDFile::nBlocks() const { return _numBlocks; }
+const int FIDFile::nTraces() const { return _numTraces; }
+const int FIDFile::nPointsPerTrace() const { return _numPoints; }
+const int FIDFile::nPointsPerBlock() const { return _numPoints * _numTraces; }
+const int FIDFile::nComplexPerTrace() const { return _numPoints / 2; }
+const int FIDFile::nComplexPerBlock() const { return _numPoints * _numTraces / 2; }
+FIDFile::FIDType FIDFile::dataType() const {
 	if (_status[3])
 		return Float32Type;
 	else if (_status[2])
@@ -90,7 +75,7 @@ FID_File::FIDType FID_File::dataType() const {
 		return Int16Type;
 }
 
-const complex<double> *FID_File::readBlock(int index) {
+const complex<double> *FIDFile::readBlock(int index) {
 	_file.seekg(sizeof(FileHeader) + index * _bytesPerBlock);
 	BlockHeader hdr;
 	double scale;
@@ -137,7 +122,7 @@ const complex<double> *FID_File::readBlock(int index) {
 	return block;
 }
 
-const string FID_File::print_header() const {
+const string FIDFile::print_header() const {
 	stringstream ss;
 	
 	ss << "Number of blocks: " << _numBlocks << endl

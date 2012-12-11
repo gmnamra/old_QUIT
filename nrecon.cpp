@@ -15,7 +15,7 @@ int main(int argc, const char * argv[])
 {
 	string path(argv[1]);
 	
-	Recon::FID_File thisFid(path);
+	Recon::FIDFile thisFid(path);
 	cout << thisFid.print_header() << endl;
 	const complex<double> *one = thisFid.readBlock(0);
 	cout << one[0] << endl;

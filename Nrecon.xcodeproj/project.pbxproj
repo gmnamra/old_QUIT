@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F6465B4416777F6800444730 /* FID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6465B1C1677789800444730 /* FID.cpp */; };
+		F6465B4516777F6B00444730 /* recon_util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6465B4316777E0300444730 /* recon_util.cpp */; };
 		F6687667165D2E15005490D1 /* FIDFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687665165D2E15005490D1 /* FIDFile.cpp */; };
 		F6687677165D2EB1005490D1 /* nrecon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687676165D2EB1005490D1 /* nrecon.cpp */; };
 		F6687678165D2FB8005490D1 /* FIDFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687665165D2E15005490D1 /* FIDFile.cpp */; };
@@ -50,6 +52,8 @@
 /* Begin PBXFileReference section */
 		F6465B1C1677789800444730 /* FID.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FID.cpp; sourceTree = "<group>"; };
 		F6465B1D1677789800444730 /* FID.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FID.h; sourceTree = "<group>"; };
+		F6465B4116777D9500444730 /* recon_util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = recon_util.h; sourceTree = "<group>"; };
+		F6465B4316777E0300444730 /* recon_util.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = recon_util.cpp; sourceTree = "<group>"; };
 		F6687665165D2E15005490D1 /* FIDFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIDFile.cpp; sourceTree = "<group>"; };
 		F6687666165D2E15005490D1 /* FIDFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FIDFile.h; sourceTree = "<group>"; };
 		F668766C165D2E3E005490D1 /* Nrecon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Nrecon; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -94,6 +98,8 @@
 				F6687666165D2E15005490D1 /* FIDFile.h */,
 				F6465B1C1677789800444730 /* FID.cpp */,
 				F6465B1D1677789800444730 /* FID.h */,
+				F6465B4116777D9500444730 /* recon_util.h */,
+				F6465B4316777E0300444730 /* recon_util.cpp */,
 			);
 			name = fid;
 			sourceTree = "<group>";
@@ -235,6 +241,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6465B4516777F6B00444730 /* recon_util.cpp in Sources */,
+				F6465B4416777F6800444730 /* FID.cpp in Sources */,
 				F6687678165D2FB8005490D1 /* FIDFile.cpp in Sources */,
 				F6687677165D2EB1005490D1 /* nrecon.cpp in Sources */,
 			);

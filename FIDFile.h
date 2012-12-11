@@ -14,7 +14,7 @@
 #include <bitset>
 #include <complex>
 
-#include <sys/_endian.h>
+#include <recon_util.h>
 
 using namespace std;
 
@@ -109,26 +109,7 @@ using namespace std;
 
 namespace Recon {
 
-enum Endianness {
-	LittleEndian = 0,
-	BigEndian
-};
-Endianness HostEndianness();
-template <typename T>
-void SwapEndianness(T *ptr, size_t n = 1) {
-	for (size_t i = 0; i < n; i++) {
-		char swap;
-		char *lo = reinterpret_cast<char *>(ptr);
-		char *hi = lo + (sizeof(T) - 1);
-		while (hi > lo) {
-			swap = *lo; *lo = *hi; *hi = swap;
-			lo++; hi--;
-		}
-		ptr++;
-	}
-}
-
-class FID_File {
+class FIDFile {
 
 	private:
 		//! Used at the beginning of each data file (fid's, spectra, 2D)
@@ -188,11 +169,14 @@ class FID_File {
 			Int16Type
 		};
 		
-		FID_File(const string &path);
-		~FID_File();
+		FIDFile();
+		FIDFile(const string &path);
+		~FIDFile();
+		
+		void open(const string &path);
+		
 		bool hasData();
 		bool isFID();
-		
 		const int nBlocks() const; //!< The number of blocks in the file
 		const int nTraces() const; //!< The number of traces per block
 		const int nPointsPerTrace() const; //!< The number of samples per trace
