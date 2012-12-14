@@ -16,7 +16,13 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
-#include "procpar.h"
+
+#define USE_PROCPAR
+
+#ifdef USE_PROCPAR
+	#include "procpar.h"
+	using namespace Recon;
+#endif
 
 const std::string usage("Usage is: despot2 [options] output_prefix T1_map ssfp_files\n\
 \
@@ -69,7 +75,6 @@ int main(int argc, char **argv)
 	double *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *T1Data = NULL,
 	       *M0Data = NULL;
 	std::string procPath;
-	par_t *pars;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "m:vz", long_options, &indexptr)) != -1)
@@ -135,21 +140,21 @@ int main(int argc, char **argv)
 	{
 		std::cout << "Reading SSFP header from " << argv[optind] << std::endl;
 		inFile.open(argv[optind], 'r');
-		procPath = inFile.basename() + ".procpar";
-		pars = readProcpar(procPath.c_str());
 		if (p == 0)
 		{	// Read nSSFP, TR and flip angles from first file
 			nSSFP = inFile.nt();
 			voxelsPerSlice = inFile.nx() * inFile.ny();
 			totalVoxels = voxelsPerSlice * inFile.nz();
 			ssfpAngles.resize(nSSFP, 1);
-			if (pars)
-			{
-				ssfpTR = realVal(pars, "tr", 0);
+			
+			#ifdef USE_PROCPAR
+			ParameterList pars;
+			if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
+				ssfpTR = RealValue(pars, "tr");
 				for (int i = 0; i < nSSFP; i++)
-					ssfpAngles[i] = realVal(pars, "flip1", i);
-			}
-			else
+					ssfpAngles[i] = RealValue(pars, "flip1", i);
+			} else
+			#endif
 			{
 				std::cout << "Enter SSFP TR (s): " << std::flush;
 				std::cin >> ssfpTR;
@@ -158,12 +163,12 @@ int main(int argc, char **argv)
 					std::cin >> ssfpAngles[i];
 			}
 		}
-		if (pars)
-		{
-			ssfpPhases[p] = realVal(pars, "rfphase", 0);
-			freeProcpar(pars);
-		}
-		else
+		#ifdef USE_PROCPAR
+		ParameterList pars;
+		if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
+			ssfpPhases[p] = RealValue(pars, "rfphase");
+		} else
+		#endif
 		{
 			std::cout << "Enter phase-cycling (degrees): " << std::flush;
 			std::cin >> ssfpPhases[p];
@@ -257,8 +262,8 @@ int main(int argc, char **argv)
 	}
     time_t procEnd = time(NULL);
     struct tm *localEnd = localtime(&procEnd);
-	char theTime[MAXSTR];
-    strftime(theTime, MAXSTR, "%H:%M:%S", localEnd);
+	char theTime[512];
+    strftime(theTime, 512, "%H:%M:%S", localEnd);
 	fprintf(stdout, "Finished processing at %s. Run-time was %f s.\n", theTime, difftime(procEnd, procStart));
 	savedHeader.setnt(1);
 	savedHeader.setDatatype(NIFTI_TYPE_FLOAT32);

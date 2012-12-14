@@ -14,8 +14,14 @@
 
 #include "DESPOT.h"
 #include "NiftiImage.h"
+
+//#define READ_PROCPAR
+
+#ifdef READ_PROCPAR
 #include "procpar.h"
-using namespace ProcPar;
+using namespace Recon;
+#endif
+
 const char *usage = "Usage is: despot1 [options] spgr_input output_prefix \n\
 \
 Options:\n\
@@ -76,11 +82,15 @@ int main(int argc, char **argv)
 	spgrFile.open(argv[optind], 'r');
 	nSPGR = spgrFile.nt();
 	VectorXd spgrAngles(nSPGR);
+	
+	#ifdef USE_PROCPAR
 	ParameterList pars;
 	if (ReadProcpar(spgrFile.basename() + ".procpar", pars)) {
 		spgrTR = RealValue(pars, "tr");
 		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = RealValue(pars, "flip1", i);
-	} else {
+	} else
+	#endif
+	{
 		cout << "Enter SPGR TR (s):"; cin >> spgrTR;
 		cout << "Enter SPGR Flip Angles (degrees):";
 		for (int i = 0; i < nSPGR; i++) std::cin >> spgrAngles[i];

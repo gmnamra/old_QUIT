@@ -17,12 +17,16 @@
 
 using namespace std;
 
-#include "procpar.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
 
-using namespace ProcPar;
+#define USE_PROCPAR
+
+#ifdef USE_PROCPAR
+	#include "procpar.h"
+	using namespace Recon;
+#endif
 
 //******************************************************************************
 // Arguments / Usage
@@ -122,7 +126,6 @@ int main(int argc, char **argv)
 	}
 	Eigen::initParallel();
 	NiftiImage inHeader;
-	ParameterList pars;
 	double spgrTR, ssfpTR,
 		   *maskData = NULL, *M0Data = NULL;
 	vector<NiftiImage *> SPGR_files, SSFP_files, SPGR_B1_files, SSFP_B0_files, SSFP_B1_files;
@@ -222,11 +225,17 @@ int main(int argc, char **argv)
 			if (SPGR_files.size() == 0) {
 				nSPGR = inHdr->nt();
 				spgrAngles.resize(nSPGR, 1);
+				
+				#ifdef USE_PROCPAR
+				ParameterList pars;
 				if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
 					spgrTR = RealValue(pars, "tr");
 					for (int i = 0; i < nSPGR; i++) spgrAngles[i] = RealValue(pars, "flip1", i);
-				} else {
-					thisLine >> spgrTR;
+				} else
+				#endif
+				{
+					cout << "Enter SPGR TR: "; thisLine >> spgrTR;
+					cout << "Enter SPGR Flip-angles: ";
 					for (int i = 0; i < nSPGR; i++) thisLine >> spgrAngles[i];
 				}
 				spgrAngles *= M_PI / 180.;
@@ -242,19 +251,29 @@ int main(int argc, char **argv)
 		} else if (type == "SSFP") {
 			cout << "Opened SSFP header: " << path << endl;
 			double phase = -1;
-			if (ReadProcpar(inHdr->basename() + ".procpar", pars))
+			
+			#ifdef USE_PROCPAR
+			ParameterList pars;
+			if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
 				phase = RealValue(pars, "rfphase");
-			else
-				thisLine >> phase;
+			} else
+			#endif
+			{
+				cout << "Enter SSFP Phase-Cycling: "; thisLine >> phase;
+			}
 			ssfpPhases.push_back(phase * M_PI / 180.);
 			if (SSFP_files.size() == 0) {
 				nSSFP = inHdr->nt();
 				ssfpAngles.resize(nSSFP, 1);
+				#ifdef USE_PROCPAR
 				if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
 					ssfpTR = RealValue(pars, "tr");
 					for (int i = 0; i < nSSFP; i++) ssfpAngles[i] = RealValue(pars, "flip1", i);
-				} else {
-					thisLine >> ssfpTR;
+				} else
+				#endif
+				{
+					cout << "Enter SSFP TR: "; thisLine >> ssfpTR;
+					cout << "Enter SSFP Flip-angles: ";
 					for (int i = 0; i < ssfpAngles.size(); i++) thisLine >> ssfpAngles[i];
 				}
 				ssfpAngles *= M_PI / 180.;
