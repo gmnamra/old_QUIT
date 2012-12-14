@@ -1,6 +1,5 @@
 /*
- *  DESPOT1.h
- *  MacRI
+ *  DESPOT.h
  *
  *  Created by Tobias Wood on 17/10/2011.
  *  Copyright 2011 Tobias Wood. All rights reserved.
@@ -31,5 +30,7 @@ double classicDESPOT1(const ArrayXd &flipAngles, const ArrayXd &spgrVals,
 				      double TR, double B1, double *M0, double *T1);
 double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
                       double TR, double T1, double B1, double *M0, double *T2);
-
+double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, double spgrTR,
+				const ArrayXd &TI, const ArrayXd &irVals, double irFlipAngle, double irTR, double nReadout,
+                double *M0, double *T1, double *B1);
 #endif

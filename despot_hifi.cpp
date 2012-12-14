@@ -1,300 +1,274 @@
 /*
- *  despot1_main.c
- *  MacRI
+ *  despot_hifi.cpp
  *
  *  Created by Tobias Wood on 17/10/2011.
  *  Copyright 2011 Tobias Wood. All rights reserved.
  *
+ *  Based on code by Sean Deoni
  */
 
-#include <string.h>
 #include <time.h>
-#include <stdbool.h>
 #include <getopt.h>
-#include <dispatch/dispatch.h>
-#ifdef __APPLE__
-	#include <libkern/OSAtomic.h>
-	#define AtomicAdd OSAtomicAdd32
-#else
-	#define AtomicAdd(x, y) (*y) += x
-#endif
+#include <iostream>
+#include <atomic>
+#include <Eigen/Dense>
+
+#include "NiftiImage.h"
 #include "DESPOT.h"
-#include "fslio.h"
+
+#define USE_PROCPAR
+#ifdef USE_PROCPAR
 #include "procpar.h"
-char *usage = "Usage is: despot1 [options] spgr_input output_prefix \n\
+using namespace Recon;
+#endif
+
+using namespace std;
+using namespace Eigen;
+
+//******************************************************************************
+// Arguments / Usage
+//******************************************************************************
+const string usage {
+"Usage is: despot-hifi [options] spgr_input ir-spgr_input output_prefix \n\
 \
 Options:\n\
-	-m file  : Mask input with specified file.\n\
-	-h file  : Use HIFI mode with specified SPGR-IR data.\n\
-	-z       : Output .nii.gz files.\n\
-	-n N     : Number of readout pulses for inversion mode.\n\
-	-i 0-3   : Specify the scanner Inversion mode:\n\
-	           0 (Default) Use raw segment TR from input file\n\
-			   1 = 1.5T scanner, readout pulses div 2 + 2\n\
-	           2 = 3T scanner, scale TI times by 0.9, readout pulses div 2 + 2\n\
-	           3 = 3T scanner, scale TI times by 0.84, readout pulses + 2)\n\
-			   1,2 & 3 MUST be followed by the PE Readout Step Count\n";
+	-m, --mask file  : Mask input with specified file.\n\
+	-v, --verbose    : Print out more messages.\n\
+	-i, --inv 0-3    : Specify the scanner Inversion mode:\n\
+	                   0 (Default) Use raw segment TR from input file\n\
+			           1 = 1.5T scanner, readout pulses div 2 + 2\n\
+	                   2 = 3T, scale TI by 0.9, readout pulses div 2 + 2\n\
+	                   3 = 3T, scale TI by 0.84, readout pulses + 2)\n\
+			           1,2 & 3 MUST be followed by the PE Step Count\n\
+	-p, --pe N       : PE Step Count.\n"
+};
+
+static int verbose = false, inversionMode = 0, peReadout = 0;
+static struct option long_options[] =
+{
+	{"mask", required_argument, 0, 'm'},
+	{"verbose", no_argument, 0, 'v'},
+	{"inv", required_argument, 0, 'i'},
+	{"pe", required_argument, 0, 'p'}
+	{0, 0, 0, 0}
+};
+
 //******************************************************************************
 // Main
 //******************************************************************************
-int main(int argc, char **argv)
-{
-	//tests();
+int main(int argc, char **argv) {
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	int nSPGR = 0, nIR = 0, nReadout = 0, invMode = 0;
-	short nx, ny, nz, nv;
-	char *outPrefix = NULL, *outExt = ".nii", *irPath = NULL, procpar[MAXSTR];
-	double spgrTR = 0., *spgrAngles = NULL;
+	int nSPGR = 0, nIR = 0;
 	double irTR = 0., irAngle = 0., *irTI = NULL, TIScale = 1.;
+	NiftiImage inFile, spgrFile, irFile;
 	FSLIO *spgrFile = NULL, *irFile = NULL, *maskFile = NULL;
 	par_t *pars;
 	
-	static struct option long_options[] =
-	{
-		{"B1", required_argument, 0, '1'},
-		{0, 0, 0, 0}
-	};
-	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "h:i:m:n:z", long_options, &indexptr)) != -1)
-	{
-		switch (c)
-		{
-			case 'h':
-				irPath = optarg;
-				fprintf(stdout, "Opening IR file: %s\n", irPath);
-				irFile = FslOpen(irPath, "rb");
-				break;
+	while ((c = getopt_long(argc, argv, "i:m:p:v:", long_options, &indexptr)) != -1) {
+		switch (c) {
 			case 'i':
-				invMode = atoi(optarg);
+				inversionMode = atoi(optarg);
 				break;
-			case 'n':
-				nReadout = atoi(optarg);
+			case 'p':
+				peReadout = atoi(optarg);
 				break;
 			case 'm':
-				fprintf(stdout, "Opening mask file: %s\n", optarg);
-				maskFile = FslOpen(optarg, "rb");
+				cout << "Opening mask file: " << optarg << endl;
+				inFile.open(optarg, 'r');
+				maskData = inFile.readVolume<double>(0);
+				inFile.close();
 				break;
-			case 'z':
-				outExt = ".nii.gz";
-				break;
+			case 'v': verbose = true; break;
+			case '?': // getopt will print an error message
+				exit(EXIT_FAILURE);
 		}
 	}
-	if (invMode && !nReadout)
-	{
-		fprintf(stderr, "Inversion mode was specified but not readout pulse count.\n");
+	if ((argc - optind) != 3) {
+		cout << "Incorrect number of arguments." << endl << usage << endl;
+		exit(EXIT_FAILURE);
+	}
+	if (inversionMode && !peReadout) {
+		cerr << "Inversion mode was specified but not readout pulse count." << endl;
 		exit(EXIT_FAILURE);
 	}
 	
-	switch (invMode)
-	{
+	switch (inversionMode) {
 		case 1:
 			TIScale = 1.0;
-			nReadout = (nReadout / 2) + 2;
+			peReadout = (peReadout / 2) + 2;
 			break;
 		case 2:
 			TIScale = 0.9; // From Sean's code
-			nReadout = (nReadout / 2) + 2;
+			peReadout = (peReadout / 2) + 2;
 			break;
 		case 3:
 			TIScale = 0.84; // From Sean's code
-			nReadout = nReadout + 2;
+			peReadout = peReadout + 2;
 			break;
 		case 0:
 			TIScale = 1.0;
-			nReadout = 0;
+			peReadout = 0;
 			break;
 		default:
 			fprintf(stderr, "Inversion mode must be 0 - 3\n");
 			exit(EXIT_FAILURE);
 			break;
 	}
-	fprintf(stdout, "Opening SPGR file: %s\n", argv[optind]);
-	spgrFile = FslOpen(argv[optind], "rb");
-	FslGetDim(spgrFile, &nx, &ny, &nz, &nv);
-	nSPGR = nv;
-	spgrAngles = malloc(nSPGR * sizeof(double));
-	snprintf(procpar, MAXSTR, "%s.procpar", argv[optind]);
-	pars = readProcpar(procpar);
-	if (pars)
-	{
-		spgrTR = realVal(pars, "tr", 0);
-		arrayCopy(spgrAngles, realVals(pars, "flip1", NULL), nSPGR);
-		freeProcpar(pars);
-	}
-	else
-	{
-		fprintf(stdout, "Enter SPGR TR (s):");
-		fscanf(stdin, "%lf", &spgrTR);
-		fprintf(stdout, "Enter SPGR Flip Angles (degrees):");
-		fgetArray(stdin, 'd', nSPGR, spgrAngles);
-	}
-	fprintf(stdout, "SPGR TR=%f ms. ", spgrTR);
-	ARR_D(spgrAngles, nSPGR);
-	arrayApply(spgrAngles, spgrAngles, radians, nSPGR);
-		
-	fprintf(stdout, "Ouput prefix will be: %s\n", argv[++optind]);
-	outPrefix = argv[optind];
-	if (irFile && !FslCheckDims(spgrFile, irFile))
-	{
-		fprintf(stderr, "Dimensions of SPGR & IR-SPGR files do not match.\n");
-		exit(EXIT_FAILURE);
-	}
-	//**************************************************************************	
-	// Gather IR-SPGR Data
-	//**************************************************************************	
-	if (irFile)
-	{
-		nIR = irFile->niftiptr->nt;
-		irTI = malloc(nIR * sizeof(double));
-		snprintf(procpar, MAXSTR, "%s.procpar", irPath);
-		pars = readProcpar(procpar);
-		if (pars)
-		{
-			irAngle = radians(realVal(pars, "flip1", 0));
-			arrayCopy(irTI, realVals(pars, "ti", NULL), nIR);
-			irTR = realVal(pars, "trseg", 0) - irTI[0];
-			freeProcpar(pars);
-		}
-		else	
-		{	
-			fprintf(stdout, "Enter IR-SPGR Flip Angle (degrees):");
-			fscanf(stdin, "%lf", &irAngle);
-			irAngle = radians(irAngle);
-			if (nReadout > 0)
-			{
-				fprintf(stdout, "Enter IR-SPGR TR (s):");
-				fscanf(stdin, "%lf", &irTR);
-				irTR = irTR * nReadout;
-				fprintf(stdout, "Enter IR-SPGR TI times (s):");
-				fgetArray(stdin, 'd', nIR, irTI);
-				for (int i = 0; i < nIR; i++)
-					irTI[i] = irTI[i] * TIScale;
-			}
-			else
-			{
-				fprintf(stdout, "Enter IR-SPGR TI times (s):");
-				fgetArray(stdin, 'd', nIR, irTI);
-				fprintf(stdout, "Enter first scan Segment TR (s):");
-				fscanf(stdin, "%lf", &irTR);
-				irTR -= irTI[0]; // Subtract off TI to get 
-			}
-		}
-		fprintf(stdout, "Specified %d SPGR-IR images with flip angle: %f degrees, TR = %f (s) ", nIR, degrees(irAngle), irTR);
-		ARR_D(irTI, nIR);
-	}
 
+	//**************************************************************************
+	#pragma mark Gather SPGR data
+	//**************************************************************************
+	cout << "Opening SPGR file: " << argv[optind] << endl;
+	spgrFile.open(argv[optind], 'r');
+	nSPGR = spgrFile.nt();
+	VectorXd spgrAngles(nSPGR);
+	
+	#ifdef USE_PROCPAR
+	ParameterList pars;
+	if (ReadProcpar(spgrFile.basename() + ".procpar", pars)) {
+		spgrTR = RealValue(pars, "tr");
+		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = RealValue(pars, "flip1", i);
+	} else
+	#endif
+	{
+		cout << "Enter SPGR TR (s):"; cin >> spgrTR;
+		cout << "Enter SPGR Flip Angles (degrees):";
+		for (int i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
+	}
+	spgrAngles *= M_PI / 180.;
+	
+	//**************************************************************************
+	#pragma mark Gather IR-SPGR data
 	//**************************************************************************	
+	cout << "Opening IR-SPGR file: " << argv[++optind] << endl;
+	irFile.open(argv[optind], 'r');
+	irFile.checkVoxelsCompatible(spgrFile);
+	nIR = irFile.nt();
+	VectorXd irTI(nIR);
+	snprintf(procpar, MAXSTR, "%s.procpar", irPath);
+	#ifdef USE_PROCPAR
+	ParameterList pars;
+	if (ReadProcpar(irFile.basename() + ".procpar", pars)) {
+		irAngle = RealValue(pars, "flip1") * M_PI / 180.;
+		for (int i = 0; i < nIR; i++) irTI[i] = RealValue(pars, "ti", i);
+		irTR = RealValue(pars, "trseg") - irTI[0];
+	} else
+	#endif
+	{
+		cout << "Enter IR-SPGR Flip Angle (degrees):"); cin >> irAngle; irAngle * M_PI / 180.;
+		if (peReadout > 0) {
+			cout << "Enter IR-SPGR TR (s):"; cin >> irTR;
+			irTR = irTR * peReadout;
+			cout << "Enter IR-SPGR TI times (s):";
+			for (int i = 0; i < nIR; i++) {
+				cin >> irTI[i];
+				irTI[i] *= TIScale;
+			}
+		} else {
+			cout << "Enter IR-SPGR TI times (s):");
+			for (int i = 0; i < nIR; i++) cin >> irTI[i];
+			fprintf(stdout, "Enter first scan Segment TR (s):"); cin >> irTR;
+			irTR -= irTI[0]; // Subtract off TI to get 
+		}
+	}
+	cout << "Found " << nIR << " SPGR-IR images with flip angle: " << irAngle * 180. / M_PI
+	     << " degrees, TR = ", irTR << "(s) " << endl;
+	const string outPrefix(argv[++optind]);
+	//**************************************************************************
 	// Allocate memory for slices
 	//**************************************************************************	
-	int voxelsPerSlice = nx * ny;
-	int totalVoxels = voxelsPerSlice * nz;
-	__block int voxCount;
-	float *SPGRData = malloc(nSPGR * voxelsPerSlice * sizeof(float));
-	float *irData = NULL, *maskData = NULL;
-	if (irFile)
-		irData = malloc(nIR * voxelsPerSlice * sizeof(float));
-	if (maskFile)
-		maskData = malloc(voxelsPerSlice * sizeof(float));	
+	int voxelsPerSlice = spgrFile.nx() * spgrFile.ny();
+	int totalVoxels = spgrFile.voxelsPerVolume();
+	
+	cout << "Reading image data..." << flush;
+	double *SPGR = spgrFile.readAllVolumes<double>();
+	double *IR   = irFile.readAllVolumes<double>();
+	spgrFile.close();
+	irFile.close();
+	cout << "done." << endl;
 	//**************************************************************************
-	// Create results headers
+	// Create results data storage
 	//**************************************************************************
 	#define NR 4
-	FSLIO **resultsHeaders = malloc(NR * sizeof(FSLIO *));
-	float **resultsData = malloc(NR * sizeof(float*));
-	char *names[NR] = { "_M0", "_T1", "_B1", "_despot1_res" };
-	char outName[strlen(outPrefix) + 64];
-	for (int r = 0; r < NR; r++)
-	{
-		strcpy(outName, outPrefix); strcat(outName, names[r]); strcat(outName, outExt);
-		fprintf(stdout, "Writing result header:%s.\n", outName);
-		resultsHeaders[r] = FslOpen(outName, "wb");
-		FslCloneHeader(resultsHeaders[r], spgrFile);
-		FslSetDim(resultsHeaders[r], nx, ny, nz, 1);
-		FslSetDataType(resultsHeaders[r], DTYPE_FLOAT);
-		resultsData[r] = malloc(totalVoxels * sizeof(float));
-	}
-		
+	double **resultsData   = new double*[NR];
+	for (int i = 0; i < NR; i++)
+		resultsData[i] = new double[totalVoxels];
+	const string names[NR] = { "_M0", "_T1", "_B1", "_despot1_res" };
+	
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	if (nIR == 0)
-		fprintf(stdout, "Fitting classic DESPOT1.\n");
-	else
-		fprintf(stdout, "Fitting DESPOT1-HIFI.\n");
-	
-	for (int slice = 0; slice < nz; slice++)
+	for (int slice = 0; slice < spgrFile.nz(); slice++)
 	{
-		clock_t loopStart, loopEnd;
+		clock_t loopStart;
 		// Read in data
-		fprintf(stdout, "Processing slice %d...\n", slice);
-		FslReadSliceSeries(spgrFile, SPGRData, slice, nSPGR);
-		if (irFile)
-			FslReadSliceSeries(irFile, irData, slice, nIR);
-		if (maskFile)
-			FslReadSliceSeries(maskFile, maskData, slice, 1);
-				
+		if (verbose)
+			cout << "Starting slice " << slice << "..." << flush;
 		loopStart = clock();
-		voxCount = 0;
-		int sliceIndex = slice * voxelsPerSlice;
-		//for (size_t vox = 0; vox < voxelsPerSlice; vox++)
-		void (^processVoxel)(size_t vox) = ^(size_t vox)
-		{
+		atomic<int> voxCount{0};
+		int sliceOffset = slice * voxelsPerSlice;
+		
+		function<void (const int&)> processVox = [&] (const int &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
-			if ((!maskFile) || (maskData[vox] > 0.))
+			if ((!maskData) || (maskData[sliceOffset + vox] > 0.))
 			{
-				AtomicAdd(1, &voxCount);
-				double spgrs[nSPGR];
+				voxCount++;
+				if (B1Data)
+					B1 = B1Data[sliceOffset + vox];
+				ArrayXd spgrs(nSPGR), irs(nIR);
+				int vol = 0;
 				for (int img = 0; img < nSPGR; img++)
-					spgrs[img] = (double)SPGRData[voxelsPerSlice * img + vox];
-				res = calcDESPOT1(spgrAngles, spgrs, nSPGR, spgrTR, B1, &M0, &T1);
-				if (nIR > 0)
-				{
-					double irs[nIR];
-					for (int img = 0; img < nIR; img++)
-						irs[img] = (double)irData[voxelsPerSlice * img + vox];
-					B1 = 1.;
-					res = calcHIFI(spgrAngles, spgrs, nSPGR, spgrTR,
-							       irTI, irs, nIR, irAngle, irTR,
-							       &M0, &T1, &B1);
-				}
-				
+						spgrs[vol++] = SPGR[img * totalVoxels + sliceOffset + vox];
+				for (int img = 0; img < nIR; img++)
+						irs[img] = IR[img * totalVoxels + sliceOffset + vox];
+				res = calcHIFI(spgrAngles, spgrs, spgrTR,
+				               irTIs, irs, irFlipAngle, irTR, peReadout,
+							   &M0, &T1, &B1)
 				// Sanity check
 				M0 = clamp(M0, 0., 1.e7);
-				T1 = clamp(T1, 0., 5.);
+				T1 = clamp(T1, 0., 15.);
 				B1 = clamp(B1, 0., 2.);
 			}
-			
-			resultsData[0][sliceIndex + vox] = (float)M0;
-			resultsData[1][sliceIndex + vox] = (float)T1;
-			resultsData[2][sliceIndex + vox] = (float)B1;
-			resultsData[3][sliceIndex + vox] = (float)res;
+			resultsData[0][sliceOffset + vox] = M0;
+			resultsData[1][sliceOffset + vox] = T1;
+			resultsData[2][sliceOffset + vox] = B1;
+			resultsData[4][sliceOffset + vox] = res;
 		};
-		dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-		dispatch_apply(voxelsPerSlice, global_queue, processVoxel);
+		apply_for(voxelsPerSlice, processVox);
 		
-        loopEnd = clock();
-        fprintf(stdout, "Finished slice %d", slice);
-		if (voxCount)
-		{
-			fprintf(stdout, ", had %d unmasked voxels, CPU time per voxel was %f s.\n", 
-			        voxCount, (loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC));
+		if (verbose) {
+			clock_t loopEnd = clock();
+			if (voxCount > 0)
+				cout << voxCount << " unmasked voxels, CPU time per voxel was "
+				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
+			cout << "finished." << endl;
 		}
-		else
-			fprintf(stdout, ", no unmasked voxels.\n");
 	}
 	
-	for (size_t r = 0; r < NR; r++)
+	//**************************************************************************
+	#pragma mark Write out data
+	//**************************************************************************
+	NiftiImage outFile(spgrFile);
+	outFile.setDatatype(DT_FLOAT32);
+	outFile.setDims(spgrFile.nx(), spgrFile.ny(), spgrFile.nz(), 1);
+	for (int r = 0; r < NR; r++)
 	{
-		FslWriteHeader(resultsHeaders[r]);
-		FslWriteVolumes(resultsHeaders[r], resultsData[r], 1);
-		FslClose(resultsHeaders[r]);
+		string outName = outPrefix + names[r] + ".nii.gz";
+		if (verbose)
+			cout << "Writing result header: " << outName << endl;
+		outFile.open(outName, 'w');
+		outFile.writeVolume<double>(0, resultsData[r]);
+		outFile.close();
+		delete[] resultsData[r];
 	}
 	// Clean up memory
-	free(SPGRData);
-	free(irData);
-	fprintf(stdout, "All done.\n");
+	delete[] resultsData;
+	delete[] SPGR;
+	delete[] IR;
+	delete[] B1Data;
+	delete[] maskData;
+	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
-}
