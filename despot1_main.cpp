@@ -1,6 +1,5 @@
 /*
- *  despot1_main.c
- *  MacRI
+ *  despot1_main.cpp
  *
  *  Created by Tobias Wood on 17/10/2011.
  *  Copyright 2011 Tobias Wood. All rights reserved.
@@ -9,26 +8,43 @@
 
 #include <time.h>
 #include <getopt.h>
-
+#include <iostream>
 #include <atomic>
+#include <Eigen/Dense>
 
-#include "DESPOT.h"
 #include "NiftiImage.h"
+#include "DESPOT.h"
 
-//#define READ_PROCPAR
-
-#ifdef READ_PROCPAR
+#define USE_PROCPAR
+#ifdef USE_PROCPAR
 #include "procpar.h"
 using namespace Recon;
 #endif
 
-const char *usage = "Usage is: despot1 [options] spgr_input output_prefix \n\
+using namespace std;
+using namespace Eigen;
+
+//******************************************************************************
+// Arguments / Usage
+//******************************************************************************
+const string usage {
+"Usage is: despot1 [options] spgr_input output_prefix \n\
 \
 Options:\n\
 	-m, --mask file : Mask input with specified file.\n\
 	--B1 file       : Correct flip angles with specified B1 ratio.\n\
 	-v, --verbose   : Print out more messages.\n\
-	-d, --drop      : Drop certain flip-angles (Read from stdin).\n";
+	-d, --drop      : Drop certain flip-angles (Read from stdin).\n"
+};
+
+static int verbose = false, drop = false;
+static struct option long_options[] =
+{
+	{"B1", required_argument, 0, '1'},
+	{"mask", required_argument, 0, 'm'},
+	{"verbose", no_argument, 0, 'v'},
+	{0, 0, 0, 0}
+};
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -42,20 +58,10 @@ int main(int argc, char **argv)
 	int nSPGR;
 	double *B1Data = NULL, *maskData = NULL;
 	NiftiImage spgrFile, inFile;
-	static int verbose = false, drop = false;
-	static struct option long_options[] =
-	{
-		{"B1", required_argument, 0, '1'},
-		{"mask", required_argument, 0, 'm'},
-		{"verbose", no_argument, 0, 'v'},
-		{0, 0, 0, 0}
-	};
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "m:vd", long_options, &indexptr)) != -1)
-	{
-		switch (c)
-		{
+	while ((c = getopt_long(argc, argv, "m:vd", long_options, &indexptr)) != -1) {
+		switch (c) {
 			case '1':
 				cout << "Opening B1 file: " << optarg << endl;
 				inFile.open(optarg, 'r');
@@ -78,6 +84,10 @@ int main(int argc, char **argv)
 		cout << "Incorrect number of arguments." << endl << usage << endl;
 		exit(EXIT_FAILURE);
 	}
+	
+	//**************************************************************************
+	#pragma mark Gather SPGR data
+	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind], 'r');
 	nSPGR = spgrFile.nt();
@@ -93,9 +103,10 @@ int main(int argc, char **argv)
 	{
 		cout << "Enter SPGR TR (s):"; cin >> spgrTR;
 		cout << "Enter SPGR Flip Angles (degrees):";
-		for (int i = 0; i < nSPGR; i++) std::cin >> spgrAngles[i];
+		for (int i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
 	}
 	spgrAngles *= M_PI / 180.;
+	const string outPrefix(argv[++optind]);
 	//**************************************************************************
 	#pragma mark Select which angles to use in the analysis
 	//**************************************************************************	
@@ -110,12 +121,11 @@ int main(int argc, char **argv)
 		for (int i = 0; i < nSPGR; i++)
 			if (spgrKeep(i)) spgrAngles(angle++) = temp(i);
 	}
-	const std::string outPrefix(argv[++optind]);
 	if (verbose)
 	{
-		std::cout << "SPGR TR=" << spgrTR
-		          << " s. Flip-angles: " << spgrAngles.transpose() * 180. / M_PI << std::endl;
-		std::cout << "Ouput prefix will be: " << outPrefix << std::endl;
+		cout << "SPGR TR=" << spgrTR
+		          << " s. Flip-angles: " << spgrAngles.transpose() * 180. / M_PI << endl;
+		cout << "Ouput prefix will be: " << outPrefix << endl;
 	}
 	//**************************************************************************
 	// Allocate memory for slices
@@ -123,17 +133,17 @@ int main(int argc, char **argv)
 	int voxelsPerSlice = spgrFile.nx() * spgrFile.ny();
 	int totalVoxels = spgrFile.voxelsPerVolume();
 	
-	fprintf(stdout, "Reading SPGR data...\n");
+	cout << "Reading SPGR data..." << flush;
 	double *SPGR = spgrFile.readAllVolumes<double>();
 	spgrFile.close();
-	fprintf(stdout, "done.\n");
+	cout << "done." << endl;
 	//**************************************************************************
 	// Create results data storage
 	//**************************************************************************
 	#define NR 3
-	double **resultsData   = (double **)malloc(NR * sizeof(double *));
+	double **resultsData   = new double*[NR];
 	for (int i = 0; i < NR; i++)
-		resultsData[i] = (double *)malloc(totalVoxels * sizeof(double));
+		resultsData[i] = new double[totalVoxels];
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -180,24 +190,25 @@ int main(int argc, char **argv)
 			cout << "finished." << endl;
 		}
 	}
-	const char *names[NR] = { "_M0", "_T1", "_despot1_res" };
+	const string names[NR] = { "_M0", "_T1", "_despot1_res" };
 	NiftiImage outFile(spgrFile);
-	spgrFile.setDatatype(DT_FLOAT32);
-	spgrFile.setDims(spgrFile.nx(), spgrFile.ny(), spgrFile.nz(), 1);
+	outFile.setDatatype(DT_FLOAT32);
+	outFile.setDims(spgrFile.nx(), spgrFile.ny(), spgrFile.nz(), 1);
 	for (int r = 0; r < NR; r++)
 	{
-		std::string outName = outPrefix + names[r] + ".nii.gz";
+		string outName = outPrefix + names[r] + ".nii.gz";
 		if (verbose)
-			std::cout << "Writing result header: " << outName << std::endl;
-		spgrFile.open(outName, 'w');
-		spgrFile.writeVolume<double>(0, resultsData[r]);
-		spgrFile.close();
-		free(resultsData[r]);
+			cout << "Writing result header: " << outName << endl;
+		outFile.open(outName, 'w');
+		outFile.writeVolume<double>(0, resultsData[r]);
+		outFile.close();
+		delete[] resultsData[r];
 	}
 	// Clean up memory
-	free(SPGR);
-	free(B1Data);
-	free(maskData);
-	fprintf(stdout, "All done.\n");
+	delete[] resultsData;
+	delete[] SPGR;
+	delete[] B1Data;
+	delete[] maskData;
+	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
 }

@@ -1,10 +1,9 @@
-//
-//  RegionContraction.h
-//  DESPOT
-//
-//  Created by Tobias Wood on 17/08/2012.
-//  Copyright (c) 2012 Tobias Wood. All rights reserved.
-//
+/*
+ *  RegionContraction.h
+ *
+ *  Created by Tobias Wood on 17/08/2012.
+ *  Copyright (c) 2012 Tobias Wood. All rights reserved.
+ */
 
 #ifndef DESPOT_RegionContraction_h
 #define DESPOT_RegionContraction_h

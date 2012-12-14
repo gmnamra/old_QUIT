@@ -1,10 +1,9 @@
 /*
- *  afi_main.c
- *  DESPOT
+ *  afi_main.cpp
  *
  *  Created by Tobias Wood on 03/08/2012.
  *  Copyright (c) 2012 Tobias Wood. All rights reserved.
-*/
+ */
 
 #include <stdio.h>
 #include <string.h>

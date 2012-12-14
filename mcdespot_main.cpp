@@ -1,6 +1,5 @@
 /*
- *  mcdespot_main.c
- *  Fitting
+ *  mcdespot_main.cpp
  *
  *  Created by Tobias Wood on 14/02/2012.
  *  Copyright 2012 Tobias Wood. All rights reserved.
@@ -10,23 +9,23 @@
 #include <time.h>
 #include <getopt.h>
 #include <signal.h>
-
 #include <iostream>
-#include <fstream>
 #include <atomic>
+#include <Eigen/Dense>
 
-using namespace std;
-
+#include "NiftiImage.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
 
 #define USE_PROCPAR
-
 #ifdef USE_PROCPAR
 	#include "procpar.h"
 	using namespace Recon;
 #endif
+
+using namespace std;
+using namespace Eigen;
 
 //******************************************************************************
 // Arguments / Usage
@@ -126,16 +125,13 @@ int main(int argc, char **argv)
 	}
 	Eigen::initParallel();
 	NiftiImage inHeader;
-	double spgrTR, ssfpTR,
-		   *maskData = NULL, *M0Data = NULL;
+	double *maskData = NULL, *M0Data = NULL;
 	vector<NiftiImage *> SPGR_files, SSFP_files, SPGR_B1_files, SSFP_B0_files, SSFP_B1_files;
 	int nSPGR = 0, nSSFP = 0;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "b:m:o:vznds:r:c:e:", long_options, &indexptr)) != -1)
-	{
-		switch (c)
-		{
+	while ((c = getopt_long(argc, argv, "b:m:o:vznds:r:c:e:", long_options, &indexptr)) != -1) {
+		switch (c) {
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				inHeader.open(optarg, NiftiImage::NIFTI_READ);
@@ -161,8 +157,7 @@ int main(int argc, char **argv)
 			case 'c': contract = atoi(optarg); break;
 			case 'e': expand   = atof(optarg); break; 
 			case 'b':
-				switch (*optarg)
-				{
+				switch (*optarg) {
 					case '3':
 						cout << "Using 3T boundaries.\n";
 						tesla = 3;
@@ -187,8 +182,7 @@ int main(int argc, char **argv)
 				abort();
 		}
 	}
-	if ((argc - optind) != 0)
-	{
+	if ((argc - optind) != 0) {
 		cerr << "Incorrect number of arguments.";
 		exit(EXIT_FAILURE);
 	}
@@ -196,13 +190,13 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
+	double spgrTR, ssfpTR;
 	VectorXd spgrAngles, ssfpAngles;
 	vector<double> ssfpPhases;
 	string nextLine;
 	
 	cout << "Specify input SPGR/SSFP images: " << endl;
-	while (getline(cin, nextLine))
-	{
+	while (getline(cin, nextLine)) {
 		stringstream thisLine(nextLine);
 		string type, path;
 		NiftiImage *inHdr;

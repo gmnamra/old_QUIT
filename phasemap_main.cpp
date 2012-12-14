@@ -1,10 +1,9 @@
-//
-//  phasemap_main.c
-//  DESPOT
-//
-//  Created by Tobias Wood on 20/06/2012.
-//  Copyright (c) 2012 Tobias Wood. All rights reserved.
-//
+/*
+ *  phasemap_main.cpp
+ *
+ *  Created by Tobias Wood on 20/06/2012.
+ *  Copyright (c) 2012 Tobias Wood. All rights reserved.
+ */
 
 #include <string>
 #include <getopt.h>

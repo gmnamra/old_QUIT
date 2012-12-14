@@ -1,10 +1,9 @@
-//
-//  DESPOT_Functors.h
-//  DESPOT
-//
-//  Created by Tobias Wood on 16/08/2012.
-//  Copyright (c) 2012 Tobias Wood. All rights reserved.
-//
+/*
+ *  DESPOT_Functors.h
+ *
+ *  Created by Tobias Wood on 16/08/2012.
+ *  Copyright (c) 2012 Tobias Wood. All rights reserved.
+ */
 
 #ifndef DESPOT_Functors_h
 #define DESPOT_Functors_h
@@ -15,7 +14,6 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "NiftiImage.h"
 
 using namespace std;
 using namespace Eigen;
@@ -673,8 +671,8 @@ const ThreeComponent::BoundsMapType ThreeComponent::lo {
 	{3, { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. } },
 	{7, { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0, 0. } } };
 const ThreeComponent::BoundsMapType ThreeComponent::hi {
-	{3, { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. } },
-	{7, { 1.e7, 0.750, 3.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5, 0. } } };
+	{3, { 1.e7, 0.750, 1.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. } },
+	{7, { 1.e7, 0.750, 2.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5, 0. } } };
 
 //******************************************************************************
 #pragma mark Three Component with Echo Timing

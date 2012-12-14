@@ -1,6 +1,5 @@
 /*
- *  despot1_main.c
- *  MacRI
+ *  despot1_main.cpp
  *
  *  Created by Tobias Wood on 23/01/2012.
  *  Copyright 2012 Tobias Wood. All rights reserved.
@@ -10,21 +9,29 @@
 #include <time.h>
 #include <getopt.h>
 #include <signal.h>
-
+#include <iostream>
 #include <atomic>
-
+#include <Eigen/Dense>
 #include <unsupported/Eigen/NonLinearOptimization>
+
+#include "NiftiImage.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 
 #define USE_PROCPAR
-
 #ifdef USE_PROCPAR
 	#include "procpar.h"
 	using namespace Recon;
 #endif
 
-const std::string usage("Usage is: despot2 [options] output_prefix T1_map ssfp_files\n\
+using namespace std;
+using namespace Eigen;
+
+//******************************************************************************
+// Arguments / Usage
+//******************************************************************************
+const string usage {
+"Usage is: despot2 [options] output_prefix T1_map ssfp_files\n\
 \
 Options:\n\
 	--mask, -m file   : Mask input with specified file.\n\
@@ -34,10 +41,11 @@ Options:\n\
 	--lm              : Use Levenberg-Marquardt instead of Region Contraction.\n\
 	--verbose, -v     : Print slice processing times.\n\
 	--start_slice N   : Start processing from slice N.\n\
-	--end_slice   N   : Finish processing at slice N.\n");
+	--end_slice   N   : Finish processing at slice N.\n"
+};
 
 static int levMar = false, verbose = false, start_slice = -1, end_slice = -1;
-static std::string outPrefix;
+static string outPrefix;
 static struct option long_options[] =
 {
 	{"B0", required_argument, 0, '0'},
@@ -65,42 +73,38 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	if (argc < 4)
 	{
-		std::cerr << usage << std::endl;
+		cerr << usage << endl;
 		exit(EXIT_FAILURE);
 	}
 	Eigen::initParallel();
-	int nSSFP, nPhases;
-	double ssfpTR;
 	NiftiImage inFile;
 	double *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *T1Data = NULL,
 	       *M0Data = NULL;
-	std::string procPath;
+	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "m:vz", long_options, &indexptr)) != -1)
-	{
-		switch (c)
-		{
+	while ((c = getopt_long(argc, argv, "m:vz", long_options, &indexptr)) != -1) {
+		switch (c) {
 			case 'm':
-				fprintf(stdout, "Reading mask file %s.\n", optarg);
+				cout << "Reading mask file " << optarg << endl;
 				inFile.open(optarg, 'r');
 				maskData = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
 			case '0':
-				fprintf(stdout, "Reading B0 file %s.\n", optarg);
+				cout << "Reading B0 file " << optarg << endl;
 				inFile.open(optarg, 'r');
 				B0Data = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
 			case '1':
-				fprintf(stdout, "Reading B1 file %s.\n", optarg);
+				cout << "Reading B1 file " << optarg;
 				inFile.open(optarg, 'r');
 				B1Data = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
 			case 'M':
-				fprintf(stdout, "Reading M0 file %s.\n", optarg);
+				cout << "Reading M0 file " << optarg;
 				inFile.open(optarg, 'r');
 				M0Data = inFile.readVolume<double>(0);
 				inFile.close();
@@ -122,9 +126,9 @@ int main(int argc, char **argv)
 		}
 	}
 	
-	std::cout << "Output prefix will be: " << argv[optind] << std::endl;
+	cout << "Output prefix will be: " << argv[optind] << endl;
 	outPrefix = argv[optind++];
-	std::cout << "Reading T1 Map from: " << argv[optind] << std::endl;
+	cout << "Reading T1 Map from: " << argv[optind] << endl;
 	inFile.open(argv[optind++], 'r');
 	T1Data = inFile.readVolume<double>(0);
 	inFile.close();
@@ -132,13 +136,15 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
+	int nSSFP, nPhases;
+	double ssfpTR;
 	nPhases = argc - optind;
 	VectorXd ssfpPhases(nPhases), ssfpAngles;
 	int voxelsPerSlice, totalVoxels;
 	double **ssfpData = (double **)malloc(nPhases * sizeof(double *));
 	for (size_t p = 0; p < nPhases; p++)
 	{
-		std::cout << "Reading SSFP header from " << argv[optind] << std::endl;
+		cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], 'r');
 		if (p == 0)
 		{	// Read nSSFP, TR and flip angles from first file
@@ -156,11 +162,11 @@ int main(int argc, char **argv)
 			} else
 			#endif
 			{
-				std::cout << "Enter SSFP TR (s): " << std::flush;
-				std::cin >> ssfpTR;
-				std::cout << "Enter " << nSSFP << " flip angles (degrees): " << std::flush;
+				cout << "Enter SSFP TR (s): " << flush;
+				cin >> ssfpTR;
+				cout << "Enter " << nSSFP << " flip angles (degrees): " << flush;
 				for (int i = 0; i < ssfpAngles.size(); i++)
-					std::cin >> ssfpAngles[i];
+					cin >> ssfpAngles[i];
 			}
 		}
 		#ifdef USE_PROCPAR
@@ -170,10 +176,10 @@ int main(int argc, char **argv)
 		} else
 		#endif
 		{
-			std::cout << "Enter phase-cycling (degrees): " << std::flush;
-			std::cin >> ssfpPhases[p];
+			cout << "Enter phase-cycling (degrees): " << flush;
+			cin >> ssfpPhases[p];
 		}
-		std::cout << "Reading SSFP data..." << std::endl;
+		cout << "Reading SSFP data..." << endl;
 		ssfpData[p] = inFile.readAllVolumes<double>();
 		// Don't close the first header because we've saved it to write the
 		// results, and FSLIO gets fussy about cloning closed headers
@@ -185,14 +191,14 @@ int main(int argc, char **argv)
 	
 	if (optind != argc)
 	{
-		std::cerr << "Unprocessed arguments supplied.\n" << usage;
+		cerr << "Unprocessed arguments supplied.\n" << usage;
 		exit(EXIT_FAILURE);
 	}
 	
 	if (verbose)
 	{
-		std::cout << "SSFP Angles (deg): " << ssfpAngles.transpose() * 180 / M_PI << std::endl
-		          << "SSFP Phases (deg): " << ssfpPhases.transpose() * 180 / M_PI << std::endl;
+		cout << "SSFP Angles (deg): " << ssfpAngles.transpose() * 180 / M_PI << endl
+		          << "SSFP Phases (deg): " << ssfpPhases.transpose() * 180 / M_PI << endl;
 	}
 	//**************************************************************************
 	// Set up results data
@@ -225,7 +231,7 @@ int main(int argc, char **argv)
 				if (B0Data) B0 = B0Data[sliceOffset + vox];
 				if (B1Data)	B1 = B1Data[sliceOffset + vox];
 				// Gather signals.
-				std::vector<VectorXd> signals;
+				vector<VectorXd> signals;
 				for (int p = 0; p < nPhases; p++)
 				{
 					VectorXd temp(nSSFP);
@@ -264,7 +270,8 @@ int main(int argc, char **argv)
     struct tm *localEnd = localtime(&procEnd);
 	char theTime[512];
     strftime(theTime, 512, "%H:%M:%S", localEnd);
-	fprintf(stdout, "Finished processing at %s. Run-time was %f s.\n", theTime, difftime(procEnd, procStart));
+	cout << "Finished processing at " << theTime << ". Run-time was " 
+	          << difftime(procEnd, procStart) << " s." << endl;
 	savedHeader.setnt(1);
 	savedHeader.setDatatype(NIFTI_TYPE_FLOAT32);
 	savedHeader.open(outPrefix + "_T2.nii.gz", NiftiImage::NIFTI_WRITE);

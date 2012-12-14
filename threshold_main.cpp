@@ -1,10 +1,9 @@
-//
-//  main.c
-//  threshold
-//
-//  Created by Tobias Wood on 08/05/2012.
-//  Copyright (c) 2012 Tobias Wood. All rights reserved.
-//
+/*
+ *  threshold_main.cpp
+ *
+ *  Created by Tobias Wood on 08/05/2012.
+ *  Copyright (c) 2012 Tobias Wood. All rights reserved.
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
