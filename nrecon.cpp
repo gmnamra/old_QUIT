@@ -8,9 +8,15 @@
 
 #include <string>
 #include <iostream>
-using namespace std;
+
+#include "Eigen/Dense"
+#include "unsupported/Eigen/fft"
+
 #include "fid.h"
 #include "NiftiImage.h"
+
+using namespace std;
+using namespace Eigen;
 
 int main(int argc, const char * argv[])
 {
@@ -18,9 +24,40 @@ int main(int argc, const char * argv[])
 	
 	Recon::FID thisFid(path);
 	cout << thisFid.print_info() << endl;
-	const complex<double> *kSpace = thisFid.readKSpace();
-	cout << kSpace[0] << endl;
+	complex<double> *kSpace = thisFid.readKSpace();
+	
 	cout << thisFid.nDim0() << " " << thisFid.nDim1() << " " << thisFid.nDim2() << endl;
+	
+	// FFT First & Second Dimension
+	for (int z = 0; z < thisFid.nDim2(); z++) {
+		int stride = thisFid.nDim0() * thisFid.nDim1();
+		
+		Map<Matrix<complex<double>, Dynamic, Dynamic>> slice(kSpace + z*stride, thisFid.nDim0(), thisFid.nDim1());
+		FFT<double> fft;
+		for (int i = 0; i < slice.rows(); i++) {
+			Matrix<complex<double>, 1, Dynamic> fft_row(slice.cols());
+			fft.inv(fft_row, slice.row(i));
+			slice.row(i) = fft_row;
+		}
+		for (int j = 0; j < slice.cols(); j++) {
+			Matrix<complex<double>, Dynamic, 1> fft_col(slice.rows());
+			fft.inv(fft_col, slice.col(j));
+			slice.col(j) = fft_col;
+		}
+	}
+	
+	// FFT Third Dimension
+	for (int x = 0; x < thisFid.nDim0(); x++) {
+		Map<Matrix<complex<double>, Dynamic, Dynamic>, Unaligned, Stride<Dynamic, Dynamic>>
+			slice(kSpace + x, thisFid.nDim1(), thisFid.nDim2(),
+			      Stride<Dynamic, Dynamic>(thisFid.nDim0() * thisFid.nDim1(), thisFid.nDim0()));
+		FFT<double> fft;
+		for (int k = 0; k < slice.rows(); k++) {
+			Matrix<complex<double>, 1, Dynamic> fft_row(slice.cols());
+			fft.inv(fft_row, slice.row(k));
+			slice.row(k) = fft_row;
+		}
+	}
 	
 	NiftiImage output;
 	output.setDims(thisFid.nDim0(), thisFid.nDim1(), thisFid.nDim2(), thisFid.nVolumes());

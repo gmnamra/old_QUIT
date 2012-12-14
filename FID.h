@@ -38,7 +38,7 @@ class FID {
 		//~FID();
 		
 		const string print_info() const;
-		const complex<double> *readKSpace();
+		complex<double> *readKSpace();
 		
 		const int nVolumes() const;
 		const int nDim0() const;    //!< First data size (usually read-out)

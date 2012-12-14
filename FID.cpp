@@ -41,7 +41,7 @@ const string FID::print_info() const {
 	return ss.str();
 }
 
-const complex<double> *FID::readKSpace() {
+complex<double> *FID::readKSpace() {
 	complex<double> *kSpace = new complex<double>[_fid.nComplexPerBlock() * _fid.nBlocks()];
 	
 	int blockOffset = 0;
