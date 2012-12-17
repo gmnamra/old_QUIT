@@ -8,26 +8,30 @@
 
 /* Begin PBXBuildFile section */
 		F61B26561615FECB00239F61 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
+		F6225160167B3F7700DB3BD9 /* libRecon.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F622515B167B3F3D00DB3BD9 /* libRecon.a */; };
+		F6225165167B3F8500DB3BD9 /* libRecon.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F622515B167B3F3D00DB3BD9 /* libRecon.a */; };
+		F622516A167B3F9200DB3BD9 /* libRecon.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F622515B167B3F3D00DB3BD9 /* libRecon.a */; };
+		F6225171167B3FA600DB3BD9 /* libRecon.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F622515B167B3F3D00DB3BD9 /* libRecon.a */; };
+		F6225176167B3FB500DB3BD9 /* libRecon.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F622515B167B3F3D00DB3BD9 /* libRecon.a */; };
+		F6225185167B4AA400DB3BD9 /* despot_hifi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F61642A715CC1BBB0031F999 /* despot_hifi.cpp */; };
+		F6225186167B4AA400DB3BD9 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
+		F622518B167B4AB200DB3BD9 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
+		F622518C167B4AB600DB3BD9 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
+		F622518D167B4AB600DB3BD9 /* libRecon.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F622515B167B3F3D00DB3BD9 /* libRecon.a */; };
 		F641095F161075AA00D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
 		F6410960161075B000D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
 		F6410961161075B400D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
 		F6410962161075B800D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
 		F6410963161075BC00D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
 		F6410964161075BF00D91F69 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
-		F648CBB215D51873009CAD99 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F656F2C3163D62D4009DF762 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F66F4A6815A48171006C91F1 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F675C8D615CC120100BA95FC /* afi_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F675C8D515CC120100BA95FC /* afi_main.cpp */; };
-		F675C8D815CC16F800BA95FC /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
-		F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
-		F681257015E239C2007A3362 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F681257615E239D8007A3362 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F681257915E23F3A007A3362 /* test_despot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */; };
-		F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
-		F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6DB54DB15ADD84600208C11 /* libprocpar.a */; };
 		F6E1F8DF1591E20E00DA918F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F6E1F9141591FFF200DA918F /* phasemap_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */; };
 		F6E1F9181592000C00DA918F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
@@ -40,6 +44,118 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		F6225156167B3F3D00DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F6FA56B915AC1B5B006A347A;
+			remoteInfo = procparse;
+		};
+		F6225158167B3F3D00DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F668766C165D2E3E005490D1;
+			remoteInfo = Nrecon;
+		};
+		F622515A167B3F3D00DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F6465B4D167782F600444730;
+			remoteInfo = Recon;
+		};
+		F622515C167B3F6800DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F63EBC6D160CA7FF00F4D0BD;
+			remoteInfo = NiftiImage;
+		};
+		F622515E167B3F6800DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6465B4C167782F600444730;
+			remoteInfo = Recon;
+		};
+		F6225161167B3F8200DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F63EBC6D160CA7FF00F4D0BD;
+			remoteInfo = NiftiImage;
+		};
+		F6225163167B3F8200DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6465B4C167782F600444730;
+			remoteInfo = Recon;
+		};
+		F6225166167B3F8F00DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F63EBC6D160CA7FF00F4D0BD;
+			remoteInfo = NiftiImage;
+		};
+		F6225168167B3F8F00DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6465B4C167782F600444730;
+			remoteInfo = Recon;
+		};
+		F622516B167B3F9E00DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F63EBC6D160CA7FF00F4D0BD;
+			remoteInfo = NiftiImage;
+		};
+		F622516D167B3FA300DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F63EBC6D160CA7FF00F4D0BD;
+			remoteInfo = NiftiImage;
+		};
+		F622516F167B3FA300DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6465B4C167782F600444730;
+			remoteInfo = Recon;
+		};
+		F6225172167B3FB200DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F63EBC6D160CA7FF00F4D0BD;
+			remoteInfo = NiftiImage;
+		};
+		F6225174167B3FB200DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6465B4C167782F600444730;
+			remoteInfo = Recon;
+		};
+		F6225187167B4AA900DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F63EBC6D160CA7FF00F4D0BD;
+			remoteInfo = NiftiImage;
+		};
+		F6225189167B4AA900DB3BD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6465B4C167782F600444730;
+			remoteInfo = Recon;
+		};
 		F63EBC3D160C5DC100F4D0BD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
@@ -47,51 +163,18 @@
 			remoteGlobalIDString = F6B19DE8160B6748009F84C5;
 			remoteInfo = NiftiImage;
 		};
-		F679FB8315B6BF7300A2EC48 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
-			remoteInfo = procpar;
-		};
-		F679FB8615B6BF8700A2EC48 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
-			remoteInfo = procpar;
-		};
-		F679FB8C15B6BF8F00A2EC48 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
-			remoteInfo = procpar;
-		};
-		F681257715E23EC6007A3362 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6DB54D115ADD80E00208C11;
-			remoteInfo = procpar;
-		};
-		F6C3F70015ADD1DA00359F68 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F6FA56B915AC1B5B006A347A;
-			remoteInfo = procparse;
-		};
-		F6DB54DA15ADD84600208C11 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F6DB54D215ADD80E00208C11;
-			remoteInfo = procpar;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		F6225179167B49CD00DB3BD9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		F675C8C915CC11E000BA95FC /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -159,11 +242,12 @@
 
 /* Begin PBXFileReference section */
 		F61131BA15DD54E80040FE67 /* DESPOT_Functors.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DESPOT_Functors.h; sourceTree = SOURCE_ROOT; };
-		F61642A715CC1BBB0031F999 /* despot_hifi.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = despot_hifi.c; sourceTree = SOURCE_ROOT; };
+		F61642A715CC1BBB0031F999 /* despot_hifi.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = despot_hifi.cpp; sourceTree = SOURCE_ROOT; };
+		F622517B167B49CD00DB3BD9 /* despot-hifi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "despot-hifi"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F675C8CB15CC11E000BA95FC /* afi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = afi; sourceTree = BUILT_PRODUCTS_DIR; };
 		F675C8D515CC120100BA95FC /* afi_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = afi_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = NiftiImage.xcodeproj; path = ../NiftiImage/NiftiImage.xcodeproj; sourceTree = "<group>"; };
-		F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = procparse.xcodeproj; path = ../procparse/procparse.xcodeproj; sourceTree = "<group>"; };
+		F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Nrecon.xcodeproj; path = ../Nrecon/Nrecon.xcodeproj; sourceTree = "<group>"; };
 		F6E1F8DE1591E20E00DA918F /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = phasemap_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E1F90A1591FFD200DA918F /* phasemap */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = phasemap; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -183,13 +267,23 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F6225178167B49CD00DB3BD9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F622518C167B4AB600DB3BD9 /* libNiftiImage.a in Frameworks */,
+				F622518B167B4AB200DB3BD9 /* libz.dylib in Frameworks */,
+				F622518D167B4AB600DB3BD9 /* libRecon.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F675C8C815CC11E000BA95FC /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				F6410964161075BF00D91F69 /* libNiftiImage.a in Frameworks */,
-				F675C8D815CC16F800BA95FC /* libprocpar.a in Frameworks */,
 				F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */,
+				F6225176167B3FB500DB3BD9 /* libRecon.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -199,7 +293,7 @@
 			files = (
 				F6410963161075BC00D91F69 /* libNiftiImage.a in Frameworks */,
 				F6E1F9181592000C00DA918F /* libz.dylib in Frameworks */,
-				F679FB8515B6BF7800A2EC48 /* libprocpar.a in Frameworks */,
+				F6225171167B3FA600DB3BD9 /* libRecon.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -208,8 +302,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6410961161075B400D91F69 /* libNiftiImage.a in Frameworks */,
-				F6DB54DE15ADDBB300208C11 /* libprocpar.a in Frameworks */,
 				F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */,
+				F6225160167B3F7700DB3BD9 /* libRecon.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,8 +312,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6410960161075B000D91F69 /* libNiftiImage.a in Frameworks */,
-				F6DB54DC15ADD84600208C11 /* libprocpar.a in Frameworks */,
 				F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */,
+				F6225165167B3F8500DB3BD9 /* libRecon.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -228,8 +322,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				F641095F161075AA00D91F69 /* libNiftiImage.a in Frameworks */,
-				F648CBB215D51873009CAD99 /* libprocpar.a in Frameworks */,
 				F66F4A6815A48171006C91F1 /* libz.dylib in Frameworks */,
+				F622516A167B3F9200DB3BD9 /* libRecon.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -248,26 +342,26 @@
 			files = (
 				F61B26561615FECB00239F61 /* libNiftiImage.a in Frameworks */,
 				F681257615E239D8007A3362 /* libz.dylib in Frameworks */,
-				F681257015E239C2007A3362 /* libprocpar.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		F63EBC36160C5DC100F4D0BD /* Products */ = {
+		F6225151167B3F3D00DB3BD9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */,
+				F6225157167B3F3D00DB3BD9 /* procparse */,
+				F6225159167B3F3D00DB3BD9 /* Nrecon */,
+				F622515B167B3F3D00DB3BD9 /* libRecon.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		F6C3F6FD15ADD1DA00359F68 /* Products */ = {
+		F63EBC36160C5DC100F4D0BD /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F6C3F70115ADD1DA00359F68 /* procparse */,
-				F6DB54DB15ADD84600208C11 /* libprocpar.a */,
+				F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -277,7 +371,7 @@
 			children = (
 				F6E1F8DE1591E20E00DA918F /* libz.dylib */,
 				F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */,
-				F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */,
+				F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */,
 				F6E4A2441590D9B000DA4001 /* DESPOT */,
 				F6E4A2421590D9B000DA4001 /* Products */,
 			);
@@ -293,6 +387,7 @@
 				F6E1F90A1591FFD200DA918F /* phasemap */,
 				F675C8CB15CC11E000BA95FC /* afi */,
 				F6EA0A7E15DE3C490059E436 /* test_despot */,
+				F622517B167B49CD00DB3BD9 /* despot-hifi */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -302,6 +397,7 @@
 			children = (
 				F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */,
 				F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */,
+				F61642A715CC1BBB0031F999 /* despot_hifi.cpp */,
 				F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */,
 				F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */,
 				F6E4A2961590DB4D00DA4001 /* threshold_main.cpp */,
@@ -309,7 +405,6 @@
 				F6E4A2911590DB2F00DA4001 /* DESPOT.h */,
 				F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */,
 				F675C8D515CC120100BA95FC /* afi_main.cpp */,
-				F61642A715CC1BBB0031F999 /* despot_hifi.c */,
 				F61131BA15DD54E80040FE67 /* DESPOT_Functors.h */,
 				F6EA0ADC15DE67960059E436 /* RegionContraction.h */,
 			);
@@ -319,6 +414,25 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		F622517A167B49CD00DB3BD9 /* despot-hifi */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6225182167B49CD00DB3BD9 /* Build configuration list for PBXNativeTarget "despot-hifi" */;
+			buildPhases = (
+				F6225177167B49CD00DB3BD9 /* Sources */,
+				F6225178167B49CD00DB3BD9 /* Frameworks */,
+				F6225179167B49CD00DB3BD9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F6225188167B4AA900DB3BD9 /* PBXTargetDependency */,
+				F622518A167B4AA900DB3BD9 /* PBXTargetDependency */,
+			);
+			name = "despot-hifi";
+			productName = "despot-hifi";
+			productReference = F622517B167B49CD00DB3BD9 /* despot-hifi */;
+			productType = "com.apple.product-type.tool";
+		};
 		F675C8CA15CC11E000BA95FC /* afi */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F675C8D215CC11E000BA95FC /* Build configuration list for PBXNativeTarget "afi" */;
@@ -330,6 +444,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F6225173167B3FB200DB3BD9 /* PBXTargetDependency */,
+				F6225175167B3FB200DB3BD9 /* PBXTargetDependency */,
 			);
 			name = afi;
 			productName = afi;
@@ -347,7 +463,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				F679FB8415B6BF7300A2EC48 /* PBXTargetDependency */,
+				F622516E167B3FA300DB3BD9 /* PBXTargetDependency */,
+				F6225170167B3FA300DB3BD9 /* PBXTargetDependency */,
 			);
 			name = phasemap;
 			productName = phasemap;
@@ -365,6 +482,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F622515D167B3F6800DB3BD9 /* PBXTargetDependency */,
+				F622515F167B3F6800DB3BD9 /* PBXTargetDependency */,
 			);
 			name = despot1;
 			productName = despot1;
@@ -382,7 +501,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				F679FB8715B6BF8700A2EC48 /* PBXTargetDependency */,
+				F6225162167B3F8200DB3BD9 /* PBXTargetDependency */,
+				F6225164167B3F8200DB3BD9 /* PBXTargetDependency */,
 			);
 			name = despot2;
 			productName = despot2;
@@ -400,7 +520,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				F679FB8D15B6BF8F00A2EC48 /* PBXTargetDependency */,
+				F6225167167B3F8F00DB3BD9 /* PBXTargetDependency */,
+				F6225169167B3F8F00DB3BD9 /* PBXTargetDependency */,
 			);
 			name = mcdespot;
 			productName = mcdespot;
@@ -418,6 +539,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				F622516C167B3F9E00DB3BD9 /* PBXTargetDependency */,
 			);
 			name = threshold;
 			productName = threshold;
@@ -435,7 +557,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				F681257815E23EC6007A3362 /* PBXTargetDependency */,
 			);
 			name = test_despot;
 			productName = test_despot;
@@ -466,8 +587,8 @@
 					ProjectRef = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
 				},
 				{
-					ProductGroup = F6C3F6FD15ADD1DA00359F68 /* Products */;
-					ProjectRef = F6C3F6FC15ADD1DA00359F68 /* procparse.xcodeproj */;
+					ProductGroup = F6225151167B3F3D00DB3BD9 /* Products */;
+					ProjectRef = F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -479,11 +600,33 @@
 				F6E1F9091591FFD200DA918F /* phasemap */,
 				F675C8CA15CC11E000BA95FC /* afi */,
 				F6EA0A7D15DE3C490059E436 /* test_despot */,
+				F622517A167B49CD00DB3BD9 /* despot-hifi */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
+		F6225157167B3F3D00DB3BD9 /* procparse */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = procparse;
+			remoteRef = F6225156167B3F3D00DB3BD9 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		F6225159167B3F3D00DB3BD9 /* Nrecon */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Nrecon;
+			remoteRef = F6225158167B3F3D00DB3BD9 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		F622515B167B3F3D00DB3BD9 /* libRecon.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libRecon.a;
+			remoteRef = F622515A167B3F3D00DB3BD9 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
@@ -491,23 +634,18 @@
 			remoteRef = F63EBC3D160C5DC100F4D0BD /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		F6C3F70115ADD1DA00359F68 /* procparse */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = procparse;
-			remoteRef = F6C3F70015ADD1DA00359F68 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		F6DB54DB15ADD84600208C11 /* libprocpar.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libprocpar.a;
-			remoteRef = F6DB54DA15ADD84600208C11 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
 /* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F6225177167B49CD00DB3BD9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6225185167B4AA400DB3BD9 /* despot_hifi.cpp in Sources */,
+				F6225186167B4AA400DB3BD9 /* DESPOT.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F675C8C715CC11E000BA95FC /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -570,29 +708,90 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		F679FB8415B6BF7300A2EC48 /* PBXTargetDependency */ = {
+		F622515D167B3F6800DB3BD9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			name = procpar;
-			targetProxy = F679FB8315B6BF7300A2EC48 /* PBXContainerItemProxy */;
+			name = NiftiImage;
+			targetProxy = F622515C167B3F6800DB3BD9 /* PBXContainerItemProxy */;
 		};
-		F679FB8715B6BF8700A2EC48 /* PBXTargetDependency */ = {
+		F622515F167B3F6800DB3BD9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			name = procpar;
-			targetProxy = F679FB8615B6BF8700A2EC48 /* PBXContainerItemProxy */;
+			name = Recon;
+			targetProxy = F622515E167B3F6800DB3BD9 /* PBXContainerItemProxy */;
 		};
-		F679FB8D15B6BF8F00A2EC48 /* PBXTargetDependency */ = {
+		F6225162167B3F8200DB3BD9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			name = procpar;
-			targetProxy = F679FB8C15B6BF8F00A2EC48 /* PBXContainerItemProxy */;
+			name = NiftiImage;
+			targetProxy = F6225161167B3F8200DB3BD9 /* PBXContainerItemProxy */;
 		};
-		F681257815E23EC6007A3362 /* PBXTargetDependency */ = {
+		F6225164167B3F8200DB3BD9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			name = procpar;
-			targetProxy = F681257715E23EC6007A3362 /* PBXContainerItemProxy */;
+			name = Recon;
+			targetProxy = F6225163167B3F8200DB3BD9 /* PBXContainerItemProxy */;
+		};
+		F6225167167B3F8F00DB3BD9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = NiftiImage;
+			targetProxy = F6225166167B3F8F00DB3BD9 /* PBXContainerItemProxy */;
+		};
+		F6225169167B3F8F00DB3BD9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Recon;
+			targetProxy = F6225168167B3F8F00DB3BD9 /* PBXContainerItemProxy */;
+		};
+		F622516C167B3F9E00DB3BD9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = NiftiImage;
+			targetProxy = F622516B167B3F9E00DB3BD9 /* PBXContainerItemProxy */;
+		};
+		F622516E167B3FA300DB3BD9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = NiftiImage;
+			targetProxy = F622516D167B3FA300DB3BD9 /* PBXContainerItemProxy */;
+		};
+		F6225170167B3FA300DB3BD9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Recon;
+			targetProxy = F622516F167B3FA300DB3BD9 /* PBXContainerItemProxy */;
+		};
+		F6225173167B3FB200DB3BD9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = NiftiImage;
+			targetProxy = F6225172167B3FB200DB3BD9 /* PBXContainerItemProxy */;
+		};
+		F6225175167B3FB200DB3BD9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Recon;
+			targetProxy = F6225174167B3FB200DB3BD9 /* PBXContainerItemProxy */;
+		};
+		F6225188167B4AA900DB3BD9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = NiftiImage;
+			targetProxy = F6225187167B4AA900DB3BD9 /* PBXContainerItemProxy */;
+		};
+		F622518A167B4AA900DB3BD9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Recon;
+			targetProxy = F6225189167B4AA900DB3BD9 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		F6225183167B49CD00DB3BD9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_EMPTY_BODY = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F6225184167B49CD00DB3BD9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_EMPTY_BODY = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		F675C8D315CC11E000BA95FC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -643,13 +842,13 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					../procparse,
+					../Nrecon,
 					"$(SRCROOT)/../eigen",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "";
-				SDKROOT = macosx;
+				SDKROOT = macosx10.7;
 				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
@@ -671,13 +870,13 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					../procparse,
+					../Nrecon,
 					"$(SRCROOT)/../eigen",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "";
-				SDKROOT = macosx;
+				SDKROOT = macosx10.7;
 				VALID_ARCHS = x86_64;
 			};
 			name = Release;
@@ -756,6 +955,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F6225182167B49CD00DB3BD9 /* Build configuration list for PBXNativeTarget "despot-hifi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6225183167B49CD00DB3BD9 /* Debug */,
+				F6225184167B49CD00DB3BD9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		F675C8D215CC11E000BA95FC /* Build configuration list for PBXNativeTarget "afi" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
