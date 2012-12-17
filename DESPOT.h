@@ -32,5 +32,5 @@ double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
                       double TR, double T1, double B1, double *M0, double *T2);
 double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, double spgrTR,
 				const ArrayXd &TI, const ArrayXd &irVals, double irFlipAngle, double irTR, double nReadout,
-                double *M0, double *T1, double *B1);
+                double &M0, double &T1, double &B1);
 #endif

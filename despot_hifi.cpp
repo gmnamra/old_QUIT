@@ -49,7 +49,7 @@ static struct option long_options[] =
 	{"mask", required_argument, 0, 'm'},
 	{"verbose", no_argument, 0, 'v'},
 	{"inv", required_argument, 0, 'i'},
-	{"pe", required_argument, 0, 'p'}
+	{"pe", required_argument, 0, 'p'},
 	{0, 0, 0, 0}
 };
 
@@ -61,10 +61,8 @@ int main(int argc, char **argv) {
 	// Argument Processing
 	//**************************************************************************
 	int nSPGR = 0, nIR = 0;
-	double irTR = 0., irAngle = 0., *irTI = NULL, TIScale = 1.;
 	NiftiImage inFile, spgrFile, irFile;
-	FSLIO *spgrFile = NULL, *irFile = NULL, *maskFile = NULL;
-	par_t *pars;
+	double *maskData = NULL;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "i:m:p:v:", long_options, &indexptr)) != -1) {
@@ -95,6 +93,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	
+	double TIScale = 0.;
 	switch (inversionMode) {
 		case 1:
 			TIScale = 1.0;
@@ -125,6 +124,7 @@ int main(int argc, char **argv) {
 	spgrFile.open(argv[optind], 'r');
 	nSPGR = spgrFile.nt();
 	VectorXd spgrAngles(nSPGR);
+	double spgrTR;
 	
 	#ifdef USE_PROCPAR
 	ParameterList pars;
@@ -148,9 +148,9 @@ int main(int argc, char **argv) {
 	irFile.checkVoxelsCompatible(spgrFile);
 	nIR = irFile.nt();
 	VectorXd irTI(nIR);
-	snprintf(procpar, MAXSTR, "%s.procpar", irPath);
+	double irAngle, irTR;
+	
 	#ifdef USE_PROCPAR
-	ParameterList pars;
 	if (ReadProcpar(irFile.basename() + ".procpar", pars)) {
 		irAngle = RealValue(pars, "flip1") * M_PI / 180.;
 		for (int i = 0; i < nIR; i++) irTI[i] = RealValue(pars, "ti", i);
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
 	} else
 	#endif
 	{
-		cout << "Enter IR-SPGR Flip Angle (degrees):"); cin >> irAngle; irAngle * M_PI / 180.;
+		cout << "Enter IR-SPGR Flip Angle (degrees):"; cin >> irAngle; irAngle *= M_PI / 180.;
 		if (peReadout > 0) {
 			cout << "Enter IR-SPGR TR (s):"; cin >> irTR;
 			irTR = irTR * peReadout;
@@ -168,14 +168,14 @@ int main(int argc, char **argv) {
 				irTI[i] *= TIScale;
 			}
 		} else {
-			cout << "Enter IR-SPGR TI times (s):");
+			cout << "Enter IR-SPGR TI times (s):";
 			for (int i = 0; i < nIR; i++) cin >> irTI[i];
 			fprintf(stdout, "Enter first scan Segment TR (s):"); cin >> irTR;
 			irTR -= irTI[0]; // Subtract off TI to get 
 		}
 	}
 	cout << "Found " << nIR << " SPGR-IR images with flip angle: " << irAngle * 180. / M_PI
-	     << " degrees, TR = ", irTR << "(s) " << endl;
+	     << " degrees, TR = " << irTR << "(s) " << endl;
 	const string outPrefix(argv[++optind]);
 	//**************************************************************************
 	// Allocate memory for slices
@@ -216,8 +216,6 @@ int main(int argc, char **argv) {
 			if ((!maskData) || (maskData[sliceOffset + vox] > 0.))
 			{
 				voxCount++;
-				if (B1Data)
-					B1 = B1Data[sliceOffset + vox];
 				ArrayXd spgrs(nSPGR), irs(nIR);
 				int vol = 0;
 				for (int img = 0; img < nSPGR; img++)
@@ -225,8 +223,8 @@ int main(int argc, char **argv) {
 				for (int img = 0; img < nIR; img++)
 						irs[img] = IR[img * totalVoxels + sliceOffset + vox];
 				res = calcHIFI(spgrAngles, spgrs, spgrTR,
-				               irTIs, irs, irFlipAngle, irTR, peReadout,
-							   &M0, &T1, &B1)
+				               irTI, irs, irAngle, irTR, peReadout,
+							   M0, T1, B1);
 				// Sanity check
 				M0 = clamp(M0, 0., 1.e7);
 				T1 = clamp(T1, 0., 15.);
@@ -268,7 +266,7 @@ int main(int argc, char **argv) {
 	delete[] resultsData;
 	delete[] SPGR;
 	delete[] IR;
-	delete[] B1Data;
 	delete[] maskData;
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
+}
