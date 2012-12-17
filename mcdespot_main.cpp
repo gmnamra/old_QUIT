@@ -44,28 +44,28 @@ default values of B0 = 0 Hz and B1 = 1 will be used. B0 value is only used if\n\
 --B0 option specified, otherwise it is a free parameter.\n\
 \n\
 Options:\n\
-	-v, --verbose     : Print extra information.\n\
-	-m, --mask file   : Mask input with specified file.\n\
-	-o, --out path    : Add a prefix to the output filenames.\n\
+	--verbose, -v     : Print extra information.\n\
+	--mask, -m file   : Mask input with specified file.\n\
+	--out, -o path    : Add a prefix to the output filenames.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 2).\n\
 	--M0 file         : M0 Map file.\n\
 	--B0              : Use the default or specified B0 value (don't fit).\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
-	-d, --drop        : Drop certain flip-angles (Read from stdin).\n\
-	-n, --normalise   : Normalise signals to maximum (Ignore M0).\n\
-	-s, --samples n   : Use n samples for region contraction (Default 5000).\n\
-	-r, --retain  n   : Retain n samples for new boundary (Default 50).\n\
-	-c, --contract n  : Contract a maximum of n times (Default 10).\n\
-	-e, --expand n    : Re-expand boundary by percentage n (Default 0).\n\
-	-b 3              : Boundaries suitable for 3T\n\
-	   7              : Boundaries suitable for 7T (default)\n\
-	   u              : User specified boundaries from stdin.\n"
+	--drop, -d        : Drop certain flip-angles (Read from stdin).\n\
+	--normalise, -n   : Normalise signals to maximum (Ignore M0).\n\
+	--samples, -s n   : Use n samples for region contraction (Default 5000).\n\
+	--retain, -r  n   : Retain n samples for new boundary (Default 50).\n\
+	--contract, -c n  : Contract a maximum of n times (Default 10).\n\
+	--expand, -e n    : Re-expand boundary by percentage n (Default 0).\n\
+	--tesla, -t 3     : Boundaries suitable for 3T\n\
+	            7     : Boundaries suitable for 7T (default)\n\
+	            u     : User specified boundaries from stdin.\n"
 };
 
 static int verbose = false, normalise = false, drop = false, fitB0 = true,
            start_slice = -1, end_slice = -1, slice = 0,
-		   samples = 2500, retain = 25, contract = 10,
+		   samples = 5000, retain = 50, contract = 10,
 		   components = 2, tesla = -1, nP = 0;
 static double expand = 0.;
 static string outPrefix;
@@ -77,6 +77,7 @@ static struct option long_options[] =
 	{"start_slice", required_argument, 0, 'S'},
 	{"end_slice", required_argument, 0, 'E'},
 	{"normalise", no_argument, &normalise, true},
+	{"tesla", required_argument, 0, 't'},
 	{"samples", required_argument, 0, 's'},
 	{"retain", required_argument, 0, 'r'},
 	{"contract", required_argument, 0, 'c'},
@@ -130,7 +131,7 @@ int main(int argc, char **argv)
 	int nSPGR = 0, nSSFP = 0;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "b:m:o:vznds:r:c:e:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "t:m:o:vznds:r:c:e:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
@@ -156,24 +157,17 @@ int main(int argc, char **argv)
 			case 'r': retain   = atoi(optarg); break;
 			case 'c': contract = atoi(optarg); break;
 			case 'e': expand   = atof(optarg); break; 
-			case 'b':
+			case 't':
 				switch (*optarg) {
-					case '3':
-						cout << "Using 3T boundaries.\n";
-						tesla = 3;
-						break;
-					case '7':
-						cout << "Using 7T boundaries.\n";
-						tesla = 7;
-						break;
-					case 'u':
-						tesla = -1;
-						break;
+					case '3': tesla = 3; break;
+					case '7': tesla = 7; break;
+					case 'u': tesla = -1; break;
 					default:
 						cout << "Unknown boundaries type " << optarg << endl;
 						abort();
 						break;
 				}
+				cout << "Using " << tesla << "T boundaries." << endl;
 				break;
 			case 0:
 				// Just a flag
@@ -341,7 +335,7 @@ int main(int argc, char **argv)
 	cout << "Using " << components << " component model." << endl;
 	// The lo/hiBounds methods will make sure these vectors are the right
 	// length, even for tesla == -1
-	VectorXd loBounds, hiBounds;
+	ArrayXd loBounds, hiBounds;
 	switch (components)
 	{
 		case 1:
@@ -362,9 +356,7 @@ int main(int argc, char **argv)
 			hiBounds = ThreeComponentEcho::hiBounds(tesla);
 			break;
 	}
-	VectorXi loConstraints(nP), hiConstraints(nP);
-	loConstraints.setConstant(true); hiConstraints.setConstant(true);
-		
+	
 	residualData = new double[voxelsPerSlice];
 	residualHdr = savedHeader;
 	residualHdr.setnt(1); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
@@ -444,20 +436,13 @@ int main(int argc, char **argv)
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
 			double residual = 0.;
-			VectorXd params(nP); params.setZero();
+			ArrayXd params(nP); params.setZero();
 			if ((!maskData || (maskData[sliceOffset + vox] > 0.)) &&
 			    (!M0Data || (M0Data[sliceOffset + vox] > 0.)))
 			{
 				//cout << "Voxel " << (vox % savedHeader.nx()) << " " << (vox / savedHeader.nx()) << endl;
 				voxCount++;
-				// Must take copies before altering inside a block
-				VectorXd localLo = loBounds, localHi = hiBounds;
-				if (M0Data)
-				{
-					localLo(0) = (double)M0Data[sliceOffset + vox];
-					localHi(0) = (double)M0Data[sliceOffset + vox];
-				}
-								
+				
 				vector<VectorXd> SPGR_signals, SSFP_signals;
 				VectorXd SPGR_B1(SPGR_vols.size()),
 				         SSFP_B0(SSFP_vols.size()), SSFP_B1(SSFP_vols.size());
@@ -475,12 +460,10 @@ int main(int argc, char **argv)
 					SPGR_B1[i] = SPGR_B1s[i] ? SPGR_B1s[i][vox] : 1.;
 				}
 				
-				for (int i = 0; i < SSFP_vols.size(); i++)
-				{
+				for (int i = 0; i < SSFP_vols.size(); i++) {
 					VectorXd temp(ssfpKeep.sum());
 					int vol = 0;
-					for (int j = 0; j < nSSFP; j++)
-					{
+					for (int j = 0; j < nSSFP; j++) {
 						if (ssfpKeep(j))
 							temp[vol++] = SSFP_vols[i][voxelsPerSlice*j + vox];
 					}
@@ -492,39 +475,58 @@ int main(int argc, char **argv)
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
-				switch (components)
-				{
+				switch (components) {
 					case 1: {
+						OneComponent::ParamType localLo = loBounds, localHi = hiBounds, localP;
+						if (M0Data) {
+							localLo(0) = (double)M0Data[sliceOffset + vox];
+							localHi(0) = (double)M0Data[sliceOffset + vox];
+						}
 						OneComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
 						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
 										normalise, fitB0);
-						residual = regionContraction<OneComponent>(params, tc, localLo, localHi,
-															       loConstraints, hiConstraints,
+						residual = regionContraction<OneComponent>(localP, tc, localLo, localHi,
 															       samples, retain, contract, 0.05, expand, rSeed);
+						params = localP;
 						} break;
 					case 2: {
+						TwoComponent::ParamType localLo = loBounds, localHi = hiBounds, localP;
+						if (M0Data) {
+							localLo(0) = (double)M0Data[sliceOffset + vox];
+							localHi(0) = (double)M0Data[sliceOffset + vox];
+						}
 						TwoComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
 						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
 										normalise, fitB0);
-						residual = regionContraction<TwoComponent>(params, tc, localLo, localHi,
-															       loConstraints, hiConstraints,
+						residual = regionContraction<TwoComponent>(localP, tc, localLo, localHi,
 															       samples, retain, contract, 0.05, expand, rSeed);
+						params = localP;
 						} break;
 					case 3: {
+						ThreeComponent::ParamType localLo = loBounds, localHi = hiBounds, localP;
+						if (M0Data) {
+							localLo(0) = (double)M0Data[sliceOffset + vox];
+							localHi(0) = (double)M0Data[sliceOffset + vox];
+						}
 						ThreeComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
 						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
 										normalise, fitB0);
-						residual = regionContraction<ThreeComponent>(params, tc, localLo, localHi,
-																 	loConstraints, hiConstraints,
-																 	samples, retain, contract, 0.05, expand, rSeed);
+						residual = regionContraction<ThreeComponent>(localP, tc, localLo, localHi,
+																 	 samples, retain, contract, 0.05, expand, rSeed);
+						params = localP;
 						} break;
 					case 4: {
+						ThreeComponentEcho::ParamType localLo = loBounds, localHi = hiBounds, localP;
+						if (M0Data) {
+							localLo(0) = (double)M0Data[sliceOffset + vox];
+							localHi(0) = (double)M0Data[sliceOffset + vox];
+						}
 						ThreeComponentEcho tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
 						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
 										normalise, fitB0);
-						residual = regionContraction<ThreeComponentEcho>(params, tc, localLo, localHi,
-																 	loConstraints, hiConstraints,
-																 	samples, retain, contract, 0.05, expand, rSeed);
+						residual = regionContraction<ThreeComponentEcho>(localP, tc, localLo, localHi,
+																 	     samples, retain, contract, 0.05, expand, rSeed);
+						params = localP;
 						} break;
 				}
 			}

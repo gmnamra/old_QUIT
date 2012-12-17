@@ -17,6 +17,7 @@
 #include "NiftiImage.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
+#include "RegionContraction.h"
 
 #define USE_PROCPAR
 #ifdef USE_PROCPAR
@@ -38,13 +39,17 @@ Options:\n\
 	--B0 file         : B0 Map file.\n\
 	--B1 file         : B1 Map file.\n\
 	--M0 file         : Proton density file.\n\
-	--lm              : Use Levenberg-Marquardt instead of Region Contraction.\n\
 	--verbose, -v     : Print slice processing times.\n\
 	--start_slice N   : Start processing from slice N.\n\
-	--end_slice   N   : Finish processing at slice N.\n"
+	--end_slice   N   : Finish processing at slice N.\n\
+	--tesla, -t 3     : Enables DESPOT-FM with boundaries suitable for 3T\n\
+	            7     : Boundaries suitable for 7T (default)\n\
+	            u     : User specified boundaries from stdin.\n"
+
 };
 
-static int levMar = false, verbose = false, start_slice = -1, end_slice = -1;
+// tesla == 0 means NO DESPOT-FM
+static int tesla = 0, fitB0 = true, verbose = false, start_slice = -1, end_slice = -1;
 static string outPrefix;
 static struct option long_options[] =
 {
@@ -52,7 +57,7 @@ static struct option long_options[] =
 	{"B1", required_argument, 0, '1'},
 	{"M0", required_argument, 0, 'M'},
 	{"mask", required_argument, 0, 'm'},
-	{"lm", no_argument, &levMar, true},
+	{"tesla", optional_argument, 0, 'f'},
 	{"verbose", no_argument, 0, 'v'},
 	{"start_slice", required_argument, 0, 'S'},
 	{"end_slice", required_argument, 0, 'E'},
@@ -96,6 +101,7 @@ int main(int argc, char **argv)
 				inFile.open(optarg, 'r');
 				B0Data = inFile.readVolume<double>(0);
 				inFile.close();
+				fitB0 = false;
 				break;
 			case '1':
 				cout << "Reading B1 file " << optarg;
@@ -108,6 +114,18 @@ int main(int argc, char **argv)
 				inFile.open(optarg, 'r');
 				M0Data = inFile.readVolume<double>(0);
 				inFile.close();
+				break;
+			case 't':
+				switch (*optarg) {
+					case '3': tesla = 3; break;
+					case '7': tesla = 7; break;
+					case 'u': tesla = -1; break;
+					default:
+						cout << "Unknown boundaries type " << optarg << endl;
+						abort();
+						break;
+				}
+				cout << "Using " << tesla << "T boundaries." << endl;
 				break;
 			case 'v':
 				verbose = true;
@@ -139,7 +157,8 @@ int main(int argc, char **argv)
 	int nSSFP, nPhases;
 	double ssfpTR;
 	nPhases = argc - optind;
-	VectorXd ssfpPhases(nPhases), ssfpAngles;
+	vector<double> ssfpPhases(nPhases);
+	VectorXd ssfpAngles;
 	int voxelsPerSlice, totalVoxels;
 	double **ssfpData = (double **)malloc(nPhases * sizeof(double *));
 	for (size_t p = 0; p < nPhases; p++)
@@ -172,12 +191,12 @@ int main(int argc, char **argv)
 		#ifdef USE_PROCPAR
 		ParameterList pars;
 		if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
-			ssfpPhases[p] = RealValue(pars, "rfphase");
+			ssfpPhases[p] = RealValue(pars, "rfphase") * M_PI / 180.;
 		} else
 		#endif
 		{
 			cout << "Enter phase-cycling (degrees): " << flush;
-			cin >> ssfpPhases[p];
+			cin >> ssfpPhases[p]; ssfpPhases[p] *= M_PI / 180.;
 		}
 		cout << "Reading SSFP data..." << endl;
 		ssfpData[p] = inFile.readAllVolumes<double>();
@@ -187,23 +206,44 @@ int main(int argc, char **argv)
 		optind++;
 	}
 	ssfpAngles *= M_PI / 180.;
-	ssfpPhases *= M_PI / 180.;
 	
-	if (optind != argc)
-	{
+	if (optind != argc) {
 		cerr << "Unprocessed arguments supplied.\n" << usage;
 		exit(EXIT_FAILURE);
 	}
 	
-	if (verbose)
-	{
-		cout << "SSFP Angles (deg): " << ssfpAngles.transpose() * 180 / M_PI << endl
-		          << "SSFP Phases (deg): " << ssfpPhases.transpose() * 180 / M_PI << endl;
+	// Set up boundaries for DESPOT-FM if needed
+	DESPOT2FM::ParamType loBounds, hiBounds;
+	if (tesla != 0) {
+		if (tesla > 0) {
+			loBounds = DESPOT2FM::loBounds(tesla);
+			hiBounds = DESPOT2FM::hiBounds(tesla);
+		} else if (tesla < 0) {
+			cout << "Enter " << DESPOT2FM::nP << " parameter pairs (low then high): " << flush;
+			for (int i = 0; i < DESPOT2FM::nP; i++) cin >> loBounds[i] >> hiBounds[i];
+		}
+		// If fitting, give a suitable range and allocate results memory
+		if (fitB0) {
+			loBounds[DESPOT2FM::nP - 1] = -0.5 / ssfpTR;
+			hiBounds[DESPOT2FM::nP - 1] =  0.5 / ssfpTR;
+			B0Data = new double[totalVoxels];
+		} else { // Otherwise fix and let functors pick up the specified value
+			loBounds[DESPOT2FM::nP - 1] = 0.;
+			hiBounds[DESPOT2FM::nP - 1] = 0.;
+		}
+	}
+	
+	if (verbose) {
+		cout << "SSFP Angles (deg): " << ssfpAngles.transpose() * 180 / M_PI << endl;
+		if (tesla != 0)
+			cout << "Low bounds: " << loBounds.transpose() << endl
+				 << "Hi bounds:  " << hiBounds.transpose() << endl;
 	}
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
 	double *residualData = new double[totalVoxels];
+	double *PDData = new double[totalVoxels];
 	double *T2Data = new double[totalVoxels];
 	//**************************************************************************
 	// Do the fitting
@@ -239,21 +279,39 @@ int main(int argc, char **argv)
 						temp(i) = ssfpData[p][i*totalVoxels + sliceOffset + vox];
 					signals.push_back(temp);
 				}
-				// Choose phase with accumulated phase closest to 180
-				int index = 0;
-				double bestPhase = DBL_MAX;
-				for (int p = 0; p < nPhases; p++)
-				{
-					double thisPhase = (B0 * ssfpTR * 2 * M_PI) + ssfpPhases[p];
-					if (fabs(fmod(thisPhase - M_PI, 2 * M_PI)) < bestPhase)
-					{
-						bestPhase = fabs(fmod(thisPhase - M_PI, 2 * M_PI));
-						index = p;
+				
+				if (tesla == 0) {
+					// Choose phase with accumulated phase closest to 180 and then classic DESPOT2
+					int index = 0;
+					double bestPhase = DBL_MAX;
+					for (int p = 0; p < nPhases; p++) {
+						double thisPhase = (B0 * ssfpTR * 2 * M_PI) + ssfpPhases[p];
+						if (fabs(fmod(thisPhase - M_PI, 2 * M_PI)) < bestPhase) {
+							bestPhase = fabs(fmod(thisPhase - M_PI, 2 * M_PI));
+							index = p;
+						}
 					}
+					residual = classicDESPOT2(ssfpAngles, signals[index], ssfpTR, T1, B1, &M0, &T2);
+				} else {
+					// DESPOT2-FM
+					VectorXd allB0(nSSFP), allB1(nSSFP);
+					allB0.setConstant(B0);
+					allB1.setConstant(B1);
+					DESPOT2FM tc(ssfpAngles, ssfpPhases, signals,
+				                 allB0, allB1, ssfpTR, false, fitB0);
+					DESPOT2FM::ParamType params(DESPOT2FM::nP);
+					residual = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds);
+					M0 = params[0];
+					T2 = params[1];
+					if (fitB0)
+						B0 = params[2];
+				
 				}
-				residual = classicDESPOT2(ssfpAngles, signals[index], ssfpTR, T1, B1, &M0, &T2);
 			}
+			PDData[sliceOffset + vox] = clamp(M0, 0., 5.e3);
 			T2Data[sliceOffset + vox] = clamp(T2, 0., 0.5);
+			if (fitB0)
+				B0Data[sliceOffset + vox] = B0;
 			residualData[sliceOffset + vox] = residual;
 		};
 		apply_for(voxelsPerSlice, processVox);
@@ -277,6 +335,14 @@ int main(int argc, char **argv)
 	savedHeader.open(outPrefix + "_T2.nii.gz", NiftiImage::NIFTI_WRITE);
 	savedHeader.writeVolume(0, T2Data);
 	savedHeader.close();
+	savedHeader.open(outPrefix + "_PD.nii.gz", NiftiImage::NIFTI_WRITE);
+	savedHeader.writeVolume(0, PDData);
+	savedHeader.close();
+	if (fitB0) {
+		savedHeader.open(outPrefix + "_B0.nii.gz", NiftiImage::NIFTI_WRITE);
+		savedHeader.writeVolume(0, B0Data);
+		savedHeader.close();
+	}
 	// Clean up memory
 	for (int p = 0; p < nPhases; p++)
 		free(ssfpData[p]);

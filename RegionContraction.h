@@ -34,12 +34,11 @@ VectorXi arg_partial_sort(const MatrixBase<Derived> &x, int middle)
     return indices;
 }
 
-template <typename Functor_t>
-double regionContraction(VectorXd &params, Functor_t &f,
-                         const VectorXd &loStart, const VectorXd &hiStart,
-					     const VectorXi &loConstrained, const VectorXi &hiConstrained,
-					     const int nS, const int nR, const int maxContractions,
-						 const double thresh, const double expand, const int seed = 0)
+template <typename Functor_t, typename Derived>
+double regionContraction(ArrayBase<Derived> &params, Functor_t &f,
+                         const ArrayBase<Derived> &loStart, const ArrayBase<Derived> &hiStart,
+					     const int nS = 5000, const int nR = 50, const int maxContractions = 10,
+						 const double thresh = 0.05, const double expand = 0., const int seed = 0)
 {
 	int nP = static_cast<int>(params.size());
 	MatrixXd samples(nP, nS);
@@ -94,14 +93,14 @@ double regionContraction(VectorXd &params, Functor_t &f,
 			break;
 		
 		// Expand the boundaries back out in case we just missed a minima,
-		// but don't go past initial boundaries if constrained
+		// but don't go past initial boundaries
 		loBounds -= (regionSize * expand);
 		hiBounds += (regionSize * expand);
 		for (int p = 0; p < nP; p++)
 		{
-			if (loConstrained[p] && (loBounds[p] < loStart[p]))
+			if (loBounds[p] < loStart[p])
 				loBounds[p] = loStart[p];
-			if (hiConstrained[p] && (hiBounds[p] > hiStart[p]))
+			if (hiBounds[p] > hiStart[p])
 				hiBounds[p] = hiStart[p];
 		}
 		regionSize = hiBounds - loBounds;

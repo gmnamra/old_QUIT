@@ -67,44 +67,8 @@ class DESPOT_Functor : public Functor<double, nPt>
 	public:
 		typedef array<string, nPt> StringArray;
 		typedef map<int, array<double, nPt> > BoundsMapType;
-		typedef Matrix<double, nPt, 1> BoundsType;
-		
+		typedef Array<double, nPt, 1> ParamType;
 		static const int nP = nPt;
-		//static const StringArray pNames;
-		//static const BoundsMapType lo, hi;
-		
-		/*static const string paramName(const int p) { return pNames[p]; }
-		static const BoundsType loBounds(const int tesla = -1)
-		{
-			if (tesla == -1)
-				return BoundsType::Zeros();
-			else {
-				BoundsMapType::const_iterator it = lo.find(tesla);
-				if (it == lo.end()) {
-					std::cout << "Cannot find a lower bound entry for field-strength " << tesla << "T." << std::endl;
-					exit(EXIT_FAILURE);
-				} else {
-					BoundsType temp;
-					for (int i = 0; i < nPt; i++)
-						temp[i] = it->second[i];
-				}
-			}
-		}
-		static const BoundsType hiBounds(const int tesla = -1)
-		{
-			if (tesla == -1)
-				return BoundsType::Zeros();
-			else {
-				BoundsMapType::const_iterator it = hi.find(tesla);
-				if (it == hi.end()) {
-					std::cout << "Cannot find a higher bound entry for field-strength " << tesla << "T." << std::endl;
-					exit(EXIT_FAILURE)
-				} else {
-					BoundsType temp;
-					for (int i = 0; i < nPt; i++)
-						temp[i] = it->second[i];
-				}
-		}*/
 				
 		const bool constraint(const VectorXd &params) const { return true; }
 		
@@ -216,26 +180,26 @@ class OneComponent : public DESPOT_Functor<4>
 		static const BoundsMapType lo, hi;
 		
 		// Until Eigen comes up with decent initializers...
-		static BoundsType loBounds(int tesla) {
+		static ParamType loBounds(int tesla) {
 			auto it = lo.find(tesla);
 			if (it != lo.end()) {
-				BoundsType temp;
+				ParamType temp;
 				for (int i = 0; i < nP; i++)
 					temp[i] = it->second[i];
 				return temp;
 			} else
-				return BoundsType::Zero();
+				return ParamType::Zero();
 		}
 		// Until Eigen comes up with decent initializers...
-		static BoundsType hiBounds(int tesla) {
+		static ParamType hiBounds(int tesla) {
 			auto it = hi.find(tesla);
 			if (it != hi.end()) {
-				BoundsType temp;
+				ParamType temp;
 				for (int i = 0; i < nP; i++)
 					temp[i] = it->second[i];
 				return temp;
 			} else
-				return BoundsType::Zero();
+				return ParamType::Zero();
 		}
 		
 		const VectorXd theory(const VectorXd &params, const bool &normalise) const
@@ -264,7 +228,7 @@ class OneComponent : public DESPOT_Functor<4>
 			return t;
 		}
 };
-const OneComponent::StringArray OneComponent::names{ { string("1c_M0"), "1c_T1", "1c_T2", "1c_B0" } };
+const OneComponent::StringArray OneComponent::names{ { string("1c_PD"), "1c_T1", "1c_T2", "1c_B0" } };
 const OneComponent::BoundsMapType OneComponent::lo {
 	{3, {0.,   0.1, 0.01, -150. } },
 	{7, { 0.,   0.1, 0.005, -150. } } };
@@ -272,49 +236,70 @@ const OneComponent::BoundsMapType OneComponent::hi {
 	{3, { 1.e7, 3.0, 1.0, 150. } },
 	{7, { 1.e7, 5.0, 0.05, 150. } } };
 //******************************************************************************
-#pragma mark OneComponentSSFP
+#pragma mark DESPOT2FM
 //******************************************************************************
-
-class OneComponentSSFP : public Functor<double>
+class DESPOT2FM : public DESPOT_Functor<3>
 {
 	public:
-		const VectorXd &_flipAngles, &_rfPhases;
-		const vector<VectorXd> &_signals;
-		const double _TR, _T1, _M0, _B0, _B1;
-		const bool _normalise;
+		// Pass empty spgr values through otherwise values() will be wrong
+		DESPOT2FM(const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
+				  const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
+				  const bool &normalise = false, const bool &fitB0 = true)
+				  : DESPOT_Functor(VectorXd(), vector<VectorXd>(), ssfpB1, ssfpTR,
+								   ssfpAngles, ssfpPhases, ssfpSignals, ssfpB0, ssfpB1, ssfpTR,
+								   normalise, fitB0)
+				 {}
+		static const StringArray names;
+		static const BoundsMapType lo, hi;
 		
-		static const int nP = 1;
-		static const char *names[];
+		// Until Eigen comes up with decent initializers...
+		static ParamType loBounds(int tesla) {
+			auto it = lo.find(tesla);
+			if (it != lo.end()) {
+				ParamType temp;
+				for (int i = 0; i < nP; i++)
+					temp[i] = it->second[i];
+				return temp;
+			} else
+				return ParamType::Zero();
+		}
+		// Until Eigen comes up with decent initializers...
+		static ParamType hiBounds(int tesla) {
+			auto it = hi.find(tesla);
+			if (it != hi.end()) {
+				ParamType temp;
+				for (int i = 0; i < nP; i++)
+					temp[i] = it->second[i];
+				return temp;
+			} else
+				return ParamType::Zero();
+		}
 		
-		OneComponentSSFP(const VectorXd &flipAngles, const VectorXd &rfPhases,
-		                 const vector<VectorXd> &signals,
-				         const double TR, const double M0, const double T1,
-						 const double B0, const double B1, const bool normalise = false) :
-				         Functor<double>(OneComponentSSFP::nP, flipAngles.size() * rfPhases.size()),
-				         _flipAngles(flipAngles),
-				         _rfPhases(rfPhases),
-				         _signals(signals),
-				         _TR(TR), _T1(T1), _M0(M0), _B0(B0), _B1(B1),
-						 _normalise(normalise)
-				         {}
-			
-		int operator()(const VectorXd &params, VectorXd &diffs) const
+		const VectorXd theory(const VectorXd &params, const bool &normalise) const
 		{
-			eigen_assert(diffs.size() == values());
+			VectorXd t(values());
+			double PD = params[0], T1 = params[1], T2 = params[2], B0 = params[3];
 			int index = 0;
-			for (int p = 0; p < _rfPhases.size(); p++)
+			for (int i = 0; i < _ssfpSignals.size(); i++)
 			{
-				VectorXd temp = One_SSFP(_flipAngles, _rfPhases(p), _TR, _M0, _T1, params[0], _B0, _B1);
-				if (_normalise)
-					temp /= temp.mean();
-				diffs.segment(index, _flipAngles.size()) = temp - _signals[p];
-				index += _flipAngles.size();
+				if (!_fitB0)
+					B0 = _ssfpB0[i];
+				VectorXd theory = One_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
+										   PD, T1, T2, B0, _ssfpB1[i]);
+				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
+				t.segment(index, _ssfpAngles.size()) = theory;
+				index += _ssfpAngles.size();
 			}
-			return 0;
+			return t;
 		}
 };
-const char *OneComponentSSFP::names[] = { "T2" };
-
+const DESPOT2FM::StringArray DESPOT2FM::names { {string("fm_PD"), "fm_T2", "fm_B0"} };
+const DESPOT2FM::BoundsMapType DESPOT2FM::lo {
+	{3, {0., 0.01, -150. } },
+	{7, { 0., 0.005, -150. } } };
+const DESPOT2FM::BoundsMapType DESPOT2FM::hi {
+	{3, { 1.e7, 1.0, 150. } },
+	{7, { 1.e7, 0.05, 150. } } };
 //******************************************************************************
 #pragma mark Two Component Signals
 //******************************************************************************
@@ -417,26 +402,26 @@ class TwoComponent : public DESPOT_Functor<8>
 		static const BoundsMapType lo, hi;
 		
 		// Until Eigen comes up with decent initializers...
-		static BoundsType loBounds(int tesla) {
+		static ParamType loBounds(int tesla) {
 			auto it = lo.find(tesla);
 			if (it != lo.end()) {
-				BoundsType temp;
+				ParamType temp;
 				for (int i = 0; i < nP; i++)
 					temp[i] = it->second[i];
 				return temp;
 			} else
-				return BoundsType::Zero();
+				return ParamType::Zero();
 		}
 		// Until Eigen comes up with decent initializers...
-		static BoundsType hiBounds(int tesla) {
+		static ParamType hiBounds(int tesla) {
 			auto it = hi.find(tesla);
 			if (it != hi.end()) {
-				BoundsType temp;
+				ParamType temp;
 				for (int i = 0; i < nP; i++)
 					temp[i] = it->second[i];
 				return temp;
 			} else
-				return BoundsType::Zero();
+				return ParamType::Zero();
 		}
 		
 		static bool constraint(const VectorXd &params)
@@ -488,7 +473,7 @@ class TwoComponent : public DESPOT_Functor<8>
 			return t;
 		}
 };
-const TwoComponent::StringArray TwoComponent::names{ { "2c_M0", "2c_T1_a", "2c_T1_b", "2c_T2_a", "2c_T2_b", "2c_f_a", "2c_tau_a", "2c_B0" } };
+const TwoComponent::StringArray TwoComponent::names{ { "2c_PD", "2c_T1_a", "2c_T1_b", "2c_T2_a", "2c_T2_b", "2c_f_a", "2c_tau_a", "2c_B0" } };
 const TwoComponent::BoundsMapType TwoComponent::lo{
 	{3, { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. } },
 	{7, { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. } } };
@@ -594,26 +579,26 @@ class ThreeComponent : public DESPOT_Functor<11>
 		static const BoundsMapType lo, hi;
 		
 		// Until Eigen comes up with decent initializers...
-		static BoundsType loBounds(int tesla) {
+		static ParamType loBounds(int tesla) {
 			auto it = lo.find(tesla);
 			if (it != lo.end()) {
-				BoundsType temp;
+				ParamType temp;
 				for (int i = 0; i < nP; i++)
 					temp[i] = it->second[i];
 				return temp;
 			} else
-				return BoundsType::Zero();
+				return ParamType::Zero();
 		}
 		// Until Eigen comes up with decent initializers...
-		static BoundsType hiBounds(int tesla) {
+		static ParamType hiBounds(int tesla) {
 			auto it = hi.find(tesla);
 			if (it != hi.end()) {
-				BoundsType temp;
+				ParamType temp;
 				for (int i = 0; i < nP; i++)
 					temp[i] = it->second[i];
 				return temp;
 			} else
-				return BoundsType::Zero();
+				return ParamType::Zero();
 		}
 		
 		static bool constraint(const VectorXd &params)
@@ -666,7 +651,7 @@ class ThreeComponent : public DESPOT_Functor<11>
 			return t;
 		}
 };
-const ThreeComponent::StringArray ThreeComponent::names{ { "3c_M0", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "3c_B0" } };
+const ThreeComponent::StringArray ThreeComponent::names{ { "3c_PD", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "3c_B0" } };
 const ThreeComponent::BoundsMapType ThreeComponent::lo {
 	{3, { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. } },
 	{7, { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0, 0. } } };
@@ -753,26 +738,26 @@ class ThreeComponentEcho : public DESPOT_Functor<13>
 		static const BoundsMapType lo, hi;
 		
 		// Until Eigen comes up with decent initializers...
-		static BoundsType loBounds(int tesla) {
+		static ParamType loBounds(int tesla) {
 			auto it = lo.find(tesla);
 			if (it != lo.end()) {
-				BoundsType temp;
+				ParamType temp;
 				for (int i = 0; i < nP; i++)
 					temp[i] = it->second[i];
 				return temp;
 			} else
-				return BoundsType::Zero();
+				return ParamType::Zero();
 		}
 		// Until Eigen comes up with decent initializers...
-		static BoundsType hiBounds(int tesla) {
+		static ParamType hiBounds(int tesla) {
 			auto it = hi.find(tesla);
 			if (it != hi.end()) {
-				BoundsType temp;
+				ParamType temp;
 				for (int i = 0; i < nP; i++)
 					temp[i] = it->second[i];
 				return temp;
 			} else
-				return BoundsType::Zero();
+				return ParamType::Zero();
 		}
 		
 		static bool constraint(const VectorXd &params)
@@ -827,7 +812,7 @@ class ThreeComponentEcho : public DESPOT_Functor<13>
 		}
 };
 const ThreeComponentEcho::StringArray ThreeComponentEcho::names
-{ { "3c_M0", "3c_T1_a", "3c_T1_b", "3c_T1_c",
+{ { "3c_PD", "3c_T1_a", "3c_T1_b", "3c_T1_c",
              "3c_T2_a", "3c_T2_b", "3c_T2_c",
 			 "3c_f_a", "3c_f_c", "3c_tau_a",
 			 "3c_B0_a", "3c_B0_b", "3c_B0_c" } };
