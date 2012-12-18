@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 	#pragma mark Argument Processing
 	//**************************************************************************
 	if (argc < 4) {
-		cerr << usage << endl;
+		cout << usage << endl;
 		return EXIT_FAILURE;
 	}
 	Eigen::initParallel();
@@ -175,6 +175,7 @@ int main(int argc, char **argv)
 				break;
 			case 'h':
 			case '?': // getopt will print an error message
+				cout << usage << endl;
 				return EXIT_FAILURE;
 		}
 	}
