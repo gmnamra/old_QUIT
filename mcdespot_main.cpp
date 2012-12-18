@@ -44,6 +44,7 @@ default values of B0 = 0 Hz and B1 = 1 will be used. B0 value is only used if\n\
 --B0 option specified, otherwise it is a free parameter.\n\
 \n\
 Options:\n\
+	--help, -h		  : Print this message.\n\
 	--verbose, -v     : Print extra information.\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
@@ -83,6 +84,7 @@ static struct option long_options[] =
 	{"contract", required_argument, 0, 'c'},
 	{"expand", required_argument, 0, 'e'},
 	{"drop", no_argument, &drop, true},
+	{"help", no_argument, 0, 'h'},
 	{"1", no_argument, &components, 1},
 	{"2", no_argument, &components, 2},
 	{"3", no_argument, &components, 3},
@@ -119,10 +121,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Argument Processing
 	//**************************************************************************
-	if (argc < 4)
-	{
+	if (argc < 4) {
 		cerr << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	Eigen::initParallel();
 	NiftiImage inHeader;
@@ -172,8 +173,9 @@ int main(int argc, char **argv)
 			case 0:
 				// Just a flag
 				break;
+			case 'h':
 			case '?': // getopt will print an error message
-				abort();
+				return EXIT_FAILURE;
 		}
 	}
 	if ((argc - optind) != 0) {
@@ -577,6 +579,6 @@ int main(int argc, char **argv)
 	}
 	delete[] M0Data;
 	delete[] maskData;
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
 

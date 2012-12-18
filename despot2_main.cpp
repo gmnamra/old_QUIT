@@ -8,7 +8,6 @@
 
 #include <time.h>
 #include <getopt.h>
-#include <signal.h>
 #include <iostream>
 #include <atomic>
 #include <Eigen/Dense>
@@ -35,6 +34,7 @@ const string usage {
 "Usage is: despot2 [options] output_prefix T1_map ssfp_files\n\
 \
 Options:\n\
+	--help, -h        : Print this message.\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--B0 file         : B0 Map file.\n\
 	--B1 file         : B1 Map file.\n\
@@ -56,6 +56,7 @@ static struct option long_options[] =
 	{"B0", required_argument, 0, '0'},
 	{"B1", required_argument, 0, '1'},
 	{"M0", required_argument, 0, 'M'},
+	{"help", no_argument, 0, 'h'},
 	{"mask", required_argument, 0, 'm'},
 	{"tesla", optional_argument, 0, 'f'},
 	{"verbose", no_argument, 0, 'v'},
@@ -65,10 +66,6 @@ static struct option long_options[] =
 };
 
 //******************************************************************************
-// SIGTERM interrupt handler - for ensuring data gets saved even on a ctrl-c
-//******************************************************************************
-NiftiImage savedHeader;
-//******************************************************************************
 // Main
 //******************************************************************************
 int main(int argc, char **argv)
@@ -76,19 +73,18 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	if (argc < 4)
-	{
-		cerr << usage << endl;
-		exit(EXIT_FAILURE);
+	if (argc < 4) {
+		cout << usage << endl;
+		return EXIT_FAILURE;
 	}
 	Eigen::initParallel();
-	NiftiImage inFile;
+	NiftiImage inFile, savedHeader;
 	double *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *T1Data = NULL,
 	       *M0Data = NULL;
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "m:vz", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:vz", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
@@ -140,7 +136,9 @@ int main(int argc, char **argv)
 				// Just a flag
 				break;
 			case '?': // getopt will print an error message
-				abort();
+			case 'h':
+				cout << usage << endl;				
+				return EXIT_FAILURE;
 		}
 	}
 	
@@ -352,5 +350,5 @@ int main(int argc, char **argv)
 		free(B1Data);
 	if (maskData)
 		free(maskData);
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
