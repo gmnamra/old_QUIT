@@ -83,7 +83,7 @@ double classicDESPOT1(const ArrayXd &flipAngles, const ArrayXd &spgrVals,
 }
 
 double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
-                      double TR, double T1, double B1, double *M0, double *T2) {
+                      double TR, double T1, double B1, double &M0, double &T2) {
 	// As above, linearise, then least-squares
 	long n = flipAngles.size();
 	double X[n], Y[n], slope, inter, residual;
@@ -94,9 +94,9 @@ double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
 	}
 	linearLeastSquares(X, Y, n, &slope, &inter, &residual);
 	double eT1 = exp(-TR / T1);
-	*T2 = -TR / log((eT1 - slope) / (1. - slope * eT1));
-	double eT2 = exp(-TR / (*T2));
-	*M0 = inter * (1. - eT1 * eT2) / (eT2 * (1. - eT1));
+	T2 = -TR / log((eT1 - slope) / (1. - slope * eT1));
+	double eT2 = exp(-TR / T2);
+	M0 = inter * (1. - eT1 * eT2) / (eT2 * (1. - eT1));
 	return residual;
 }
 

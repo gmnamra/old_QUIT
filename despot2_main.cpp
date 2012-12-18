@@ -291,7 +291,7 @@ int main(int argc, char **argv)
 							index = p;
 						}
 					}
-					residual = classicDESPOT2(ssfpAngles, signals[index], ssfpTR, T1, B1, &M0, &T2);
+					residual = classicDESPOT2(ssfpAngles, signals[index], ssfpTR, T1, B1, M0, T2);
 				} else {
 					// DESPOT2-FM
 					VectorXd allB0(nSSFP), allB1(nSSFP);

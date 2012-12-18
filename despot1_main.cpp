@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 					if (spgrKeep(img))
 						spgrs[vol++] = SPGR[img * totalVoxels + sliceOffset + vox];
 				}
-				res = classicDESPOT1(spgrAngles, spgrs, spgrTR, B1, &M0, &T1);
+				res = classicDESPOT1(spgrAngles, spgrs, spgrTR, B1, M0, T1);
 				
 				// Sanity check
 				M0 = clamp(M0, 0., 1.e7);

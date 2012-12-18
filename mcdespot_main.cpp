@@ -509,8 +509,8 @@ int main(int argc, char **argv)
 							localHi(0) = (double)M0Data[sliceOffset + vox];
 						}
 						ThreeComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
-						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
-										normalise, fitB0);
+						                  ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
+										  normalise, fitB0);
 						residual = regionContraction<ThreeComponent>(localP, tc, localLo, localHi,
 																 	 samples, retain, contract, 0.05, expand, rSeed);
 						params = localP;
@@ -522,8 +522,8 @@ int main(int argc, char **argv)
 							localHi(0) = (double)M0Data[sliceOffset + vox];
 						}
 						ThreeComponentEcho tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
-						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
-										normalise, fitB0);
+						                      ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
+										      normalise, fitB0);
 						residual = regionContraction<ThreeComponentEcho>(localP, tc, localLo, localHi,
 																 	     samples, retain, contract, 0.05, expand, rSeed);
 						params = localP;
