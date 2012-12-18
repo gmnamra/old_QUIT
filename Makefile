@@ -12,16 +12,19 @@
 # Set up Directories
 SRC_DIR = .
 BUILD_DIR := Build
-INSTALL_DIR := $(BUILD_DIR)
-LIB_DIR := $(INSTALL_DIR)/lib
-INCLUDE_DIR := $(INSTALL_DIR)/include
+INSTALL_DIR := .
+BIN_DIR = $(INSTALL_DIR)/bin
+INC_DIR = $(INSTALL_DIR)/include
+LIB_DIR = $(INSTALL_DIR)/lib
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
+$(INC_DIR):
+	mkdir -p $(INCLUDE_DIR)
 $(LIB_DIR):
 	mkdir -p $(LIB_DIR)
-$(INCLUDE_DIR):
-	mkdir -p $(INCLUDE_DIR)
 
 # Set up all our compiler options
 CXX = clang++
@@ -47,10 +50,10 @@ PROCPARSE_DEPS  = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(PROCPARSE_FILES))
 
 all     : librecon procparse
 
-install : all
-	cp $(SRC_DIR)/*.h $(INCLUDE_DIR)
-	cp $(BUILD_DIR)/librecon.a $(LIB_DIR)
-	cp $(BUILD_DIR)/procparse $(INSTALL_DIR)
+install : all $(BIN_DIR) $(INC_DIR) $(LIB_DIR)
+	cp $(SRC_DIR)/*.h $(INC_DIR)/
+	cp $(BUILD_DIR)/librecon.a $(LIB_DIR)/
+	cp $(BUILD_DIR)/procparse $(BIN_DIR)/
 
 librecon : $(RECON_DEPS)
 	$(AR) $(LIB_OPTIONS) $(BUILD_DIR)/librecon.a $(RECON_DEPS)
@@ -60,6 +63,7 @@ procparse : $(PROCPARSE_DEPS) librecon
 
 clean : 
 	rm -rf $(BUILD_DIR)/*
+
 # For debugging variables
 print-%:
 	@echo $* = $($*)
