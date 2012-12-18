@@ -5,18 +5,15 @@
 #
 ###################################################
 
-#
-# Macros
-#
-
-# Set up Directories
+# Set up Paths
 SRC_DIR = .
 BUILD_DIR := Build
 INSTALL_DIR := .
 BIN_DIR = $(INSTALL_DIR)/bin
 INC_DIR = $(INSTALL_DIR)/include
 LIB_DIR = $(INSTALL_DIR)/lib
-	
+LIBCPP = /software/local/k1078535
+
 $(BIN_DIR)/:
 	mkdir -p $(BIN_DIR)
 $(INC_DIR)/:
@@ -28,8 +25,8 @@ $(LIB_DIR)/:
 CXX = clang++
 AR = ar rcs
 CXX_FLAGS = -std=c++11 -stdlib=libc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2
-LD_FLAGS = -std=c++11 -stdlib=libc++ -O3 -L$(BUILD_DIR) -L/home/k1078535/local/lib
-INCLUDE = -I$(SRC_DIR) -I/home/k1078535/local/include/cxx
+LD_FLAGS = -std=c++11 -stdlib=libc++ -O3 -L$(BUILD_DIR) -L$(LIBCPP)/lib
+INCLUDE = -I$(SRC_DIR) -I$(LIBCPP)/include/c++/v1
 
 #
 # Pattern to build a .c in SRC_DIR/subdir to BUILD_DIR/subdir
