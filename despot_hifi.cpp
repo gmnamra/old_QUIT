@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind], 'r');
-	nSPGR = spgrFile.nt();
+	nSPGR = spgrFile.dim(4);
 	VectorXd spgrAngles(nSPGR);
 	double spgrTR;
 	
@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
 	cout << "Opening IR-SPGR file: " << argv[++optind] << endl;
 	irFile.open(argv[optind], 'r');
 	irFile.checkVoxelsCompatible(spgrFile);
-	nIR = irFile.nt();
+	nIR = irFile.dim(4);
 	VectorXd irTI(nIR);
 	double irAngle, irTR;
 	
@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	// Allocate memory for slices
 	//**************************************************************************	
-	int voxelsPerSlice = spgrFile.nx() * spgrFile.ny();
+	int voxelsPerSlice = spgrFile.voxelsPerSlice();
 	int totalVoxels = spgrFile.voxelsPerVolume();
 	
 	cout << "Reading image data..." << flush;
@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	for (int slice = 0; slice < spgrFile.nz(); slice++)
+	for (int slice = 0; slice < spgrFile.dim(3); slice++)
 	{
 		clock_t loopStart;
 		// Read in data
@@ -251,7 +251,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	NiftiImage outFile(spgrFile);
 	outFile.setDatatype(DT_FLOAT32);
-	outFile.setDims(spgrFile.nx(), spgrFile.ny(), spgrFile.nz(), 1);
+	outFile.setDim(4, 1);
 	for (int r = 0; r < NR; r++)
 	{
 		string outName = outPrefix + names[r] + ".nii.gz";

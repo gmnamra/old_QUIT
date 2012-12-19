@@ -54,14 +54,14 @@ int main(int argc, const char * argv[])
 	NiftiImage image;
 	image.open(argv[thisArg], 'r');
 	fprintf(stdout, "Opened file to mask %s.\n", argv[thisArg]);
-	if (volume >= image.nt())
-		volume = image.nt() - 1;
-	if (xl >= image.nx()) xl = image.nx();
-	if (xh >= image.nx()) xh = image.nx();
-	if (yl >= image.ny()) yl = image.ny();
-	if (yh >= image.ny()) yh = image.ny();
-	if (zl >= image.nz()) zl = image.nz();
-	if (zh >= image.nz()) zh = image.nz();
+	if (volume >= image.dim(4))
+		volume = image.dim(4) - 1;
+	if (xl >= image.dim(1)) xl = image.dim(1);
+	if (xh >= image.dim(1)) xh = image.dim(1);
+	if (yl >= image.dim(2)) yl = image.dim(2);
+	if (yh >= image.dim(2)) yh = image.dim(2);
+	if (zl >= image.dim(3)) zl = image.dim(3);
+	if (zh >= image.dim(3)) zh = image.dim(3);
 	fprintf(stdout, "x %d %d y %d %d z %d %d\n", xl, xh,
 	                                             yl, yh,
 												 zl, zh);
@@ -76,7 +76,7 @@ int main(int argc, const char * argv[])
 			mask[i] = 1;
 	}
 	
-	image.setDims(image.nx(), image.ny(), image.nz(), 1);
+	image.setDim(4, 1);
 	image.setDatatype(DT_FLOAT);
 	image.open(argv[thisArg + 2], 'w');
 	image.writeVolume<float>(0, mask);

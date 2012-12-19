@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 	NiftiImage outFile = inFile; // Could re-use infile, this is marginally clearer
 	string outPath = outPrefix + "_flip.nii.gz";
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
-	outFile.setnt(1);
+	outFile.setDim(4, 1);
 	outFile.setDatatype(NIFTI_TYPE_FLOAT32);
 	outFile.open(outPath, NiftiImage::NIFTI_WRITE);
 	outFile.writeVolume(0, flip);

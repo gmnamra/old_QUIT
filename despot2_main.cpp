@@ -165,9 +165,9 @@ int main(int argc, char **argv)
 		inFile.open(argv[optind], 'r');
 		if (p == 0)
 		{	// Read nSSFP, TR and flip angles from first file
-			nSSFP = inFile.nt();
-			voxelsPerSlice = inFile.nx() * inFile.ny();
-			totalVoxels = voxelsPerSlice * inFile.nz();
+			nSSFP = inFile.dim(4);
+			voxelsPerSlice = inFile.voxelsPerSlice();
+			totalVoxels = inFile.voxelsTotal();
 			ssfpAngles.resize(nSSFP, 1);
 			
 			#ifdef USE_PROCPAR
@@ -247,10 +247,10 @@ int main(int argc, char **argv)
 	// Do the fitting
 	//**************************************************************************
     time_t procStart = time(NULL);
-	if ((start_slice < 0) || (start_slice >= inFile.nz()))
+	if ((start_slice < 0) || (start_slice >= inFile.dim(4)))
 		start_slice = 0;
-	if ((end_slice < 0) || (end_slice > inFile.nz()))
-		end_slice = inFile.nz();
+	if ((end_slice < 0) || (end_slice > inFile.dim(4)))
+		end_slice = inFile.dim(4);
 	for (int slice = start_slice; slice < end_slice; slice++) {
 		// Read in data
 		if (verbose)
@@ -328,7 +328,7 @@ int main(int argc, char **argv)
     strftime(theTime, 512, "%H:%M:%S", localEnd);
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << endl;
-	savedHeader.setnt(1);
+	savedHeader.setDim(4, 1);
 	savedHeader.setDatatype(NIFTI_TYPE_FLOAT32);
 	savedHeader.open(outPrefix + "_T2.nii.gz", NiftiImage::NIFTI_WRITE);
 	savedHeader.writeVolume(0, T2Data);

@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 		if (type == "SPGR") {
 			cout << "Opened SPGR header: " << path << endl;
 			if (SPGR_files.size() == 0) {
-				nSPGR = inHdr->nt();
+				nSPGR = inHdr->dim(4);
 				spgrAngles.resize(nSPGR, 1);
 				
 				#ifdef USE_PROCPAR
@@ -254,7 +254,7 @@ int main(int argc, char **argv)
 			}
 			ssfpPhases.push_back(phase * M_PI / 180.);
 			if (SSFP_files.size() == 0) {
-				nSSFP = inHdr->nt();
+				nSSFP = inHdr->dim(4);
 				ssfpAngles.resize(nSSFP, 1);
 				#ifdef USE_PROCPAR
 				if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
@@ -362,7 +362,7 @@ int main(int argc, char **argv)
 	
 	residualData = new double[voxelsPerSlice];
 	residualHdr = savedHeader;
-	residualHdr.setnt(1); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
+	residualHdr.setDim(4, 1); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
 	residualHdr.open(outPrefix + "_residual.nii.gz", NiftiImage::NIFTI_WRITE);
 	
 	paramsData = new double *[nP];
@@ -372,7 +372,7 @@ int main(int argc, char **argv)
 	for (int i = 0; i < nP; i++) {
 		paramsData[i] = new double[voxelsPerSlice];
 		paramsHdrs[i] = savedHeader;
-		paramsHdrs[i].setnt(1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
+		paramsHdrs[i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
 		switch (components) {
 			case 1:	paramsHdrs[i].open(outPrefix + "_" + OneComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
 			case 2:	paramsHdrs[i].open(outPrefix + "_" + TwoComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
@@ -411,10 +411,10 @@ int main(int argc, char **argv)
 	#pragma mark Do the fitting
 	//**************************************************************************
     time_t procStart = time(NULL);
-	if ((start_slice < 0) || (start_slice >= savedHeader.nz()))
+	if ((start_slice < 0) || (start_slice >= savedHeader.dim(3)))
 		start_slice = 0;
-	if ((end_slice < 0) || (end_slice > savedHeader.nz()))
-		end_slice = savedHeader.nz();
+	if ((end_slice < 0) || (end_slice > savedHeader.dim(3)))
+		end_slice = savedHeader.dim(3);
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	cout << "Starting processing." << endl;
 	

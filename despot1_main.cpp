@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind], 'r');
-	nSPGR = spgrFile.nt();
+	nSPGR = spgrFile.dim(4);
 	VectorXd spgrAngles(nSPGR);
 	
 	#ifdef USE_PROCPAR
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Allocate memory for slices
 	//**************************************************************************	
-	int voxelsPerSlice = spgrFile.nx() * spgrFile.ny();
+	int voxelsPerSlice = spgrFile.voxelsPerSlice();
 	int totalVoxels = spgrFile.voxelsPerVolume();
 	
 	cout << "Reading SPGR data..." << flush;
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	for (int slice = 0; slice < spgrFile.nz(); slice++)
+	for (int slice = 0; slice < spgrFile.dim(3); slice++)
 	{
 		clock_t loopStart;
 		// Read in data
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 	const string names[NR] = { "_M0", "_T1", "_despot1_res" };
 	NiftiImage outFile(spgrFile);
 	outFile.setDatatype(DT_FLOAT32);
-	outFile.setDims(spgrFile.nx(), spgrFile.ny(), spgrFile.nz(), 1);
+	outFile.setDim(4, 1);
 	for (int r = 0; r < NR; r++)
 	{
 		string outName = outPrefix + names[r] + ".nii.gz";
