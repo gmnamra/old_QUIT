@@ -26,10 +26,10 @@ $(INSTALL_LIB)/:
 # Set up all our compiler options
 CXX = clang++
 AR = ar rcs
-CXX_FLAGS = -std=c++11 -stdlib=libc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2
-LD_FLAGS = -std=c++11 -stdlib=libc++ -O3 -L$(BUILD_DIR) -L$(LIBCPP)/lib
+CXX_FLAGS = -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -std=c++11 -stdlib=libc++ $(DEBUG)
+LD_FLAGS = -std=c++11 -stdlib=libc++ -O3 -L$(INSTALL_LIB) -L$(LIBCPP)/lib
+INCLUDE = -I$(SRC_DIR) -I$(INC_DIR) -I$(EIGEN) -cxx-isystem$(LIBCPP)/include/c++/v1
 LD_LIBS  = -lrecon -lNiftiImage -lz
-INCLUDE = -I$(SRC_DIR) -I$(INC_DIR) -I$(LIBCPP)/include/c++/v1 -I$(EIGEN)
 
 #
 # Pattern to build a .c in SRC_DIR/subdir to BUILD_DIR/subdir
