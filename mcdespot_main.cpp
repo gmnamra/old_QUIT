@@ -121,10 +121,6 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Argument Processing
 	//**************************************************************************
-	if (argc < 4) {
-		cout << usage << endl;
-		return EXIT_FAILURE;
-	}
 	Eigen::initParallel();
 	NiftiImage inHeader;
 	double *maskData = NULL, *M0Data = NULL;
@@ -180,8 +176,8 @@ int main(int argc, char **argv)
 		}
 	}
 	if ((argc - optind) != 0) {
-		cerr << "Incorrect number of arguments.";
-		exit(EXIT_FAILURE);
+		cerr << usage << endl << "Incorrect number of arguments." << endl;
+		return EXIT_FAILURE;
 	}
 
 	//**************************************************************************
