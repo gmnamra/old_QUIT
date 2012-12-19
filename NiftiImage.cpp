@@ -1111,10 +1111,8 @@ void NiftiImage::setFilenames(const string &fname)
 	else if (ext == "nii") {
 		_imgname = _hdrname = _basename + ".nii";
 	}
-	else {
-		cerr << "NiftiImage: Extension " << ext << " is not a valid NIfTI extension." << endl;
-		exit(EXIT_FAILURE);
-	}
+	else
+		NIFTI_FAIL("Invalid NIfTI extension: " + ext);
 	if (_gz) {
 		_imgname += ".gz";
 		_hdrname += ".gz";
@@ -1144,7 +1142,7 @@ size_t NiftiImage::read(void *buff, size_t size, size_t nmemb)
 		
 		/* warn of a short read that will seem complete */
 		if( remain > 0 && remain < size )
-			cerr << "NiftiImage: Zipped read short by " << remain << " bytes." << endl;
+			NIFTI_ERROR("Zipped read short by " << remain << " bytes.");
 		return nmemb - remain/size;   /* return number of members processed */
 	}
 	else
@@ -1174,7 +1172,7 @@ size_t NiftiImage::write(const void *buff, size_t size, size_t nmemb)
 		
 		/* warn of a short write that will seem complete */
 		if( remain > 0 && remain < size )
-			cerr << "NiftiImage: Zipped write short by " << remain << " bytes." << endl;
+			NIFTI_ERROR("Zipped write short by " << remain << " bytes.");
 		
 		return nmemb - remain/size;   /* return number of members processed */
 	}
@@ -1277,9 +1275,9 @@ void NiftiImage::readHeader(string path)
 		SwapAnalyzeHeader((nifti_analyze75 *)&nhdr);
 	
 	if(nhdr.datatype == DT_BINARY || nhdr.datatype == DT_UNKNOWN  )
-		cerr << "Bad datatype in header " << _hdrname << endl;
+		NIFTI_ERROR("Bad datatype in header " << _hdrname);
 	if(nhdr.dim[1] <= 0)
-		cerr << "Bad first dimension in header " << _hdrname << endl;
+		NIFTI_ERROR("Bad first dimension in header " << _hdrname);
 	
 	/* fix bad dim[] values in the defined dimension range */
 	for(int i=2; i <= nhdr.dim[0]; i++)
@@ -1686,24 +1684,17 @@ int NiftiImage::nz() const { return _dim[3]; }
 int NiftiImage::nt() const { return _dim[4]; }
 void NiftiImage::setnt(const int nt)
 {
-	if (_mode == NIFTI_CLOSED)
-	{
-		if (nt > 1)
-		{
+	if (_mode == NIFTI_CLOSED) {
+		if (nt > 1) {
 			_dim[4] = nt;
 			_dim[0] = 4;
-		}
-		else
-		{
+		} else {
 			_dim[4] = 1;
 			_dim[0] = 3;
 		}
 	}
 	else
-	{
-		cerr << "NiftiImage: Cannot change the dimensions of an image once opened." << endl;
-		exit(EXIT_FAILURE);
-	}	
+		NIFTI_ERROR("Cannot change the dimensions of an image once opened.");
 }
 
 void NiftiImage::setDims(const int nx, const int ny, const int nz, const int nt)
@@ -1748,9 +1739,8 @@ void NiftiImage::setDatatype(const int dt)
 		{NIFTI_TYPE_RGBA32, {NIFTI_TYPE_RGBA32, 4,   0, "NIFTI_TYPE_RGBA32"} }
 	};
 
-	if (_mode == NIFTI_READ)
-	{
-		cerr << "NiftiImage: Cannot set the datatype of a file opened for reading." << endl;
+	if (_mode == NIFTI_READ) {
+		NIFTI_ERROR("Cannot set the datatype of a file opened for reading.");
 		return;
 	}
     DTMap::const_iterator it = DataTypes.find(dt);
