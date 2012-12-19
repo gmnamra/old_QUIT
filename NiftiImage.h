@@ -393,16 +393,20 @@ class NiftiImage
 		char *readRawVolume(const int vol);
 		char *readRawAllVolumes();
 		
-		int ndim() const;
-		int nx() const;
-		int ny() const;
-		int nz() const;
-		int nt() const;
-		int voxelsPerSlice() const;
-		int voxelsPerVolume() const;
-		int voxelsTotal() const;
-		void setnt(const int nt);
-		void setDims(int nx, int ny, int nz, int nt);
+		int nDim() const;                       //!< Get the number of dimensions (rank) of this image
+		void setNDim(const int n);              //!< Set the number of dimensions (rank) for this image
+		int dim(const int d) const;             //!< Get the size (voxel count) of a dimension
+		int setDim(const int d, const int n);   //!< Set the size (voxel count) of a dimension d
+		int voxelsPerSlice() const;             //!< Voxel count for a whole slice (dim1 x dim2)
+		int voxelsPerVolume() const;            //!< Voxel count for a volume (dim1 x dim2 x dim3)
+		int voxelsTotal() const;                //!< Voxel count for whole image (all dimensions)
+		void setDims(const int n1, const int n2, const int n3, const int n4 = 1,
+		             const int n5 = 0, const int n6 = 0, const int n7 = 0); //!< Set all dimensions in one go
+		
+		float voxDim(const int d) const;            //!< Get the voxel size along dimension d
+		void setVoxDim(const int d, const float f); //!< Set the voxel size along dimension d
+		void setVoxDims(const float d1, const float d2, const float d3, const float d4 = 1,
+		                const float d5 = 0, const float d6 = 0, const float d7 = 0); //!< Set all voxel sizes in one go
 		
 		int datatype() const;
 		void setDatatype(const int dt);
@@ -410,11 +414,6 @@ class NiftiImage
 		bool voxelsCompatible(const NiftiImage &other) const; //!< Looser check if voxel dimensions and data size match
 		void checkVoxelsCompatible(const NiftiImage &other) const; //!< Exits program if voxels differ
 		void checkCompatible(const NiftiImage &other) const; //!< Exits program if headers do not match
-		float dx() const;
-		float dy() const;
-		float dz() const;
-		float dt() const;
-		void setVoxDims(double dx, double dy, double dz, double dt);
 		
 		float scaling_slope;
 		float scaling_inter;
@@ -486,19 +485,19 @@ class NiftiImage
 											  T *converted = NULL)
 		{
 			size_t lx, ly, lz, lt, total, toRead;
-			lx = ((ex == -1) ? nx() : ex) - sx;
-			ly = ((ey == -1) ? ny() : ey) - sy;
-			lz = ((ez == -1) ? nz() : ez) - sz;
-			lt = ((et == -1) ? nt() : et) - st;
+			lx = ((ex == -1) ? dim(1) : ex) - sx;
+			ly = ((ey == -1) ? dim(2) : ey) - sy;
+			lz = ((ez == -1) ? dim(3) : ez) - sz;
+			lt = ((et == -1) ? dim(4) : et) - st;
 			total = lx * ly * lz * lt;
 			
 			// Collapse successive full dimensions into a single compressed read
 			toRead = lx * _datatype.size;
-			if (lx == nx()) {
+			if (lx == dim(1)) {
 				toRead *= ly;
-				if (ly == ny()) {
+				if (ly == dim(2)) {
 					toRead *= lz;
-					if (lz == nz()) {
+					if (lz == dim(3)) {
 						// If we've got to here we're actual reading the whole image
 						toRead *= lt;
 						lt = 1;
@@ -518,7 +517,7 @@ class NiftiImage
 					size_t zOff = z * voxelsPerSlice();
 					for (int y = sy; y < sy+ly; y++)
 					{
-						size_t yOff = y * nx();
+						size_t yOff = y * dim(1);
 						if (readBytes((tOff + zOff + yOff) * _datatype.size, toRead, nextRead))
 							nextRead += toRead;
 						else
@@ -551,19 +550,19 @@ class NiftiImage
 											     const T *data)
 		{
 			size_t lx, ly, lz, lt, total, toWrite;
-			lx = ((ex == -1) ? nx() : ex) - sx;
-			ly = ((ey == -1) ? ny() : ey) - sy;
-			lz = ((ez == -1) ? nz() : ez) - sz;
-			lt = ((et == -1) ? nt() : et) - st;
+			lx = ((ex == -1) ? dim(1) : ex) - sx;
+			ly = ((ey == -1) ? dim(2) : ey) - sy;
+			lz = ((ez == -1) ? dim(3) : ez) - sz;
+			lt = ((et == -1) ? dim(4) : et) - st;
 			total = lx * ly * lz * lt;
 			
 			// Collapse successive full dimensions into a single write
 			toWrite = lx * _datatype.size;
-			if (lx == nx()) {
+			if (lx == dim(1)) {
 				toWrite *= ly;
-				if (ly == ny()) {
+				if (ly == dim(2)) {
 					toWrite *= lz;
-					if (lz == nz()) {
+					if (lz == dim(3)) {
 						// If we've got to here we're actual writing the whole image
 						toWrite *= lt;
 						lt = 1;
@@ -583,7 +582,7 @@ class NiftiImage
 					size_t zOff = z * voxelsPerSlice();
 					for (int y = sy; y < sy+ly; y++)
 					{
-						size_t yOff = y * nx();
+						size_t yOff = y * dim(1);
 						writeBytes(nextWrite, (tOff + zOff + yOff) * _datatype.size, toWrite);
 						nextWrite += toWrite;
 					}

@@ -1677,40 +1677,60 @@ void NiftiImage::close()
 	_mode = NIFTI_CLOSED;
 }
 
-int NiftiImage::ndim() const { return _dim[0]; }
-int NiftiImage::nx() const { return _dim[1]; }
-int NiftiImage::ny() const { return _dim[2]; }
-int NiftiImage::nz() const { return _dim[3]; }
-int NiftiImage::nt() const { return _dim[4]; }
-void NiftiImage::setnt(const int nt)
-{
-	if (_mode == NIFTI_CLOSED) {
-		if (nt > 1) {
-			_dim[4] = nt;
-			_dim[0] = 4;
-		} else {
-			_dim[4] = 1;
-			_dim[0] = 3;
-		}
-	}
+int NiftiImage::nDim() const { return _dim[0]; }
+void NiftiImage::setNDim(const int n) { _dim[0] = n; }
+int NiftiImage::dim(const int d) const {
+	if ((d > 0) && (d < 8))
+		return _dim[d];
 	else
-		NIFTI_ERROR("Cannot change the dimensions of an image once opened.");
+		NIFTI_FAIL("Tried to read invalid dimension: " << d);
+}
+int NiftiImage::setDim(const int d, const int n) {
+	if (_mode == NIFTI_CLOSED) {
+		if ((d > 0) && (d < 8))
+			_dim[d] = n;
+		else
+			NIFTI_FAIL("Tried to write invalid dimension: " << d);
+	}
+	NIFTI_FAIL("Cannot change image dimensions for open file.");
+}
+void NiftiImage::setDims(const int n1, const int n2, const int n3, const int n4,
+                         const int n5, const int n6, const int n7) {
+	_dim[1] = n1; _dim[2] = n2; _dim[3] = n3; _dim[4] = n4;
+	_dim[5] = n5; _dim[6] = n6; _dim[7] = n7;
 }
 
-void NiftiImage::setDims(const int nx, const int ny, const int nz, const int nt)
-{
-	//setnt will check if the file is closed
-	setnt(nt);
-	_dim[1] = nx;
-	_dim[2] = ny;
-	_dim[3] = nz;
-}
 int NiftiImage::voxelsPerSlice() const  { return _dim[1]*_dim[2]; };
 int NiftiImage::voxelsPerVolume() const { return _dim[1]*_dim[2]*_dim[3]; };
-int NiftiImage::voxelsTotal() const     { return _dim[1]*_dim[2]*_dim[3]*_dim[4]; };
-float NiftiImage::dx() const { return _voxdim[1]; }
-float NiftiImage::dy() const { return _voxdim[2]; }
-float NiftiImage::dz() const { return _voxdim[3]; }
+int NiftiImage::voxelsTotal() const     {
+	int total = _dim[1]*_dim[2]*_dim[3];
+	for (int i = 4; i < 8; i++) {
+		if (_dim[i] > 0)
+			total *= _dim[i];
+	}
+	return total;
+}
+
+float NiftiImage::voxDim(const int d) const {
+	if ((d > 0) && (d < 8))
+		return _voxdim[d];
+	else
+		NIFTI_FAIL("Tried to read voxel size for invalid dimension: " << d);
+}
+void NiftiImage::setVoxDim(const int d, const float f) {
+	if (_mode == NIFTI_CLOSED) {
+		if ((d > 0) && (d < 8))
+			_voxdim[d] = f;
+		else
+			NIFTI_FAIL("Tried to write voxel szie for invalid dimension: " << d);
+	} else
+		NIFTI_FAIL("Cannot change voxel sizes for open file.");
+}
+void NiftiImage::setVoxDims(const float d1, const float d2, const float d3, const float d4,
+				            const float d5, const float d6, const float d7) {
+	_voxdim[1] = d1; _voxdim[2] = d2; _voxdim[3] = d3; _voxdim[4] = d4;
+	_voxdim[5] = d5; _voxdim[6] = d6; _voxdim[7] = d7;
+}
 
 int NiftiImage::datatype() const { return _datatype.code; }
 /*  The map is declared here because making it a static member of NiftiImage was
@@ -1752,8 +1772,8 @@ void NiftiImage::setDatatype(const int dt)
 
 bool NiftiImage::voxelsCompatible(const NiftiImage &other) const
 {
-	if ((nx() == other.nx()) && (ny() == other.ny()) && (nz() == other.nz()) &&
-		(dx() == other.dx()) && (dy() == other.dy()) && (dz() == other.dz()))
+	if ((dim(1) == other.dim(1)) && (dim(2) == other.dim(2)) && (dim(3) == other.dim(3)) &&
+		(voxDim(1) == other.voxDim(1)) && (voxDim(2) == other.voxDim(2)) && (voxDim(3) == other.voxDim(3)))
 		// Voxel numbers and sizes match, can process on a volume basis
 		return true;
 	else
@@ -1766,11 +1786,11 @@ void NiftiImage::checkVoxelsCompatible(const NiftiImage &other) const
 		stringstream message;
 		message << "voxels do not match." << endl
 		        << _basename << endl
-				<< "Image dims: " << nx() << " " << ny() << " " << nz()
-				<< " Voxel size: " << dx() << " " << dy() << " " << dz()
+				<< "Image dims: " << dim(1) << " " << dim(2) << " " << dim(3)
+				<< " Voxel size: " << voxDim(1) << " " << voxDim(2) << " " << voxDim(3)
 				<< other._basename << endl
-				<< "Image dims: " << other.nx() << " " << other.ny() << " " << other.nz()
-				<< " Voxel size: " << other.dx() << " " << other.dy() << " " << other.dz();
+				<< "Image dims: " << other.dim(1) << " " << other.dim(2) << " " << other.dim(3)
+				<< " Voxel size: " << other.voxDim(1) << " " << other.voxDim(2) << " " << other.voxDim(3);
 		NIFTI_FAIL(message.str());
 	}
 }
@@ -1792,12 +1812,12 @@ void NiftiImage::checkCompatible(const NiftiImage &other) const
 		stringstream message;
 		message << "volumes do not match." << endl
 		        << _basename << endl
-				<< "Image dims: " << nx() << " " << ny() << " " << nz()
-				<< " Voxel size: " << dx() << " " << dy() << " " << dz()
+				<< "Image dims: " << dim(1) << " " << dim(2) << " " << dim(3)
+				<< " Voxel size: " << voxDim(1) << " " << voxDim(2) << " " << voxDim(3)
 				<< " Transform:" << endl << ijk_to_xyz() << endl
 				<< other._basename << endl
-				<< "Image dims: " << other.nx() << " " << other.ny() << " " << other.nz()
-				<< " Voxel size: " << other.dx() << " " << other.dy() << " " << other.dz()
+				<< "Image dims: " << other.dim(1) << " " << other.dim(2) << " " << other.dim(3)
+				<< " Voxel size: " << other.voxDim(1) << " " << other.voxDim(2) << " " << other.voxDim(3)
 				<< " Transform:" << endl << other.ijk_to_xyz() << endl;
 		NIFTI_FAIL(message.str());
 	}
