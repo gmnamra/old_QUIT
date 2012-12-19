@@ -1,12 +1,12 @@
 //
-//  fid.cpp
+//  FIDFile.cpp
 //  Nrecon
 //
 //  Created by Tobias Wood on 21/11/2012.
 //  Copyright (c) 2012 Tobias Wood. All rights reserved.
 //
 
-#include "fid.h"
+#include "FIDFile.h"
 
 namespace Recon {
 
