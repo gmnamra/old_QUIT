@@ -396,12 +396,12 @@ class NiftiImage
 		int nDim() const;                       //!< Get the number of dimensions (rank) of this image
 		void setNDim(const int n);              //!< Set the number of dimensions (rank) for this image
 		int dim(const int d) const;             //!< Get the size (voxel count) of a dimension
-		int setDim(const int d, const int n);   //!< Set the size (voxel count) of a dimension d
+		void setDim(const int d, const int n);  //!< Set the size (voxel count) of a dimension d
+		void setDims(const int n1, const int n2, const int n3, const int n4 = 1,
+		             const int n5 = 0, const int n6 = 0, const int n7 = 0); //!< Set all dimensions in one go
 		int voxelsPerSlice() const;             //!< Voxel count for a whole slice (dim1 x dim2)
 		int voxelsPerVolume() const;            //!< Voxel count for a volume (dim1 x dim2 x dim3)
 		int voxelsTotal() const;                //!< Voxel count for whole image (all dimensions)
-		void setDims(const int n1, const int n2, const int n3, const int n4 = 1,
-		             const int n5 = 0, const int n6 = 0, const int n7 = 0); //!< Set all dimensions in one go
 		
 		float voxDim(const int d) const;            //!< Get the voxel size along dimension d
 		void setVoxDim(const int d, const float f); //!< Set the voxel size along dimension d

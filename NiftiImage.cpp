@@ -1028,14 +1028,10 @@ NiftiImage::NiftiImage(const NiftiImage &clone) :
 	description(clone.description),
 	aux_file(clone.aux_file)
 {
-	for (int i = 0; i < 8; i++)
-	{
+	for (int i = 0; i < 8; i++) {
 		_dim[i] = clone._dim[i];
 		_voxdim[i] = clone._voxdim[i];
 	}
-	//int                num_ext ;  /*!< number of extensions in ext_list       */
-	//nifti1_extension * ext_list ; /*!< array of extension structs (with data) */
-	//analyze_75_orient_code analyze75_orient; /*!< for old analyze files, orient */
 }
 
 NiftiImage &NiftiImage::operator=(const NiftiImage &other)
@@ -1685,14 +1681,14 @@ int NiftiImage::dim(const int d) const {
 	else
 		NIFTI_FAIL("Tried to read invalid dimension: " << d);
 }
-int NiftiImage::setDim(const int d, const int n) {
+void NiftiImage::setDim(const int d, const int n) {
 	if (_mode == NIFTI_CLOSED) {
 		if ((d > 0) && (d < 8))
 			_dim[d] = n;
 		else
 			NIFTI_FAIL("Tried to write invalid dimension: " << d);
-	}
-	NIFTI_FAIL("Cannot change image dimensions for open file.");
+	} else
+		NIFTI_FAIL("Cannot change image dimensions for open file.");
 }
 void NiftiImage::setDims(const int n1, const int n2, const int n3, const int n4,
                          const int n5, const int n6, const int n7) {
