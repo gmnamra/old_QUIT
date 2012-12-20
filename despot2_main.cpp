@@ -30,6 +30,11 @@ using namespace Eigen;
 //******************************************************************************
 // Arguments / Usage
 //******************************************************************************
+const string credit {
+"despot2 - Written by tobias.wood@kcl.ac.uk, based on work by Sean Deoni. \n\
+Acknowledgements greatfully received, grant discussions welcome."
+};
+
 const string usage {
 "Usage is: despot2 [options] output_prefix T1_map ssfp_files\n\
 \
@@ -73,6 +78,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
+	cout << credit << endl;
 	if (argc < 4) {
 		cout << usage << endl;
 		return EXIT_FAILURE;

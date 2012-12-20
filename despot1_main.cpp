@@ -37,6 +37,11 @@ Options:\n\
 	-d, --drop      : Drop certain flip-angles (Read from stdin).\n"
 };
 
+const string credit {
+"despot1 - Written by tobias.wood@kcl.ac.uk, based on work by Sean Deoni. \n\
+Acknowledgements greatfully received, grant discussions welcome."
+};
+
 static int verbose = false, drop = false;
 static struct option long_options[] =
 {
@@ -50,10 +55,10 @@ static struct option long_options[] =
 //******************************************************************************
 int main(int argc, char **argv)
 {
-	//tests();
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
+	cout << credit << endl;
 	double spgrTR = 0.;
 	int nSPGR;
 	double *B1Data = NULL, *maskData = NULL;

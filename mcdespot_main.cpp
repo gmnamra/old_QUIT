@@ -30,6 +30,11 @@ using namespace Eigen;
 //******************************************************************************
 // Arguments / Usage
 //******************************************************************************
+const string credit {
+"mcdespot - written by tobias.wood@kcl.ac.uk. \n\
+Acknowledgements greatfully received, grant discussions welcome."
+};
+
 const string usage {
 "Usage is: mcdespot [options]\n\
 \n\
@@ -121,6 +126,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Argument Processing
 	//**************************************************************************
+	cout << credit << endl;
 	Eigen::initParallel();
 	NiftiImage inHeader;
 	double *maskData = NULL, *M0Data = NULL;

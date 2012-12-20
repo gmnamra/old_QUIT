@@ -28,6 +28,11 @@ using namespace Eigen;
 //******************************************************************************
 // Arguments / Usage
 //******************************************************************************
+const string credit {
+"despot-hifi - Written by tobias.wood@kcl.ac.uk, based on work by Sean Deoni. \n\
+Acknowledgements greatfully received, grant discussions welcome."
+};
+
 const string usage {
 "Usage is: despot-hifi [options] spgr_input ir-spgr_input output_prefix \n\
 \
@@ -60,6 +65,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
+	cout << credit << endl;
 	int nSPGR = 0, nIR = 0;
 	NiftiImage inFile, spgrFile, irFile;
 	double *maskData = NULL;
