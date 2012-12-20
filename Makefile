@@ -9,25 +9,25 @@
 SRC_DIR = .
 BUILD_DIR := Build
 INSTALL_DIR := .
-BIN_DIR = $(INSTALL_DIR)/bin
-INC_DIR = $(INSTALL_DIR)/include
-LIB_DIR = $(INSTALL_DIR)/lib
+INSTALL_BIN = $(INSTALL_DIR)/bin
+INSTALL_INC = $(INSTALL_DIR)/include
+INSTALL_LIB = $(INSTALL_DIR)/lib
 LIBCPP = /software/local/k1078535
 EIGEN  = /software/local/k1078535/include/eigen3
 
-$(BIN_DIR)/:
-	mkdir -p $(BIN_DIR)
-$(INC_DIR)/:
+$(INSTALL_BIN)/:
+	mkdir -p $(INSTALL_BIN)
+$(INSTALL_INC)/:
 	mkdir -p $(INCLUDE_DIR)
-$(LIB_DIR)/:
-	mkdir -p $(LIB_DIR)
+$(INSTALL_LIB)/:
+	mkdir -p $(INSTALL_LIB)
 
 # Set up all our compiler options
 CXX = clang++
 AR = ar rcs
-CXX_FLAGS = -std=c++11 -stdlib=libc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2
-LD_FLAGS = -std=c++11 -stdlib=libc++ -O3 -L$(BUILD_DIR) -L$(LIBCPP)/lib
-INCLUDE = -I$(SRC_DIR) -I$(LIBCPP)/include/c++/v1 -I$(EIGEN)
+CXX_FLAGS = -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -std=c++11 -stdlib=libc++ $(DEBUG)
+LD_FLAGS = -std=c++11 -stdlib=libc++ -O3 -L$(LIBCPP)/lib
+INCLUDE = -I$(SRC_DIR) -I$(EIGEN) -cxx-isystem$(LIBCPP)/include/c++/v1
 
 #
 # Pattern to build a .c in SRC_DIR/subdir to BUILD_DIR/subdir
@@ -52,9 +52,9 @@ NiftiImage : $(NIFTI_DEPS)
 
 all     : NiftiImage
 
-install : all $(BIN_DIR) $(INC_DIR) $(LIB_DIR)
-	cp $(SRC_DIR)/*.h $(INC_DIR)/
-	cp $(BUILD_DIR)/libNiftiImage.a $(LIB_DIR)/
+install : all $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB)
+	cp $(SRC_DIR)/*.h $(INSTALL_INC)/
+	cp $(BUILD_DIR)/libNiftiImage.a $(INSTALL_LIB)/
 
 clean : 
 	rm -rf $(BUILD_DIR)/*
