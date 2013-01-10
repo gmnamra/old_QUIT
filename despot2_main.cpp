@@ -253,9 +253,9 @@ int main(int argc, char **argv)
 	// Do the fitting
 	//**************************************************************************
     time_t procStart = time(NULL);
-	if ((start_slice < 0) || (start_slice >= inFile.dim(4)))
+	if ((start_slice < 0) || (start_slice >= inFile.dim(3)))
 		start_slice = 0;
-	if ((end_slice < 0) || (end_slice > inFile.dim(4)))
+	if ((end_slice < 0) || (end_slice > inFile.dim(3)))
 		end_slice = inFile.dim(4);
 	for (int slice = start_slice; slice < end_slice; slice++) {
 		// Read in data
