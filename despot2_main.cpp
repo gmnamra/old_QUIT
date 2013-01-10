@@ -54,7 +54,7 @@ Options:\n\
 };
 
 // tesla == 0 means NO DESPOT-FM
-static int tesla = 0, fitB0 = true, verbose = false, start_slice = -1, end_slice = -1;
+static int tesla = 0, fitB0 = false, verbose = false, start_slice = -1, end_slice = -1;
 static string outPrefix;
 static struct option long_options[] =
 {
@@ -103,7 +103,6 @@ int main(int argc, char **argv)
 				inFile.open(optarg, 'r');
 				B0Data = inFile.readVolume<double>(0);
 				inFile.close();
-				fitB0 = false;
 				break;
 			case '1':
 				cout << "Reading B1 file " << optarg;
@@ -147,7 +146,8 @@ int main(int argc, char **argv)
 				return EXIT_FAILURE;
 		}
 	}
-	
+	if ((tesla != 0) && !B0Data)
+		fitB0 = true;
 	cout << "Output prefix will be: " << argv[optind] << endl;
 	outPrefix = argv[optind++];
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	int nSSFP, nPhases;
+	int nFlip, nPhases;
 	double ssfpTR;
 	nPhases = argc - optind;
 	vector<double> ssfpPhases(nPhases);
@@ -170,24 +170,24 @@ int main(int argc, char **argv)
 		cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], 'r');
 		if (p == 0)
-		{	// Read nSSFP, TR and flip angles from first file
-			nSSFP = inFile.dim(4);
+		{	// Read nFlip, TR and flip angles from first file
+			nFlip = inFile.dim(4);
 			voxelsPerSlice = inFile.voxelsPerSlice();
 			voxelsPerVolume = inFile.voxelsPerVolume();
-			ssfpAngles.resize(nSSFP, 1);
+			ssfpAngles.resize(nFlip, 1);
 			
 			#ifdef USE_PROCPAR
 			ParameterList pars;
 			if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
 				ssfpTR = RealValue(pars, "tr");
-				for (int i = 0; i < nSSFP; i++)
+				for (int i = 0; i < nFlip; i++)
 					ssfpAngles[i] = RealValue(pars, "flip1", i);
 			} else
 			#endif
 			{
 				cout << "Enter SSFP TR (s): " << flush;
 				cin >> ssfpTR;
-				cout << "Enter " << nSSFP << " flip angles (degrees): " << flush;
+				cout << "Enter " << nFlip << " flip angles (degrees): " << flush;
 				for (int i = 0; i < ssfpAngles.size(); i++)
 					cin >> ssfpAngles[i];
 			}
@@ -278,8 +278,8 @@ int main(int argc, char **argv)
 				vector<VectorXd> signals;
 				for (int p = 0; p < nPhases; p++)
 				{
-					VectorXd temp(nSSFP);
-					for (int i = 0; i < nSSFP; i++)
+					VectorXd temp(nFlip);
+					for (int i = 0; i < nFlip; i++)
 						temp(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
 					signals.push_back(temp);
 				}
@@ -298,7 +298,7 @@ int main(int argc, char **argv)
 					residual = classicDESPOT2(ssfpAngles, signals[index], ssfpTR, T1, B1, M0, T2);
 				} else {
 					// DESPOT2-FM
-					VectorXd allB0(nSSFP), allB1(nSSFP);
+					VectorXd allB0(nFlip), allB1(nFlip);
 					allB0.setConstant(B0);
 					allB1.setConstant(B1);
 					DESPOT2FM tc(ssfpAngles, ssfpPhases, signals,
