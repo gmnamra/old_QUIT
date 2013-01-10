@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 	nPhases = argc - optind;
 	vector<double> ssfpPhases(nPhases);
 	VectorXd ssfpAngles;
-	int voxelsPerSlice, totalVoxels;
+	int voxelsPerSlice, voxelsPerVolume;
 	double **ssfpData = (double **)malloc(nPhases * sizeof(double *));
 	for (size_t p = 0; p < nPhases; p++)
 	{
@@ -173,7 +173,7 @@ int main(int argc, char **argv)
 		{	// Read nSSFP, TR and flip angles from first file
 			nSSFP = inFile.dim(4);
 			voxelsPerSlice = inFile.voxelsPerSlice();
-			totalVoxels = inFile.voxelsTotal();
+			voxelsPerVolume = inFile.voxelsPerVolume();
 			ssfpAngles.resize(nSSFP, 1);
 			
 			#ifdef USE_PROCPAR
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
 		if (fitB0) {
 			loBounds[DESPOT2FM::nP - 1] = -0.5 / ssfpTR;
 			hiBounds[DESPOT2FM::nP - 1] =  0.5 / ssfpTR;
-			B0Data = new double[totalVoxels];
+			B0Data = new double[voxelsPerVolume];
 		} else { // Otherwise fix and let functors pick up the specified value
 			loBounds[DESPOT2FM::nP - 1] = 0.;
 			hiBounds[DESPOT2FM::nP - 1] = 0.;
@@ -246,9 +246,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
-	double *residualData = new double[totalVoxels];
-	double *PDData = new double[totalVoxels];
-	double *T2Data = new double[totalVoxels];
+	double *residualData = new double[voxelsPerVolume];
+	double *PDData = new double[voxelsPerVolume];
+	double *T2Data = new double[voxelsPerVolume];
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
 				{
 					VectorXd temp(nSSFP);
 					for (int i = 0; i < nSSFP; i++)
-						temp(i) = ssfpData[p][i*totalVoxels + sliceOffset + vox];
+						temp(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
 					signals.push_back(temp);
 				}
 				

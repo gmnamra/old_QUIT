@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
 	// Allocate memory for slices
 	//**************************************************************************	
 	int voxelsPerSlice = spgrFile.voxelsPerSlice();
-	int totalVoxels = spgrFile.voxelsPerVolume();
+	int voxelsPerVolume = spgrFile.voxelsPerVolume();
 	
 	cout << "Reading image data..." << flush;
 	double *SPGR = spgrFile.readAllVolumes<double>();
@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
 	#define NR 4
 	double **resultsData   = new double*[NR];
 	for (int i = 0; i < NR; i++)
-		resultsData[i] = new double[totalVoxels];
+		resultsData[i] = new double[voxelsPerVolume];
 	const string names[NR] = { "_M0", "_T1", "_B1", "_despot1_res" };
 	
 	//**************************************************************************
@@ -225,9 +225,9 @@ int main(int argc, char **argv) {
 				ArrayXd spgrs(nSPGR), irs(nIR);
 				int vol = 0;
 				for (int img = 0; img < nSPGR; img++)
-						spgrs[vol++] = SPGR[img * totalVoxels + sliceOffset + vox];
+						spgrs[vol++] = SPGR[img * voxelsPerVolume + sliceOffset + vox];
 				for (int img = 0; img < nIR; img++)
-						irs[img] = IR[img * totalVoxels + sliceOffset + vox];
+						irs[img] = IR[img * voxelsPerVolume + sliceOffset + vox];
 				res = calcHIFI(spgrAngles, spgrs, spgrTR,
 				               irTI, irs, irAngle, irTR, peReadout,
 							   M0, T1, B1);
