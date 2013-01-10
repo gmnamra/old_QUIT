@@ -256,7 +256,7 @@ int main(int argc, char **argv)
 	if ((start_slice < 0) || (start_slice >= inFile.dim(3)))
 		start_slice = 0;
 	if ((end_slice < 0) || (end_slice > inFile.dim(3)))
-		end_slice = inFile.dim(4);
+		end_slice = inFile.dim(3);
 	for (int slice = start_slice; slice < end_slice; slice++) {
 		// Read in data
 		if (verbose)
