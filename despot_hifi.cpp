@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 	double *maskData = NULL;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "i:m:p:v:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "i:m:p:v", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'i':
 				inversionMode = atoi(optarg);
@@ -180,9 +180,14 @@ int main(int argc, char **argv) {
 			irTR -= irTI[0]; // Subtract off TI to get 
 		}
 	}
-	cout << "Found " << nIR << " SPGR-IR images with flip angle: " << irAngle * 180. / M_PI
-	     << " degrees, TR = " << irTR << "(s) " << endl;
 	const string outPrefix(argv[++optind]);
+	if (verbose) {
+		cout << "Found " << nIR << " SPGR-IR images with flip angle " << irAngle * 180. / M_PI << " degrees." << endl;
+		cout << "Segment TR is " << irTR << " seconds." << endl;
+		cout << "Inversion time(s) are ";
+		for (int i = 0; i < nIR; i++) cout << irTI[i] << " ";
+		cout << "seconds." << endl;
+	}
 	//**************************************************************************
 	// Allocate memory for slices
 	//**************************************************************************	
@@ -239,7 +244,7 @@ int main(int argc, char **argv) {
 			resultsData[0][sliceOffset + vox] = M0;
 			resultsData[1][sliceOffset + vox] = T1;
 			resultsData[2][sliceOffset + vox] = B1;
-			resultsData[4][sliceOffset + vox] = res;
+			resultsData[3][sliceOffset + vox] = res;
 		};
 		apply_for(voxelsPerSlice, processVox);
 		
