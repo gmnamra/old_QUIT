@@ -100,14 +100,14 @@ double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
 	return residual;
 }
 
-ArrayXd SPGR(const ArrayXd &flip, const double &B1, const double &TR, const double &M0, const double &T1)
+ArrayXd SPGR(const ArrayXd &flip, const double &TR, const double &B1, const double &M0, const double &T1)
 {
 	double e1 = exp(-TR / T1);
 	ArrayXd spgr = M0 * (1. - e1) * sin(B1 * flip) / (1. - (e1 * cos(B1 * flip)));
 	return spgr;
 }
 
-ArrayXd IRSPGR(const ArrayXd &TI, const double &B1, const double &TR,
+ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
                const double &flip, const double &eff,
 			   const double &M0, const double &T1)
 {
@@ -116,7 +116,7 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &B1, const double &TR,
 	if (eff > 0)
 		irEfficiency = cos(eff * M_PI) - 1;
 	else
-		irEfficiency = cos(B1 * M_PI) - 1;
+		irEfficiency = cos(B1 * M_PI) - 1;	
 	
 	ArrayXd eTI = exp(-TI / T1);
 	ArrayXd eFull = exp(-(TI + TR) / T1);
@@ -146,7 +146,6 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
 	double res2 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
 	              (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
-    
 	if (res1 < res2) {
 		B1_1 = B1_0 + 0.2;
 		B1_2 = B1_1 + C * (B1_3 - B1_1);
@@ -154,7 +153,7 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double
 		B1_2 = B1_3 - 0.2;
 		B1_1 = B1_2 - C * (B1_2 - B1_0);
 	}
-    
+	
 	B1 = B1_1;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
 	res1 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
