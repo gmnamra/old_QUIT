@@ -100,17 +100,23 @@ double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
 	return residual;
 }
 
-ArrayXd SPGR(const ArrayXd &flip, double &B1, double &TR, double &M0, double &T1)
+ArrayXd SPGR(const ArrayXd &flip, const double &B1, const double &TR, const double &M0, const double &T1)
 {
 	double e1 = exp(-TR / T1);
 	ArrayXd spgr = M0 * (1. - e1) * sin(B1 * flip) / (1. - (e1 * cos(B1 * flip)));
 	return spgr;
 }
 
-ArrayXd IRSPGR(const ArrayXd &TI, const double &B1, const double &TR, const double &flip,
+ArrayXd IRSPGR(const ArrayXd &TI, const double &B1, const double &TR,
+               const double &flip, const double &eff,
 			   const double &M0, const double &T1)
 {
-	double irEfficiency = cos(B1 * M_PI) - 1;
+	double irEfficiency;
+	// Adiabatic pulses aren't susceptible to B1 problems.
+	if (eff > 0)
+		irEfficiency = cos(eff * M_PI) - 1;
+	else
+		irEfficiency = cos(B1 * M_PI) - 1;
 	
 	ArrayXd eTI = exp(-TI / T1);
 	ArrayXd eFull = exp(-(TI + TR) / T1);
@@ -119,8 +125,9 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &B1, const double &TR, const doub
 	return irspgr;
 }
 
-double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, double spgrTR,
-				const ArrayXd &TI, const ArrayXd &irVals, double irFlipAngle, double irTR, double nReadout,
+double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
+				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
+				const double irTR, const double nReadout, const double eff,
                 double &M0, double &T1, double &B1) {
 	// Golden Section Search to find B1
 	// From www.mae.wvu.edu/~smirnov/nr/c10-1.pdf
@@ -134,11 +141,11 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, double spgrT
 	B1 = B1_0;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
 	double res1 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-	(irVals - IRSPGR(TI, irTR, B1, irFlipAngle, M0, T1)).square().sum();
+	              (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
 	B1 = B1_3;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
 	double res2 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-	(irVals - IRSPGR(TI, irTR, B1, irFlipAngle, M0, T1)).square().sum();
+	              (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
     
 	if (res1 < res2) {
 		B1_1 = B1_0 + 0.2;
@@ -151,11 +158,11 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, double spgrT
 	B1 = B1_1;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
 	res1 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-	(irVals - IRSPGR(TI, irTR, B1, irFlipAngle, M0, T1)).square().sum();
+	       (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
 	B1 = B1_2;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
 	res2 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-	(irVals - IRSPGR(TI, irTR, B1, irFlipAngle, M0, T1)).square().sum();
+	       (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
 	while ( fabs(B1_3 - B1_0) > precision * (fabs(B1_1) + fabs(B1_2))) {
 		if (res2 < res1) {
 			B1_0 = B1_1; B1_1 = B1_2;
@@ -164,7 +171,7 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, double spgrT
 			B1 = B1_2;
 			classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
 			res2 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-			(irVals - IRSPGR(TI, irTR, B1, irFlipAngle, M0, T1)).square().sum();
+			       (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
 		} else {
 			B1_3 = B1_2; B1_2 = B1_1;
 			B1_1 = R * B1_2 + C * B1_0;
@@ -172,7 +179,7 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, double spgrT
 			B1 = B1_1;
 			classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
 			res1 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-			(irVals - IRSPGR(TI, irTR, B1, irFlipAngle, M0, T1)).square().sum();
+			       (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
 		}
 	}
 	// Best value for B1

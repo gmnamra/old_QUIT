@@ -49,6 +49,7 @@ Options:\n\
 };
 
 static int verbose = false, inversionMode = 0, peReadout = 0;
+static double inversionEfficiency = 0.;
 static struct option long_options[] =
 {
 	{"mask", required_argument, 0, 'm'},
@@ -104,14 +105,17 @@ int main(int argc, char **argv) {
 		case 1:
 			TIScale = 1.0;
 			peReadout = (peReadout / 2) + 2;
+			inversionEfficiency = 0.97;
 			break;
 		case 2:
 			TIScale = 0.9; // From Sean's code
 			peReadout = (peReadout / 2) + 2;
+			inversionEfficiency = 0.97;
 			break;
 		case 3:
 			TIScale = 0.84; // From Sean's code
 			peReadout = peReadout + 2;
+			inversionEfficiency = 0.97;
 			break;
 		case 0:
 			TIScale = 1.0;
@@ -223,7 +227,7 @@ int main(int argc, char **argv) {
 		int sliceOffset = slice * voxelsPerSlice;
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
-			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
+			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Assume B1 field is uniform for classic DESPOT
 			if ((!maskData) || (maskData[sliceOffset + vox] > 0.))
 			{
 				voxCount++;
@@ -234,7 +238,7 @@ int main(int argc, char **argv) {
 				for (int img = 0; img < nIR; img++)
 						irs[img] = IR[img * voxelsPerVolume + sliceOffset + vox];
 				res = calcHIFI(spgrAngles, spgrs, spgrTR,
-				               irTI, irs, irAngle, irTR, peReadout,
+				               irTI, irs, irAngle, irTR, peReadout, inversionEfficiency,
 							   M0, T1, B1);
 				// Sanity check
 				M0 = clamp(M0, 0., 1.e7);
