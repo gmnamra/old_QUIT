@@ -40,6 +40,7 @@ double regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 					     const int nS = 5000, const int nR = 50, const int maxContractions = 10,
 						 const double thresh = 0.05, const double expand = 0., const int seed = 0)
 {
+	static bool haveWarned = false;
 	int nP = static_cast<int>(params.size());
 	MatrixXd samples(nP, nS);
 	MatrixXd retained(nP, nR);
@@ -69,14 +70,13 @@ double regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 			f(tempSample, diffs);
 			sampleRes(s) = diffs.norm();
 			if (!std::isfinite(diffs.norm())) {
-				std::cout << "Infinite Diff" << std::endl;
-				std::cout << "Sample = " << tempSample.transpose() << std::endl;
-				std::cout << "Lo Bnds= " << loBounds.transpose() << std::endl;
-				std::cout << "Hi Bnds= " << hiBounds.transpose() << std::endl;
-				std::cout << "Signals= " << f.signals().transpose() << std::endl;
-				std::cout << "Unnorm = " << f.theory(tempSample, false).transpose() << std::endl;
-				std::cout << "Normed = " << f.theory(tempSample, true).transpose() << std::endl;
-				abort();
+				if (!haveWarned) {
+					std::cout << "Warning: Non-finite residual found!" << std::endl
+							  << "Result may be meaningless. This warning will only be printed once." << std::endl;
+					haveWarned = true;
+				}
+				params = retained.col(0);
+				return std::numeric_limits<double>::infinity();
 			}
 			samples.col(s) = tempSample;
 		}
