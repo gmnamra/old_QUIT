@@ -63,7 +63,7 @@ static struct option long_options[] =
 	{"M0", required_argument, 0, 'M'},
 	{"help", no_argument, 0, 'h'},
 	{"mask", required_argument, 0, 'm'},
-	{"tesla", optional_argument, 0, 'f'},
+	{"tesla", required_argument, 0, 't'},
 	{"verbose", no_argument, 0, 'v'},
 	{"start_slice", required_argument, 0, 'S'},
 	{"end_slice", required_argument, 0, 'E'},
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:vz", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:t:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
