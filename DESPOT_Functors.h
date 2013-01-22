@@ -281,7 +281,7 @@ class DESPOT2FM : public DESPOT_Functor<3>
 		const VectorXd theory(const VectorXd &params, const bool &normalise) const
 		{
 			VectorXd t(values());
-			double PD = params[0], T2 = params[2], B0 = params[3];
+			double PD = params[0], T2 = params[1], B0 = params[2];
 			int index = 0;
 			for (int i = 0; i < _ssfpSignals.size(); i++)
 			{
