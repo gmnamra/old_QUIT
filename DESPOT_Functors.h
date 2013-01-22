@@ -240,14 +240,17 @@ const OneComponent::BoundsMapType OneComponent::hi {
 //******************************************************************************
 class DESPOT2FM : public DESPOT_Functor<3>
 {
+	private:
+		const double _T1;
 	public:
 		// Pass empty spgr values through otherwise values() will be wrong
 		DESPOT2FM(const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
-				  const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
+				  const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR, const double &T1,
 				  const bool &normalise = false, const bool &fitB0 = true)
-				  : DESPOT_Functor(VectorXd(), vector<VectorXd>(), ssfpB1, ssfpTR,
+				  : DESPOT_Functor(VectorXd(), vector<VectorXd>(), VectorXd(), 0,
 								   ssfpAngles, ssfpPhases, ssfpSignals, ssfpB0, ssfpB1, ssfpTR,
-								   normalise, fitB0)
+								   normalise, fitB0),
+				    _T1(T1)
 				 {}
 		static const StringArray names;
 		static const BoundsMapType lo, hi;
@@ -278,14 +281,14 @@ class DESPOT2FM : public DESPOT_Functor<3>
 		const VectorXd theory(const VectorXd &params, const bool &normalise) const
 		{
 			VectorXd t(values());
-			double PD = params[0], T1 = params[1], T2 = params[2], B0 = params[3];
+			double PD = params[0], T2 = params[2], B0 = params[3];
 			int index = 0;
 			for (int i = 0; i < _ssfpSignals.size(); i++)
 			{
 				if (!_fitB0)
 					B0 = _ssfpB0[i];
 				VectorXd theory = One_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
-										   PD, T1, T2, B0, _ssfpB1[i]);
+										   PD, _T1, T2, B0, _ssfpB1[i]);
 				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
 				t.segment(index, _ssfpAngles.size()) = theory;
 				index += _ssfpAngles.size();

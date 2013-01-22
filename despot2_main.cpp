@@ -302,7 +302,7 @@ int main(int argc, char **argv)
 					allB0.setConstant(B0);
 					allB1.setConstant(B1);
 					DESPOT2FM tc(ssfpAngles, ssfpPhases, signals,
-				                 allB0, allB1, ssfpTR, false, fitB0);
+				                 allB0, allB1, ssfpTR, T1, false, fitB0);
 					DESPOT2FM::ParamType params(DESPOT2FM::nP);
 					residual = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds);
 					M0 = params[0];
