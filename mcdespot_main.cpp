@@ -194,8 +194,8 @@ int main(int argc, char **argv)
 	vector<double> ssfpPhases;
 	string nextLine;
 	
-	cout << "Specify input SPGR/SSFP images: " << endl;
 	while (getline(cin, nextLine)) {
+		cout << "Specify next SPGR/SSFP image (blank to end): " << flush;
 		stringstream thisLine(nextLine);
 		string type, path;
 		NiftiImage *inHdr;
@@ -207,7 +207,6 @@ int main(int argc, char **argv)
 			cerr << "Could not read image type and path from input: " << nextLine << endl;
 			exit(EXIT_FAILURE);
 		}
-		
 		inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 		if ((SPGR_files.size() == 0) && (SSFP_files.size() == 0))
 			savedHeader = *inHdr;
@@ -227,13 +226,17 @@ int main(int argc, char **argv)
 				} else
 				#endif
 				{
-					cout << "Enter SPGR TR: "; thisLine >> spgrTR;
+					cout << "Enter SPGR TR: "; cin >> spgrTR;
 					cout << "Enter SPGR Flip-angles: ";
-					for (int i = 0; i < nSPGR; i++) thisLine >> spgrAngles[i];
+					for (int i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
+					getline(cin, nextLine); // Just to eat the newline
 				}
 				spgrAngles *= M_PI / 180.;
 			}
 			SPGR_files.push_back(inHdr);
+			cout << "Enter B1 Map Path (blank for none): ";
+			getline(cin, nextLine);
+			stringstream thisLine(nextLine);
 			if (thisLine >> path) { // Read a path to B1 file
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 				inHdr->checkVoxelsCompatible(savedHeader);
@@ -252,7 +255,7 @@ int main(int argc, char **argv)
 			} else
 			#endif
 			{
-				cout << "Enter SSFP Phase-Cycling: "; thisLine >> phase;
+				cout << "Enter SSFP Phase-Cycling: "; cin >> phase;
 			}
 			ssfpPhases.push_back(phase * M_PI / 180.);
 			if (SSFP_files.size() == 0) {
@@ -265,13 +268,17 @@ int main(int argc, char **argv)
 				} else
 				#endif
 				{
-					cout << "Enter SSFP TR: "; thisLine >> ssfpTR;
+					cout << "Enter SSFP TR: "; cin >> ssfpTR;
 					cout << "Enter SSFP Flip-angles: ";
-					for (int i = 0; i < ssfpAngles.size(); i++) thisLine >> ssfpAngles[i];
+					for (int i = 0; i < ssfpAngles.size(); i++) cin >> ssfpAngles[i];
+					getline(cin, nextLine); // Just to eat the newline
 				}
 				ssfpAngles *= M_PI / 180.;
 			}
 			SSFP_files.push_back(inHdr);
+			cout << "Enter path to B1 map: ";
+			getline(cin, nextLine);
+			thisLine << nextLine;
 			if (thisLine >> path) { // Read a path to B1 file
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 				inHdr->checkVoxelsCompatible(savedHeader);
@@ -279,6 +286,9 @@ int main(int argc, char **argv)
 			} else
 				inHdr = NULL;
 			SSFP_B1_files.push_back(inHdr);
+			cout << "Enter path to B0 map: ";
+			getline(cin, nextLine);
+			thisLine << nextLine;
 			if (thisLine >> path) {	// Read a path to B0 file
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 				inHdr->checkVoxelsCompatible(savedHeader);
