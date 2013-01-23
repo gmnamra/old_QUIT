@@ -26,7 +26,9 @@ $(INSTALL_LIB)/:
 # Set up all our compiler options
 CXX = clang++
 AR = ar rcs
-CXX_FLAGS = -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -std=c++11 -stdlib=libc++ $(DEBUG)
+CXX_FLAGS = -m64 -msse3 -mssse3 -msse4.1 -msse4.2 -std=c++11 -stdlib=libc++ $(DEBUG)
+DEBUG_FLAGS = -g
+RELEASE_FLAGS = -O3
 LD_FLAGS = -std=c++11 -stdlib=libc++ -O3 -L$(INSTALL_LIB) -L$(LIBCPP)/lib
 INCLUDE = -I$(SRC_DIR) -I$(INC_DIR) -I$(EIGEN) -cxx-isystem$(LIBCPP)/include/c++/v1
 LD_LIBS  = -lrecon -lNiftiImage -lz
@@ -72,9 +74,17 @@ phasemap : $(PHASEMAP_DEPS)
 afi : $(AFI_DEPS)
 	$(CXX) $(AFI_DEPS) -o $(BUILD_DIR)/afi $(LD_FLAGS) $(LD_LIBS)
 
-all     : despot1 despot2 despot-hifi mcdespot phasemap afi
+.PHONY : build release debug install clean
 
-install : all $(INSTALL_BIN)
+release : CXX_FLAGS+=$(RELEASE_FLAGS)
+release : build
+
+debug   : CXX_FLAGS+=$(DEBUG_FLAGS)
+debug   : build
+
+build : despot1 despot2 despot-hifi mcdespot phasemap afi
+
+install : $(INSTALL_BIN)
 	cp $(BUILD_DIR)/despot1 $(INSTALL_BIN)/
 	cp $(BUILD_DIR)/despot2 $(INSTALL_BIN)/
 	cp $(BUILD_DIR)/despot-hifi $(INSTALL_BIN)/
