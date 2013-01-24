@@ -19,102 +19,6 @@ using namespace std;
 using namespace Eigen;
 
 //******************************************************************************
-#pragma mark Functor Base Classes
-//******************************************************************************
-// From Nonlinear Tests in Eigen 
-template<typename _Scalar, int NX=Dynamic, int NY=Dynamic>
-class Functor
-{
-	public:
-		typedef _Scalar Scalar;
-		enum {
-			InputsAtCompileTime = NX,
-			ValuesAtCompileTime = NY
-		};
-		typedef Matrix<Scalar,InputsAtCompileTime,1> InputType;
-		typedef Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
-		typedef Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
-		
-		const long m_inputs, m_values;
-		
-		Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
-		Functor(long inputs, long values) : m_inputs(inputs), m_values(values) {}
-		Functor(long values) : m_inputs(InputsAtCompileTime), m_values(values) {}
-		
-		virtual ~Functor() {};
-		
-		long inputs() const { return m_inputs; }
-		long values() const { return m_values; }
-		
-		virtual int operator()(const VectorXd &params, VectorXd &diffs) const = 0;
-		
-		virtual const VectorXd theory(const VectorXd &params, const bool &normalise) const = 0;
-		virtual const VectorXd signals() const = 0;
-};
-
-// DESPOT Base Functor
-template <int nPt>
-class DESPOT_Functor : public Functor<double, nPt>
-{
-	protected:
-		const VectorXd &_spgrAngles, &_spgrB1,
-					   &_ssfpAngles, &_ssfpB0, &_ssfpB1;
-		const vector<VectorXd> &_spgrSignals, &_ssfpSignals;
-		const vector<double> &_ssfpPhases;
-		double _spgrTR, _ssfpTR;
-		const bool _normalise, _fitB0;
-		
-	public:
-		typedef array<string, nPt> StringArray;
-		typedef map<int, array<double, nPt> > BoundsMapType;
-		typedef Array<double, nPt, 1> ParamType;
-		static const int nP = nPt;
-				
-		const bool constraint(const VectorXd &params) const { return true; }
-		
-		DESPOT_Functor(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
-					   const VectorXd &spgrB1, const double &spgrTR,
-		               const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
-					   const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
-					   const bool &normalise = false, const bool &fitB0 = true) :
-					   Functor<double, nPt>(spgrAngles.size() * spgrSignals.size() + ssfpAngles.size() * ssfpSignals.size()),
-				       _spgrAngles(spgrAngles), _spgrSignals(spgrSignals), _spgrB1(spgrB1),
-				       _ssfpAngles(ssfpAngles), _ssfpPhases(ssfpPhases), _ssfpSignals(ssfpSignals),
-					   _ssfpB0(ssfpB0), _ssfpB1(ssfpB1),
-					   _spgrTR(spgrTR), _ssfpTR(ssfpTR),
-					   _normalise(normalise), _fitB0(fitB0)
-				      {
-						//std::cout << "SPGR B1 " << _spgrB1.transpose() << " SSFP B0 " << _ssfpB0.transpose() << " B1 " << _ssfpB1.transpose() << std::endl;
-					  }
-		
-		const VectorXd signals() const {
-			VectorXd v(this->values());
-			int index = 0;
-			for (int i = 0; i < _spgrSignals.size(); i++)
-			{
-				v.segment(index, _spgrAngles.size()) = _spgrSignals[i];
-				index += _spgrAngles.size();
-			}
-			for (int i = 0; i < _ssfpSignals.size(); i++)
-			{
-				v.segment(index, _ssfpAngles.size()) = _ssfpSignals[i];
-				index += _ssfpAngles.size();
-			}
-			return v;
-		}
-		
-		int operator()(const VectorXd &params, VectorXd &diffs) const {
-			eigen_assert(diffs.size() == this->values());
-			VectorXd t = this->theory(params, _normalise);
-			VectorXd s = this->signals();
-			diffs = t - s;
-			return 0;
-		}
-		
-};
-		
-
-//******************************************************************************
 #pragma mark One Component Signals
 //******************************************************************************
 VectorXd One_SPGR(const VectorXd&flipAngles,
@@ -161,148 +65,7 @@ VectorXd One_SSFP(const VectorXd &flipAngles, const double rfPhase,
 	}
 	return theory;
 }
-//******************************************************************************
-#pragma mark OneComponent Functor
-//******************************************************************************
-class OneComponent : public DESPOT_Functor<4>
-{
-	public:
-		OneComponent(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
-					 const VectorXd &spgrB1, const double &spgrTR,
-					 const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
-					 const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
-					 const bool &normalise = false, const bool &fitB0 = true)
-					: DESPOT_Functor(spgrAngles, spgrSignals, spgrB1, spgrTR,
-					                 ssfpAngles, ssfpPhases, ssfpSignals, ssfpB0, ssfpB1, ssfpTR,
-					                 normalise, true)
-					{}
-		static const StringArray names;
-		static const BoundsMapType lo, hi;
-		
-		// Until Eigen comes up with decent initializers...
-		static ParamType loBounds(int tesla) {
-			auto it = lo.find(tesla);
-			if (it != lo.end()) {
-				ParamType temp;
-				for (int i = 0; i < nP; i++)
-					temp[i] = it->second[i];
-				return temp;
-			} else
-				return ParamType::Zero();
-		}
-		// Until Eigen comes up with decent initializers...
-		static ParamType hiBounds(int tesla) {
-			auto it = hi.find(tesla);
-			if (it != hi.end()) {
-				ParamType temp;
-				for (int i = 0; i < nP; i++)
-					temp[i] = it->second[i];
-				return temp;
-			} else
-				return ParamType::Zero();
-		}
-		
-		const VectorXd theory(const VectorXd &params, const bool &normalise) const
-		{
-			VectorXd t(values());
-			double PD = params[0], T1 = params[1], T2 = params[2], B0 = params[3];
-			int index = 0;
-			for (int i = 0; i < _spgrSignals.size(); i++)
-			{
-				VectorXd theory = One_SPGR(_spgrAngles, _spgrTR, PD, T1, _spgrB1[i]);
-				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
-				t.segment(index, _spgrAngles.size()) = theory;
-				index += _spgrAngles.size();
-			}
 
-			for (int i = 0; i < _ssfpSignals.size(); i++)
-			{
-				if (!_fitB0)
-					B0 = _ssfpB0[i];
-				VectorXd theory = One_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
-										   PD, T1, T2, B0, _ssfpB1[i]);
-				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
-				t.segment(index, _ssfpAngles.size()) = theory;
-				index += _ssfpAngles.size();
-			}
-			return t;
-		}
-};
-const OneComponent::StringArray OneComponent::names{ { string("1c_PD"), "1c_T1", "1c_T2", "1c_B0" } };
-const OneComponent::BoundsMapType OneComponent::lo {
-	{3, {0.,   0.1, 0.01, -150. } },
-	{7, { 0.,   0.1, 0.005, -150. } } };
-const OneComponent::BoundsMapType OneComponent::hi {
-	{3, { 1.e7, 3.0, 1.0, 150. } },
-	{7, { 1.e7, 5.0, 0.05, 150. } } };
-//******************************************************************************
-#pragma mark DESPOT2FM
-//******************************************************************************
-class DESPOT2FM : public DESPOT_Functor<3>
-{
-	private:
-		const double _T1;
-	public:
-		// Pass empty spgr values through otherwise values() will be wrong
-		DESPOT2FM(const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
-				  const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR, const double &T1,
-				  const bool &normalise = false, const bool &fitB0 = true)
-				  : DESPOT_Functor(VectorXd(), vector<VectorXd>(), VectorXd(), 0,
-								   ssfpAngles, ssfpPhases, ssfpSignals, ssfpB0, ssfpB1, ssfpTR,
-								   normalise, fitB0),
-				    _T1(T1)
-				 {}
-		static const StringArray names;
-		static const BoundsMapType lo, hi;
-		
-		// Until Eigen comes up with decent initializers...
-		static ParamType loBounds(int tesla) {
-			auto it = lo.find(tesla);
-			if (it != lo.end()) {
-				ParamType temp;
-				for (int i = 0; i < nP; i++)
-					temp[i] = it->second[i];
-				return temp;
-			} else
-				return ParamType::Zero();
-		}
-		// Until Eigen comes up with decent initializers...
-		static ParamType hiBounds(int tesla) {
-			auto it = hi.find(tesla);
-			if (it != hi.end()) {
-				ParamType temp;
-				for (int i = 0; i < nP; i++)
-					temp[i] = it->second[i];
-				return temp;
-			} else
-				return ParamType::Zero();
-		}
-		
-		const VectorXd theory(const VectorXd &params, const bool &normalise) const
-		{
-			VectorXd t(values());
-			double PD = params[0], T2 = params[1], B0 = params[2];
-			int index = 0;
-			for (int i = 0; i < _ssfpSignals.size(); i++)
-			{
-				if (!_fitB0)
-					B0 = _ssfpB0[i];
-				VectorXd theory = One_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
-										   PD, _T1, T2, B0, _ssfpB1[i]);
-				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
-				t.segment(index, _ssfpAngles.size()) = theory;
-				index += _ssfpAngles.size();
-			}
-			return t;
-		}
-};
-const DESPOT2FM::StringArray DESPOT2FM::names { {string("fm_PD"), "fm_T2", "fm_B0"} };
-const DESPOT2FM::BoundsMapType DESPOT2FM::lo {
-	{3, {0., 0.01, -150. } },
-	{7, { 0., 0.005, -150. } } };
-const DESPOT2FM::BoundsMapType DESPOT2FM::hi {
-	{3, { 1.e7, 1.0, 150. } },
-	{7, { 1.e7, 0.05, 150. } } };
 //******************************************************************************
 #pragma mark Two Component Signals
 //******************************************************************************
@@ -387,104 +150,6 @@ VectorXd Two_SSFP(const VectorXd&flipAngles, const double &rfPhase,
 }
 
 //******************************************************************************
-#pragma mark Two Component Functor
-//******************************************************************************
-class TwoComponent : public DESPOT_Functor<8>
-{
-	public:
-		TwoComponent(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
-					 const VectorXd &spgrB1, const double &spgrTR,
-					 const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
-					 const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
-					 const bool &normalise = false, const bool &fitB0 = true)
-					: DESPOT_Functor(spgrAngles, spgrSignals, spgrB1, spgrTR,
-					                 ssfpAngles, ssfpPhases, ssfpSignals, ssfpB0, ssfpB1, ssfpTR,
-					                 normalise, true)
-					{}
-		static const StringArray names;
-		static const BoundsMapType lo, hi;
-		
-		// Until Eigen comes up with decent initializers...
-		static ParamType loBounds(int tesla) {
-			auto it = lo.find(tesla);
-			if (it != lo.end()) {
-				ParamType temp;
-				for (int i = 0; i < nP; i++)
-					temp[i] = it->second[i];
-				return temp;
-			} else
-				return ParamType::Zero();
-		}
-		// Until Eigen comes up with decent initializers...
-		static ParamType hiBounds(int tesla) {
-			auto it = hi.find(tesla);
-			if (it != hi.end()) {
-				ParamType temp;
-				for (int i = 0; i < nP; i++)
-					temp[i] = it->second[i];
-				return temp;
-			} else
-				return ParamType::Zero();
-		}
-		
-		static bool constraint(const VectorXd &params)
-		{
-			if ((params[1] < params[2]) &&
-				(params[3] < params[4]) &&
-				(params[5] <= 1.0))
-				return true;
-			else
-				return false;
-
-		}
-	
-		const VectorXd theory(const VectorXd &params, const bool &normalise) const
-		{
-			double PD   = params[0],
-			       T1_a = params[1],   T1_b = params[2],
-				   T2_a = params[3],   T2_b = params[4],
-			       f_a  = params[5],    f_b = 1. - f_a,
-			       tau_a = params[6], tau_b = f_b * tau_a / f_a,
-				   k_ab = 1. / tau_a,  k_ba = 1. / tau_b,
-				   B0 = params[7];
-			VectorXd t(values());
-			// Only have 1 component, so no exchange
-			if ((f_a == 0.) || (f_b == 0.)) {
-				k_ab = 0.;
-				k_ba = 0.;
-			}
-			int index = 0;
-			for (int i = 0; i < _spgrSignals.size(); i++) {
-				VectorXd theory = Two_SPGR(_spgrAngles, _spgrTR, PD, _spgrB1[i],
-				                           T1_a, T1_b, f_a, f_b, k_ab, k_ba);
-				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
-				t.segment(index, _spgrAngles.size()) = theory;
-				index += _spgrAngles.size();
-			}
-
-			for (int i = 0; i < _ssfpSignals.size(); i++) {
-				if (!_fitB0)
-					B0 = _ssfpB0[i];
-				VectorXd theory = Two_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
-				                           PD, B0, _ssfpB1[i],
-				                           T1_a, T1_b, T2_a, T2_b,
-										   f_a, f_b, k_ab, k_ba);
-				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
-				t.segment(index, _ssfpAngles.size()) = theory;
-				index += _ssfpAngles.size();
-			}
-			return t;
-		}
-};
-const TwoComponent::StringArray TwoComponent::names{ { "2c_PD", "2c_T1_a", "2c_T1_b", "2c_T2_a", "2c_T2_b", "2c_f_a", "2c_tau_a", "2c_B0" } };
-const TwoComponent::BoundsMapType TwoComponent::lo{
-	{3, { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. } },
-	{7, { 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0. } } };
-const TwoComponent::BoundsMapType TwoComponent::hi{
-	{3, { 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. } },
-	{7, { 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. } } };
-
-//******************************************************************************
 #pragma mark Three Component
 //******************************************************************************
 typedef Matrix<double, 9, 9> Matrix9d;
@@ -566,105 +231,6 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const double &rfPhase,
 	return signal;
 }
 
-class ThreeComponent : public DESPOT_Functor<11>
-{
-	public:
-		ThreeComponent(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
-					   const VectorXd &spgrB1, const double &spgrTR,
-					   const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
-					   const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
-					   const bool &normalise = false, const bool &fitB0 = true)
-					  : DESPOT_Functor(spgrAngles, spgrSignals, spgrB1, spgrTR,
-					                 ssfpAngles, ssfpPhases, ssfpSignals, ssfpB0, ssfpB1, ssfpTR,
-					                 normalise, true)
-					  {}
-		static const StringArray names;
-		static const BoundsMapType lo, hi;
-		
-		// Until Eigen comes up with decent initializers...
-		static ParamType loBounds(int tesla) {
-			auto it = lo.find(tesla);
-			if (it != lo.end()) {
-				ParamType temp;
-				for (int i = 0; i < nP; i++)
-					temp[i] = it->second[i];
-				return temp;
-			} else
-				return ParamType::Zero();
-		}
-		// Until Eigen comes up with decent initializers...
-		static ParamType hiBounds(int tesla) {
-			auto it = hi.find(tesla);
-			if (it != hi.end()) {
-				ParamType temp;
-				for (int i = 0; i < nP; i++)
-					temp[i] = it->second[i];
-				return temp;
-			} else
-				return ParamType::Zero();
-		}
-		
-		static bool constraint(const VectorXd &params)
-		{
-			if ((params[1] < params[2]) &&
-			    (params[2] < params[3]) &&
-				(params[4] < params[5]) &&
-				(params[5] < params[6]) &&
-			    ((params[7] + params[8]) <= 0.95))
-				return true;
-			else
-				return false;
-		}
-		
-		const VectorXd theory(const VectorXd &params, const bool &normalise) const
-		{
-			double PD   = params[0],
-			       T1_a = params[1], T1_b = params[2], T1_c = params[3],
-				   T2_a = params[4], T2_b = params[5], T2_c = params[6],
-			       f_a  = params[7], f_c  = params[8], f_b  = 1. - f_a - f_c,
-			       tau_a = params[9], tau_b = f_b * tau_a / f_a,
-				   k_ab = 1. / tau_a, k_ba = 1. / tau_b,
-				   B0 = params[10];
-			VectorXd t(values());
-			// Only have 1 component, so no exchange
-			if ((f_a == 0.) || (f_b == 0.)) {
-				k_ab = 0.;
-				k_ba = 0.;
-			}
-			int index = 0;
-			for (int i = 0; i < _spgrSignals.size(); i++) {
-				VectorXd theory = Three_SPGR(_spgrAngles, _spgrTR, PD, _spgrB1[i],
-				                           T1_a, T1_b, T1_c, f_a, f_b, f_c, k_ab, k_ba);
-				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
-				t.segment(index, _spgrAngles.size()) = theory;
-				index += _spgrAngles.size();
-			}
-
-			for (int i = 0; i < _ssfpSignals.size(); i++) {
-				if (!_fitB0)
-					B0 = _ssfpB0[i];
-				VectorXd theory = Three_SSFP(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
-				                           PD, B0, _ssfpB1[i],
-				                           T1_a, T1_b, T1_c, T2_a, T2_b, T2_c,
-										   f_a, f_b, f_c, k_ab, k_ba);
-				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
-				t.segment(index, _ssfpAngles.size()) = theory;
-				index += _ssfpAngles.size();
-			}
-			return t;
-		}
-};
-const ThreeComponent::StringArray ThreeComponent::names{ { "3c_PD", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "3c_B0" } };
-const ThreeComponent::BoundsMapType ThreeComponent::lo {
-	{3, { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0. } },
-	{7, { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0, 0. } } };
-const ThreeComponent::BoundsMapType ThreeComponent::hi {
-	{3, { 1.e7, 0.750, 1.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0. } },
-	{7, { 1.e7, 0.750, 2.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5, 0. } } };
-
-//******************************************************************************
-#pragma mark Three Component with Echo Timing
-//******************************************************************************
 VectorXd Three_SSFP_Echo(const VectorXd&flipAngles, const double &rfPhase,
                     const double &TR, const double &PD,
 				    const double &B0_a, const double &B0_b, const double &B0_c, const double &B1,
@@ -725,58 +291,171 @@ VectorXd Three_SSFP_Echo(const VectorXd&flipAngles, const double &rfPhase,
 	return signal;
 }
 
-class ThreeComponentEcho : public DESPOT_Functor<13>
+
+//******************************************************************************
+#pragma mark Functor Base Classes
+//******************************************************************************
+// From Nonlinear Tests in Eigen 
+template<typename _Scalar, int NX=Dynamic, int NY=Dynamic>
+class Functor
 {
 	public:
-		ThreeComponentEcho(const VectorXd &spgrAngles, const vector<VectorXd> &spgrSignals,
-					   const VectorXd &spgrB1, const double &spgrTR,
-					   const VectorXd &ssfpAngles, const vector<double> &ssfpPhases, const vector<VectorXd> &ssfpSignals,
-					   const VectorXd &ssfpB0, const VectorXd &ssfpB1, const double &ssfpTR,
-					   const bool &normalise = false, const bool &fitB0 = true)
-					  : DESPOT_Functor(spgrAngles, spgrSignals, spgrB1, spgrTR,
-					                 ssfpAngles, ssfpPhases, ssfpSignals, ssfpB0, ssfpB1, ssfpTR,
-					                 normalise, true)
-					  {}
-		static const StringArray names;
-		static const BoundsMapType lo, hi;
+		typedef _Scalar Scalar;
+		enum {
+			InputsAtCompileTime = NX,
+			ValuesAtCompileTime = NY
+		};
+		typedef Matrix<Scalar,InputsAtCompileTime,1> InputType;
+		typedef Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
+		typedef Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
 		
-		// Until Eigen comes up with decent initializers...
-		static ParamType loBounds(int tesla) {
-			auto it = lo.find(tesla);
-			if (it != lo.end()) {
-				ParamType temp;
-				for (int i = 0; i < nP; i++)
-					temp[i] = it->second[i];
-				return temp;
+		const long m_inputs, m_values;
+		
+		Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
+		Functor(long inputs, long values) : m_inputs(inputs), m_values(values) {}
+		Functor(long values) : m_inputs(InputsAtCompileTime), m_values(values) {}
+		
+		virtual ~Functor() {};
+		
+		long inputs() const { return m_inputs; }
+		long values() const { return m_values; }
+		
+		virtual int operator()(const VectorXd &params, VectorXd &diffs) const = 0;
+		
+		virtual const VectorXd theory(const VectorXd &params) const = 0;
+		virtual const VectorXd signals() const = 0;
+};
+
+// DESPOT Base Functor
+
+enum SignalType {
+	SignalSPGR = 0,
+	SignalSSFP
+};
+
+class DESPOT_Functor : public Functor<double> {
+	private:
+		const int _components;
+		long _nP, _nV;
+		const vector<SignalType> &_types;
+		const vector<VectorXd> &_angles, &_signals;
+		const vector<double> &_TR, &_phases;
+		const VectorXd &_B0, &_B1;
+		const bool &_normalise, &_fitB0;
+	
+	public:
+		static const int nP(const int components) {
+			switch (components) {
+				case 1: return 4;
+				case 2: return 8;
+				case 3: return 11;
+				default:
+					std::cerr << "Cannot create a " << components << "-component mcDESPOT model." << std::endl;
+					exit(EXIT_FAILURE);
+			}
+		}
+		
+		static const vector<string> &names(const int components) {
+			static map<int, vector<string> > _namesMap {
+				{1, { "1c_PD", "1c_T1", "1c_T2", "1c_B0" } },
+				{2, { "2c_PD", "2c_T1_a", "2c_T1_b", "2c_T2_a", "2c_T2_b", "2c_f_a", "2c_tau_a", "2c_B0" } },
+				{3, { "3c_PD", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "3c_B0" } } };
+			static string unknown("Unknown intent code");
+			map<int, vector<string> >::const_iterator it = _namesMap.find(components);
+			if (it == _namesMap.end()) {
+				std::cerr << "Don't have file names for a " << components << "-component mcDESPOT model." << std::endl;
+				exit(EXIT_FAILURE);
 			} else
-				return ParamType::Zero();
-		}
-		// Until Eigen comes up with decent initializers...
-		static ParamType hiBounds(int tesla) {
-			auto it = hi.find(tesla);
-			if (it != hi.end()) {
-				ParamType temp;
-				for (int i = 0; i < nP; i++)
-					temp[i] = it->second[i];
-				return temp;
-			} else
-				return ParamType::Zero();
+			return it->second;
 		}
 		
-		static bool constraint(const VectorXd &params)
-		{
-			if ((params[1] < params[2]) &&
-			    (params[2] < params[3]) &&
-				(params[4] < params[5]) &&
-				(params[5] < params[6]) &&
-			    ((params[7] + params[8]) <= 0.95))
-				return true;
-			else
-				return false;
+		static const ArrayXd &defaultLo(const int components, const int tesla) {
+			static ArrayXd c1t3(4), c1t7(4), c2t3(8), c2t7(8), c3t3(11), c3t7(11);
+			c1t3 << 0.,   0.1, 0.010, -150.;
+			c1t7 << 0.,   0.1, 0.005, -150.;
+			c2t3 << 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0.;
+			c2t7 << 0., 0.1, 0.8, 0.001, 0.01, 0.0, 0.05, 0.;
+			c3t3 << 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0.;
+			c3t7 << 0., 0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0, 0.;
+			
+			switch (tesla) {
+				case 3:
+					switch (components) {
+						case 1: return c1t3;
+						case 2: return c2t3;
+						case 3: return c3t3;
+					}
+				case 7:
+					switch (components) {
+						case 1: return c1t7;
+						case 2: return c2t7;
+						case 3: return c3t7;
+					}
+			}
 		}
 		
-		const VectorXd theory(const VectorXd &params, const bool &normalise) const
+		static const ArrayXd defaultHi(const int components, const int tesla) {
+			static ArrayXd c1t3(4), c1t7(4), c2t3(8), c2t7(8), c3t3(11), c3t7(11);
+			c1t3 << 1.e7, 3.0, 1.00, 150.;
+			c1t7 << 1.e7, 5.0, 0.10, 150.;
+			c2t3 << 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0.;
+			c2t7 << 1.e7, 1.0, 3.0, 0.050, 0.25, 1.0, 2.00, 0. ;
+			c3t3 << 1.e7, 0.750, 1.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0.;
+			c3t7 << 1.e7, 0.750, 2.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5, 0.;
+			
+			switch (tesla) {
+				case 3:
+					switch (components) {
+						case 1: return c1t3;
+						case 2: return c2t3;
+						case 3: return c3t3;
+					}
+				case 7:
+					switch (components) {
+						case 1: return c1t7;
+						case 2: return c2t7;
+						case 3: return c3t7;
+					}
+			}
+		}
+		
+		const bool constraint(const VectorXd &params) const { return true; }
+				
+		const long inputs() const { return _nP; }
+		const long values() const { return _nV; }
+		
+		DESPOT_Functor(const int components, const vector<SignalType> &types,
+		               const vector<VectorXd> &angles, const vector<VectorXd> &signals,
+		               const vector<double> &TR, const vector<double> &phases, const VectorXd &B0, const VectorXd &B1,
+				       const bool &normalise = false, const bool &fitB0 = true) :
+			_components(components), _types(types),
+			_angles(angles), _signals(signals),
+			_TR(TR), _phases(phases), _B0(B0), _B1(B1),
+			_normalise(normalise), _fitB0(fitB0)
 		{
+			_nP = nP(components);
+			_nV = 0;
+			for (int i = 0; i < angles.size(); i++) {
+				if (angles[i].size() != signals[i].size()) {
+					std::cerr << "Angles and signals size mis-match for signal " << i << std::endl;
+					exit(EXIT_FAILURE);
+				}
+				_nV += angles[i].size();
+			}
+		}
+		
+		const VectorXd signals() const {
+			VectorXd v(values());
+			int index = 0;
+			for (int i = 0; i < _signals.size(); i++)
+			{
+				v.segment(index, _signals[i].size()) = _signals[i];
+				index += _signals[i].size();
+			}
+			return v;
+		}
+		
+		const VectorXd theory(const VectorXd &params) const {
 			double PD   = params[0],
 			       T1_a = params[1], T1_b = params[2], T1_c = params[3],
 				   T2_a = params[4], T2_b = params[5], T2_c = params[6],
@@ -791,39 +470,38 @@ class ThreeComponentEcho : public DESPOT_Functor<13>
 				k_ba = 0.;
 			}
 			int index = 0;
-			for (int i = 0; i < _spgrSignals.size(); i++) {
-				VectorXd theory = Three_SPGR(_spgrAngles, _spgrTR, PD, _spgrB1[i],
-				                           T1_a, T1_b, T1_c, f_a, f_b, f_c, k_ab, k_ba);
-				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
-				t.segment(index, _spgrAngles.size()) = theory;
-				index += _spgrAngles.size();
-			}
-			
-			for (int i = 0; i < _ssfpSignals.size(); i++) {
-				if (!_fitB0) {
-					B0_a = B0_b = B0_c = _ssfpB0[i];
+			for (int i = 0; i < _types.size(); i++) {
+				VectorXd theory(_angles[i].size());
+				if (_types[i] == SignalSPGR) {
+					if (_components == 3) {
+						theory = Three_SPGR(_angles[i], _TR[i], PD, _B1[i],
+											T1_a, T1_b, T1_c, f_a, f_b, f_c, k_ab, k_ba);
+					}
+					index += _angles.size();
+				} else if (_types[i] == SignalSSFP) {
+					if (!_fitB0) {
+						B0_a = B0_b = B0_c = _B0[i];
+					}
+					if (_components == 3) {
+						theory = Three_SSFP_Echo(_angles[i], _phases[i], _TR[i],
+												 PD, B0_a, B0_b, B0_c, _B1[i],
+												 T1_a, T1_b, T1_c, T2_a, T2_b, T2_c,
+												 f_a, f_b, f_c, k_ab, k_ba);
+					}
 				}
-				VectorXd theory = Three_SSFP_Echo(_ssfpAngles, _ssfpPhases[i], _ssfpTR,
-				                           PD, B0_a, B0_b, B0_c, _ssfpB1[i],
-				                           T1_a, T1_b, T1_c, T2_a, T2_b, T2_c,
-										   f_a, f_b, f_c, k_ab, k_ba);
-				if (normalise && (theory.norm() > 0.)) theory /= theory.mean();
-				t.segment(index, _ssfpAngles.size()) = theory;
-				index += _ssfpAngles.size();
+				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
+				t.segment(index, _angles[i].size()) = theory;
 			}
 			return t;
 		}
+				
+		int operator()(const VectorXd &params, VectorXd &diffs) const {
+			eigen_assert(diffs.size() == values());
+			VectorXd t = theory(params);
+			VectorXd s = signals();
+			diffs = t - s;
+			return 0;
+		}
+		
 };
-const ThreeComponentEcho::StringArray ThreeComponentEcho::names
-{ { "3c_PD", "3c_T1_a", "3c_T1_b", "3c_T1_c",
-             "3c_T2_a", "3c_T2_b", "3c_T2_c",
-			 "3c_f_a", "3c_f_c", "3c_tau_a",
-			 "3c_B0_a", "3c_B0_b", "3c_B0_c" } };
-const ThreeComponentEcho::BoundsMapType ThreeComponentEcho::lo {
-	{3, { 0., 0.250, 0.250, 1.500, 0.000, 0.000, 0.150, 0.00, 0.00, 0.025, 0., 0., 0. } },
-	{7, { 0.,   0.250, 0.750,  4.000, 0.010, 0.020, 0.150, 0.00, 0.00, 0.0, 0., 0., 0. } } };
-const ThreeComponentEcho::BoundsMapType ThreeComponentEcho::hi {
-	{3, { 1.e7, 0.750, 3.500, 7.500, 0.150, 0.250, 1.000, 0.49, 0.75, 1.500, 0., 0., 0. } },
-	{7, { 1.e7, 0.750, 3.000, 20.000, 0.020, 0.050, 0.600, 0.95, 0.95, 0.5, 0., 0., 0. } } };
-
 #endif

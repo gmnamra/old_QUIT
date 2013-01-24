@@ -51,6 +51,7 @@ default values of B0 = 0 Hz and B1 = 1 will be used. B0 value is only used if\n\
 Options:\n\
 	--help, -h		  : Print this message.\n\
 	--verbose, -v     : Print extra information.\n\
+	--no-prompt, -p   : Don't print prompts for input.\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 2).\n\
@@ -69,10 +70,11 @@ Options:\n\
 	            u     : User specified boundaries from stdin.\n"
 };
 
-static int verbose = false, normalise = false, drop = false, fitB0 = true,
+static int verbose = false, prompt = true,
+           normalise = false, drop = false, fitB0 = true,
            start_slice = -1, end_slice = -1, slice = 0,
 		   samples = 5000, retain = 50, contract = 10,
-		   components = 2, tesla = -1, nP = 0;
+		   components = 2, tesla = -1;
 static double expand = 0.;
 static string outPrefix;
 static struct option long_options[] =
@@ -80,6 +82,7 @@ static struct option long_options[] =
 	{"M0", required_argument, 0, 'M'},
 	{"mask", required_argument, 0, 'm'},
 	{"verbose", no_argument, 0, 'v'},
+	{"no-prompt", no_argument, 0, 'p'},
 	{"start_slice", required_argument, 0, 'S'},
 	{"end_slice", required_argument, 0, 'E'},
 	{"normalise", no_argument, &normalise, true},
@@ -93,23 +96,21 @@ static struct option long_options[] =
 	{"1", no_argument, &components, 1},
 	{"2", no_argument, &components, 2},
 	{"3", no_argument, &components, 3},
-	{"4", no_argument, &components, 4},
 	{"B0", no_argument, &fitB0, false},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
 #pragma mark SIGTERM interrupt handler - for ensuring data is saved on a ctrl-c
 //******************************************************************************
-NiftiImage savedHeader;
 NiftiImage *paramsHdrs, residualHdr;
-double **paramsData;
+vector<double *> paramsData;
 double *residualData;
 
 void int_handler(int sig);
 void int_handler(int sig)
 {
 	fprintf(stdout, "Processing terminated. Writing currently processed data.\n");
-	for (int p = 0; p < nP; p++) {
+	for (int p = 0; p < DESPOT_Functor::nP(components); p++) {
 		paramsHdrs[p].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
 		paramsHdrs[p].close();
 	}
@@ -118,6 +119,95 @@ void int_handler(int sig)
 	exit(EXIT_FAILURE);
 }
 
+//******************************************************************************
+#pragma mark Read in all required files and data from cin
+//******************************************************************************
+NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles,
+                       vector<double> &TR, vector<double> &phase,
+				       vector<NiftiImage *> &signalFiles,
+				       vector<NiftiImage *> &B1_files,
+				       vector<NiftiImage *> &B0_files);
+NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles,
+                       vector<double> &TR, vector<double> &phase,
+				       vector<NiftiImage *> &signalFiles,
+				       vector<NiftiImage *> &B1_files,
+				       vector<NiftiImage *> &B0_files) {
+	NiftiImage *inHdr, *savedHeader;
+	string type, path;
+	while ((cout << "Specify next image type (SPGR/SSFP): " << flush) &&
+	       getline(cin, type) &&
+		   !type.empty()) {
+		
+		if (type == "SPGR")
+			signalTypes.push_back(SignalSPGR);
+		else if (type == "SSFP")
+			signalTypes.push_back(SignalSSFP);
+		else {
+			cerr << "Unknown signal type: " << type << endl;
+			exit(EXIT_FAILURE);
+		}
+		cout << "Enter image path: " << flush;
+		getline(cin, path);
+		inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
+		cout << "Opened " << type << " header: " << path << endl;
+		if (signalFiles.size() == 0) // First time through save the header for comparison
+			savedHeader = inHdr;
+		inHdr->checkVoxelsCompatible(*savedHeader);
+		signalFiles.push_back(inHdr);
+		
+		double inTR = 0., inPhase = 0.;
+		VectorXd inAngles(inHdr->dim(4));
+		#ifdef USE_PROCPAR
+		ParameterList pars;
+		if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
+			inTR = RealValue(pars, "tr");
+			for (int i = 0; i < inAngles.size(); i++)
+				inAngles[i] = RealValue(pars, "flip1", i);
+			if (signalTypes.back() == SignalSSFP)
+				inPhase = RealValue(pars, "rfphase");
+		} else
+		#endif
+		{
+			cout << "Enter TR: " << flush; cin >> inTR;
+			cout << "Enter Flip-angles: " << flush;
+			for (int i = 0; i < inAngles[i]; i++)
+				cin >> inAngles[i];
+			getline(cin, path); // Just to eat the newline
+			if (signalTypes.back() == SignalSSFP)
+				cout << "Enter SSFP Phase-Cycling: "; cin >> inPhase;
+		}
+		TR.push_back(inTR);
+		phase.push_back(inPhase * M_PI / 180.);
+		angles.push_back(inAngles * M_PI / 180.);
+		
+		inHdr = NULL;
+		cout << "Enter B1 Map Path (blank for none): " << flush;
+		getline(cin, path);
+		if (!path.empty()) {
+			inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
+			inHdr->checkVoxelsCompatible(*savedHeader);
+			cout << "Opened B1 correction header: " << path << endl;
+		}
+		B1_files.push_back(inHdr);
+		
+		inHdr = NULL;
+		if (signalTypes.back() == SignalSSFP) {
+			cout << "Enter path to B0 map: " << flush;
+			getline(cin, path);
+			if (!path.empty()) {
+				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
+				inHdr->checkVoxelsCompatible(*savedHeader);
+				cout << "Opened B0 correction header: " << path << endl;
+			}
+		}
+		B0_files.push_back(inHdr);
+	}
+	if (signalTypes.size() == 0) {
+		cerr << "No input images specified." << endl;
+		exit(EXIT_FAILURE);
+	}
+	return savedHeader;
+}
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -128,13 +218,11 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	Eigen::initParallel();
-	NiftiImage inHeader;
+	NiftiImage inHeader, *savedHeader;
 	double *maskData = NULL, *M0Data = NULL;
-	vector<NiftiImage *> SPGR_files, SSFP_files, SPGR_B1_files, SSFP_B0_files, SSFP_B1_files;
-	int nSPGR = 0, nSSFP = 0;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "t:m:o:vznds:r:c:e:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvpt:m:o:znds:r:c:e:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
@@ -152,6 +240,7 @@ int main(int argc, char **argv)
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
 			case 'v': verbose = true; break;
+			case 'p': prompt = false; break;
 			case 'S': start_slice = atoi(optarg); break;
 			case 'E': end_slice = atoi(optarg); break;
 			case 'n': normalise = true; break;
@@ -189,208 +278,50 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	double spgrTR, ssfpTR;
-	VectorXd spgrAngles, ssfpAngles;
-	vector<double> ssfpPhases;
-	string nextLine;
-	
-	while (getline(cin, nextLine)) {
-		cout << "Specify next SPGR/SSFP image (blank to end): " << flush;
-		stringstream thisLine(nextLine);
-		string type, path;
-		NiftiImage *inHdr;
-		
-		if (nextLine == "")
-			break;
-		
-		if (!(thisLine >> type >> path)) {
-			cerr << "Could not read image type and path from input: " << nextLine << endl;
-			exit(EXIT_FAILURE);
-		}
-		inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-		if ((SPGR_files.size() == 0) && (SSFP_files.size() == 0))
-			savedHeader = *inHdr;
-		inHdr->checkVoxelsCompatible(savedHeader);
-		
-		if (type == "SPGR") {
-			cout << "Opened SPGR header: " << path << endl;
-			if (SPGR_files.size() == 0) {
-				nSPGR = inHdr->dim(4);
-				spgrAngles.resize(nSPGR, 1);
-				
-				#ifdef USE_PROCPAR
-				ParameterList pars;
-				if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
-					spgrTR = RealValue(pars, "tr");
-					for (int i = 0; i < nSPGR; i++) spgrAngles[i] = RealValue(pars, "flip1", i);
-				} else
-				#endif
-				{
-					cout << "Enter SPGR TR: "; cin >> spgrTR;
-					cout << "Enter SPGR Flip-angles: ";
-					for (int i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
-					getline(cin, nextLine); // Just to eat the newline
-				}
-				spgrAngles *= M_PI / 180.;
-			}
-			SPGR_files.push_back(inHdr);
-			cout << "Enter B1 Map Path (blank for none): ";
-			getline(cin, nextLine);
-			stringstream thisLine(nextLine);
-			if (thisLine >> path) { // Read a path to B1 file
-				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-				inHdr->checkVoxelsCompatible(savedHeader);
-				cout << "Opened B1 correction header: " << path << endl;
-			} else
-				inHdr = NULL;
-			SPGR_B1_files.push_back(inHdr);
-		} else if (type == "SSFP") {
-			cout << "Opened SSFP header: " << path << endl;
-			double phase = -1;
-			
-			#ifdef USE_PROCPAR
-			ParameterList pars;
-			if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
-				phase = RealValue(pars, "rfphase");
-			} else
-			#endif
-			{
-				cout << "Enter SSFP Phase-Cycling: "; cin >> phase;
-			}
-			ssfpPhases.push_back(phase * M_PI / 180.);
-			if (SSFP_files.size() == 0) {
-				nSSFP = inHdr->dim(4);
-				ssfpAngles.resize(nSSFP, 1);
-				#ifdef USE_PROCPAR
-				if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
-					ssfpTR = RealValue(pars, "tr");
-					for (int i = 0; i < nSSFP; i++) ssfpAngles[i] = RealValue(pars, "flip1", i);
-				} else
-				#endif
-				{
-					cout << "Enter SSFP TR: "; cin >> ssfpTR;
-					cout << "Enter SSFP Flip-angles: ";
-					for (int i = 0; i < ssfpAngles.size(); i++) cin >> ssfpAngles[i];
-					getline(cin, nextLine); // Just to eat the newline
-				}
-				ssfpAngles *= M_PI / 180.;
-			}
-			SSFP_files.push_back(inHdr);
-			cout << "Enter path to B1 map: ";
-			getline(cin, nextLine);
-			thisLine << nextLine;
-			if (thisLine >> path) { // Read a path to B1 file
-				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-				inHdr->checkVoxelsCompatible(savedHeader);
-				cout << "Opened B1 correction header: " << path << endl;
-			} else
-				inHdr = NULL;
-			SSFP_B1_files.push_back(inHdr);
-			cout << "Enter path to B0 map: ";
-			getline(cin, nextLine);
-			thisLine << nextLine;
-			if (thisLine >> path) {	// Read a path to B0 file
-				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-				inHdr->checkVoxelsCompatible(savedHeader);
-				cout << "Opened B0 correction header: " << path << endl;
-			} else
-				inHdr = NULL;
-			SSFP_B0_files.push_back(inHdr);
-		} else {
-			cerr << "Unknown scan type: " << type << ", must be SPGR or SSFP." << endl;
-			exit(EXIT_FAILURE);
-		}
-	}
-	if (SPGR_files.size() == 0 && SSFP_files.size() == 0)
-	{
-		cerr << "No input images specified." << endl;
-		exit(EXIT_FAILURE);
-	}
-	//**************************************************************************
-	#pragma mark Select which angles to use in the analysis
-	//**************************************************************************	
-	VectorXi spgrKeep(nSPGR), ssfpKeep(nSSFP);
-	spgrKeep.setOnes(); ssfpKeep.setOnes();
-	if (drop) {
-		cout << "Choose SPGR angles to use (1 to keep, 0 to drop, " << nSPGR << " values): ";
-		for (int i = 0; i < nSPGR; i++) cin >> spgrKeep[i];
-		cout << "Choose SSFP angles to use (1 to keep, 0 to drop, " << nSSFP << " values): ";
-		for (int i = 0; i < nSSFP; i++) cin >> ssfpKeep[i];
-		VectorXd temp = spgrAngles;
-		spgrAngles.resize(spgrKeep.sum());
-		int angle = 0;
-		for (int i = 0; i < nSPGR; i++)
-			if (spgrKeep(i)) spgrAngles(angle++) = temp(i);
-		temp = ssfpAngles;
-		ssfpAngles.resize(ssfpKeep.sum());
-		angle = 0;
-		for (int i = 0; i < nSSFP; i++)
-			if (ssfpKeep(i)) ssfpAngles(angle++) = temp(i);
-	}
+	vector<SignalType> signalTypes;
+	vector<VectorXd> angles;
+	vector<NiftiImage *> signalFiles, B1_files, B0_files;
+	vector<double> TR, phase;
+	savedHeader = parseInput(signalTypes, angles, TR, phase, signalFiles, B1_files, B0_files);
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	// Use NULL to indicate that default values should be used -
 	// 0 for B0, 1 for B1
 	//**************************************************************************
-	int voxelsPerSlice = savedHeader.voxelsPerSlice();
+	int voxelsPerSlice = savedHeader->voxelsPerSlice();
 	//int voxelsPerVolume = savedHeader.voxelsPerVolume();
 	
-	vector<double *> SPGR_vols(SPGR_files.size(), NULL), SPGR_B1s(SPGR_files.size(), NULL);
-	vector<double *> SSFP_vols(SSFP_files.size(), NULL), SSFP_B0s(SSFP_files.size(), NULL), SSFP_B1s(SSFP_files.size(), NULL);
-	for (int i = 0; i < SPGR_files.size(); i++) {
-		SPGR_vols[i] = new double[voxelsPerSlice * nSPGR];
-		if (SPGR_B1_files[i]) SPGR_B1s[i] = new double[voxelsPerSlice * nSPGR];
-	}
-	for (int i = 0; i < SSFP_files.size(); i++) {
-		SSFP_vols[i] = new double[voxelsPerSlice * nSSFP];
-		if (SSFP_B0_files[i]) SSFP_B0s[i] = new double[voxelsPerSlice * nSSFP];
-		if (SSFP_B1_files[i]) SSFP_B1s[i] = new double[voxelsPerSlice * nSSFP];
+	vector<double *> signalVolumes(signalFiles.size(), NULL),
+	                 B1Volumes(signalFiles.size(), NULL),
+				     B0Volumes(signalFiles.size(), NULL);
+	for (int i = 0; i < signalFiles.size(); i++) {
+		signalVolumes[i] = new double[voxelsPerSlice * angles[i].size()];
+		if (B1_files[i]) B1Volumes[i] = new double[voxelsPerSlice];
+		if (B0_files[i]) B0Volumes[i] = new double[voxelsPerSlice];
 	}
 	
 	cout << "Using " << components << " component model." << endl;
+	const int nP = DESPOT_Functor::nP(components);
 	// The lo/hiBounds methods will make sure these vectors are the right
 	// length, even for tesla == -1
 	ArrayXd loBounds, hiBounds;
-	switch (components)
-	{
-		case 1:
-			nP = OneComponent::nP;
-			loBounds = OneComponent::loBounds(tesla);
-			hiBounds = OneComponent::hiBounds(tesla);
-			break;
-		case 2: nP = TwoComponent::nP;
-			loBounds = TwoComponent::loBounds(tesla);
-			hiBounds = TwoComponent::hiBounds(tesla);
-			break;
-		case 3: nP = ThreeComponent::nP;
-			loBounds = ThreeComponent::loBounds(tesla);
-			hiBounds = ThreeComponent::hiBounds(tesla);
-			break;
-		case 4: nP = ThreeComponentEcho::nP;
-			loBounds = ThreeComponentEcho::loBounds(tesla);
-			hiBounds = ThreeComponentEcho::hiBounds(tesla);
-			break;
-	}
-	
+	loBounds = DESPOT_Functor::defaultLo(components, tesla);
+	hiBounds = DESPOT_Functor::defaultHi(components, tesla);
+	vector<string> names = DESPOT_Functor::names(components);
 	residualData = new double[voxelsPerSlice];
-	residualHdr = savedHeader;
+	residualHdr = *savedHeader;
 	residualHdr.setDim(4, 1); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
 	residualHdr.open(outPrefix + "_residual.nii.gz", NiftiImage::NIFTI_WRITE);
 	
-	paramsData = new double *[nP];
+	paramsData.resize(nP);
 	paramsHdrs = new NiftiImage[nP];
 	if (tesla < 0)
 		cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
 	for (int i = 0; i < nP; i++) {
 		paramsData[i] = new double[voxelsPerSlice];
-		paramsHdrs[i] = savedHeader;
+		paramsHdrs[i] = *savedHeader;
 		paramsHdrs[i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
-		switch (components) {
-			case 1:	paramsHdrs[i].open(outPrefix + "_" + OneComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
-			case 2:	paramsHdrs[i].open(outPrefix + "_" + TwoComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
-			case 3:	paramsHdrs[i].open(outPrefix + "_" + ThreeComponent::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
-			case 4: paramsHdrs[i].open(outPrefix + "_" + ThreeComponentEcho::names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE); break;
-		}
+		paramsHdrs[i].open(outPrefix + "_" + names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE);
 		if (tesla == -1)
 			cin >> loBounds[i] >> hiBounds[i];
 	}
@@ -400,10 +331,11 @@ int main(int argc, char **argv)
 		hiBounds[0] = 1.;
 	}
 	// If fitting, give a suitable range. Otherwise fix and let the functors
-	// pick up the specified value
+	// pick up the specified value (for now assume the last specified file is
+	// an SSFP sequence, needs fixing / generalising)
 	if (fitB0) {
-		loBounds[nP - 1] = -0.5 / ssfpTR;
-		hiBounds[nP - 1] =  0.5 / ssfpTR;
+		loBounds[nP - 1] = -0.5 / TR.back();
+		hiBounds[nP - 1] =  0.5 / TR.back();
 		if (components == 4) {
 			loBounds[nP - 3] = loBounds[nP - 2] = loBounds[nP - 1];
 			hiBounds[nP - 3] = hiBounds[nP - 2] = hiBounds[nP - 1];
@@ -412,10 +344,7 @@ int main(int argc, char **argv)
 		loBounds[nP - 1] = 0.;
 		hiBounds[nP - 1] = 0.;
 	}
-	if (verbose)
-	{
-		cout << "SPGR TR (s): " << spgrTR << " SPGR flip angles (deg): " << spgrAngles.transpose() * 180. / M_PI << endl;		
-		cout << "SSFP TR (s): " << ssfpTR << " SSFP flip angles (deg): " << ssfpAngles.transpose() * 180. / M_PI << endl;	
+	if (verbose) {
 		cout << "Low bounds: " << loBounds.transpose() << endl;
 		cout << "Hi bounds:  " << hiBounds.transpose() << endl;
 	}
@@ -423,10 +352,10 @@ int main(int argc, char **argv)
 	#pragma mark Do the fitting
 	//**************************************************************************
     time_t procStart = time(NULL);
-	if ((start_slice < 0) || (start_slice >= savedHeader.dim(3)))
+	if ((start_slice < 0) || (start_slice >= savedHeader->dim(3)))
 		start_slice = 0;
-	if ((end_slice < 0) || (end_slice > savedHeader.dim(3)))
-		end_slice = savedHeader.dim(3);
+	if ((end_slice < 0) || (end_slice > savedHeader->dim(3)))
+		end_slice = savedHeader->dim(3);
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	cout << "Starting processing." << endl;
 	
@@ -437,14 +366,10 @@ int main(int argc, char **argv)
 		const int sliceOffset = slice * voxelsPerSlice;
 		
 		// Read data for slices
-		for (int i = 0; i < SPGR_files.size(); i++) {
-			SPGR_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SPGR_vols[i]);
-			if (SPGR_B1_files[i]) SPGR_B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SPGR_B1s[i]);
-		}
-		for (int i = 0; i < SSFP_files.size(); i++) {
-			SSFP_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SSFP_vols[i]);
-			if (SSFP_B0_files[i]) SSFP_B0_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SSFP_B0s[i]);
-			if (SSFP_B1_files[i]) SSFP_B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, SSFP_B1s[i]);
+		for (int i = 0; i < signalFiles.size(); i++) {
+			signalFiles[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, signalVolumes[i]);
+			if (B1_files[i]) B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B1Volumes[i]);
+			if (B0_files[i]) B0_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0Volumes[i]);
 		}
 		if (verbose) cout << "processing..." << flush;
 		clock_t loopStart = clock();
@@ -453,103 +378,43 @@ int main(int argc, char **argv)
 			double residual = 0.;
 			ArrayXd params(nP); params.setZero();
 			if ((!maskData || (maskData[sliceOffset + vox] > 0.)) &&
-			    (!M0Data || (M0Data[sliceOffset + vox] > 0.)))
-			{
-				//cout << "Voxel " << (vox % savedHeader.nx()) << " " << (vox / savedHeader.nx()) << endl;
+			    (!M0Data || (M0Data[sliceOffset + vox] > 0.))) {
 				voxCount++;
 				
-				vector<VectorXd> SPGR_signals, SSFP_signals;
-				VectorXd SPGR_B1(SPGR_vols.size()),
-				         SSFP_B0(SSFP_vols.size()), SSFP_B1(SSFP_vols.size());
+				vector<VectorXd> signals(signalFiles.size());
+				VectorXd B1s(signalFiles.size()),
+						 B0s(signalFiles.size());
 				
-				for (int i = 0; i < SPGR_vols.size(); i++) {
-					VectorXd temp(spgrKeep.sum());
-					int vol = 0;
-					for (int j = 0; j < nSPGR; j++) {
-						if (spgrKeep(j))
-							temp[vol++] = SPGR_vols[i][voxelsPerSlice*j + vox];
+				for (int i = 0; i < signalFiles.size(); i++) {
+					VectorXd temp(angles[i].size());
+					for (int j = 0; j < angles[i].size(); j++) {
+						temp[j] = signalVolumes[i][voxelsPerSlice*j + vox];
 					}
 					if (normalise)
 						temp /= temp.mean();
-					SPGR_signals.push_back(temp);
-					SPGR_B1[i] = SPGR_B1s[i] ? SPGR_B1s[i][vox] : 1.;
-				}
-				
-				for (int i = 0; i < SSFP_vols.size(); i++) {
-					VectorXd temp(ssfpKeep.sum());
-					int vol = 0;
-					for (int j = 0; j < nSSFP; j++) {
-						if (ssfpKeep(j))
-							temp[vol++] = SSFP_vols[i][voxelsPerSlice*j + vox];
-					}
-					if (normalise)
-						temp /= temp.mean();
-					SSFP_signals.push_back(temp);
-					SSFP_B0[i] = SSFP_B0s[i] ? SSFP_B0s[i][vox] : 0.;
-					SSFP_B1[i] = SSFP_B1s[i] ? SSFP_B1s[i][vox] : 1.;
+					signals.push_back(temp);
+					B0s[i] = B0Volumes[i] ? B0Volumes[i][vox] : 0.;
+					B1s[i] = B1Volumes[i] ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
-				switch (components) {
-					case 1: {
-						OneComponent::ParamType localLo = loBounds, localHi = hiBounds, localP;
-						if (M0Data) {
-							localLo(0) = (double)M0Data[sliceOffset + vox];
-							localHi(0) = (double)M0Data[sliceOffset + vox];
-						}
-						OneComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
-						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
-										normalise, fitB0);
-						residual = regionContraction<OneComponent>(localP, tc, localLo, localHi,
-															       samples, retain, contract, 0.05, expand, rSeed);
-						params = localP;
-						} break;
-					case 2: {
-						TwoComponent::ParamType localLo = loBounds, localHi = hiBounds, localP;
-						if (M0Data) {
-							localLo(0) = (double)M0Data[sliceOffset + vox];
-							localHi(0) = (double)M0Data[sliceOffset + vox];
-						}
-						TwoComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
-						                ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
-										normalise, fitB0);
-						residual = regionContraction<TwoComponent>(localP, tc, localLo, localHi,
-															       samples, retain, contract, 0.05, expand, rSeed);
-						params = localP;
-						} break;
-					case 3: {
-						ThreeComponent::ParamType localLo = loBounds, localHi = hiBounds, localP;
-						if (M0Data) {
-							localLo(0) = (double)M0Data[sliceOffset + vox];
-							localHi(0) = (double)M0Data[sliceOffset + vox];
-						}
-						ThreeComponent tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
-						                  ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
-										  normalise, fitB0);
-						residual = regionContraction<ThreeComponent>(localP, tc, localLo, localHi,
-																 	 samples, retain, contract, 0.05, expand, rSeed);
-						params = localP;
-						} break;
-					case 4: {
-						ThreeComponentEcho::ParamType localLo = loBounds, localHi = hiBounds, localP;
-						if (M0Data) {
-							localLo(0) = (double)M0Data[sliceOffset + vox];
-							localHi(0) = (double)M0Data[sliceOffset + vox];
-						}
-						ThreeComponentEcho tc(spgrAngles, SPGR_signals, SPGR_B1, spgrTR,
-						                      ssfpAngles, ssfpPhases, SSFP_signals, SSFP_B0, SSFP_B1, ssfpTR,
-										      normalise, fitB0);
-						residual = regionContraction<ThreeComponentEcho>(localP, tc, localLo, localHi,
-																 	     samples, retain, contract, 0.05, expand, rSeed);
-						params = localP;
-						} break;
+				ArrayXd localLo = loBounds, localHi = hiBounds, localP;
+				if (M0Data) {
+					localLo(0) = (double)M0Data[sliceOffset + vox];
+					localHi(0) = (double)M0Data[sliceOffset + vox];
 				}
+				DESPOT_Functor tc(components, signalTypes, angles, signals, TR, phase, B0s, B1s,
+								  normalise, fitB0);
+				residual = regionContraction<DESPOT_Functor>(localP, tc, localLo, localHi,
+															 samples, retain, contract, 0.05, expand, rSeed);
+				params = localP;
 			}
-			for (int p = 0; p < nP; p++)
+			for (int p = 0; p < nP; p++) {
 				paramsData[p][vox]  = params[p];
+			}
 			residualData[vox] = residual;
 		};
-		apply_for(voxelsPerSlice, processVox);
+		apply_for(voxelsPerSlice, processVox, 1);
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -575,20 +440,13 @@ int main(int argc, char **argv)
 	delete[] paramsHdrs;
 	for (int p = 0; p < nP; p++)
 		delete[] paramsData[p];
-	delete[] paramsData;
 	delete[] residualData;
-	for (int i = 0; i < SPGR_files.size(); i++)	{
-		delete[] SPGR_vols[i];
-		if (SPGR_B1_files[i])
-			delete[] SPGR_B1s[i];
-	}
-	for (int i = 0; i < SSFP_files.size(); i++)
-	{
-		delete[] SSFP_vols[i];
-		if (SSFP_B0_files[i])
-			delete[] SSFP_B0s[i];
-		if (SSFP_B1_files[i])
-			delete[] SSFP_B1s[i];
+	for (int i = 0; i < signalFiles.size(); i++)	{
+		delete[] signalVolumes[i];
+		if (B1Volumes[i])
+			delete[] B1Volumes[i];
+		if (B0Volumes[i])
+			delete[] B0Volumes[i];
 	}
 	delete[] M0Data;
 	delete[] maskData;
