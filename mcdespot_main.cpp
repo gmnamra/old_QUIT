@@ -110,7 +110,7 @@ void int_handler(int sig);
 void int_handler(int sig)
 {
 	fprintf(stdout, "Processing terminated. Writing currently processed data.\n");
-	for (int p = 0; p < DESPOT_Functor::nP(components); p++) {
+	for (int p = 0; p < mcDESPOT::nP(components); p++) {
 		paramsHdrs[p].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
 		paramsHdrs[p].close();
 	}
@@ -305,13 +305,13 @@ int main(int argc, char **argv)
 	}
 	
 	cout << "Using " << components << " component model." << endl;
-	const int nP = DESPOT_Functor::nP(components);
+	const int nP = mcDESPOT::nP(components);
 	// The lo/hiBounds methods will make sure these vectors are the right
 	// length, even for tesla == -1
 	ArrayXd loBounds, hiBounds;
-	loBounds = DESPOT_Functor::defaultLo(components, tesla);
-	hiBounds = DESPOT_Functor::defaultHi(components, tesla);
-	vector<string> names = DESPOT_Functor::names(components);
+	loBounds = mcDESPOT::defaultLo(components, tesla);
+	hiBounds = mcDESPOT::defaultHi(components, tesla);
+	vector<string> names = mcDESPOT::names(components);
 	residualData = new double[voxelsPerSlice];
 	residualHdr = *savedHeader;
 	residualHdr.setDim(4, 1); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
@@ -407,9 +407,9 @@ int main(int argc, char **argv)
 					localLo(0) = (double)M0Data[sliceOffset + vox];
 					localHi(0) = (double)M0Data[sliceOffset + vox];
 				}
-				DESPOT_Functor tc(components, signalTypes, angles, signals, TR, phase, B0s, B1s,
+				mcDESPOT tc(components, signalTypes, angles, signals, TR, phase, B0s, B1s,
 								  normalise, fitB0);
-				residual = regionContraction<DESPOT_Functor>(localP, tc, localLo, localHi,
+				residual = regionContraction<mcDESPOT>(localP, tc, localLo, localHi,
 															 samples, retain, contract, 0.05, expand, rSeed);
 				params = localP;
 			}

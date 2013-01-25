@@ -217,23 +217,24 @@ int main(int argc, char **argv)
 	}
 	
 	// Set up boundaries for DESPOT-FM if needed
-	DESPOT2FM::ParamType loBounds, hiBounds;
+	ArrayXd loBounds, hiBounds;
+	const long nP = DESPOT2FM::inputs();
 	if (tesla != 0) {
 		if (tesla > 0) {
-			loBounds = DESPOT2FM::loBounds(tesla);
-			hiBounds = DESPOT2FM::hiBounds(tesla);
+			loBounds = DESPOT2FM::defaultLo(tesla);
+			hiBounds = DESPOT2FM::defaultHi(tesla);
 		} else if (tesla < 0) {
-			cout << "Enter " << DESPOT2FM::nP << " parameter pairs (low then high): " << flush;
-			for (int i = 0; i < DESPOT2FM::nP; i++) cin >> loBounds[i] >> hiBounds[i];
+			cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
+			for (int i = 0; i < nP; i++) cin >> loBounds[i] >> hiBounds[i];
 		}
 		// If fitting, give a suitable range and allocate results memory
 		if (fitB0) {
-			loBounds[DESPOT2FM::nP - 1] = -0.5 / ssfpTR;
-			hiBounds[DESPOT2FM::nP - 1] =  0.5 / ssfpTR;
+			loBounds[nP - 1] = -0.5 / ssfpTR;
+			hiBounds[nP - 1] =  0.5 / ssfpTR;
 			B0Data = new double[voxelsPerVolume];
 		} else { // Otherwise fix and let functors pick up the specified value
-			loBounds[DESPOT2FM::nP - 1] = 0.;
-			hiBounds[DESPOT2FM::nP - 1] = 0.;
+			loBounds[nP - 1] = 0.;
+			hiBounds[nP - 1] = 0.;
 		}
 	}
 	
@@ -301,9 +302,8 @@ int main(int argc, char **argv)
 					VectorXd allB0(nFlip), allB1(nFlip);
 					allB0.setConstant(B0);
 					allB1.setConstant(B1);
-					DESPOT2FM tc(ssfpAngles, ssfpPhases, signals,
-				                 allB0, allB1, ssfpTR, T1, false, fitB0);
-					DESPOT2FM::ParamType params(DESPOT2FM::nP);
+					DESPOT2FM tc(ssfpAngles, signals, ssfpTR, ssfpPhases, allB0, allB1, T1, false, fitB0);
+					ArrayXd params(nP);
 					residual = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds);
 					M0 = params[0];
 					T2 = params[1];

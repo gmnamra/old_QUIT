@@ -284,7 +284,7 @@ enum SignalType {
 	SignalSSFP
 };
 
-class DESPOT_Functor : public Functor<double> {
+class mcDESPOT : public Functor<double> {
 	private:
 		const int _components;
 		long _nP, _nV;
@@ -311,7 +311,6 @@ class DESPOT_Functor : public Functor<double> {
 				{1, { "1c_PD", "1c_T1", "1c_T2", "1c_B0" } },
 				{2, { "2c_PD", "2c_T1_a", "2c_T1_b", "2c_T2_a", "2c_T2_b", "2c_f_a", "2c_tau_a", "2c_B0" } },
 				{3, { "3c_PD", "3c_T1_a", "3c_T1_b", "3c_T1_c", "3c_T2_a", "3c_T2_b", "3c_T2_c", "3c_f_a", "3c_f_c", "3c_tau_a", "3c_B0" } } };
-			static string unknown("Unknown intent code");
 			map<int, vector<string> >::const_iterator it = _namesMap.find(components);
 			if (it == _namesMap.end()) {
 				std::cerr << "Don't have file names for a " << components << "-component mcDESPOT model." << std::endl;
@@ -375,9 +374,14 @@ class DESPOT_Functor : public Functor<double> {
 		}
 		
 		const bool constraint(const VectorXd &params) {
+			// Negative PD makes no sense
+			if (params[0] < 0.)
+				return false;
+			
 			if (_components == 1) {
 				return true;
 			} else if (_components == 2) {
+				// Check that T1_a, T2_a < T1_b, T2_b and that f_a makes sense
 				if ((params[1] < params[2]) &&
 					(params[3] < params[4]) &&
 					(params[5] <= 1.0))
@@ -400,10 +404,10 @@ class DESPOT_Functor : public Functor<double> {
 		const long inputs() const { return _nP; }
 		const long values() const { return _nV; }
 		
-		DESPOT_Functor(const int components, const vector<SignalType> &types,
-		               const vector<VectorXd> &angles, const vector<VectorXd> &signals,
-		               const vector<double> &TR, const vector<double> &phases, const VectorXd &B0, const VectorXd &B1,
-				       const bool &normalise = false, const bool &fitB0 = true) :
+		mcDESPOT(const int components, const vector<SignalType> &types,
+				 const vector<VectorXd> &angles, const vector<VectorXd> &signals,
+		         const vector<double> &TR, const vector<double> &phases, const VectorXd &B0, const VectorXd &B1,
+				 const bool &normalise = false, const bool &fitB0 = true) :
 			_components(components), _types(types),
 			_angles(angles), _signals(signals),
 			_TR(TR), _phases(phases), _B0(B0), _B1(B1),
@@ -493,6 +497,110 @@ class DESPOT_Functor : public Functor<double> {
 			diffs = t - s;
 			return 0;
 		}
-		
 };
+
+class DESPOT2FM : public Functor<double> {
+	private:
+		long _nV;
+		const vector<VectorXd> &_signals;
+		const vector<double> &_phases;
+		const VectorXd &_angles, &_B0, &_B1;
+		const double _R1, &_TR;
+		const bool &_normalise, &_fitB0;
+	
+	public:
+		static const vector<string> &names() {
+			static vector<string> _names { { "FM_PD", "FM_T2", "FM_B0" } };
+			return _names;
+		}
+		
+		static const ArrayXd &defaultLo(const int tesla) {
+			static ArrayXd t3(3), t7(3);
+			t3 << 0.,   0.010, -150.;
+			t7 << 0.,   0.005, -150.;
+			
+			switch (tesla) {
+				case 3: return t3; break;
+				case 7: return t7; break;
+			}
+			std::cerr << "Don't have defaults for " << tesla << "tesla." << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		
+		static const ArrayXd defaultHi(const int tesla) {
+			static ArrayXd t3(3), t7(3);
+			t3 << 1.e7,   1.00, 150.;
+			t7 << 1.e7,   0.10, 150.;
+			
+			switch (tesla) {
+				case 3: return t3; break;
+				case 7: return t7; break;
+			}
+			std::cerr << "Don't have defaults for " << tesla << "tesla." << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		
+		const bool constraint(const VectorXd &params) {
+			if (params[0] < 0.)
+				return false;
+			else
+				return true;
+		}
+				
+		static const long inputs() { return 3; }
+		const long values() const { return _nV; }
+		
+		DESPOT2FM(VectorXd &angles, const vector<VectorXd> &signals,
+		          const double &TR, const vector<double> &phases, const VectorXd &B0, const VectorXd &B1,
+				  const double T1, const bool &normalise = false, const bool &fitB0 = true) :
+			_angles(angles), _signals(signals),
+			_TR(TR), _phases(phases), _B0(B0), _B1(B1),
+			_R1(1./T1), _normalise(normalise), _fitB0(fitB0)
+		{
+			_nV = 0;
+			
+			for (int i = 0; i < signals.size(); i++) {
+				if (angles.size() != signals[i].size()) {
+					std::cerr << "Angles and signals size mis-match for signal " << i << std::endl;
+					std::cerr << "Angles = " << angles.size() << " signal = " << signals[i].size() << std::endl;
+					exit(EXIT_FAILURE);
+				}
+				_nV += signals[i].size();
+			}
+		}
+		
+		const VectorXd signals() const {
+			VectorXd v(values());
+			int index = 0;
+			for (int i = 0; i < _signals.size(); i++) {
+				v.segment(index, _signals[i].size()) = _signals[i];
+				index += _signals[i].size();
+			}
+			return v;
+		}
+		
+		const VectorXd theory(const VectorXd &params) const {
+			double PD = params[0], R2 = 1./params[1], B0 = params[2];
+						
+			VectorXd t(values());
+			int index = 0;
+			for (int i = 0; i < _signals.size(); i++) {
+				VectorXd theory(_signals[i].size());
+				theory = One_SSFP(_angles, _phases[i], _TR, PD, B0, _B1[i], _R1, R2); break;
+				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
+				t.segment(index, _angles.size()) = theory;
+				index += _signals[i].size();
+			}
+			return t;
+		}
+				
+		int operator()(const VectorXd &params, VectorXd &diffs) const {
+			eigen_assert(diffs.size() == values());
+			VectorXd t = theory(params);
+			VectorXd s = signals();
+			diffs = t - s;
+			return 0;
+		}
+};
+
 #endif
