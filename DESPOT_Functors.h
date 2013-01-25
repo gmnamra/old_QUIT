@@ -22,13 +22,13 @@ using namespace Eigen;
 #pragma mark One Component Signals
 //******************************************************************************
 VectorXd One_SPGR(const VectorXd&flipAngles,
-                  const double TR, const double M0, const double T1,
+                  const double TR, const double M0, const double R1,
 				  const double B1)
 {
 	VectorXd theory(flipAngles.size());
 	VectorXd sa = (flipAngles.array() * B1).sin();
 	VectorXd ca = (flipAngles.array() * B1).cos();
-	double expT1 = exp(-TR / T1);
+	double expT1 = exp(-TR * R1);
 	theory = M0 * (1. - expT1) * sa.array() / (1. - expT1*ca.array());
 	
 	return theory;
@@ -36,7 +36,7 @@ VectorXd One_SPGR(const VectorXd&flipAngles,
 
 VectorXd One_SSFP(const VectorXd &flipAngles, const double rfPhase,
                   const double TR, const double M0,
-				  const double T1, const double T2,
+				  const double R1, const double R2,
 				  const double B0, const double B1)
 {
 	Matrix3d A = Matrix3d::Zero(), R_rf = Matrix3d::Zero(),
@@ -45,10 +45,10 @@ VectorXd One_SSFP(const VectorXd &flipAngles, const double rfPhase,
 	M[2] = M0;
 	R_rf(0, 0) = 1.;
 	double phase = rfPhase / TR + (B0 * 2. * M_PI);
-	A(0, 0) = A(1, 1) = -1 / T2;
+	A(0, 0) = A(1, 1) = -R2;
 	A(0, 1) =  phase;
 	A(1, 0) = -phase;
-	A(2, 2) = -1 / T1;
+	A(2, 2) = -R1;
 	MatrixExponential<Matrix3d> expmA(A*TR);
 	expmA.compute(expA);
 	eyemA.noalias() = eye - expA;
@@ -74,7 +74,7 @@ typedef Matrix<double, 6, 1> Vector6d;
 
 VectorXd Two_SPGR(const VectorXd&flipAngles,
                   const double &TR, const double &PD, const double &B1,
-				  const double &T1_a, const double &T1_b,
+				  const double &R1_a, const double &R1_b,
 				  const double &f_a, const double &f_b,
 				  const double &k_ab, const double &k_ba)
 {
@@ -84,10 +84,10 @@ VectorXd Two_SPGR(const VectorXd&flipAngles,
 	VectorXd signal(flipAngles.size());
 	
 	M0 << PD * f_a, PD * f_b;
-	A << -(TR/T1_a + TR*k_ab),             TR*k_ba,
-					  TR*k_ab, -(TR/T1_b + TR*k_ba);
+	A << -(R1_a + k_ab),          k_ba,
+				   k_ab, -(R1_b + k_ba);
 	//cout << A << endl;
-	MatrixExponential<Matrix2d> expA(A);
+	MatrixExponential<Matrix2d> expA(A*TR);
 	expA.compute(A);
 	const Matrix2d eyema = eye2 - A;
 	for (int i = 0; i < flipAngles.size(); i++)
@@ -103,8 +103,8 @@ VectorXd Two_SPGR(const VectorXd&flipAngles,
 VectorXd Two_SSFP(const VectorXd&flipAngles, const double &rfPhase,
                   const double &TR, const double &PD,
 				  const double &B0, const double &B1,
-				  const double &T1_a, const double &T1_b,
-				  const double &T2_a, const double &T2_b,
+				  const double &R1_a, const double &R1_b,
+				  const double &R2_a, const double &R2_b,
 				  const double &f_a, const double &f_b,
 				  const double &k_ab, const double &k_ba)
 {
@@ -121,14 +121,14 @@ VectorXd Two_SSFP(const VectorXd&flipAngles, const double &rfPhase,
 	// Can get away with this because the block structure of the
 	// matrix ensures that the zero blocks are always zero after
 	// the matrix exponential.
-	A(0, 0) = A(2, 2) = -TR * (1./T2_a + k_ab);
-	A(1, 1) = A(3, 3) = -TR * (1./T2_b + k_ba);
+	A(0, 0) = A(2, 2) = -TR * (R2_a + k_ab);
+	A(1, 1) = A(3, 3) = -TR * (R2_b + k_ba);
 	A(0, 1) = A(2, 3) = A(4, 5) = TR * k_ba;
 	A(0, 2) = A(1, 3) = phase;
 	A(1, 0) = A(3, 2) = A(5, 4) = TR * k_ab;
 	A(2, 0) = A(3, 1) = -phase; 
-	A(4, 4) = -TR * (1./T1_a + k_ab);
-	A(5, 5) = -TR * (1./T1_b + k_ba);
+	A(4, 4) = -TR * (R1_a + k_ab);
+	A(5, 5) = -TR * (R1_b + k_ba);
 	A(0, 3) = A(1, 2) = A(2, 1) = A(3, 0) = 0.;
 	MatrixExponential<Matrix6d> exp(A);
 	exp.compute(expA);
@@ -157,7 +157,7 @@ typedef Matrix<double, 9, 1> Vector9d;
 
 VectorXd Three_SPGR(const VectorXd&flipAngles,
                     const double &TR, const double &PD, const double &B1,
-				    const double &T1_a, const double &T1_b, const double &T1_c,
+				    const double &R1_a, const double &R1_b, const double &R1_c,
 				    const double &f_a, const double &f_b, const double &f_c,
 				    const double &k_ab, const double &k_ba)
 {
@@ -167,11 +167,10 @@ VectorXd Three_SPGR(const VectorXd&flipAngles,
 	Vector3d M0, Mobs;
 	VectorXd signals(flipAngles.size());
 	M0 << PD * f_a, PD * f_b, PD * f_c;
-	A << -(1./T1_a + k_ab),               k_ba, 0,
-					  k_ab,  -(1./T1_b + k_ba), 0,
-						 0,                  0, -1./T1_c;
-	A *= TR;
-	MatrixExponential<Matrix3d> expA(A);
+	A << -(R1_a + k_ab),            k_ba,     0,
+				   k_ab,  -(R1_b + k_ba),     0,
+					  0,               0, -R1_c;
+	MatrixExponential<Matrix3d> expA(A*TR);
 	expA.compute(A);
 	const Matrix3d eyema = eye3 - A;
 	for (int i = 0; i < flipAngles.size(); i++)
@@ -185,57 +184,9 @@ VectorXd Three_SPGR(const VectorXd&flipAngles,
 
 VectorXd Three_SSFP(const VectorXd&flipAngles, const double &rfPhase,
                     const double &TR, const double &PD,
-				    const double &B0, const double &B1,
-				    const double &T1_a, const double &T1_b, const double &T1_c,
-				    const double &T2_a, const double &T2_b, const double &T2_c,
-				    const double &f_a, const double &f_b, const double &f_c,
-				    const double &k_ab, const double &k_ba)
-{
-	VectorXd signal(flipAngles.size());
-	Matrix9d A = Matrix9d::Zero(), expA, R_rf = Matrix9d::Zero(), eye_mAR;
-	const Matrix9d eye9 = Matrix9d::Identity();
-	Vector9d M0, Mobs;
-	PartialPivLU<Matrix9d> solver;
-	// Set up the 'A' matrix. It's quite complex.
-	A(0, 0) = A(3, 3) = -TR * (1./T2_a + k_ab);
-	A(1, 1) = A(4, 4) = -TR * (1./T2_b + k_ba);
-	A(2, 2) = A(5, 5) = -TR * (1./T2_c);
-	A(0, 1) = A(3, 4) = A(6, 7) = TR * k_ba;
-	A(1, 0) = A(4, 3) = A(7, 6) = TR * k_ab;
-	A(6, 6) = -TR * (1./T1_a + k_ab);
-	A(7, 7) = -TR * (1./T1_b + k_ba);
-	A(8, 8) = -TR * (1./T1_c);
-	R_rf(0, 0) = R_rf(1, 1) = R_rf(2, 2) = 1.;
-	M0 << 0., 0., 0., 0., 0., 0., PD * f_a, PD * f_b, PD * f_c;
-	
-	double phase = rfPhase + (B0 * TR * 2. * M_PI);
-	A(0, 3) = A(1, 4) = A(2, 5) = phase;
-	A(3, 0) = A(4, 1) = A(5, 2) = -phase;
-	MatrixExponential<Matrix9d> exp(A);
-	exp.compute(expA);
-	const Matrix9d eyema = eye9 - expA;
-	for (int i = 0; i < flipAngles.size(); i++)
-	{
-		double a = flipAngles[i];
-		double ca = cos(B1 * a), sa = sin(B1 * a);
-		R_rf(3, 3) = R_rf(4, 4) = R_rf(5, 5) =
-		R_rf(6, 6) = R_rf(7, 7) = R_rf(8, 8) =  ca;
-		R_rf(3, 6) = R_rf(4, 7) = R_rf(5, 8) =  sa;
-		R_rf(6, 3) = R_rf(7, 4) = R_rf(8, 5) = -sa;
-		eye_mAR.noalias() = eye9 - (expA * R_rf);
-		solver.compute(eye_mAR);
-		Mobs.noalias() = solver.solve(eyema) * M0;
-		signal[i] = sqrt(pow(Mobs[0] + Mobs[1] + Mobs[2], 2.) +
-						 pow(Mobs[3] + Mobs[4] + Mobs[5], 2.));
-	}
-	return signal;
-}
-
-VectorXd Three_SSFP_Echo(const VectorXd&flipAngles, const double &rfPhase,
-                    const double &TR, const double &PD,
 				    const double &B0_a, const double &B0_b, const double &B0_c, const double &B1,
-				    const double &T1_a, const double &T1_b, const double &T1_c,
-				    const double &T2_a, const double &T2_b, const double &T2_c,
+				    const double &R1_a, const double &R1_b, const double &R1_c,
+				    const double &R2_a, const double &R2_b, const double &R2_c,
 				    const double &f_a, const double &f_b, const double &f_c,
 				    const double &k_ab, const double &k_ba)
 {
@@ -245,14 +196,14 @@ VectorXd Three_SSFP_Echo(const VectorXd&flipAngles, const double &rfPhase,
 	Vector9d M0, Mobs;
 	PartialPivLU<Matrix9d> solver;
 	// Set up the 'A' matrix. It's quite complex.
-	A(0, 0) = A(3, 3) = -TR * (1./T2_a + k_ab);
-	A(1, 1) = A(4, 4) = -TR * (1./T2_b + k_ba);
-	A(2, 2) = A(5, 5) = -TR * (1./T2_c);
+	A(0, 0) = A(3, 3) = -TR * (R2_a + k_ab);
+	A(1, 1) = A(4, 4) = -TR * (R2_b + k_ba);
+	A(2, 2) = A(5, 5) = -TR * (R2_c);
 	A(0, 1) = A(3, 4) = A(6, 7) = TR * k_ba;
 	A(1, 0) = A(4, 3) = A(7, 6) = TR * k_ab;
-	A(6, 6) = -TR * (1./T1_a + k_ab);
-	A(7, 7) = -TR * (1./T1_b + k_ba);
-	A(8, 8) = -TR * (1./T1_c);
+	A(6, 6) = -TR * (R1_a + k_ab);
+	A(7, 7) = -TR * (R1_b + k_ba);
+	A(8, 8) = -TR * (R1_c);
 	R_rf(0, 0) = R_rf(1, 1) = R_rf(2, 2) = 1.;
 	M0 << 0., 0., 0., 0., 0., 0., PD * f_a, PD * f_b, PD * f_c;
 	
@@ -265,7 +216,7 @@ VectorXd Three_SSFP_Echo(const VectorXd&flipAngles, const double &rfPhase,
 	MatrixExponential<Matrix9d> exp(A);
 	exp.compute(expATR);
 	const Matrix9d eyema = eye9 - expATR;
-	A /= 2.;
+	A /= 2.; // TE = TR/2 for SSFP
 	A(0, 3) = (B0_a * TR * M_PI);
 	A(3, 0) = -A(0, 3);
 	A(1, 4) = (B0_b * TR * M_PI);
@@ -419,7 +370,28 @@ class DESPOT_Functor : public Functor<double> {
 			}
 		}
 		
-		const bool constraint(const VectorXd &params) const { return true; }
+		const bool constraint(const VectorXd &params) {
+			if (_components == 1) {
+				return true;
+			} else if (_components == 2) {
+				if ((params[1] < params[2]) &&
+					(params[3] < params[4]) &&
+					(params[5] <= 1.0))
+					return true;
+				else
+					return false;
+			} else if (_components == 3) {
+				if ((params[1] < params[2]) &&
+					(params[2] < params[3]) &&
+					(params[4] < params[5]) &&
+					(params[5] < params[6]) &&
+					((params[7] + params[8]) <= 0.95))
+					return true;
+				else
+					return false;
+			} else
+				return true;
+		}
 				
 		const long inputs() const { return _nP; }
 		const long values() const { return _nV; }
@@ -435,9 +407,11 @@ class DESPOT_Functor : public Functor<double> {
 		{
 			_nP = nP(components);
 			_nV = 0;
+			
 			for (int i = 0; i < angles.size(); i++) {
 				if (angles[i].size() != signals[i].size()) {
 					std::cerr << "Angles and signals size mis-match for signal " << i << std::endl;
+					std::cerr << "Angles = " << angles[i].size() << " signal = " << signals[i].size() << std::endl;
 					exit(EXIT_FAILURE);
 				}
 				_nV += angles[i].size();
@@ -447,8 +421,7 @@ class DESPOT_Functor : public Functor<double> {
 		const VectorXd signals() const {
 			VectorXd v(values());
 			int index = 0;
-			for (int i = 0; i < _signals.size(); i++)
-			{
+			for (int i = 0; i < _signals.size(); i++) {
 				v.segment(index, _signals[i].size()) = _signals[i];
 				index += _signals[i].size();
 			}
@@ -456,41 +429,55 @@ class DESPOT_Functor : public Functor<double> {
 		}
 		
 		const VectorXd theory(const VectorXd &params) const {
-			double PD   = params[0],
-			       T1_a = params[1], T1_b = params[2], T1_c = params[3],
-				   T2_a = params[4], T2_b = params[5], T2_c = params[6],
-			       f_a  = params[7], f_c  = params[8], f_b  = 1. - f_a - f_c,
-			       tau_a = params[9], tau_b = f_b * tau_a / f_a,
-				   k_ab = 1. / tau_a, k_ba = 1. / tau_b,
-				   B0_a = params[10], B0_b = params[11], B0_c = params[12];
-			VectorXd t(values());
-			// Only have 1 component, so no exchange
-			if ((f_a == 0.) || (f_b == 0.)) {
+			double PD, R1_a, R1_b, R1_c, R2_a, R2_b, R2_c, f_a = 0., f_b = 0., f_c = 0.,
+			       tau_a = 0., tau_b = 0., k_ab = 0., k_ba = 0., B0 = 0.;
+			
+			// Set up parameters first
+			PD = params[0]; // PD is the first parameter for all versions
+			switch (_components) {
+				case 1: {
+					R1_a = 1. / params[1]; R2_a = 1. / params[2]; B0 = params[3];
+				} break;
+				case 2: {
+					R1_a = 1./params[1]; R1_b = 1./params[2];
+					R2_a = 1./params[3]; R2_b = 1./params[4];
+					f_a  = params[5]; f_b = 1. - f_a;
+					tau_a = params[6]; B0 = params[7];
+				} break;
+				case 3: {
+					R1_a = 1./params[1]; R1_b = 1./params[2]; R1_c = 1./params[3];
+					R2_a = 1./params[4]; R2_b = 1./params[5]; R2_c = 1./params[6];
+					f_a  = params[7]; f_c  = params[8]; f_b  = 1. - f_a - f_c;
+					tau_a = params[9]; B0 = params[10]; // B0_b = params[11], B0_c = params[12];
+				} break;
+			}
+			tau_b = f_b * tau_a / f_a;
+			k_ab = 1./tau_a; k_ba = 1./tau_b;
+			if ((f_a == 0.) || (f_b == 0.)) { // Only have 1 component, so no exchange
 				k_ab = 0.;
 				k_ba = 0.;
 			}
+			
+			VectorXd t(values());
 			int index = 0;
-			for (int i = 0; i < _types.size(); i++) {
+			for (int i = 0; i < _signals.size(); i++) {
 				VectorXd theory(_angles[i].size());
 				if (_types[i] == SignalSPGR) {
-					if (_components == 3) {
-						theory = Three_SPGR(_angles[i], _TR[i], PD, _B1[i],
-											T1_a, T1_b, T1_c, f_a, f_b, f_c, k_ab, k_ba);
+					switch (_components) {
+						case 1: theory = One_SPGR(_angles[i], _TR[i], PD, _B1[i], R1_a); break;
+						case 2: theory = Two_SPGR(_angles[i], _TR[i], PD, _B1[i], R1_a, R1_b, f_a, f_b, k_ab, k_ba); break;
+						case 3: theory = Three_SPGR(_angles[i], _TR[i], PD, _B1[i], R1_a, R1_b, R1_c, f_a, f_b, f_c, k_ab, k_ba); break;
 					}
-					index += _angles.size();
 				} else if (_types[i] == SignalSSFP) {
-					if (!_fitB0) {
-						B0_a = B0_b = B0_c = _B0[i];
-					}
-					if (_components == 3) {
-						theory = Three_SSFP_Echo(_angles[i], _phases[i], _TR[i],
-												 PD, B0_a, B0_b, B0_c, _B1[i],
-												 T1_a, T1_b, T1_c, T2_a, T2_b, T2_c,
-												 f_a, f_b, f_c, k_ab, k_ba);
+					switch (_components) {
+						case 1: theory = One_SSFP(_angles[i], _phases[i], _TR[i], PD, B0, _B1[i], R1_a, R2_a); break;
+						case 2: theory = Two_SSFP(_angles[i], _phases[i], _TR[i], PD, B0, _B1[i], R1_a, R1_b, R2_a, R2_b, f_a, f_b, k_ab, k_ba); break;
+						case 3: theory = Three_SSFP(_angles[i], _phases[i], _TR[i], PD, B0, B0, B0, _B1[i], R1_a, R1_b, R1_c, R2_a, R2_b, R2_c, f_a, f_b, f_c, k_ab, k_ba); break;
 					}
 				}
 				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
 				t.segment(index, _angles[i].size()) = theory;
+				index += _angles[i].size();
 			}
 			return t;
 		}

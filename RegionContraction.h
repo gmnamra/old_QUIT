@@ -71,9 +71,12 @@ double regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 			sampleRes(s) = diffs.norm();
 			if (!std::isfinite(diffs.norm())) {
 				if (!haveWarned) {
+					haveWarned = true;
 					std::cout << "Warning: Non-finite residual found!" << std::endl
 							  << "Result may be meaningless. This warning will only be printed once." << std::endl;
-					haveWarned = true;
+					std::cout << "Parameters were " << tempSample.transpose() << std::endl;
+					std::cout << "Signal " << f.signals().transpose() << std::endl;
+					std::cout << "Theory " << f.theory(tempSample).transpose() << std::endl;
 				}
 				params = retained.col(0);
 				return std::numeric_limits<double>::infinity();

@@ -392,13 +392,13 @@ int main(int argc, char **argv)
 					}
 					if (normalise)
 						temp /= temp.mean();
-					signals.push_back(temp);
+					signals[i] = temp;
 					B0s[i] = B0Volumes[i] ? B0Volumes[i][vox] : 0.;
 					B1s[i] = B1Volumes[i] ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
-				ArrayXd localLo = loBounds, localHi = hiBounds, localP;
+				ArrayXd localLo = loBounds, localHi = hiBounds, localP(nP);
 				if (M0Data) {
 					localLo(0) = (double)M0Data[sliceOffset + vox];
 					localHi(0) = (double)M0Data[sliceOffset + vox];
@@ -414,7 +414,7 @@ int main(int argc, char **argv)
 			}
 			residualData[vox] = residual;
 		};
-		apply_for(voxelsPerSlice, processVox, 1);
+		apply_for(voxelsPerSlice, processVox);
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
