@@ -343,6 +343,8 @@ class DESPOT_Functor : public Functor<double> {
 						case 3: return c3t7;
 					}
 			}
+			std::cerr << "Don't have defaults for a " << components << "-component model." << std::endl;
+			exit(EXIT_FAILURE);
 		}
 		
 		static const ArrayXd defaultHi(const int components, const int tesla) {
@@ -368,6 +370,8 @@ class DESPOT_Functor : public Functor<double> {
 						case 3: return c3t7;
 					}
 			}
+			std::cerr << "Don't have defaults for a " << components << "-component model." << std::endl;
+			exit(EXIT_FAILURE);
 		}
 		
 		const bool constraint(const VectorXd &params) {
