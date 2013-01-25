@@ -134,9 +134,8 @@ NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles
 				       vector<NiftiImage *> &B0_files) {
 	NiftiImage *inHdr, *savedHeader;
 	string type, path;
-	while ((cout << "Specify next image type (SPGR/SSFP): " << flush) &&
-	       getline(cin, type) &&
-		   !type.empty()) {
+	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
+	while (getline(cin, type) && !type.empty()) {
 		
 		if (type == "SPGR")
 			signalTypes.push_back(SignalSPGR);
@@ -146,10 +145,10 @@ NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles
 			cerr << "Unknown signal type: " << type << endl;
 			exit(EXIT_FAILURE);
 		}
-		cout << "Enter image path: " << flush;
+		if (prompt) cout << "Enter image path: " << flush;
 		getline(cin, path);
 		inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-		cout << "Opened " << type << " header: " << path << endl;
+		if (verbose) cout << "Opened " << type << " header: " << path << endl;
 		if (signalFiles.size() == 0) // First time through save the header for comparison
 			savedHeader = inHdr;
 		inHdr->checkVoxelsCompatible(*savedHeader);
@@ -168,39 +167,44 @@ NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles
 		} else
 		#endif
 		{
-			cout << "Enter TR: " << flush; cin >> inTR;
-			cout << "Enter Flip-angles: " << flush;
+			if (prompt) cout << "Enter TR: " << flush;
+			cin >> inTR;
+			if (prompt) cout << "Enter Flip-angles: " << flush;
 			for (int i = 0; i < inAngles[i]; i++)
 				cin >> inAngles[i];
 			getline(cin, path); // Just to eat the newline
-			if (signalTypes.back() == SignalSSFP)
-				cout << "Enter SSFP Phase-Cycling: "; cin >> inPhase;
+			if (signalTypes.back() == SignalSSFP) {
+				if (prompt) cout << "Enter SSFP Phase-Cycling: ";
+				cin >> inPhase;
+			}
 		}
 		TR.push_back(inTR);
 		phase.push_back(inPhase * M_PI / 180.);
 		angles.push_back(inAngles * M_PI / 180.);
 		
 		inHdr = NULL;
-		cout << "Enter B1 Map Path (blank for none): " << flush;
+		if (prompt) cout << "Enter B1 Map Path (blank for none): " << flush;
 		getline(cin, path);
 		if (!path.empty()) {
 			inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 			inHdr->checkVoxelsCompatible(*savedHeader);
-			cout << "Opened B1 correction header: " << path << endl;
+			if (verbose) cout << "Opened B1 correction header: " << path << endl;
 		}
 		B1_files.push_back(inHdr);
 		
 		inHdr = NULL;
 		if (signalTypes.back() == SignalSSFP) {
-			cout << "Enter path to B0 map: " << flush;
+			if (prompt) cout << "Enter path to B0 map: " << flush;
 			getline(cin, path);
 			if (!path.empty()) {
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 				inHdr->checkVoxelsCompatible(*savedHeader);
-				cout << "Opened B0 correction header: " << path << endl;
+				if (verbose) cout << "Opened B0 correction header: " << path << endl;
 			}
 		}
 		B0_files.push_back(inHdr);
+		// Print message ready for next loop
+		if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
 	}
 	if (signalTypes.size() == 0) {
 		cerr << "No input images specified." << endl;
@@ -315,15 +319,15 @@ int main(int argc, char **argv)
 	
 	paramsData.resize(nP);
 	paramsHdrs = new NiftiImage[nP];
-	if (tesla < 0)
+	if (prompt && (tesla < 0))
 		cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
 	for (int i = 0; i < nP; i++) {
+		if (tesla < 0)
+			cin >> loBounds[i] >> hiBounds[i];
 		paramsData[i] = new double[voxelsPerSlice];
 		paramsHdrs[i] = *savedHeader;
 		paramsHdrs[i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
 		paramsHdrs[i].open(outPrefix + "_" + names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE);
-		if (tesla == -1)
-			cin >> loBounds[i] >> hiBounds[i];
 	}
 	// If normalising, don't bother fitting for M0
 	if (normalise) {
