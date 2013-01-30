@@ -242,9 +242,8 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const double &rfPhase,
 	return signal;
 }
 
-
 //******************************************************************************
-#pragma mark Functor Base Classes
+#pragma mark Functor Base Class
 //******************************************************************************
 // From Nonlinear Tests in Eigen 
 template<typename _Scalar, int NX=Dynamic, int NY=Dynamic>
@@ -277,8 +276,9 @@ class Functor
 		virtual const VectorXd signals() const = 0;
 };
 
-// DESPOT Base Functor
-
+//******************************************************************************
+#pragma mark mcDESPOT Functor
+//******************************************************************************
 enum SignalType {
 	SignalSPGR = 0,
 	SignalSSFP
@@ -499,6 +499,9 @@ class mcDESPOT : public Functor<double> {
 		}
 };
 
+//******************************************************************************
+#pragma mark DESPOT2FM Functor
+//******************************************************************************
 class DESPOT2FM : public Functor<double> {
 	private:
 		long _nV;
@@ -586,7 +589,7 @@ class DESPOT2FM : public Functor<double> {
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				VectorXd theory(_signals[i].size());
-				theory = One_SSFP(_angles, _phases[i], _TR, PD, B0, _B1[i], _R1, R2); break;
+				theory = One_SSFP(_angles, _phases[i], _TR, PD, B0, _B1[i], _R1, R2);
 				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
 				t.segment(index, _angles.size()) = theory;
 				index += _signals[i].size();

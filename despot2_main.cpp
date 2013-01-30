@@ -312,7 +312,7 @@ int main(int argc, char **argv)
 				
 				}
 			}
-			PDData[sliceOffset + vox] = clamp(M0, 0., 5.e3);
+			PDData[sliceOffset + vox] = clamp(M0, 0., 1.e8);
 			T2Data[sliceOffset + vox] = clamp(T2, 0., 0.5);
 			if (fitB0)
 				B0Data[sliceOffset + vox] = B0;
@@ -347,6 +347,9 @@ int main(int argc, char **argv)
 		savedHeader.writeVolume(0, B0Data);
 		savedHeader.close();
 	}
+	savedHeader.open(outPrefix + "_residual.nii.gz", NiftiImage::NIFTI_WRITE);
+	savedHeader.writeVolume(0, residualData);
+	savedHeader.close();
 	// Clean up memory
 	for (int p = 0; p < nPhases; p++)
 		free(ssfpData[p]);

@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 				res = classicDESPOT1(spgrAngles, spgrs, spgrTR, B1, M0, T1);
 				
 				// Sanity check
-				M0 = clamp(M0, 0., 1.e7);
+				M0 = clamp(M0, 0., 1.e8);
 				T1 = clamp(T1, 0., 15.);
 			}
 			resultsData[0][sliceOffset + vox] = M0;
@@ -195,12 +195,11 @@ int main(int argc, char **argv)
 			cout << "finished." << endl;
 		}
 	}
-	const string names[NR] = { "_M0", "_T1", "_despot1_res" };
+	const string names[NR] = { "_PD", "_T1", "_residual" };
 	NiftiImage outFile(spgrFile);
 	outFile.setDatatype(DT_FLOAT32);
 	outFile.setDim(4, 1);
-	for (int r = 0; r < NR; r++)
-	{
+	for (int r = 0; r < NR; r++) {
 		string outName = outPrefix + names[r] + ".nii.gz";
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
