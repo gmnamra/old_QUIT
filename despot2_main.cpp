@@ -41,6 +41,7 @@ const string usage {
 Options:\n\
 	--help, -h        : Print this message.\n\
 	--mask, -m file   : Mask input with specified file.\n\
+	--out, -o path    : Add a prefix to the output filenames.\n\
 	--B0 file         : B0 Map file.\n\
 	--B1 file         : B1 Map file.\n\
 	--M0 file         : Proton density file.\n\
@@ -90,8 +91,12 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:t:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:t:o:", long_options, &indexptr)) != -1) {
 		switch (c) {
+			case 'o':
+				outPrefix = optarg;
+				cout << "Output prefix will be: " << outPrefix << endl;
+				break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				inFile.open(optarg, 'r');
@@ -99,13 +104,13 @@ int main(int argc, char **argv)
 				inFile.close();
 				break;
 			case '0':
-				cout << "Reading B0 file " << optarg << endl;
+				cout << "Reading B0 file: " << optarg << endl;
 				inFile.open(optarg, 'r');
 				B0Data = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
 			case '1':
-				cout << "Reading B1 file " << optarg;
+				cout << "Reading B1 file: " << optarg << endl;
 				inFile.open(optarg, 'r');
 				B1Data = inFile.readVolume<double>(0);
 				inFile.close();
@@ -148,8 +153,6 @@ int main(int argc, char **argv)
 	}
 	if ((tesla != 0) && !B0Data)
 		fitB0 = true;
-	cout << "Output prefix will be: " << argv[optind] << endl;
-	outPrefix = argv[optind++];
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
 	inFile.open(argv[optind++], 'r');
 	T1Data = inFile.readVolume<double>(0);
@@ -165,8 +168,7 @@ int main(int argc, char **argv)
 	VectorXd ssfpAngles;
 	int voxelsPerSlice, voxelsPerVolume;
 	double **ssfpData = (double **)malloc(nPhases * sizeof(double *));
-	for (size_t p = 0; p < nPhases; p++)
-	{
+	for (size_t p = 0; p < nPhases; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], 'r');
 		if (p == 0)
@@ -336,18 +338,18 @@ int main(int argc, char **argv)
 	          << difftime(procEnd, procStart) << " s." << endl;
 	savedHeader.setDim(4, 1);
 	savedHeader.setDatatype(NIFTI_TYPE_FLOAT32);
-	savedHeader.open(outPrefix + "_T2.nii.gz", NiftiImage::NIFTI_WRITE);
+	savedHeader.open(outPrefix + "D2_T2.nii.gz", NiftiImage::NIFTI_WRITE);
 	savedHeader.writeVolume(0, T2Data);
 	savedHeader.close();
-	savedHeader.open(outPrefix + "_PD.nii.gz", NiftiImage::NIFTI_WRITE);
+	savedHeader.open(outPrefix + "D2_PD.nii.gz", NiftiImage::NIFTI_WRITE);
 	savedHeader.writeVolume(0, PDData);
 	savedHeader.close();
 	if (fitB0) {
-		savedHeader.open(outPrefix + "_B0.nii.gz", NiftiImage::NIFTI_WRITE);
+		savedHeader.open(outPrefix + "D2_B0.nii.gz", NiftiImage::NIFTI_WRITE);
 		savedHeader.writeVolume(0, B0Data);
 		savedHeader.close();
 	}
-	savedHeader.open(outPrefix + "_residual.nii.gz", NiftiImage::NIFTI_WRITE);
+	savedHeader.open(outPrefix + "D2_residual.nii.gz", NiftiImage::NIFTI_WRITE);
 	savedHeader.writeVolume(0, residualData);
 	savedHeader.close();
 	// Clean up memory

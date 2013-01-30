@@ -81,6 +81,7 @@ static struct option long_options[] =
 {
 	{"M0", required_argument, 0, 'M'},
 	{"mask", required_argument, 0, 'm'},
+	{"out", required_argument, 0, 'o'},
 	{"verbose", no_argument, 0, 'v'},
 	{"no-prompt", no_argument, 0, 'p'},
 	{"start_slice", required_argument, 0, 'S'},
@@ -243,6 +244,7 @@ int main(int argc, char **argv)
 			case 'o':
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
+				break;
 			case 'v': verbose = true; break;
 			case 'p': prompt = false; break;
 			case 'S': start_slice = atoi(optarg); break;
@@ -315,7 +317,7 @@ int main(int argc, char **argv)
 	residualData = new double[voxelsPerSlice];
 	residualHdr = *savedHeader;
 	residualHdr.setDim(4, 1); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
-	residualHdr.open(outPrefix + "_residual.nii.gz", NiftiImage::NIFTI_WRITE);
+	residualHdr.open(outPrefix + "MCD_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
 	
 	paramsData.resize(nP);
 	paramsHdrs = new NiftiImage[nP];
@@ -327,7 +329,7 @@ int main(int argc, char **argv)
 		paramsData[i] = new double[voxelsPerSlice];
 		paramsHdrs[i] = *savedHeader;
 		paramsHdrs[i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
-		paramsHdrs[i].open(outPrefix + "_" + names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE);
+		paramsHdrs[i].open(outPrefix + "MCD_" + names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE);
 	}
 	// If normalising, don't bother fitting for M0
 	if (normalise) {

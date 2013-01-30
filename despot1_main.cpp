@@ -32,6 +32,7 @@ const string usage {
 \
 Options:\n\
 	-m, --mask file : Mask input with specified file.\n\
+	--out, -o path    : Add a prefix to the output filenames.\n\
 	--B1 file       : Correct flip angles with specified B1 ratio.\n\
 	-v, --verbose   : Print out more messages.\n\
 	-d, --drop      : Drop certain flip-angles (Read from stdin).\n"
@@ -43,10 +44,12 @@ Acknowledgements greatfully received, grant discussions welcome."
 };
 
 static int verbose = false, drop = false;
+static string outPrefix;
 static struct option long_options[] =
 {
 	{"B1", required_argument, 0, '1'},
 	{"mask", required_argument, 0, 'm'},
+	{"out", required_argument, 0, 'o'},
 	{"verbose", no_argument, 0, 'v'},
 	{0, 0, 0, 0}
 };
@@ -79,13 +82,17 @@ int main(int argc, char **argv)
 				maskData = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
+			case 'o':
+				outPrefix = optarg;
+				cout << "Output prefix will be: " << outPrefix << endl;
+				break;
 			case 'v': verbose = true; break;
 			case 'd': drop = true; break;
 			case '?': // getopt will print an error message
 				exit(EXIT_FAILURE);
 		}
 	}
-	if ((argc - optind) != 2) {
+	if ((argc - optind) != 1) {
 		cout << "Incorrect number of arguments." << endl << usage << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -111,7 +118,6 @@ int main(int argc, char **argv)
 		for (int i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
 	}
 	spgrAngles *= M_PI / 180.;
-	const string outPrefix(argv[++optind]);
 	//**************************************************************************
 	#pragma mark Select which angles to use in the analysis
 	//**************************************************************************	
@@ -195,7 +201,7 @@ int main(int argc, char **argv)
 			cout << "finished." << endl;
 		}
 	}
-	const string names[NR] = { "_PD", "_T1", "_residual" };
+	const string names[NR] = { "D1_PD", "D1_T1", "D1_Residual" };
 	NiftiImage outFile(spgrFile);
 	outFile.setDatatype(DT_FLOAT32);
 	outFile.setDim(4, 1);
