@@ -28,7 +28,7 @@ using namespace Eigen;
 // Arguments / Usage
 //******************************************************************************
 const string usage {
-"Usage is: despot1 [options] spgr_input output_prefix \n\
+"Usage is: despot1 [options] spgr_input \n\
 \
 Options:\n\
 	-m, --mask file : Mask input with specified file.\n\

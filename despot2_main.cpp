@@ -36,7 +36,7 @@ Acknowledgements greatfully received, grant discussions welcome."
 };
 
 const string usage {
-"Usage is: despot2 [options] output_prefix T1_map ssfp_files\n\
+"Usage is: despot2 [options] T1_map ssfp_files\n\
 \
 Options:\n\
 	--help, -h        : Print this message.\n\
