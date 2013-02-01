@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 	angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, 0., 0., 1. } );
 	angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, M_PI, 0., 1. } );
 	
-	long loops = 1000;
+	long loops = 10000;
 	if (testSpeed) {
 		for (int c = 1; c < 4; c++) {
 			ArrayXd p = (mcDESPOT::defaultLo(c, tesla) + mcDESPOT::defaultHi(c, tesla)) / 2.;

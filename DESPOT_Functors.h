@@ -40,7 +40,7 @@ VectorXd One_SSFP(const VectorXd &flipAngles, const double rfPhase,
 				  const double R1, const double R2)
 {
 	Matrix3d A = Matrix3d::Zero(), R_rf = Matrix3d::Zero(),
-	                eye = Matrix3d::Identity(), expA, eyemA;
+	                eye = Matrix3d::Identity(), expA;
 	Vector3d M = Vector3d::Zero(), Mobs;
 	M[2] = M0;
 	R_rf(0, 0) = 1.;
@@ -51,8 +51,7 @@ VectorXd One_SSFP(const VectorXd &flipAngles, const double rfPhase,
 	A(2, 2) = -R1 * TR;
 	MatrixExponential<Matrix3d> expmA(A);
 	expmA.compute(expA);
-	eyemA.noalias() = eye - expA;
-	
+	const Vector3d eyemaM0 = (eye - expA) * M;
 	VectorXd theory(flipAngles.size());
 	for (int i = 0; i < flipAngles.size(); i++)
 	{
@@ -60,7 +59,7 @@ VectorXd One_SSFP(const VectorXd &flipAngles, const double rfPhase,
 		double ca = cos(B1 * a), sa = sin(B1 * a);
 		R_rf(1, 1) = R_rf(2, 2) = ca;
 		R_rf(1, 2) = sa; R_rf(2, 1) = -sa;
-		Mobs = (eye - (expA * R_rf)).partialPivLu().solve(eyemA) * M;				
+		Mobs = (eye - (expA * R_rf)).partialPivLu().solve(eyemaM0);
 		theory[i] = Mobs.head(2).norm();
 	}
 	return theory;
@@ -89,11 +88,11 @@ VectorXd Two_SPGR(const VectorXd&flipAngles,
 	//cout << A << endl;
 	MatrixExponential<Matrix2d> expA(A*TR);
 	expA.compute(A);
-	const Matrix2d eyema = eye2 - A;
+	const Vector2d eyemaM0 = (eye2 - A) * M0;
 	for (int i = 0; i < flipAngles.size(); i++)
 	{
 		double a = flipAngles[i];
-		Mobs = (eye2 - A*cos(B1 * a)).partialPivLu().solve(eyema * sin(B1 * a)) * M0;
+		Mobs = (eye2 - A*cos(B1 * a)).partialPivLu().solve(eyemaM0 * sin(B1 * a));
 		signal[i] = Mobs.sum();
 	}
 	
@@ -111,7 +110,6 @@ VectorXd Two_SSFP(const VectorXd&flipAngles, const double &rfPhase,
 	Matrix6d A, expA, R_rf, eye_mAR;
 	const Matrix6d eye6 = Matrix6d::Identity();
 	Vector6d M0, Mobs;
-	PartialPivLU<Matrix6d> solver;
 	A.setZero(); R_rf.setZero();
 	R_rf(0, 0) = R_rf(1, 1) = 1.;
 	M0 << 0., 0., 0., 0., PD * f_a, PD * f_b;
@@ -132,19 +130,16 @@ VectorXd Two_SSFP(const VectorXd&flipAngles, const double &rfPhase,
 	A(0, 3) = A(1, 2) = A(2, 1) = A(3, 0) = 0.;
 	MatrixExponential<Matrix6d> exp(A);
 	exp.compute(expA);
-	const Matrix6d eyema = eye6 - expA;
-	for (int i = 0; i < flipAngles.size(); i++)
-	{
+	const Vector6d eyemaM0 = (eye6 - expA) * M0;
+	for (int i = 0; i < flipAngles.size(); i++) {
 		double a = flipAngles[i];
 		double ca = cos(B1 * a), sa = sin(B1 * a);
 		R_rf(2, 2) = R_rf(3, 3) = R_rf(4, 4) = R_rf(5, 5) = ca;
 		R_rf(2, 4) = R_rf(3, 5) = sa;
 		R_rf(4, 2) = R_rf(5, 3) = -sa;
-		eye_mAR.noalias() = eye6 - (expA * R_rf);
-		solver.compute(eye_mAR);
-		Mobs.noalias() = solver.solve(eyema) * M0;
+		Mobs.noalias() = (eye6 - (expA * R_rf)).partialPivLu().solve(eyemaM0);
 		signal[i] = sqrt(pow(Mobs[0] + Mobs[1], 2.) +
-						  pow(Mobs[2] + Mobs[3], 2.));
+						 pow(Mobs[2] + Mobs[3], 2.));
 	}
 	return signal;
 }
@@ -172,11 +167,11 @@ VectorXd Three_SPGR(const VectorXd&flipAngles,
 					  0,               0, -R1_c;
 	MatrixExponential<Matrix3d> expA(A*TR);
 	expA.compute(A);
-	const Matrix3d eyema = eye3 - A;
+	const Vector3d eyemaM0 = (eye3 - A)*M0;
 	for (int i = 0; i < flipAngles.size(); i++)
 	{
 		double a = flipAngles[i];
-		Mobs = (eye3 - A*cos(B1 * a)).partialPivLu().solve(eyema * sin(B1 * a)) * M0;
+		Mobs = (eye3 - A*cos(B1 * a)).partialPivLu().solve(eyemaM0 * sin(B1 * a));
 		signal[i] = Mobs.sum();
 	}
 	return signal;
@@ -215,7 +210,7 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const double &rfPhase,
 	A(5, 2) = -A(2, 5);
 	MatrixExponential<Matrix9d> exp(A);
 	exp.compute(expATR);
-	const Matrix9d eyema = eye9 - expATR;
+	const Vector9d eyemaM0 = (eye9 - expATR) * M0;
 	A /= 2.; // TE = TR/2 for SSFP
 	// Don't have to account for phase-cycling here
 	A(0, 3) = (B0_a * TR * M_PI);
@@ -236,9 +231,60 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const double &rfPhase,
 		R_rf(6, 3) = R_rf(7, 4) = R_rf(8, 5) = -sa;
 		eye_mAR.noalias() = eye9 - (expATR * R_rf);
 		solver.compute(eye_mAR);
-		Mobs.noalias() = expATE * solver.solve(eyema) * M0;
+		Mobs.noalias() = expATE * solver.solve(eyemaM0);
 		signal[i] = sqrt(pow(Mobs[0] + Mobs[1] + Mobs[2], 2.) +
 						 pow(Mobs[3] + Mobs[4] + Mobs[5], 2.));
+	}
+	return signal;
+}
+
+VectorXd Three_SSFP_New(const VectorXd&flipAngles, const double &beta,
+                    const double &TR, const double &PD,
+				    const double &B0, const double &B1,
+				    const double &R1_a, const double &R1_b, const double &R1_c,
+				    const double &R2_a, const double &R2_b, const double &R2_c,
+				    const double &f_a, const double &f_b, const double &f_c,
+				    const double &k_ab, const double &k_ba)
+{
+	VectorXd signal(flipAngles.size());
+	Matrix9d A = Matrix9d::Zero(), expATR, expATE, R = Matrix9d::Zero(), eye_mAR;
+	Matrix3d R_flip, R_cycle, R_both;
+	const Matrix9d eye9 = Matrix9d::Identity();
+	Vector9d M0;
+	M0 << 0., 0.,PD * f_a, 0., 0., PD * f_b, 0., 0., PD * f_c;
+	// Set up the 'A' matrix. It's quite complex.
+	double TE = TR / 2.;
+	A(0, 0) = A(1, 1) = -TE * (R2_a + k_ab);
+	A(3, 3) = A(4, 4) = -TE * (R2_b + k_ba);
+	A(6, 6) = A(7, 7) = -TE * (R2_c);
+	A(0, 3) = A(1, 4) = A(2, 5) = TE * k_ba;
+	A(3, 0) = A(4, 1) = A(5, 2) = TE * k_ab;
+	A(2, 2) = -TE * (R1_a + k_ab);
+	A(5, 5) = -TE * (R1_b + k_ba);
+	A(8, 8) = -TE * (R1_c);
+	double dw = (B0 * TE * 2. * M_PI);
+	A(0, 1) = A(3, 4) = A(6, 7) = dw;
+	A(1, 0) = A(4, 3) = A(7, 6) = -dw;
+	MatrixExponential<Matrix9d> exp(A);
+	exp.compute(expATE);
+	expATR.noalias() = expATE * expATE;
+	const Vector9d eyemaM0 = (eye9 - expATR) * M0;
+	
+	double cb = cos(beta), sb = sin(beta);
+	for (int i = 0; i < flipAngles.size(); i++) {
+		double a = flipAngles[i];
+		double ca = cos(B1 * a), sa = sin(B1 * a);
+		Matrix3d R_b;
+		R_b << cb, ca*sb, sa*sb,
+	          -sb, ca*cb, sa*cb,
+		        0,   -sa,    ca;
+		R.block(0, 0, 3, 3) = R_b;
+		R.block(3, 3, 3, 3) = R_b;
+		R.block(6, 6, 3, 3) = R_b;
+		Vector9d MTR = (eye9 - expATR * R).partialPivLu().solve(eyemaM0);
+		Vector9d Mobs = expATE * R * MTR;
+		signal[i] = sqrt(pow(Mobs[0] + Mobs[3] + Mobs[6], 2.) +
+						 pow(Mobs[1] + Mobs[2] + Mobs[7], 2.));
 	}
 	return signal;
 }
@@ -484,7 +530,7 @@ class mcDESPOT : public Functor<double> {
 					switch (_components) {
 						case 1: theory = One_SSFP(_angles[i], _consts[i].phase, _consts[i].TR, PD, B0, _consts[i].B1, R1_a, R2_a); break;
 						case 2: theory = Two_SSFP(_angles[i], _consts[i].phase, _consts[i].TR, PD, B0, _consts[i].B1, R1_a, R1_b, R2_a, R2_b, f_a, f_b, k_ab, k_ba); break;
-						case 3: theory = Three_SSFP(_angles[i], _consts[i].phase, _consts[i].TR, PD, B0, B0, B0, _consts[i].B1, R1_a, R1_b, R1_c, R2_a, R2_b, R2_c, f_a, f_b, f_c, k_ab, k_ba); break;
+						case 3: theory = Three_SSFP_New(_angles[i], _consts[i].phase, _consts[i].TR, PD, B0, _consts[i].B1, R1_a, R1_b, R1_c, R2_a, R2_b, R2_c, f_a, f_b, f_c, k_ab, k_ba); break;
 					}
 				}
 				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
