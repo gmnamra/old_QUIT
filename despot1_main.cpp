@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	NiftiImage spgrFile, inFile;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "m:vd", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "m:o:vd", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case '1':
 				cout << "Opening B1 file: " << optarg << endl;

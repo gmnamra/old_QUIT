@@ -34,10 +34,11 @@ Acknowledgements greatfully received, grant discussions welcome."
 };
 
 const string usage {
-"Usage is: despot-hifi [options] spgr_input ir-spgr_input output_prefix \n\
+"Usage is: despot-hifi [options] spgr_input ir-spgr_input\n\
 \
 Options:\n\
 	-m, --mask file  : Mask input with specified file.\n\
+	--out, -o path    : Add a prefix to the output filenames.\n\
 	-v, --verbose    : Print out more messages.\n\
 	-i, --inv 0-3    : Specify the scanner Inversion mode:\n\
 	                   0 (Default) Use raw segment TR from input file\n\
@@ -49,10 +50,12 @@ Options:\n\
 };
 
 static int verbose = false, inversionMode = 0, peReadout = 0;
+static string outPrefix;
 static double inversionEfficiency = 0.;
 static struct option long_options[] =
 {
 	{"mask", required_argument, 0, 'm'},
+	{"out", required_argument, 0, 'o'},
 	{"verbose", no_argument, 0, 'v'},
 	{"inv", required_argument, 0, 'i'},
 	{"pe", required_argument, 0, 'p'},
@@ -72,7 +75,7 @@ int main(int argc, char **argv) {
 	double *maskData = NULL;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "i:m:p:v", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "i:m:o:vp:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'i':
 				inversionMode = atoi(optarg);
@@ -86,12 +89,16 @@ int main(int argc, char **argv) {
 				maskData = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
+			case 'o':
+				outPrefix = optarg;
+				cout << "Output prefix will be: " << outPrefix << endl;
+				break;
 			case 'v': verbose = true; break;
 			case '?': // getopt will print an error message
 				exit(EXIT_FAILURE);
 		}
 	}
-	if ((argc - optind) != 3) {
+	if ((argc - optind) != 2) {
 		cout << "Incorrect number of arguments." << endl << usage << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -184,7 +191,6 @@ int main(int argc, char **argv) {
 			irTR -= irTI[0]; // Subtract off TI to get 
 		}
 	}
-	const string outPrefix(argv[++optind]);
 	if (verbose) {
 		cout << "Found " << nIR << " SPGR-IR images with flip angle " << irAngle * 180. / M_PI << " degrees." << endl;
 		cout << "Segment TR is " << irTR << " seconds." << endl;
@@ -211,7 +217,7 @@ int main(int argc, char **argv) {
 	double **resultsData   = new double*[NR];
 	for (int i = 0; i < NR; i++)
 		resultsData[i] = new double[voxelsPerVolume];
-	const string names[NR] = { "_M0", "_T1", "_B1", "_despot1_res" };
+	const string names[NR] = { "HIFI_M0", "HIFI_T1", "HIFI_B1", "HIFI_residual" };
 	
 	//**************************************************************************
 	// Do the fitting

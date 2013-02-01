@@ -123,13 +123,13 @@ void int_handler(int sig)
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles,
-                       vector<double> &TR, vector<double> &phase,
+NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
+                       vector<mcDESPOT::ModelConstants> &consts,
 				       vector<NiftiImage *> &signalFiles,
 				       vector<NiftiImage *> &B1_files,
 				       vector<NiftiImage *> &B0_files);
-NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles,
-                       vector<double> &TR, vector<double> &phase,
+NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
+                       vector<mcDESPOT::ModelConstants> &consts,
 				       vector<NiftiImage *> &signalFiles,
 				       vector<NiftiImage *> &B1_files,
 				       vector<NiftiImage *> &B0_files) {
@@ -139,9 +139,9 @@ NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles
 	while (getline(cin, type) && !type.empty()) {
 		
 		if (type == "SPGR")
-			signalTypes.push_back(SignalSPGR);
+			signalTypes.push_back(mcDESPOT::SignalSPGR);
 		else if (type == "SSFP")
-			signalTypes.push_back(SignalSSFP);
+			signalTypes.push_back(mcDESPOT::SignalSSFP);
 		else {
 			cerr << "Unknown signal type: " << type << endl;
 			exit(EXIT_FAILURE);
@@ -154,7 +154,6 @@ NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles
 			savedHeader = inHdr;
 		inHdr->checkVoxelsCompatible(*savedHeader);
 		signalFiles.push_back(inHdr);
-		
 		double inTR = 0., inPhase = 0.;
 		VectorXd inAngles(inHdr->dim(4));
 		#ifdef USE_PROCPAR
@@ -163,7 +162,7 @@ NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles
 			inTR = RealValue(pars, "tr");
 			for (int i = 0; i < inAngles.size(); i++)
 				inAngles[i] = RealValue(pars, "flip1", i);
-			if (signalTypes.back() == SignalSSFP)
+			if (signalTypes.back() == mcDESPOT::SignalSSFP)
 				inPhase = RealValue(pars, "rfphase");
 		} else
 		#endif
@@ -174,13 +173,12 @@ NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles
 			for (int i = 0; i < inAngles[i]; i++)
 				cin >> inAngles[i];
 			getline(cin, path); // Just to eat the newline
-			if (signalTypes.back() == SignalSSFP) {
+			if (signalTypes.back() == mcDESPOT::SignalSSFP) {
 				if (prompt) cout << "Enter SSFP Phase-Cycling: ";
 				cin >> inPhase;
 			}
 		}
-		TR.push_back(inTR);
-		phase.push_back(inPhase * M_PI / 180.);
+		consts.push_back( { inTR, inPhase * M_PI / 180., 0., 0. } );
 		angles.push_back(inAngles * M_PI / 180.);
 		
 		inHdr = NULL;
@@ -194,7 +192,7 @@ NiftiImage *parseInput(vector<SignalType> &signalTypes, vector<VectorXd> &angles
 		B1_files.push_back(inHdr);
 		
 		inHdr = NULL;
-		if (signalTypes.back() == SignalSSFP) {
+		if (signalTypes.back() == mcDESPOT::SignalSSFP) {
 			if (prompt) cout << "Enter path to B0 map: " << flush;
 			getline(cin, path);
 			if (!path.empty()) {
@@ -284,11 +282,11 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	vector<SignalType> signalTypes;
+	vector<mcDESPOT::SignalType> signalTypes;
+	vector<mcDESPOT::ModelConstants> consts;
 	vector<VectorXd> angles;
 	vector<NiftiImage *> signalFiles, B1_files, B0_files;
-	vector<double> TR, phase;
-	savedHeader = parseInput(signalTypes, angles, TR, phase, signalFiles, B1_files, B0_files);
+	savedHeader = parseInput(signalTypes, angles, consts, signalFiles, B1_files, B0_files);
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	// Use NULL to indicate that default values should be used -
@@ -340,8 +338,8 @@ int main(int argc, char **argv)
 	// pick up the specified value (for now assume the last specified file is
 	// an SSFP sequence, needs fixing / generalising)
 	if (fitB0) {
-		loBounds[nP - 1] = -0.5 / TR.back();
-		hiBounds[nP - 1] =  0.5 / TR.back();
+		loBounds[nP - 1] = -0.5 / consts.back().TR;
+		hiBounds[nP - 1] =  0.5 / consts.back().TR;
 		if (components == 4) {
 			loBounds[nP - 3] = loBounds[nP - 2] = loBounds[nP - 1];
 			hiBounds[nP - 3] = hiBounds[nP - 2] = hiBounds[nP - 1];
@@ -388,9 +386,6 @@ int main(int argc, char **argv)
 				voxCount++;
 				
 				vector<VectorXd> signals(signalFiles.size());
-				VectorXd B1s(signalFiles.size()),
-						 B0s(signalFiles.size());
-				
 				for (int i = 0; i < signalFiles.size(); i++) {
 					VectorXd temp(angles[i].size());
 					for (int j = 0; j < angles[i].size(); j++) {
@@ -399,8 +394,8 @@ int main(int argc, char **argv)
 					if (normalise)
 						temp /= temp.mean();
 					signals[i] = temp;
-					B0s[i] = B0Volumes[i] ? B0Volumes[i][vox] : 0.;
-					B1s[i] = B1Volumes[i] ? B1Volumes[i][vox] : 1.;
+					consts[i].B0 = B0Volumes[i] ? B0Volumes[i][vox] : 0.;
+					consts[i].B1 = B1Volumes[i] ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
@@ -409,9 +404,8 @@ int main(int argc, char **argv)
 					localLo(0) = (double)M0Data[sliceOffset + vox];
 					localHi(0) = (double)M0Data[sliceOffset + vox];
 				}
-				mcDESPOT tc(components, signalTypes, angles, signals, TR, phase, B0s, B1s,
-								  normalise, fitB0);
-				residual = regionContraction<mcDESPOT>(localP, tc, localLo, localHi,
+				mcDESPOT mcd(components, signalTypes, angles, signals, consts, normalise, fitB0);
+				residual = regionContraction<mcDESPOT>(localP, mcd, localLo, localHi,
 															 samples, retain, contract, 0.05, expand, rSeed);
 				params = localP;
 			}

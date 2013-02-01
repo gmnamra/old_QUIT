@@ -7,83 +7,86 @@
 //
 
 #include <getopt.h>
-#include <stdio.h>
+
+#include <vector>
+#include <string>
+
 #include "DESPOT_Functors.h"
 #include "NiftiImage.h"
 #include "procpar.h"
 
-static int components = 1;
+static int components = 1, tesla = 7;
 static std::string outPrefix;
+static bool testSpeed = false, testFiles = false;
 static struct option long_options[] =
 {
 	{"components", required_argument, 0, 'c'},
+	{"speed", no_argument, 0, 's'},
+	{"files", no_argument, 0, 'f'},
+	{"tesla", required_argument, 0, 't'},
 	{0, 0, 0, 0}
 };
+
+using namespace std;
 
 int main(int argc, char **argv)
 {
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "c:", long_options, &indexptr)) != -1)
-	{
-		switch (c)
-		{
+	while ((c = getopt_long(argc, argv, "c:sf", long_options, &indexptr)) != -1) {
+		switch (c) {
 			case 'c':
 				components = atoi(optarg);
 				outPrefix = std::string("test_") + optarg + "c";
-				if ((components < 1) || (components > 3))
-				{
+				if ((components < 1) || (components > 3)) {
 					std::cout << "Valid models are 1 to 3 components." << std::endl;
 					exit(EXIT_FAILURE);
 				}
 				break;
+			case 's': testSpeed = true; break;
+			case 'f': testFiles = true; break;
+			case 't': tesla = atoi(optarg);
 			default:
-				std::cout << "Unknown command line switch " << c << std::endl;
+				break;
 		}
 	}
-
-	// Generate test images
-	
+		
 	// Set up all the parameters
-	double spgrTR = 0.0087;
-	double ssfpTR = 0.002916;
-	double B0 = 0.;
-	double B1 = 1;
+	double spgrTR = 0.0012;
+	double ssfpTR = 0.006;
 	
-	VectorXd alphaSPGR(6); alphaSPGR << 2, 4, 8, 16, 24, 32;
-	VectorXd alphaSSFP(6); alphaSSFP << 2, 4, 8, 16, 32, 64;
-	VectorXd phases(3); phases << 180., 135., 225.;
+	ArrayXd alphaSPGR(6); alphaSPGR << 2, 4, 8, 16, 24, 32;
+	ArrayXd alphaSSFP(6); alphaSSFP << 2, 4, 8, 16, 32, 64;
 	alphaSPGR *= M_PI / 180.;
 	alphaSSFP *= M_PI / 180.;
-	phases    *= M_PI / 180.;
-	VectorXd zeros(6); zeros.setZero();
-	std::vector<VectorXd> ssfpZeros;
-	for (int i = 0; i < phases.size(); i++)
-		ssfpZeros.push_back(zeros);
+	ArrayXd sSPGR(alphaSPGR.size()); sSPGR.setZero();
+	ArrayXd sSSFP(alphaSSFP.size()); sSSFP.setZero();
 	
-	std::cout << "RF Phases: " << phases.transpose() << std::endl;
-	std::cout << "SPGR flip: " << alphaSPGR.transpose() << std::endl;
-	std::cout << "SSFP flip: " << alphaSSFP.transpose() << std::endl;
+	vector<mcDESPOT::SignalType> types;
+	types.push_back(mcDESPOT::SignalSPGR);
+	types.push_back(mcDESPOT::SignalSSFP);
+	types.push_back(mcDESPOT::SignalSSFP);
+	vector<VectorXd> signals, angles;
+	vector<double> TR, phases, B0, B1;
+	vector<mcDESPOT::ModelConstants> consts;
+	angles.push_back(alphaSPGR); signals.push_back(sSPGR); consts.push_back( { spgrTR, 0., 0., 1. } );
+	angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, 0., 0., 1. } );
+	angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, M_PI, 0., 1. } );
 	
-	VectorXd params;
-	Functor<double> *model = NULL;
-	switch (components)
-	{
-		case 1:
-			params.resize(OneComponent::nP, 1);
-			params << 1.e5, 1., 0.015;
-			break;
-		case 2:
-			params.resize(TwoComponent::nP, 1);
-			params << 0.7, 2., 0.008, 0.02, 0., 0.125, 0.;
-			model = new TwoComponent(alphaSPGR, zeros, alphaSSFP, phases, ssfpZeros, spgrTR, ssfpTR, 1., 0., B1);
-			break;
-		case 3:
-			params.resize(ThreeComponent::nP, 1);
-			params << 0.7, 2., 8., 0.008, 0.02, 0.25, 0., 0., 0.125, 0.;
-			model = new ThreeComponent(alphaSPGR, zeros, alphaSSFP, phases, ssfpZeros, spgrTR, ssfpTR, 1., INFINITY, B1);
-			break;
+	long loops = 1000;
+	if (testSpeed) {
+		for (int c = 1; c < 4; c++) {
+			ArrayXd p = (mcDESPOT::defaultLo(c, tesla) + mcDESPOT::defaultHi(c, tesla)) / 2.;
+			mcDESPOT mcd(c, types, angles, signals, consts, false, false);
+			VectorXd signal;
+			clock_t start = clock();
+			for (int l = 0; l < loops; l++)
+				signal = mcd.theory(p);
+			clock_t end = clock();
+			cout << c << "-component model average time " << ((end - start) / ((float)loops * CLOCKS_PER_SEC)) * 1000 << " ms" << endl;
+		}
 	}
 	
+	/*
 	// Now create our images
 	int nx = 3, ny = 3, nz = 3;
 	int totalVoxels = nx * ny * nz;
@@ -194,6 +197,7 @@ int main(int argc, char **argv)
 		case 2: write_results<TwoComponent>(outPrefix, dataParams, NULL, outFile); break;
 		case 3: write_results<ThreeComponent>(outPrefix, dataParams, NULL, outFile); break;
 	}
+	*/
     return 0;
 }
 

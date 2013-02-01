@@ -280,19 +280,23 @@ class Functor
 //******************************************************************************
 #pragma mark mcDESPOT Functor
 //******************************************************************************
-enum SignalType {
-	SignalSPGR = 0,
-	SignalSSFP
-};
-
 class mcDESPOT : public Functor<double> {
+	public:
+		enum SignalType {
+			SignalSPGR = 0,
+			SignalSSFP
+		};
+		
+		struct ModelConstants {
+			double TR, phase, B0, B1;
+		};
+	
 	private:
 		const int _components;
 		long _nP, _nV;
 		const vector<SignalType> &_types;
 		const vector<VectorXd> &_angles, &_signals;
-		const vector<double> &_TR, &_phases;
-		const VectorXd &_B0, &_B1;
+		const vector<ModelConstants> &_consts;
 		const bool &_normalise, &_fitB0;
 	
 	public:
@@ -407,11 +411,10 @@ class mcDESPOT : public Functor<double> {
 		
 		mcDESPOT(const int components, const vector<SignalType> &types,
 				 const vector<VectorXd> &angles, const vector<VectorXd> &signals,
-		         const vector<double> &TR, const vector<double> &phases, const VectorXd &B0, const VectorXd &B1,
+		         const vector<ModelConstants> &constants,
 				 const bool &normalise = false, const bool &fitB0 = true) :
 			_components(components), _types(types),
-			_angles(angles), _signals(signals),
-			_TR(TR), _phases(phases), _B0(B0), _B1(B1),
+			_angles(angles), _signals(signals), _consts(constants),
 			_normalise(normalise), _fitB0(fitB0)
 		{
 			_nP = nP(components);
@@ -473,15 +476,15 @@ class mcDESPOT : public Functor<double> {
 				VectorXd theory(_signals[i].size());
 				if (_types[i] == SignalSPGR) {
 					switch (_components) {
-						case 1: theory = One_SPGR(_angles[i], _TR[i], PD, _B1[i], R1_a); break;
-						case 2: theory = Two_SPGR(_angles[i], _TR[i], PD, _B1[i], R1_a, R1_b, f_a, f_b, k_ab, k_ba); break;
-						case 3: theory = Three_SPGR(_angles[i], _TR[i], PD, _B1[i], R1_a, R1_b, R1_c, f_a, f_b, f_c, k_ab, k_ba); break;
+						case 1: theory = One_SPGR(_angles[i], _consts[i].TR, PD, _consts[i].B1, R1_a); break;
+						case 2: theory = Two_SPGR(_angles[i], _consts[i].TR, PD, _consts[i].B1, R1_a, R1_b, f_a, f_b, k_ab, k_ba); break;
+						case 3: theory = Three_SPGR(_angles[i], _consts[i].TR, PD, _consts[i].B1, R1_a, R1_b, R1_c, f_a, f_b, f_c, k_ab, k_ba); break;
 					}
 				} else if (_types[i] == SignalSSFP) {
 					switch (_components) {
-						case 1: theory = One_SSFP(_angles[i], _phases[i], _TR[i], PD, B0, _B1[i], R1_a, R2_a); break;
-						case 2: theory = Two_SSFP(_angles[i], _phases[i], _TR[i], PD, B0, _B1[i], R1_a, R1_b, R2_a, R2_b, f_a, f_b, k_ab, k_ba); break;
-						case 3: theory = Three_SSFP(_angles[i], _phases[i], _TR[i], PD, B0, B0, B0, _B1[i], R1_a, R1_b, R1_c, R2_a, R2_b, R2_c, f_a, f_b, f_c, k_ab, k_ba); break;
+						case 1: theory = One_SSFP(_angles[i], _consts[i].phase, _consts[i].TR, PD, B0, _consts[i].B1, R1_a, R2_a); break;
+						case 2: theory = Two_SSFP(_angles[i], _consts[i].phase, _consts[i].TR, PD, B0, _consts[i].B1, R1_a, R1_b, R2_a, R2_b, f_a, f_b, k_ab, k_ba); break;
+						case 3: theory = Three_SSFP(_angles[i], _consts[i].phase, _consts[i].TR, PD, B0, B0, B0, _consts[i].B1, R1_a, R1_b, R1_c, R2_a, R2_b, R2_c, f_a, f_b, f_c, k_ab, k_ba); break;
 					}
 				}
 				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
