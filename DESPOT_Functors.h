@@ -22,8 +22,8 @@ using namespace Eigen;
 #pragma mark One Component Signals
 //******************************************************************************
 VectorXd One_SPGR(const VectorXd&flipAngles,
-                  const double TR, const double M0, const double R1,
-				  const double B1)
+                  const double TR, const double M0, const double B1,
+				  const double R1)
 {
 	VectorXd theory(flipAngles.size());
 	VectorXd sa = (flipAngles.array() * B1).sin();
@@ -36,20 +36,20 @@ VectorXd One_SPGR(const VectorXd&flipAngles,
 
 VectorXd One_SSFP(const VectorXd &flipAngles, const double rfPhase,
                   const double TR, const double M0,
-				  const double R1, const double R2,
-				  const double B0, const double B1)
+				  const double B0, const double B1,
+				  const double R1, const double R2)
 {
 	Matrix3d A = Matrix3d::Zero(), R_rf = Matrix3d::Zero(),
 	                eye = Matrix3d::Identity(), expA, eyemA;
 	Vector3d M = Vector3d::Zero(), Mobs;
 	M[2] = M0;
 	R_rf(0, 0) = 1.;
-	double phase = rfPhase / TR + (B0 * 2. * M_PI);
-	A(0, 0) = A(1, 1) = -R2;
+	double phase = rfPhase + (B0 * 2. * M_PI * TR);
+	A(0, 0) = A(1, 1) = -R2 * TR;
 	A(0, 1) =  phase;
 	A(1, 0) = -phase;
-	A(2, 2) = -R1;
-	MatrixExponential<Matrix3d> expmA(A*TR);
+	A(2, 2) = -R1 * TR;
+	MatrixExponential<Matrix3d> expmA(A);
 	expmA.compute(expA);
 	eyemA.noalias() = eye - expA;
 	
@@ -217,6 +217,7 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const double &rfPhase,
 	exp.compute(expATR);
 	const Matrix9d eyema = eye9 - expATR;
 	A /= 2.; // TE = TR/2 for SSFP
+	// Don't have to account for phase-cycling here
 	A(0, 3) = (B0_a * TR * M_PI);
 	A(3, 0) = -A(0, 3);
 	A(1, 4) = (B0_b * TR * M_PI);
@@ -469,7 +470,7 @@ class mcDESPOT : public Functor<double> {
 			VectorXd t(values());
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
-				VectorXd theory(_angles[i].size());
+				VectorXd theory(_signals[i].size());
 				if (_types[i] == SignalSPGR) {
 					switch (_components) {
 						case 1: theory = One_SPGR(_angles[i], _TR[i], PD, _B1[i], R1_a); break;
@@ -484,8 +485,8 @@ class mcDESPOT : public Functor<double> {
 					}
 				}
 				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
-				t.segment(index, _angles[i].size()) = theory;
-				index += _angles[i].size();
+				t.segment(index, _signals[i].size()) = theory;
+				index += _signals[i].size();
 			}
 			return t;
 		}
@@ -532,8 +533,8 @@ class DESPOT2FM : public Functor<double> {
 		
 		static const ArrayXd defaultHi(const int tesla) {
 			static ArrayXd t3(3), t7(3);
-			t3 << 1.e7,   1.00, 150.;
-			t7 << 1.e7,   0.10, 150.;
+			t3 << 1.e6,   1.00, 150.;
+			t7 << 1.e6,   0.25, 150.;
 			
 			switch (tesla) {
 				case 3: return t3; break;
@@ -584,14 +585,14 @@ class DESPOT2FM : public Functor<double> {
 		
 		const VectorXd theory(const VectorXd &params) const {
 			double PD = params[0], R2 = 1./params[1], B0 = params[2];
-						
+
 			VectorXd t(values());
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				VectorXd theory(_signals[i].size());
 				theory = One_SSFP(_angles, _phases[i], _TR, PD, B0, _B1[i], _R1, R2);
 				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
-				t.segment(index, _angles.size()) = theory;
+				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
 			}
 			return t;
