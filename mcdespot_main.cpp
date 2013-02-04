@@ -124,12 +124,12 @@ void int_handler(int sig)
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
 NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
-                       vector<mcDESPOT::ModelConstants> &consts,
+                       vector<DESPOTConstants> &consts,
 				       vector<NiftiImage *> &signalFiles,
 				       vector<NiftiImage *> &B1_files,
 				       vector<NiftiImage *> &B0_files);
 NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
-                       vector<mcDESPOT::ModelConstants> &consts,
+                       vector<DESPOTConstants> &consts,
 				       vector<NiftiImage *> &signalFiles,
 				       vector<NiftiImage *> &B1_files,
 				       vector<NiftiImage *> &B0_files) {
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
 	vector<mcDESPOT::SignalType> signalTypes;
-	vector<mcDESPOT::ModelConstants> consts;
+	vector<DESPOTConstants> consts;
 	vector<VectorXd> angles;
 	vector<NiftiImage *> signalFiles, B1_files, B0_files;
 	savedHeader = parseInput(signalTypes, angles, consts, signalFiles, B1_files, B0_files);
