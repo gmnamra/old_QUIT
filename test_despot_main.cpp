@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 	types.push_back(mcDESPOT::SignalSSFP);
 	vector<VectorXd> signals, angles;
 	vector<double> TR, phases, B0, B1;
-	vector<mcDESPOT::ModelConstants> consts;
+	vector<DESPOTConstants> consts;
 	angles.push_back(alphaSPGR); signals.push_back(sSPGR); consts.push_back( { spgrTR, 0., 0., 1. } );
 	angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, 0., 0., 1. } );
 	angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, M_PI, 0., 1. } );
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 	if (testSpeed) {
 		for (int c = 1; c < 4; c++) {
 			ArrayXd p = (mcDESPOT::defaultLo(c, tesla) + mcDESPOT::defaultHi(c, tesla)) / 2.;
-			mcDESPOT mcd(c, types, angles, signals, consts, false, false);
+			mcDESPOT mcd(c, types, angles, signals, consts, true, false);
 			VectorXd signal;
 			clock_t start = clock();
 			for (int l = 0; l < loops; l++)

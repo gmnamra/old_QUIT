@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 	cout << credit << endl;
 	Eigen::initParallel();
 	NiftiImage inHeader, *savedHeader;
-	double *maskData = NULL, *M0Data = NULL;
+	double *maskData = NULL, *PDData = NULL;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvpt:m:o:znds:r:c:e:", long_options, &indexptr)) != -1) {
@@ -234,9 +234,9 @@ int main(int argc, char **argv)
 				inHeader.close();
 				break;
 			case 'M':
-				cout << "Reading M0 file " << optarg << endl;
+				cout << "Reading PD file " << optarg << endl;
 				inHeader.open(optarg, NiftiImage::NIFTI_READ);
-				M0Data = inHeader.readVolume<double>(0);
+				PDData = inHeader.readVolume<double>(0);
 				inHeader.close();
 				break;
 			case 'o':
@@ -329,25 +329,23 @@ int main(int argc, char **argv)
 		paramsHdrs[i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
 		paramsHdrs[i].open(outPrefix + "MCD_" + names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE);
 	}
-	// If normalising, don't bother fitting for M0
-	if (normalise) {
-		loBounds[0] = 1.;
-		hiBounds[0] = 1.;
-	}
+	
 	// If fitting, give a suitable range. Otherwise fix and let the functors
 	// pick up the specified value (for now assume the last specified file is
 	// an SSFP sequence, needs fixing / generalising)
 	if (fitB0) {
-		loBounds[nP - 1] = -0.5 / consts.back().TR;
-		hiBounds[nP - 1] =  0.5 / consts.back().TR;
-		if (components == 4) {
-			loBounds[nP - 3] = loBounds[nP - 2] = loBounds[nP - 1];
-			hiBounds[nP - 3] = hiBounds[nP - 2] = hiBounds[nP - 1];
-		}
+		loBounds[0] = -0.5 / consts.back().TR;
+		hiBounds[0] =  0.5 / consts.back().TR;
 	} else {
-		loBounds[nP - 1] = 0.;
-		hiBounds[nP - 1] = 0.;
+		loBounds[0] = 0.;
+		hiBounds[0] = 0.;
 	}
+	// If normalising, don't bother fitting for PD
+	if (normalise) {
+		loBounds[1] = 1.;
+		hiBounds[1] = 1.;
+	}
+	
 	if (verbose) {
 		cout << "Low bounds: " << loBounds.transpose() << endl;
 		cout << "Hi bounds:  " << hiBounds.transpose() << endl;
@@ -382,7 +380,7 @@ int main(int argc, char **argv)
 			double residual = 0.;
 			ArrayXd params(nP); params.setZero();
 			if ((!maskData || (maskData[sliceOffset + vox] > 0.)) &&
-			    (!M0Data || (M0Data[sliceOffset + vox] > 0.))) {
+			    (!PDData || (PDData[sliceOffset + vox] > 0.))) {
 				voxCount++;
 				
 				vector<VectorXd> signals(signalFiles.size());
@@ -400,9 +398,9 @@ int main(int argc, char **argv)
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
 				ArrayXd localLo = loBounds, localHi = hiBounds, localP(nP);
-				if (M0Data) {
-					localLo(0) = (double)M0Data[sliceOffset + vox];
-					localHi(0) = (double)M0Data[sliceOffset + vox];
+				if (PDData) {
+					localLo(0) = (double)PDData[sliceOffset + vox];
+					localHi(0) = (double)PDData[sliceOffset + vox];
 				}
 				mcDESPOT mcd(components, signalTypes, angles, signals, consts, normalise, fitB0);
 				residual = regionContraction<mcDESPOT>(localP, mcd, localLo, localHi,
@@ -448,7 +446,7 @@ int main(int argc, char **argv)
 		if (B0Volumes[i])
 			delete[] B0Volumes[i];
 	}
-	delete[] M0Data;
+	delete[] PDData;
 	delete[] maskData;
 	return EXIT_SUCCESS;
 }
