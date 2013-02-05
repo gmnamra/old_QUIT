@@ -306,11 +306,6 @@ int main(int argc, char **argv)
 	
 	cout << "Using " << components << " component model." << endl;
 	const int nP = mcDESPOT::nP(components);
-	// The lo/hiBounds methods will make sure these vectors are the right
-	// length, even for tesla == -1
-	ArrayXd loBounds, hiBounds;
-	loBounds = mcDESPOT::defaultLo(components, tesla);
-	hiBounds = mcDESPOT::defaultHi(components, tesla);
 	vector<string> names = mcDESPOT::names(components);
 	residualData = new double[voxelsPerSlice];
 	residualHdr = *savedHeader;
@@ -319,10 +314,16 @@ int main(int argc, char **argv)
 	
 	paramsData.resize(nP);
 	paramsHdrs = new NiftiImage[nP];
-	if (prompt && (tesla < 0))
+
+	ArrayXd loBounds(nP), hiBounds(nP);
+	if (tesla > 0) {
+		loBounds = mcDESPOT::defaultLo(components, tesla);
+		hiBounds = mcDESPOT::defaultHi(components, tesla);
+	} else if (prompt) {
 		cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
+	}
 	for (int i = 0; i < nP; i++) {
-		if (tesla < 0)
+		if (tesla <= 0)
 			cin >> loBounds[i] >> hiBounds[i];
 		paramsData[i] = new double[voxelsPerSlice];
 		paramsHdrs[i] = *savedHeader;
