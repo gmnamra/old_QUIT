@@ -422,21 +422,24 @@ class mcDESPOT : public Functor<double> {
 		}
 		
 		const VectorXd theory(const VectorXd &params) const {
+			VectorXd localP = params;
 			VectorXd t(values());
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				VectorXd theory(_signals[i].size());
+				if (!_fitB0)
+					localP[0] = _consts[i].B0;
 				if (_types[i] == SignalSPGR) {
 					switch (_components) {
-						case 1: theory = One_SPGR(_angles[i], _consts[i], params); break;
-						case 2: theory = Two_SPGR(_angles[i], _consts[i], params); break;
-						case 3: theory = Three_SPGR(_angles[i], _consts[i], params); break;
+						case 1: theory = One_SPGR(_angles[i], _consts[i], localP); break;
+						case 2: theory = Two_SPGR(_angles[i], _consts[i], localP); break;
+						case 3: theory = Three_SPGR(_angles[i], _consts[i], localP); break;
 					}
 				} else if (_types[i] == SignalSSFP) {
 					switch (_components) {
-						case 1: theory = One_SSFP(_angles[i], _consts[i], params); break;
-						case 2: theory = Two_SSFP(_angles[i], _consts[i], params, _normalise); break;
-						case 3: theory = Three_SSFP(_angles[i], _consts[i], params, _normalise); break;
+						case 1: theory = One_SSFP(_angles[i], _consts[i], localP); break;
+						case 2: theory = Two_SSFP(_angles[i], _consts[i], localP, _normalise); break;
+						case 3: theory = Three_SSFP(_angles[i], _consts[i], localP, _normalise); break;
 					}
 				}
 				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
@@ -539,14 +542,15 @@ class DESPOT2FM : public Functor<double> {
 		}
 		
 		const VectorXd theory(const VectorXd &params) const {
-			double PD = params[0], T2 = params[1], B0 = params[2];
 			VectorXd withT1(4);
-			withT1 << B0, PD, _T1, T2;
+			withT1 << params[0], params[1], _T1, params[2];
 			
 			VectorXd t(values());
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				VectorXd theory(_signals[i].size());
+				if (!_fitB0)
+					withT1[0] = _consts[i].B0;
 				theory = One_SSFP(_angles, _consts[i], withT1);
 				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
 				t.segment(index, _signals[i].size()) = theory;
