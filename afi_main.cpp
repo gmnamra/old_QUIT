@@ -24,8 +24,7 @@ using namespace std;
 const string usage("Usage is: afi [options] input output \n\
 \
 Options:\n\
-	--mask, -m file  : Mask input with specified file.\n\
-	--smooth         : Smooth output with a gaussian.\n");
+	--mask, -m file  : Mask input with specified file.\n");
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -34,11 +33,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	static int smooth = false;
 	static struct option long_options[] =
 	{
 		{"mask", required_argument, 0, 'm'},
-		{"smooth", no_argument, &smooth, true},
 		{0, 0, 0, 0}
 	};
 	
