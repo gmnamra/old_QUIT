@@ -272,7 +272,7 @@ int main(int argc, char **argv)
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			// Set up parameters and constants
 			double residual = 0., T1 = 0.;
-			ArrayXd params(nP);
+			ArrayXd params(nP); params.setZero();
 			if (!maskData || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				voxCount++;
@@ -299,8 +299,7 @@ int main(int argc, char **argv)
 							index = p;
 						}
 					}
-					residual = classicDESPOT2(ssfpAngles, signals[index], consts[index].TR, T1, consts[index].B1, params[1], params[2]);
-					params[0] = consts[index].B0;
+					residual = classicDESPOT2(ssfpAngles, signals[index], consts[index].TR, T1, consts[index].B1, params[0], params[1]);
 				} else {
 					// DESPOT2-FM
 					DESPOT2FM tc(ssfpAngles, signals, consts, T1, false, fitB0);
@@ -313,7 +312,7 @@ int main(int argc, char **argv)
 			}
 			residuals[sliceOffset + vox] = residual;
 		};
-		apply_for(voxelsPerSlice, processVox);
+		apply_for(voxelsPerSlice, processVox, 1);
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -329,16 +328,29 @@ int main(int argc, char **argv)
     strftime(theTime, 512, "%H:%M:%S", localEnd);
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << endl;
+	
 	savedHeader.setDim(4, 1);
 	savedHeader.setDatatype(NIFTI_TYPE_FLOAT32);
-	for (int p = 0; p < nP; p++) {
-		savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", NiftiImage::NIFTI_WRITE);
-		savedHeader.writeVolume(0, paramsData[p]);
+	if (tesla == 0) {
+		const vector<const string> classic_names { "D2_PD", "D2_T2" };
+		for (int p = 0; p < 2; p++) {
+			savedHeader.open(outPrefix + classic_names[p] + ".nii.gz", NiftiImage::NIFTI_WRITE);
+			savedHeader.writeVolume(0, paramsData[p]);
+			savedHeader.close();
+		}
+		savedHeader.open(outPrefix + "D2_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
+		savedHeader.writeVolume(0, residuals);
+		savedHeader.close();
+	} else {
+		for (int p = 0; p < nP; p++) {
+			savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", NiftiImage::NIFTI_WRITE);
+			savedHeader.writeVolume(0, residuals);
+			savedHeader.close();
+		}
+		savedHeader.open(outPrefix + "FM_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
+		savedHeader.writeVolume(0, residuals);
 		savedHeader.close();
 	}
-	savedHeader.open(outPrefix + "D2_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
-	savedHeader.writeVolume(0, residuals);
-	savedHeader.close();
 	// Clean up memory
 	for (int p = 0; p < nPhases; p++)
 		free(ssfpData[p]);
