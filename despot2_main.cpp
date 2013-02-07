@@ -332,7 +332,7 @@ int main(int argc, char **argv)
 	savedHeader.setDim(4, 1);
 	savedHeader.setDatatype(NIFTI_TYPE_FLOAT32);
 	for (int p = 0; p < nP; p++) {
-		savedHeader.open(outPrefix + DESPOT2FM::names()[p] + "nii.gz", NiftiImage::NIFTI_WRITE);
+		savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", NiftiImage::NIFTI_WRITE);
 		savedHeader.writeVolume(0, paramsData[p]);
 		savedHeader.close();
 	}
