@@ -231,12 +231,12 @@ int main(int argc, char **argv)
 		}
 		// If fitting, give a suitable range and allocate results memory
 		if (fitB0) {
-			loBounds[nP - 1] = -0.5 / consts[0].TR;
-			hiBounds[nP - 1] =  0.5 / consts[0].TR;
+			loBounds[0] = -0.5 / consts[0].TR;
+			hiBounds[0] =  0.5 / consts[0].TR;
 			B0Data = new double[voxelsPerVolume];
 		} else { // Otherwise fix and let functors pick up the specified value
-			loBounds[nP - 1] = 0.;
-			hiBounds[nP - 1] = 0.;
+			loBounds[0] = 0.;
+			hiBounds[0] = 0.;
 		}
 	}
 	
@@ -300,7 +300,7 @@ int main(int argc, char **argv)
 						}
 					}
 					residual = classicDESPOT2(ssfpAngles, signals[index], consts[index].TR, T1, consts[index].B1, params[1], params[2]);
-					params[3] = consts[index].B0;
+					params[0] = consts[index].B0;
 				} else {
 					// DESPOT2-FM
 					DESPOT2FM tc(ssfpAngles, signals, consts, T1, false, fitB0);

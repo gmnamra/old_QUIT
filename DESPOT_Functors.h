@@ -480,8 +480,8 @@ class DESPOT2FM : public Functor<double> {
 		
 		static const ArrayXd &defaultLo(const int tesla) {
 			static ArrayXd t3(3), t7(3);
-			t3 << 0.,   0.010, -150.;
-			t7 << 0.,   0.005, -150.;
+			t3 << -150., 0., 0.010;
+			t7 << -150., 0., 0.005;
 			
 			switch (tesla) {
 				case 3: return t3; break;
@@ -493,8 +493,8 @@ class DESPOT2FM : public Functor<double> {
 		
 		static const ArrayXd defaultHi(const int tesla) {
 			static ArrayXd t3(3), t7(3);
-			t3 << 1.e6,   1.00, 150.;
-			t7 << 1.e6,   0.25, 150.;
+			t3 << 150., 1.e6, 0.50;
+			t7 << 150., 1.e6, 0.25;
 			
 			switch (tesla) {
 				case 3: return t3; break;
@@ -551,10 +551,9 @@ class DESPOT2FM : public Functor<double> {
 			VectorXd t(values());
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
-				VectorXd theory(_signals[i].size());
 				if (!_fitB0)
 					withT1[0] = _consts[i].B0;
-				theory = One_SSFP(_angles, _consts[i], withT1);
+				VectorXd theory = One_SSFP(_angles, _consts[i], withT1);
 				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
 				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
