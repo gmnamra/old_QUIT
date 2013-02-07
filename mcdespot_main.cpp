@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 	
 	cout << "Using " << components << " component model." << endl;
 	const int nP = mcDESPOT::nP(components);
-	vector<string> names = mcDESPOT::names(components);
+	const vector<const string> &names = mcDESPOT::names(components);
 	residualData = new double[voxelsPerSlice];
 	residualHdr = *savedHeader;
 	residualHdr.setDim(4, 1); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);

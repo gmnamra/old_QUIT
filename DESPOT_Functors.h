@@ -24,9 +24,11 @@ struct DESPOTConstants {
 
 // A 3x3 matrix rotation of alpha about X and beta around Z
 // Corresponds to RF Flip angle of alpha, and phase-cycling of beta
+// Phase-cycling is negative as it rotates the reference frame instead of the
+// the magnetic vector, hence is seen as "going backwards".
 const Matrix3d RF(const double &alpha, const double &beta)
 {
-	double ca = cos(alpha), sa = sin(alpha), cb = cos(beta), sb = sin(beta);
+	double ca = cos(alpha), sa = sin(alpha), cb = cos(-beta), sb = sin(-beta);
 	Matrix3d R;
 	R << cb, ca*sb, sa*sb,
 	    -sb, ca*cb, sa*cb,
@@ -289,12 +291,12 @@ class mcDESPOT : public Functor<double> {
 			}
 		}
 		
-		static const vector<string> &names(const int components) {
-			static map<int, vector<string> > _namesMap {
+		static const vector<const string> &names(const int components) {
+			static const map<int, const vector<const string> > _namesMap {
 				{1, { "1c_B0", "1c_PD", "1c_T1", "1c_T2" } },
 				{2, { "2c_B0", "2c_PD", "2c_T1_a", "2c_T2_a", "2c_T1_b", "2c_T2_b", "2c_tau_a", "2c_f_a"  } },
 				{3, { "3c_B0", "3c_PD", "3c_T1_a", "3c_T2_a", "3c_T1_b", "3c_T2_b", "3c_T1_c", "3c_T2_c", "3c_tau_a", "3c_f_a", "3c_f_c" } } };
-			map<int, vector<string> >::const_iterator it = _namesMap.find(components);
+			map<int, const vector<const string> >::const_iterator it = _namesMap.find(components);
 			if (it == _namesMap.end()) {
 				std::cerr << "Don't have file names for a " << components << "-component mcDESPOT model." << std::endl;
 				exit(EXIT_FAILURE);
@@ -471,8 +473,8 @@ class DESPOT2FM : public Functor<double> {
 		const bool &_normalise, &_fitB0;
 	
 	public:
-		static const vector<string> &names() {
-			static vector<string> _names { { "FM_PD", "FM_T2", "FM_B0" } };
+		static const vector<const string> &names() {
+			static const vector<const string> _names { { "FM_B0", "FM_PD", "FM_T2" } };
 			return _names;
 		}
 		
@@ -508,7 +510,7 @@ class DESPOT2FM : public Functor<double> {
 			else
 				return true;
 		}
-				
+		
 		static const long inputs() { return 3; }
 		const long values() const { return _nV; }
 		
@@ -541,6 +543,7 @@ class DESPOT2FM : public Functor<double> {
 			return v;
 		}
 		
+		// Params are { B0, PD, T2 }
 		const VectorXd theory(const VectorXd &params) const {
 			VectorXd withT1(4);
 			withT1 << params[0], params[1], _T1, params[2];

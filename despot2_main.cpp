@@ -11,7 +11,6 @@
 #include <iostream>
 #include <atomic>
 #include <Eigen/Dense>
-#include <unsupported/Eigen/NonLinearOptimization>
 
 #include "NiftiImage.h"
 #include "DESPOT.h"
@@ -162,9 +161,8 @@ int main(int argc, char **argv)
 	// Gather SSFP Data
 	//**************************************************************************
 	int nFlip, nPhases;
-	double ssfpTR;
 	nPhases = argc - optind;
-	vector<double> ssfpPhases(nPhases);
+	vector<DESPOTConstants> consts(nPhases);
 	VectorXd ssfpAngles;
 	int voxelsPerSlice, voxelsPerVolume;
 	double **ssfpData = (double **)malloc(nPhases * sizeof(double *));
@@ -181,28 +179,30 @@ int main(int argc, char **argv)
 			#ifdef USE_PROCPAR
 			ParameterList pars;
 			if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
-				ssfpTR = RealValue(pars, "tr");
+				consts[0].TR = RealValue(pars, "tr");
 				for (int i = 0; i < nFlip; i++)
 					ssfpAngles[i] = RealValue(pars, "flip1", i);
 			} else
 			#endif
 			{
 				cout << "Enter SSFP TR (s): " << flush;
-				cin >> ssfpTR;
+				cin >> consts[0].TR;
 				cout << "Enter " << nFlip << " flip angles (degrees): " << flush;
 				for (int i = 0; i < ssfpAngles.size(); i++)
 					cin >> ssfpAngles[i];
 			}
+		} else {
+			consts[p].TR = consts[0].TR;
 		}
 		#ifdef USE_PROCPAR
 		ParameterList pars;
 		if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
-			ssfpPhases[p] = RealValue(pars, "rfphase") * M_PI / 180.;
+			consts[p].phase = RealValue(pars, "rfphase") * M_PI / 180.;
 		} else
 		#endif
 		{
 			cout << "Enter phase-cycling (degrees): " << flush;
-			cin >> ssfpPhases[p]; ssfpPhases[p] *= M_PI / 180.;
+			cin >> consts[p].phase; consts[p].phase *= M_PI / 180.;
 		}
 		cout << "Reading SSFP data..." << endl;
 		ssfpData[p] = inFile.readAllVolumes<double>();
@@ -231,8 +231,8 @@ int main(int argc, char **argv)
 		}
 		// If fitting, give a suitable range and allocate results memory
 		if (fitB0) {
-			loBounds[nP - 1] = -0.5 / ssfpTR;
-			hiBounds[nP - 1] =  0.5 / ssfpTR;
+			loBounds[nP - 1] = -0.5 / consts[0].TR;
+			hiBounds[nP - 1] =  0.5 / consts[0].TR;
 			B0Data = new double[voxelsPerVolume];
 		} else { // Otherwise fix and let functors pick up the specified value
 			loBounds[nP - 1] = 0.;
@@ -249,9 +249,10 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
-	double *residualData = new double[voxelsPerVolume];
-	double *PDData = new double[voxelsPerVolume];
-	double *T2Data = new double[voxelsPerVolume];
+	vector<double *> paramsData(nP);
+	for (int p = 0; p < nP; p++)
+		paramsData[p] = new double[voxelsPerVolume];
+	double *residuals = new double[voxelsPerVolume];
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -270,17 +271,17 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			// Set up parameters and constants
-			double M0 = 0., T1 = 0., T2 = 0., B0 = 0, B1 = 1., residual = 0.;
+			double residual = 0., T1 = 0.;
+			ArrayXd params(nP);
 			if (!maskData || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				voxCount++;
 				T1 = T1Data[sliceOffset + vox];
-				if (B0Data) B0 = B0Data[sliceOffset + vox];
-				if (B1Data)	B1 = B1Data[sliceOffset + vox];
 				// Gather signals.
 				vector<VectorXd> signals;
-				for (int p = 0; p < nPhases; p++)
-				{
+				for (int p = 0; p < nPhases; p++) {
+					if (B0Data) consts[p].B0 = B0Data[sliceOffset + vox];
+					if (B1Data)	consts[p].B1 = B1Data[sliceOffset + vox];
 					VectorXd temp(nFlip);
 					for (int i = 0; i < nFlip; i++)
 						temp(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
@@ -292,33 +293,25 @@ int main(int argc, char **argv)
 					int index = 0;
 					double bestPhase = DBL_MAX;
 					for (int p = 0; p < nPhases; p++) {
-						double thisPhase = (B0 * ssfpTR * 2 * M_PI) + ssfpPhases[p];
+						double thisPhase = (consts[p].B0 * consts[p].TR * 2 * M_PI) + consts[p].phase;
 						if (fabs(fmod(thisPhase - M_PI, 2 * M_PI)) < bestPhase) {
 							bestPhase = fabs(fmod(thisPhase - M_PI, 2 * M_PI));
 							index = p;
 						}
 					}
-					residual = classicDESPOT2(ssfpAngles, signals[index], ssfpTR, T1, B1, M0, T2);
+					residual = classicDESPOT2(ssfpAngles, signals[index], consts[index].TR, T1, consts[index].B1, params[1], params[2]);
+					params[3] = consts[index].B0;
 				} else {
 					// DESPOT2-FM
-					VectorXd allB0(nFlip), allB1(nFlip);
-					allB0.setConstant(B0);
-					allB1.setConstant(B1);
-					DESPOT2FM tc(ssfpAngles, signals, ssfpTR, ssfpPhases, allB0, allB1, T1, false, fitB0);
+					DESPOT2FM tc(ssfpAngles, signals, consts, T1, false, fitB0);
 					ArrayXd params(nP);
-					residual = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds);
-					M0 = params[0];
-					T2 = params[1];
-					if (fitB0)
-						B0 = params[2];
-				
+					residual = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds);				
 				}
 			}
-			PDData[sliceOffset + vox] = clamp(M0, 0., 1.e8);
-			T2Data[sliceOffset + vox] = clamp(T2, 0., 0.5);
-			if (fitB0)
-				B0Data[sliceOffset + vox] = B0;
-			residualData[sliceOffset + vox] = residual;
+			for (int p = 0; p < nP; p++) {
+				paramsData[p][sliceOffset + vox] = params[p];
+			}
+			residuals[sliceOffset + vox] = residual;
 		};
 		apply_for(voxelsPerSlice, processVox);
 		
@@ -338,19 +331,13 @@ int main(int argc, char **argv)
 	          << difftime(procEnd, procStart) << " s." << endl;
 	savedHeader.setDim(4, 1);
 	savedHeader.setDatatype(NIFTI_TYPE_FLOAT32);
-	savedHeader.open(outPrefix + "D2_T2.nii.gz", NiftiImage::NIFTI_WRITE);
-	savedHeader.writeVolume(0, T2Data);
-	savedHeader.close();
-	savedHeader.open(outPrefix + "D2_PD.nii.gz", NiftiImage::NIFTI_WRITE);
-	savedHeader.writeVolume(0, PDData);
-	savedHeader.close();
-	if (fitB0) {
-		savedHeader.open(outPrefix + "D2_B0.nii.gz", NiftiImage::NIFTI_WRITE);
-		savedHeader.writeVolume(0, B0Data);
+	for (int p = 0; p < nP; p++) {
+		savedHeader.open(outPrefix + DESPOT2FM::names()[p], NiftiImage::NIFTI_WRITE);
+		savedHeader.writeVolume(0, paramsData[p]);
 		savedHeader.close();
 	}
-	savedHeader.open(outPrefix + "D2_residual.nii.gz", NiftiImage::NIFTI_WRITE);
-	savedHeader.writeVolume(0, residualData);
+	savedHeader.open(outPrefix + "D2_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
+	savedHeader.writeVolume(0, residuals);
 	savedHeader.close();
 	// Clean up memory
 	for (int p = 0; p < nPhases; p++)
