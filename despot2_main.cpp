@@ -280,8 +280,8 @@ int main(int argc, char **argv)
 				// Gather signals.
 				vector<VectorXd> signals;
 				for (int p = 0; p < nPhases; p++) {
-					if (B0Data) consts[p].B0 = B0Data[sliceOffset + vox];
-					if (B1Data)	consts[p].B1 = B1Data[sliceOffset + vox];
+					consts[p].B0 = (B0Data) ? B0Data[sliceOffset + vox] : 0.;
+					consts[p].B1 = (B1Data) ? B1Data[sliceOffset + vox] : 1.;
 					VectorXd temp(nFlip);
 					for (int i = 0; i < nFlip; i++)
 						temp(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
@@ -344,7 +344,7 @@ int main(int argc, char **argv)
 	} else {
 		for (int p = 0; p < nP; p++) {
 			savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", NiftiImage::NIFTI_WRITE);
-			savedHeader.writeVolume(0, residuals);
+			savedHeader.writeVolume(0, paramsData[p]);
 			savedHeader.close();
 		}
 		savedHeader.open(outPrefix + "FM_Residual.nii.gz", NiftiImage::NIFTI_WRITE);

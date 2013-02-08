@@ -182,10 +182,6 @@ int main(int argc, char **argv)
 						spgrs[vol++] = SPGR[img * totalVoxels + sliceOffset + vox];
 				}
 				res = classicDESPOT1(spgrAngles, spgrs, spgrTR, B1, M0, T1);
-				
-				// Sanity check
-				M0 = clamp(M0, 0., 1.e8);
-				T1 = clamp(T1, 0., 15.);
 			}
 			resultsData[0][sliceOffset + vox] = M0;
 			resultsData[1][sliceOffset + vox] = T1;

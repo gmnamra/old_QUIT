@@ -493,8 +493,8 @@ class DESPOT2FM : public Functor<double> {
 		
 		static const ArrayXd defaultHi(const int tesla) {
 			static ArrayXd t3(3), t7(3);
-			t3 << 150., 1.e6, 0.50;
-			t7 << 150., 1.e6, 0.25;
+			t3 << 150., 1.e7, 0.50;
+			t7 << 150., 1.e7, 0.25;
 			
 			switch (tesla) {
 				case 3: return t3; break;
