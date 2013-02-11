@@ -303,8 +303,7 @@ int main(int argc, char **argv)
 				} else {
 					// DESPOT2-FM
 					DESPOT2FM tc(ssfpAngles, signals, consts, T1, false, fitB0);
-					ArrayXd params(nP);
-					residual = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds);				
+					residual = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds);
 				}
 			}
 			for (int p = 0; p < nP; p++) {
