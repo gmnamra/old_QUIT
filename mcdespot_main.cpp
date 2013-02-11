@@ -170,7 +170,7 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 			if (prompt) cout << "Enter TR: " << flush;
 			cin >> inTR;
 			if (prompt) cout << "Enter Flip-angles: " << flush;
-			for (int i = 0; i < inAngles[i]; i++)
+			for (int i = 0; i < inAngles.size(); i++)
 				cin >> inAngles[i];
 			getline(cin, path); // Just to eat the newline
 			if (signalTypes.back() == mcDESPOT::SignalSSFP) {
