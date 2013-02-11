@@ -37,13 +37,13 @@ void apply_for(const int max, const function<void(int)> f, const int num_threads
 //******************************************************************************
 // Basic least squares fitting
 //******************************************************************************
-void linearLeastSquares(double *X, double *Y, long nD,
-						double *slope, double *inter, double *res)
+void linearLeastSquares(const ArrayXd &X, const ArrayXd &Y,
+                        double &slope, double &inter, double &res)
 {
+	eigen_assert(X.size() == Y.size());
 	double sumX, sumY, sumXX, sumXY;
 	sumX = sumY = sumXX = sumXY = 0.;
-	for (int i = 0; i < nD; i++)
-	{
+	for (int i = 0; i < X.size(); i++) {
 		double x = X[i];
 		double y = Y[i];
 		
@@ -53,16 +53,11 @@ void linearLeastSquares(double *X, double *Y, long nD,
 		sumXY += (x*y);
 	}
 	
-	*slope = (sumXY - (sumX * sumY)/nD) / (sumXX - (sumX * sumX)/nD);
-	*inter = (sumY - (*slope) * sumX) / nD;
+	slope = (sumXY - (sumX * sumY) / X.size()) /
+	        (sumXX - (sumX * sumX) / X.size());
+	inter = (sumY - (slope) * sumX) / X.size();
 	
-	if (res)
-	{
-		*res = 0.;
-		double m = *slope; double c = *inter;
-		for (int i = 0; i < nD; i++)
-			*res += pow(Y[i] - (m*X[i] + c), 2.);
-	}
+	res = (Y - (X*slope + inter)).square().sum();
 }
 
 double classicDESPOT1(const ArrayXd &flipAngles, const ArrayXd &spgrVals,
@@ -70,13 +65,13 @@ double classicDESPOT1(const ArrayXd &flipAngles, const ArrayXd &spgrVals,
 {
 	// Linearise the data, then least-squares
 	long n = flipAngles.size();
-	double X[n], Y[n], slope, inter, res;
-	for (long i = 0; i < flipAngles.size(); i++)
-	{
+	ArrayXd X(n), Y(n);
+	double slope, inter, res;
+	for (long i = 0; i < flipAngles.size(); i++) {
 		X[i] = spgrVals[i] / tan(flipAngles[i] * B1);
 		Y[i] = spgrVals[i] / sin(flipAngles[i] * B1);
 	}
-	linearLeastSquares(X, Y, n, &slope, &inter, &res);	
+	linearLeastSquares(X, Y, slope, inter, res);	
 	T1 = -TR / log(slope);
 	M0 = inter / (1. - slope);
 	return res;
@@ -86,13 +81,13 @@ double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
                       double TR, double T1, double B1, double &M0, double &T2) {
 	// As above, linearise, then least-squares
 	long n = flipAngles.size();
-	double X[n], Y[n], slope, inter, residual;
-	for (long i = 0; i < flipAngles.size(); i++)
-	{
+	ArrayXd X(n), Y(n);
+	double slope, inter, residual;
+	for (long i = 0; i < flipAngles.size(); i++) {
 		X[i] = ssfpVals[i] / tan(flipAngles[i] * B1);
 		Y[i] = ssfpVals[i] / sin(flipAngles[i] * B1);
 	}
-	linearLeastSquares(X, Y, n, &slope, &inter, &residual);
+	linearLeastSquares(X, Y, slope, inter, residual);
 	double eT1 = exp(-TR / T1);
 	T2 = -TR / log((eT1 - slope) / (1. - slope * eT1));
 	double eT2 = exp(-TR / T2);
