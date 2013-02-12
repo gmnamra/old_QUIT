@@ -78,7 +78,7 @@ VectorXd One_SPGR(const VectorXd &flipAngles,
 VectorXd One_SSFP(const VectorXd &flipAngles,
                   const DESPOTConstants& c, const VectorXd &p)
 {
-	Matrix3d A = Relax(p[2], p[3], 0., 2. * M_PI * p[0]),
+	Matrix3d A = Relax(1./p[2], 1./p[3], 0., 2. * M_PI * p[0]),
 	         R_rf, eATR;
 	Vector3d M0 = Vector3d::Zero(), Mobs;
 	M0[2] = p[1]; // PD
