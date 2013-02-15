@@ -176,6 +176,7 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 			if (signalTypes.back() == mcDESPOT::SignalSSFP) {
 				if (prompt) cout << "Enter SSFP Phase-Cycling: ";
 				cin >> inPhase;
+				getline(cin, path); // Just to eat the newline
 			}
 		}
 		consts.push_back( { inTR, inPhase * M_PI / 180., 0., 0. } );
