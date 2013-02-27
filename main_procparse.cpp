@@ -21,10 +21,10 @@ Usage: procparse [opts] file1 par1 par2 ... parN\n\
 par1 to parN are parameter names to search for in procpar. If none are specified \
 then the whole file will be listed.\n\
 Options:\n\
- -f, --full:      Print the full parameter information, not a shortened version.\n\
- -p, --partial:   Print parameters that are partial matches.\n\
- -c, --cmp file2: Open file2 and list only parameters that differ.\n\
- -v, --verbose:   Print more information.\n";
+ -f, --full:       Print the full parameter information, not a shortened version.\n\
+ -p, --partial:    Print parameters that are partial matches.\n\
+ -c, --cmp file2:  Compare to file 2. List parameters that differ or are missing.\n\
+ -v, --verbose:    Print more information.\n";
 
 int main(int argc, char **argv)
 {
@@ -80,13 +80,18 @@ int main(int argc, char **argv)
 		// Look for parameters present in one file but not the other
 		for (par = pars.begin(); par != pars.end(); par++) {
 			cmpPar = cmpPars.find(par->first);
-			if (cmpPar == cmpPars.end())
-				cout << "Parameter " << par->first << " present in " << procparFile << " but not " << cmpFile << endl;
+			if (cmpPar == cmpPars.end()) {
+				cout << "Parameter " << par->first << " missing in " << cmpFile << endl;
+			} else {
+				if (par->second != cmpPar->second) {
+					cout << "Parameter " << par->first << ": " << par->second.print_values() << " vs " << cmpPar->second.print_values() << endl;
+				}
+			}
 		}
 		for (cmpPar = cmpPars.begin(); cmpPar != cmpPars.end(); cmpPar++) {
 			par = pars.find(cmpPar->first);
 			if (par == pars.end())
-				cout << "Parameter " << par->first << " present in " << cmpFile << " but not " << procparFile << endl;
+				cout << "Parameter " << cmpPar->first << " missing in " << procparFile << endl;
 		}
 	} else {
 		while (optind < argc) {
