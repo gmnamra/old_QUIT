@@ -219,8 +219,8 @@ int main(int argc, char **argv)
 	}
 	
 	// Set up boundaries for DESPOT-FM if needed
-	ArrayXd loBounds, hiBounds;
 	const long nP = DESPOT2FM::inputs();
+	ArrayXd loBounds(nP), hiBounds(nP);
 	if (tesla != 0) {
 		if (tesla > 0) {
 			loBounds = DESPOT2FM::defaultLo(tesla);
