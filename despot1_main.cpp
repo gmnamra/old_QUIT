@@ -15,8 +15,7 @@
 #include "NiftiImage.h"
 #include "DESPOT.h"
 
-#define USE_PROCPAR
-#ifdef USE_PROCPAR
+#ifdef HAVE_NRECON
 #include "procpar.h"
 using namespace Recon;
 #endif
@@ -105,7 +104,7 @@ int main(int argc, char **argv)
 	nSPGR = spgrFile.dim(4);
 	VectorXd spgrAngles(nSPGR);
 	
-	#ifdef USE_PROCPAR
+	#ifdef HAVE_NRECON
 	ParameterList pars;
 	if (ReadProcpar(spgrFile.basename() + ".procpar", pars)) {
 		spgrTR = RealValue(pars, "tr");

@@ -18,8 +18,7 @@
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
 
-#define USE_PROCPAR
-#ifdef USE_PROCPAR
+#ifdef HAVE_NRECON
 	#include "procpar.h"
 	using namespace Recon;
 #endif
@@ -151,7 +150,7 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		signalFiles.push_back(inHdr);
 		double inTR = 0., inTrf = 0., inPhase = 0.;
 		VectorXd inAngles(inHdr->dim(4));
-		#ifdef USE_PROCPAR
+		#ifdef HAVE_NRECON
 		ParameterList pars;
 		if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
 			inTR = RealValue(pars, "tr");

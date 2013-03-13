@@ -120,6 +120,24 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
 	return irspgr;
 }
 
+double HIFIResidual(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
+				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
+				const double irTR, const double nReadout, const double eff,
+                double &M0, double &T1, double &B1) {
+	ArrayXd st = SPGR(flipAngles, spgrTR, B1, M0, T1);
+	ArrayXd it = IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1);
+	std::cout << "B1 " << B1 << " M0 " << M0 << " T1 " << T1 << " eff " << eff << " spgrTR " << spgrTR << " irTR " << irTR << " irFlip " << irFlipAngle << " TI " << TI.transpose() << std::endl;
+	std::cout << "SPGR flip " << flipAngles.transpose() << std::endl;
+	std::cout << "SPGR theory   " << st.transpose() << std::endl;
+	std::cout << "values        " << spgrVals.transpose() << std::endl;
+	std::cout << "diff          " << (spgrVals - st).transpose() << std::endl;
+	std::cout << "IRSPGR theory " << it.transpose() << " val " << irVals.transpose() << " diff " << (irVals -  it).transpose() << std::endl;
+	double res = (spgrVals - st).square().sum() +
+	              (irVals - it).square().sum();
+	std::cout << "res " << res << std::endl;
+	return res;
+}
+
 double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
 				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
 				const double irTR, const double nReadout, const double eff,
@@ -135,12 +153,10 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double
 	
 	B1 = B1_0;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	double res1 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-	              (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
+	double res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
 	B1 = B1_3;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	double res2 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-	              (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
+	double res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
 	if (res1 < res2) {
 		B1_1 = B1_0 + 0.2;
 		B1_2 = B1_1 + C * (B1_3 - B1_1);
@@ -151,12 +167,10 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double
 	
 	B1 = B1_1;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	res1 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-	       (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
+	res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
 	B1 = B1_2;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	res2 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-	       (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
+	res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
 	while ( fabs(B1_3 - B1_0) > precision * (fabs(B1_1) + fabs(B1_2))) {
 		if (res2 < res1) {
 			B1_0 = B1_1; B1_1 = B1_2;
@@ -164,16 +178,14 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double
 			res1 = res2;
 			B1 = B1_2;
 			classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-			res2 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-			       (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
+			res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
 		} else {
 			B1_3 = B1_2; B1_2 = B1_1;
 			B1_1 = R * B1_2 + C * B1_0;
 			res2 = res1;
 			B1 = B1_1;
 			classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-			res1 = (spgrVals - SPGR(flipAngles, spgrTR, B1, M0, T1)).square().sum() +
-			       (irVals - IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1)).square().sum();
+			res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
 		}
 	}
 	// Best value for B1
@@ -184,4 +196,5 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double
 		B1 = B1_2;
 		return res2;
 	}
+	std::cout << "Finished Golden Ratio Search" << std::endl<< std::endl<< std::endl<< std::endl;
 }

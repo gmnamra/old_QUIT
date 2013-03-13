@@ -15,8 +15,7 @@
 #include "procpar.h"
 
 using namespace std;
-#define USE_PROCPAR
-#ifdef USE_PROCPAR
+#ifdef HAVE_NRECON
 	#include "procpar.h"
 	using namespace Recon;
 #endif
@@ -62,7 +61,7 @@ int main(int argc, char **argv)
 	}
 	cout << "Opening input file " << argv[optind] << endl;
 	inFile.open(argv[optind], NiftiImage::NIFTI_READ);
-	#ifdef USE_PROCPAR
+	#ifdef HAVE_NRECON
 	ParameterList pars;
 	if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
 		// From Sam Hurley. The sequence is implemented by waiting afi_dummy

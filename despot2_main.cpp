@@ -17,8 +17,7 @@
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
 
-#define USE_PROCPAR
-#ifdef USE_PROCPAR
+#ifdef HAVE_NRECON
 	#include "procpar.h"
 	using namespace Recon;
 #endif
@@ -176,7 +175,7 @@ int main(int argc, char **argv)
 			voxelsPerVolume = inFile.voxelsPerVolume();
 			ssfpAngles.resize(nFlip, 1);
 			
-			#ifdef USE_PROCPAR
+			#ifdef HAVE_NRECON
 			ParameterList pars;
 			if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
 				consts[0].TR = RealValue(pars, "tr");
@@ -194,7 +193,7 @@ int main(int argc, char **argv)
 		} else {
 			consts[p].TR = consts[0].TR;
 		}
-		#ifdef USE_PROCPAR
+		#ifdef HAVE_NRECON
 		ParameterList pars;
 		if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
 			consts[p].phase = RealValue(pars, "rfphase") * M_PI / 180.;

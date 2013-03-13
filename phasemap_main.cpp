@@ -12,8 +12,7 @@
 #include "procpar.h"
 
 using namespace std;
-#define USE_PROCPAR
-#ifdef USE_PROCPAR
+#ifdef HAVE_NRECON
 	#include "procpar.h"
 	using namespace Recon;
 #endif
@@ -64,7 +63,7 @@ int main(int argc, char** argv)
 		cout << "Opening input file " << argv[optind] << "." << endl;
 		inFile.open(argv[optind], NiftiImage::NIFTI_READ);
 		
-		#ifdef USE_PROCPAR
+		#ifdef HAVE_NRECON
 		ParameterList pars;
 		if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
 			TE1 = RealValue(pars, "te", 0);
@@ -81,7 +80,7 @@ int main(int argc, char** argv)
 	} else if ((argc - optind) == 3) {
 		cout << "Opening input file 1" << argv[optind] << "." << endl;
 		inFile.open(argv[optind], NiftiImage::NIFTI_READ);
-		#ifdef USE_PROCPAR
+		#ifdef HAVE_NRECON
 		ParameterList pars;
 		if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
 			TE1 = RealValue(pars, "te", 0);
@@ -95,7 +94,7 @@ int main(int argc, char** argv)
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
 		inFile.open(argv[optind], NiftiImage::NIFTI_READ);
-		#ifdef USE_PROCPAR
+		#ifdef HAVE_NRECON
 		if (ReadProcpar(inFile.basename() + ".procpar", pars)){
 			TE2 = RealValue(pars, "te", 0);
 		} else
