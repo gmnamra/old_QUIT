@@ -19,7 +19,7 @@ using namespace std;
 using namespace Eigen;
 
 struct DESPOTConstants {
-	double TR, Trf, phase, B0, B1;
+	double TR, phase, B0, B1;
 };
 
 // A 3x3 matrix rotation of alpha about X and beta around Z
@@ -59,16 +59,12 @@ const void CalcExchange(const double tau_a, const double f_a, const double f_b, 
 	}
 }
 
-const double CalcEta(const double TR, const double Trf,
-                     const double T1, const double T2) {
-
-}
-
 //******************************************************************************
 #pragma mark One Component Signals
 // Parameters are { B0, PD, T1, T2 }
 //******************************************************************************
-VectorXd One_SPGR(const VectorXd &flipAngles, const DESPOTConstants& c, const VectorXd &p)
+VectorXd One_SPGR(const VectorXd &flipAngles,
+                  const DESPOTConstants& c, const VectorXd &p)
 {
 	VectorXd theory(flipAngles.size());
 	VectorXd sa = (flipAngles.array() * c.B1).sin();
@@ -79,27 +75,8 @@ VectorXd One_SPGR(const VectorXd &flipAngles, const DESPOTConstants& c, const Ve
 	return theory;
 }
 
-VectorXd One_SSFP(const VectorXd &flipAngles, const DESPOTConstants& c, const VectorXd &p)
-{
-	Matrix3d A = Relax(1./p[2], 1./p[3], 0., 2. * M_PI * p[0]),
-	         R_rf, eATR;
-	Vector3d M0 = Vector3d::Zero(), Mobs;
-	M0[2] = p[1]; // PD
-
-	MatrixExponential<Matrix3d> mexp(A * c.TR);
-	mexp.compute(eATR);
-	const Vector3d RHS = (Matrix3d::Identity() - eATR) * M0;
-	
-	VectorXd theory(flipAngles.size());
-	for (int i = 0; i < flipAngles.size(); i++) {
-		const Matrix3d R_rf = RF(c.B1 * flipAngles[i], c.phase);
-		Mobs = (Matrix3d::Identity() - (eATR * R_rf)).partialPivLu().solve(RHS);
-		theory[i] = Mobs.head(2).norm();
-	}
-	return theory;
-}
-
-VectorXd One_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, const VectorXd &p)
+VectorXd One_SSFP(const VectorXd &flipAngles,
+                  const DESPOTConstants& c, const VectorXd &p)
 {
 	Matrix3d A = Relax(1./p[2], 1./p[3], 0., 2. * M_PI * p[0]),
 	         R_rf, eATR;
@@ -461,18 +438,10 @@ class mcDESPOT : public Functor<double> {
 						case 3: theory = Three_SPGR(_angles[i], _consts[i], localP); break;
 					}
 				} else if (_types[i] == SignalSSFP) {
-					if (_consts[i].inTrf != 0.) {
-						switch (_components) {
-							case 1: theory = One_SSFP_Finite(_angles[i], _consts[i], localP); break;
-							case 2: theory = Two_SSFP_Finite(_angles[i], _consts[i], localP, _normalise); break;
-							case 3: theory = Three_SSFP_Finite(_angles[i], _consts[i], localP, _normalise); break;
-						}
-					} else {
-						switch (_components) {
-							case 1: theory = One_SSFP(_angles[i], _consts[i], localP); break;
-							case 2: theory = Two_SSFP(_angles[i], _consts[i], localP, _normalise); break;
-							case 3: theory = Three_SSFP(_angles[i], _consts[i], localP, _normalise); break;
-						}
+					switch (_components) {
+						case 1: theory = One_SSFP(_angles[i], _consts[i], localP); break;
+						case 2: theory = Two_SSFP(_angles[i], _consts[i], localP, _normalise); break;
+						case 3: theory = Three_SSFP(_angles[i], _consts[i], localP, _normalise); break;
 					}
 				}
 				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
