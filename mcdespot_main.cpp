@@ -38,15 +38,8 @@ Acknowledgements greatfully received, grant discussions welcome."
 const string usage {
 "Usage is: mcdespot [options]\n\
 \n\
-The input must consist of at least one line such as:\n\
-SPGR path_to_spgr_file (path_to_B1_file) \n\
-SSFP path_to_ssfp_file (path_to_B1) (path_to_B0) \n\
-\n\
-If -d or --drop is specified further input will be prompted for from stdin.\n\
-\n\
-Phase-cycling is specified in degrees. If no B0/B1 correction is specified,\n\
-default values of B0 = 0 Hz and B1 = 1 will be used. B0 value is only used if\n\
---B0 option specified, otherwise it is a free parameter.\n\
+The program will then prompt the user for input.\n\
+Please note all times (TR) are specified in SECONDS and all angles in degrees.\n\
 \n\
 Options:\n\
 	--help, -h		  : Print this message.\n\
@@ -59,8 +52,8 @@ Options:\n\
 	--B0              : Use the default or specified B0 value (don't fit).\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
-	--drop, -d        : Drop certain flip-angles (Read from stdin).\n\
 	--normalise, -n   : Normalise signals to maximum (Ignore M0).\n\
+	--finite, -f      : Use finite RF pulse length correction.\n\
 	--samples, -s n   : Use n samples for region contraction (Default 5000).\n\
 	--retain, -r  n   : Retain n samples for new boundary (Default 50).\n\
 	--contract, -c n  : Contract a maximum of n times (Default 10).\n\
@@ -71,7 +64,7 @@ Options:\n\
 };
 
 static int verbose = false, prompt = true,
-           normalise = false, drop = false, fitB0 = true,
+           normalise = false, fitB0 = true, finiteRF = false,
            start_slice = -1, end_slice = -1, slice = 0,
 		   samples = 5000, retain = 50, contract = 10,
 		   components = 2, tesla = -1;
@@ -88,11 +81,11 @@ static struct option long_options[] =
 	{"end_slice", required_argument, 0, 'E'},
 	{"normalise", no_argument, &normalise, true},
 	{"tesla", required_argument, 0, 't'},
+	{"finite", no_argument, &finiteRF, true},
 	{"samples", required_argument, 0, 's'},
 	{"retain", required_argument, 0, 'r'},
 	{"contract", required_argument, 0, 'c'},
 	{"expand", required_argument, 0, 'e'},
-	{"drop", no_argument, &drop, true},
 	{"help", no_argument, 0, 'h'},
 	{"1", no_argument, &components, 1},
 	{"2", no_argument, &components, 2},
@@ -127,12 +120,14 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
                        vector<DESPOTConstants> &consts,
 				       vector<NiftiImage *> &signalFiles,
 				       vector<NiftiImage *> &B1_files,
-				       vector<NiftiImage *> &B0_files);
+				       vector<NiftiImage *> &B0_files,
+					   const bool &finiteRF);
 NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
                        vector<DESPOTConstants> &consts,
 				       vector<NiftiImage *> &signalFiles,
 				       vector<NiftiImage *> &B1_files,
-				       vector<NiftiImage *> &B0_files) {
+				       vector<NiftiImage *> &B0_files,
+					   const bool &finiteRF) {
 	NiftiImage *inHdr, *savedHeader;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
@@ -154,7 +149,7 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 			savedHeader = inHdr;
 		inHdr->checkVoxelsCompatible(*savedHeader);
 		signalFiles.push_back(inHdr);
-		double inTR = 0., inPhase = 0.;
+		double inTR = 0., inTrf = 0., inPhase = 0.;
 		VectorXd inAngles(inHdr->dim(4));
 		#ifdef USE_PROCPAR
 		ParameterList pars;
@@ -162,24 +157,31 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 			inTR = RealValue(pars, "tr");
 			for (int i = 0; i < inAngles.size(); i++)
 				inAngles[i] = RealValue(pars, "flip1", i);
-			if (signalTypes.back() == mcDESPOT::SignalSSFP)
+			if (signalTypes.back() == mcDESPOT::SignalSSFP) {
 				inPhase = RealValue(pars, "rfphase");
+				if (finiteRF)
+					inTrf = RealValue(pars, "p1") / 1e3; // p1 is in milliseconds
+			}
 		} else
 		#endif
 		{
-			if (prompt) cout << "Enter TR: " << flush;
+			if (prompt) cout << "Enter TR (seconds): " << flush;
 			cin >> inTR;
-			if (prompt) cout << "Enter Flip-angles: " << flush;
+			if (prompt) cout << "Enter Flip-angles (degrees): " << flush;
 			for (int i = 0; i < inAngles.size(); i++)
 				cin >> inAngles[i];
 			getline(cin, path); // Just to eat the newline
 			if (signalTypes.back() == mcDESPOT::SignalSSFP) {
-				if (prompt) cout << "Enter SSFP Phase-Cycling: ";
+				if (prompt) cout << "Enter SSFP Phase-Cycling (degrees): ";
 				cin >> inPhase;
+				if (finiteRF) {
+					cout << "Enter RF Pulse Length (seconds): ";
+					cin >> inTrf;
+				}
 				getline(cin, path); // Just to eat the newline
 			}
 		}
-		consts.push_back( { inTR, inPhase * M_PI / 180., 0., 0. } );
+		consts.push_back( { inTR, inTrf, inPhase * M_PI / 180., 0., 0. } );
 		angles.push_back(inAngles * M_PI / 180.);
 		
 		inHdr = NULL;
@@ -194,7 +196,7 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		
 		inHdr = NULL;
 		if (signalTypes.back() == mcDESPOT::SignalSSFP) {
-			if (prompt) cout << "Enter path to B0 map: " << flush;
+			if (prompt) cout << "Enter path to B0 map (blank for none): " << flush;
 			getline(cin, path);
 			if (!path.empty()) {
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
@@ -204,7 +206,7 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		}
 		B0_files.push_back(inHdr);
 		// Print message ready for next loop
-		if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
+		if (prompt) cout << "Specify next image type (SPGR/SSFP/blank to end): " << flush;
 	}
 	if (signalTypes.size() == 0) {
 		cerr << "No input images specified." << endl;
@@ -226,7 +228,7 @@ int main(int argc, char **argv)
 	double *maskData = NULL, *PDData = NULL;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvpt:m:o:znds:r:c:e:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvpt:m:o:zns:r:c:e:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
@@ -249,7 +251,7 @@ int main(int argc, char **argv)
 			case 'S': start_slice = atoi(optarg); break;
 			case 'E': end_slice = atoi(optarg); break;
 			case 'n': normalise = true; break;
-			case 'd': drop = true; break;
+			case 'f': finiteRF = true; break;
 			case 's': samples  = atoi(optarg); break;
 			case 'r': retain   = atoi(optarg); break;
 			case 'c': contract = atoi(optarg); break;

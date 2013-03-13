@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 	} else
 	#endif
 	{
-		cout << "Enter SPGR TR (s):"; cin >> spgrTR;
+		cout << "Enter SPGR TR (seconds):"; cin >> spgrTR;
 		cout << "Enter SPGR Flip Angles (degrees):";
 		for (int i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
 	}
