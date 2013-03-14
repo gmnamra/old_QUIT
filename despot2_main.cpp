@@ -229,8 +229,11 @@ int main(int argc, char **argv)
 			loBounds = DESPOT2FM::defaultLo(tesla);
 			hiBounds = DESPOT2FM::defaultHi(tesla);
 		} else if (tesla < 0) {
-			cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
-			for (int i = 0; i < nP; i++) cin >> loBounds[i] >> hiBounds[i];
+			cout << "Enter parameter pairs (low then high)" << endl;
+			for (int i = 0; i < nP; i++) {
+				cout << DESPOT2FM::names()[p] << ": " << flush;
+				cin >> loBounds[i] >> hiBounds[i];
+			}
 		}
 		// If fitting, give a suitable range and allocate results memory
 		if (fitB0) {

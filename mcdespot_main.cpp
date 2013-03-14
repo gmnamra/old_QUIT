@@ -324,11 +324,13 @@ int main(int argc, char **argv)
 		loBounds = mcDESPOT::defaultLo(components, tesla);
 		hiBounds = mcDESPOT::defaultHi(components, tesla);
 	} else if (prompt) {
-		cout << "Enter " << nP << " parameter pairs (low then high): " << flush;
+		cout << "Enter parameter pairs (low then high)" << endl;
 	}
 	for (int i = 0; i < nP; i++) {
-		if (tesla <= 0)
+		if (tesla <= 0) {
+			if (prompt) cout << names[i] << ": " << flush;
 			cin >> loBounds[i] >> hiBounds[i];
+		}
 		paramsData[i] = new double[voxelsPerSlice];
 		paramsHdrs[i] = *savedHeader;
 		paramsHdrs[i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
