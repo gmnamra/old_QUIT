@@ -116,8 +116,8 @@ int main(int argc, char **argv)
 	} else
 	#endif
 	{
-		cout << "Enter SPGR TR (s):"; cin >> spgrTR;
-		cout << "Enter SPGR Flip Angles (degrees):";
+		cout << "Enter SPGR TR (seconds):"; cin >> spgrTR;
+		cout << "Enter SPGR " << nSPGR << " Flip Angles (degrees):";
 		for (int i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
 	}
 	spgrAngles *= M_PI / 180.;

@@ -155,8 +155,8 @@ int main(int argc, char **argv) {
 	} else
 	#endif
 	{
-		cout << "Enter SPGR TR (s):"; cin >> spgrTR;
-		cout << "Enter SPGR Flip Angles (degrees):";
+		cout << "Enter SPGR TR (seconds):"; cin >> spgrTR;
+		cout << "Enter " << nSPGR << " Flip Angles (degrees):";
 		for (int i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
 	}
 	spgrAngles *= M_PI / 180.;
@@ -181,17 +181,17 @@ int main(int argc, char **argv) {
 	{
 		cout << "Enter IR-SPGR Flip Angle (degrees):"; cin >> irAngle; irAngle *= M_PI / 180.;
 		if (peReadout > 0) {
-			cout << "Enter IR-SPGR TR (s):"; cin >> irTR;
+			cout << "Enter IR-SPGR TR (seconds):"; cin >> irTR;
 			irTR = irTR * peReadout;
-			cout << "Enter IR-SPGR TI times (s):";
+			cout << "Enter " << nIR << " IR-SPGR TI times (seconds):";
 			for (int i = 0; i < nIR; i++) {
 				cin >> irTI[i];
 				irTI[i] *= TIScale;
 			}
 		} else {
-			cout << "Enter IR-SPGR TI times (s):";
+			cout << "Enter " << nIR << " IR-SPGR TI times (seconds):";
 			for (int i = 0; i < nIR; i++) cin >> irTI[i];
-			fprintf(stdout, "Enter first scan Segment TR (s):"); cin >> irTR;
+			fprintf(stdout, "Enter first scan Segment TR (seconds):"); cin >> irTR;
 			irTR -= irTI[0]; // Subtract off TI to get 
 		}
 	}

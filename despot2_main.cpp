@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 			} else
 			#endif
 			{
-				cout << "Enter SSFP TR (s): " << flush;
+				cout << "Enter SSFP TR (seconds): " << flush;
 				cin >> consts[0].TR;
 				cout << "Enter " << nFlip << " flip angles (degrees): " << flush;
 				for (int i = 0; i < ssfpAngles.size(); i++)

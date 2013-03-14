@@ -170,14 +170,14 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		} else
 		#endif
 		{
-			if (prompt) cout << "Enter TR: " << flush;
+			if (prompt) cout << "Enter TR (seconds): " << flush;
 			cin >> inTR;
-			if (prompt) cout << "Enter Flip-angles: " << flush;
+			if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
 			for (int i = 0; i < inAngles.size(); i++)
 				cin >> inAngles[i];
 			getline(cin, path); // Just to eat the newline
 			if (signalTypes.back() == mcDESPOT::SignalSSFP) {
-				if (prompt) cout << "Enter SSFP Phase-Cycling: ";
+				if (prompt) cout << "Enter SSFP Phase-Cycling (degrees): ";
 				cin >> inPhase;
 				getline(cin, path); // Just to eat the newline
 			}
@@ -197,7 +197,7 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		
 		inHdr = NULL;
 		if (signalTypes.back() == mcDESPOT::SignalSSFP) {
-			if (prompt) cout << "Enter path to B0 map: " << flush;
+			if (prompt) cout << "Enter path to B0 map (blank for none): " << flush;
 			getline(cin, path);
 			if (!path.empty()) {
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
@@ -207,7 +207,7 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		}
 		B0_files.push_back(inHdr);
 		// Print message ready for next loop
-		if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
+		if (prompt) cout << "Specify next image type (SPGR/SSFP, blank to end input): " << flush;
 	}
 	if (signalTypes.size() == 0) {
 		cerr << "No input images specified." << endl;
