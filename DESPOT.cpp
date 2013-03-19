@@ -132,15 +132,8 @@ double HIFIResidual(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const do
                 double &M0, double &T1, double &B1) {
 	ArrayXd st = SPGR(flipAngles, spgrTR, B1, M0, T1);
 	ArrayXd it = IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1);
-	std::cout << "B1 " << B1 << " M0 " << M0 << " T1 " << T1 << " eff " << eff << " spgrTR " << spgrTR << " irTR " << irTR << " irFlip " << irFlipAngle << " TI " << TI.transpose() << std::endl;
-	std::cout << "SPGR flip " << flipAngles.transpose() << std::endl;
-	std::cout << "SPGR theory   " << st.transpose() << std::endl;
-	std::cout << "values        " << spgrVals.transpose() << std::endl;
-	std::cout << "diff          " << (spgrVals - st).transpose() << std::endl;
-	std::cout << "IRSPGR theory " << it.transpose() << " val " << irVals.transpose() << " diff " << (irVals -  it).transpose() << std::endl;
 	double res = (spgrVals - st).square().sum() +
 	              (irVals - it).square().sum();
-	std::cout << "res " << res << std::endl;
 	return res;
 }
 
