@@ -1525,32 +1525,23 @@ void NiftiImage::writeHeader(string path)
   */
 char *NiftiImage::readBytes(size_t start, size_t length, char *buffer)
 {
+	if (_mode == NIFTI_CLOSED) {
+		NIFTI_ERROR("Cannot read from a closed file.");
+		return NULL;
+	}
+	if (_mode == NIFTI_WRITE) {
+		NIFTI_ERROR("Cannot read from a file opened for writing.");
+		return NULL;
+	}
+	if (length == 0) {
+		NIFTI_ERROR("Asked to read a buffer of 0 bytes.");
+		return NULL;
+	}
 	bool didAllocate = false;
-	if (!buffer)
-	{
+	if (!buffer) {
 		buffer = new char[length];
 		didAllocate = true;
 	}
-
-	if (_mode == NIFTI_CLOSED)
-	{
-		NIFTI_ERROR("Cannot read from a closed file.");
-		if (didAllocate) delete[] buffer;
-		return NULL;
-	}
-	if (_mode == NIFTI_WRITE)
-	{
-		NIFTI_ERROR("Cannot read from a file opened for writing.");
-		if (didAllocate) delete[] buffer;
-		return NULL;
-	}
-	if (length == 0)
-	{
-		NIFTI_ERROR("Asked to read a buffer of 0 bytes.");
-		if (didAllocate) delete[] buffer;
-		return NULL;
-	}
-	
 	seek(_voxoffset + start, SEEK_SET);
 	size_t obj_read;
 	if (_gz)
@@ -1579,14 +1570,16 @@ char *NiftiImage::readBytes(size_t start, size_t length, char *buffer)
   */
 void NiftiImage::writeBytes(char *buffer, size_t start, size_t length)
 {
-	if (_mode == NIFTI_CLOSED)
-	{
+	if (_mode == NIFTI_CLOSED) {
 		NIFTI_ERROR("Cannot write to a closed file.");
 		return;
 	}
-	if (_mode == NIFTI_READ)
-	{
+	if (_mode == NIFTI_READ) {
 		NIFTI_ERROR("Cannot write to a file opened for writing.");
+		return;
+	}
+	if (length < 1) {
+		NIFTI_ERROR("Invalid write of length " << length << " bytes attempted. None written.");
 		return;
 	}
 	seek(_voxoffset + start, SEEK_SET);

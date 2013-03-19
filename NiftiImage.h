@@ -491,6 +491,12 @@ class NiftiImage
 			lt = ((et == -1) ? dim(4) : et) - st;
 			total = lx * ly * lz * lt;
 			
+			if (lx < 1 || ly < 1 || lz < 1 || lt < 1) { // There is nothing to write
+				NIFTI_ERROR("Invalid subvolume read of dimensions " <<
+							lx << "," << ly << "," << lz << "," << lt << " requested. Nothing read.");
+				return NULL;
+			}
+			
 			// Collapse successive full dimensions into a single compressed read
 			toRead = lx * _datatype.size;
 			if (lx == dim(1)) {
@@ -555,6 +561,12 @@ class NiftiImage
 			lz = ((ez == -1) ? dim(3) : ez) - sz;
 			lt = ((et == -1) ? dim(4) : et) - st;
 			total = lx * ly * lz * lt;
+			
+			if (lx < 1 || ly < 1 || lz < 1 || lt < 1) { // There is nothing to write
+				NIFTI_ERROR("Invalid subvolume write of dimensions " <<
+							lx << "," << ly << "," << lz << "," << lt << " requested. Nothing written.");
+				return;
+			}
 			
 			// Collapse successive full dimensions into a single write
 			toWrite = lx * _datatype.size;
