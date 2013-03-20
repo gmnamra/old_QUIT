@@ -1090,7 +1090,7 @@ bool isGZippedFile(const string &fname)
 	return false;
 }
 
-void NiftiImage::setFilenames(const string &fname)
+bool NiftiImage::setFilenames(const string &fname)
 {	
 	string ext = fname.substr(fname.find_last_of(".") + 1);
 	_basename = fname.substr(0, fname.find_last_of("."));
@@ -1107,12 +1107,16 @@ void NiftiImage::setFilenames(const string &fname)
 	else if (ext == "nii") {
 		_imgname = _hdrname = _basename + ".nii";
 	}
-	else
-		NIFTI_FAIL("Invalid NIfTI extension: " + ext);
+	else {
+		NIFTI_ERROR("Invalid NIfTI extension: " + ext);
+		return false;
+	}
+	
 	if (_gz) {
 		_imgname += ".gz";
 		_hdrname += ".gz";
 	}
+	return true;
 }
 const string &NiftiImage::basename() { return _basename; }
 
@@ -1610,7 +1614,8 @@ char *NiftiImage::readRawAllVolumes()
 		
 bool NiftiImage::open(const string &filename, const char &mode)
 {
-	setFilenames(filename);
+	if (!setFilenames(filename));
+		return false;
 	if (_mode != NIFTI_CLOSED)
 		NIFTI_FAIL("Attempted to open file " + filename +
 		           " using NiftiImage that is already open with file " + _imgname);
