@@ -1614,7 +1614,7 @@ char *NiftiImage::readRawAllVolumes()
 		
 bool NiftiImage::open(const string &filename, const char &mode)
 {
-	if (!setFilenames(filename));
+	if (!setFilenames(filename))
 		return false;
 	if (_mode != NIFTI_CLOSED)
 		NIFTI_FAIL("Attempted to open file " + filename +
