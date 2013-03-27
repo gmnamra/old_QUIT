@@ -140,7 +140,7 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 	NiftiImage *inHdr, *savedHeader;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
-	while (getline(cin, type) && !type.empty()) {
+	while (getline(cin, type) && type != "END") {
 		
 		if (type == "SPGR")
 			signalTypes.push_back(mcDESPOT::SignalSPGR);
@@ -187,9 +187,9 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		angles.push_back(inAngles * M_PI / 180.);
 		
 		inHdr = NULL;
-		if (prompt) cout << "Enter B1 Map Path (blank for none): " << flush;
+		if (prompt) cout << "Enter B1 Map Path (blank or NONE): " << flush;
 		getline(cin, path);
-		if (!path.empty()) {
+		if (path != "NONE") {
 			inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 			inHdr->checkVoxelsCompatible(*savedHeader);
 			if (verbose) cout << "Opened B1 correction header: " << path << endl;
@@ -198,9 +198,9 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		
 		inHdr = NULL;
 		if (signalTypes.back() == mcDESPOT::SignalSSFP) {
-			if (prompt) cout << "Enter path to B0 map (blank for none): " << flush;
+			if (prompt) cout << "Enter path to B0 map or NONE: " << flush;
 			getline(cin, path);
-			if (!path.empty()) {
+			if (path != "NONE") {
 				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
 				inHdr->checkVoxelsCompatible(*savedHeader);
 				if (verbose) cout << "Opened B0 correction header: " << path << endl;
@@ -208,7 +208,7 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		}
 		B0_files.push_back(inHdr);
 		// Print message ready for next loop
-		if (prompt) cout << "Specify next image type (SPGR/SSFP, blank to end input): " << flush;
+		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
 	if (signalTypes.size() == 0) {
 		cerr << "No input images specified." << endl;

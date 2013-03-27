@@ -45,15 +45,14 @@ Options:\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
 	-v, --verbose    : Print out more messages.\n\
 	-i, --inv 0-3    : Specify the scanner Inversion mode:\n\
-	                   0 (Default) Use raw segment TR from input file\n\
+	                   0 = Use raw segment TR from input file\n\
 			           1 = 1.5T scanner, readout pulses div 2 + 2\n\
-	                   2 = 3T, scale TI by 0.9, readout pulses div 2 + 2\n\
+	                   2 (Default) = 3T, scale TI by 0.9, readout pulses div 2 + 2\n\
 	                   3 = 3T, scale TI by 0.84, readout pulses + 2)\n\
-			           1,2 & 3 MUST be followed by the PE Step Count\n\
-	-p, --pe N       : PE Step Count.\n"
+"
 };
 
-static int verbose = false, inversionMode = 0, peReadout = 0;
+static int verbose = false, inversionMode = 2, peReadout = 0;
 static string outPrefix;
 static double inversionEfficiency = 0.;
 static struct option long_options[] =
@@ -62,7 +61,6 @@ static struct option long_options[] =
 	{"out", required_argument, 0, 'o'},
 	{"verbose", no_argument, 0, 'v'},
 	{"inv", required_argument, 0, 'i'},
-	{"pe", required_argument, 0, 'p'},
 	{0, 0, 0, 0}
 };
 
@@ -83,9 +81,10 @@ int main(int argc, char **argv) {
 		switch (c) {
 			case 'i':
 				inversionMode = atoi(optarg);
-				break;
-			case 'p':
-				peReadout = atoi(optarg);
+				if ((inversionMode < 0) || (inversionMode > 3)) {
+					cout << "Bad inversion mode (" << inversionMode << "). Must be 0-3" << endl;
+					exit(EXIT_FAILURE);
+				}
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
@@ -106,38 +105,7 @@ int main(int argc, char **argv) {
 		cout << "Incorrect number of arguments." << endl << usage << endl;
 		exit(EXIT_FAILURE);
 	}
-	if (inversionMode && !peReadout) {
-		cerr << "Inversion mode was specified but not readout pulse count." << endl;
-		exit(EXIT_FAILURE);
-	}
 	
-	double TIScale = 0.;
-	switch (inversionMode) {
-		case 1:
-			TIScale = 1.0;
-			peReadout = (peReadout / 2) + 2;
-			inversionEfficiency = 0.97;
-			break;
-		case 2:
-			TIScale = 0.9; // From Sean's code
-			peReadout = (peReadout / 2) + 2;
-			inversionEfficiency = 0.97;
-			break;
-		case 3:
-			TIScale = 0.84; // From Sean's code
-			peReadout = peReadout + 2;
-			inversionEfficiency = 0.97;
-			break;
-		case 0:
-			TIScale = 1.0;
-			peReadout = 0;
-			break;
-		default:
-			fprintf(stderr, "Inversion mode must be 0 - 3\n");
-			exit(EXIT_FAILURE);
-			break;
-	}
-
 	//**************************************************************************
 	#pragma mark Gather SPGR data
 	//**************************************************************************
@@ -180,8 +148,27 @@ int main(int argc, char **argv) {
 	#endif
 	{
 		cout << "Enter IR-SPGR Flip Angle (degrees):"; cin >> irAngle; irAngle *= M_PI / 180.;
-		if (peReadout > 0) {
+		if (inversionMode > 0) {
 			cout << "Enter IR-SPGR TR (seconds):"; cin >> irTR;
+			cout << "Enter original number of slices (PE2):"; cin >> peReadout;
+			double TIScale = 0.;
+			switch (inversionMode) {
+				case 1:
+					TIScale = 1.0;
+					peReadout = (peReadout / 2) + 2;
+					inversionEfficiency = 0.97;
+					break;
+				case 2:
+					TIScale = 0.9; // From Sean's code
+					peReadout = (peReadout / 2) + 2;
+					inversionEfficiency = 0.97;
+					break;
+				case 3:
+					TIScale = 0.84; // From Sean's code
+					peReadout = peReadout + 2;
+					inversionEfficiency = 0.97;
+					break;
+			}
 			irTR = irTR * peReadout;
 			cout << "Enter " << nIR << " IR-SPGR TI times (seconds):";
 			for (int i = 0; i < nIR; i++) {
