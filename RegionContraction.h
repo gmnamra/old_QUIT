@@ -40,10 +40,10 @@ VectorXi arg_partial_sort(const MatrixBase<Derived> &x, int middle)
 }
 
 template <typename Functor_t, typename Derived>
-double regionContraction(ArrayBase<Derived> &params, Functor_t &f,
-                         const ArrayBase<Derived> &loStart, const ArrayBase<Derived> &hiStart,
-					     const int nS = 5000, const int nR = 50, const int maxContractions = 10,
-						 const double thresh = 0.05, const double expand = 0., const int seed = 0)
+ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
+                          const ArrayBase<Derived> &loStart, const ArrayBase<Derived> &hiStart,
+					      const int nS = 5000, const int nR = 50, const int maxContractions = 10,
+						  const double thresh = 0.05, const double expand = 0., const int seed = 0)
 {
 	static bool haveWarned = false;
 	int nP = static_cast<int>(params.size());
@@ -54,7 +54,7 @@ double regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 	VectorXd loBounds = loStart;
 	VectorXd hiBounds = hiStart;
 	VectorXd regionSize = (hiBounds - loBounds);
-	VectorXd diffs(f.values());
+	ArrayXd diffs(f.values());
 	size_t c;
 	
 	std::mt19937 twist(seed);
@@ -73,8 +73,8 @@ double regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 				tempSample += loBounds;
 			} while (!f.constraint(tempSample));
 			f(tempSample, diffs);
-			sampleRes(s) = diffs.norm();
-			if (!std::isfinite(diffs.norm())) {
+			sampleRes(s) = diffs.square().sum();
+			if (!std::isfinite(diffs.square().sum())) {
 				if (!haveWarned) {
 					haveWarned = true;
 					std::cout << "Warning: Non-finite residual found!" << std::endl
@@ -84,7 +84,8 @@ double regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 					std::cout << "Theory " << f.theory(tempSample).transpose() << std::endl;
 				}
 				params = retained.col(0);
-				return std::numeric_limits<double>::infinity();
+				diffs.setConstant(std::numeric_limits<double>::infinity());
+				return diffs;
 			}
 			samples.col(s) = tempSample;
 		}
@@ -115,8 +116,10 @@ double regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 	}
 	// Return the best evaluated solution so far
 	params = retained.col(0);
-	//std::cout << "Final: " << params.transpose() << " Res: " << sampleRes[indices[0]] << std::endl << std::endl;
-	return sampleRes[indices[0]];
+	// Calculate the residual in %
+	f(params, diffs);
+	diffs /= f.signals();
+	return diffs;
 }
 
 #endif

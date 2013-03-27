@@ -259,10 +259,10 @@ class Functor
 		long inputs() const { return m_inputs; }
 		long values() const { return m_values; }
 		
-		virtual int operator()(const VectorXd &params, VectorXd &diffs) const = 0;
+		virtual int operator()(const VectorXd &params, ArrayXd &diffs) const = 0;
 		
-		virtual const VectorXd theory(const VectorXd &params) const = 0;
-		virtual const VectorXd signals() const = 0;
+		virtual const ArrayXd theory(const VectorXd &params) const = 0;
+		virtual const ArrayXd signals() const = 0;
 };
 
 //******************************************************************************
@@ -417,8 +417,8 @@ class mcDESPOT : public Functor<double> {
 			}
 		}
 		
-		const VectorXd signals() const {
-			VectorXd v(values());
+		const ArrayXd signals() const {
+			ArrayXd v(values());
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				v.segment(index, _signals[i].size()) = _signals[i];
@@ -427,12 +427,12 @@ class mcDESPOT : public Functor<double> {
 			return v;
 		}
 		
-		const VectorXd theory(const VectorXd &params) const {
+		const ArrayXd theory(const VectorXd &params) const {
 			VectorXd localP = params;
-			VectorXd t(values());
+			ArrayXd t(values());
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
-				VectorXd theory(_signals[i].size());
+				ArrayXd theory(_signals[i].size());
 				if (!_fitB0)
 					localP[0] = _consts[i].B0;
 				if (_types[i] == SignalSPGR) {
@@ -448,17 +448,17 @@ class mcDESPOT : public Functor<double> {
 						case 3: theory = Three_SSFP(_angles[i], _consts[i], localP, _normalise); break;
 					}
 				}
-				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
+				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
 				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
 			}
 			return t;
 		}
 				
-		int operator()(const VectorXd &params, VectorXd &diffs) const {
+		int operator()(const VectorXd &params, ArrayXd &diffs) const {
 			eigen_assert(diffs.size() == values());
-			VectorXd t = theory(params);
-			VectorXd s = signals();
+			ArrayXd t = theory(params);
+			ArrayXd s = signals();
 			diffs = t - s;
 			return 0;
 		}
@@ -537,8 +537,8 @@ class DESPOT2FM : public Functor<double> {
 			}
 		}
 		
-		const VectorXd signals() const {
-			VectorXd v(values());
+		const ArrayXd signals() const {
+			ArrayXd v(values());
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				v.segment(index, _signals[i].size()) = _signals[i];
@@ -548,27 +548,27 @@ class DESPOT2FM : public Functor<double> {
 		}
 		
 		// Params are { B0, PD, T2 }
-		const VectorXd theory(const VectorXd &params) const {
+		const ArrayXd theory(const VectorXd &params) const {
 			VectorXd withT1(4);
 			withT1 << params[0], params[1], _T1, params[2];
 			
-			VectorXd t(values());
+			ArrayXd t(values());
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				if (!_fitB0)
 					withT1[0] = _consts[i].B0;
-				VectorXd theory = One_SSFP(_angles, _consts[i], withT1);
-				if (_normalise && (theory.norm() > 0.)) theory /= theory.mean();
+				ArrayXd theory = One_SSFP(_angles, _consts[i], withT1);
+				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
 				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
 			}
 			return t;
 		}
 				
-		int operator()(const VectorXd &params, VectorXd &diffs) const {
+		int operator()(const VectorXd &params, ArrayXd &diffs) const {
 			eigen_assert(diffs.size() == values());
-			VectorXd t = theory(params);
-			VectorXd s = signals();
+			ArrayXd t = theory(params);
+			ArrayXd s = signals();
 			diffs = t - s;
 			return 0;
 		}

@@ -62,7 +62,6 @@ Options:\n\
 	--B0              : Use the default or specified B0 value (don't fit).\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
-	--drop, -d        : Drop certain flip-angles (Read from stdin).\n\
 	--normalise, -n   : Normalise signals to maximum (Ignore M0).\n\
 	--samples, -s n   : Use n samples for region contraction (Default 5000).\n\
 	--retain, -r  n   : Retain n samples for new boundary (Default 50).\n\
@@ -108,7 +107,7 @@ static struct option long_options[] =
 //******************************************************************************
 NiftiImage *paramsHdrs, residualHdr;
 vector<double *> paramsData;
-double *residualData;
+vector<double *> residualData;
 
 void int_handler(int sig);
 void int_handler(int sig)
@@ -118,7 +117,9 @@ void int_handler(int sig)
 		paramsHdrs[p].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
 		paramsHdrs[p].close();
 	}
-	residualHdr.writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, residualData);
+	for (int r = 0; r < residualData.size(); r++) {
+		residualHdr.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData[r]);
+	}
 	residualHdr.close();
 	exit(EXIT_FAILURE);
 }
@@ -297,7 +298,7 @@ int main(int argc, char **argv)
 	// 0 for B0, 1 for B1
 	//**************************************************************************
 	int voxelsPerSlice = savedHeader->voxelsPerSlice();
-	//int voxelsPerVolume = savedHeader.voxelsPerVolume();
+	int voxelsPerVolume = savedHeader->voxelsPerVolume();
 	
 	vector<double *> signalVolumes(signalFiles.size(), NULL),
 	                 B1Volumes(signalFiles.size(), NULL),
@@ -311,10 +312,16 @@ int main(int argc, char **argv)
 	cout << "Using " << components << " component model." << endl;
 	const int nP = mcDESPOT::nP(components);
 	const vector<const string> &names = mcDESPOT::names(components);
-	residualData = new double[voxelsPerSlice];
+	
+	int totalImages = 0;
+	for (int i = 0; i < angles.size(); i++)
+		totalImages += angles[i].size();
+	
+	residualData.resize(totalImages);
+	for (int i = 0; i < residualData.size(); i ++)
+		residualData[i] = new double[voxelsPerVolume];
 	residualHdr = *savedHeader;
-	residualHdr.setDim(4, 1); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
-	residualHdr.open(outPrefix + "MCD_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
+	residualHdr.setDim(4, totalImages); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);	residualHdr.open(outPrefix + "MCD_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
 	
 	paramsData.resize(nP);
 	paramsHdrs = new NiftiImage[nP];
@@ -384,8 +391,9 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
-			double residual = 0.;
-			ArrayXd params(nP); params.setZero();
+			ArrayXd params(nP), residuals(totalImages);
+			params.setZero();
+			residuals.setZero();
 			if ((!maskData || (maskData[sliceOffset + vox] > 0.)) &&
 			    (!PDData || (PDData[sliceOffset + vox] > 0.))) {
 				voxCount++;
@@ -414,14 +422,16 @@ int main(int argc, char **argv)
 					localHi(0) = (double)PDData[sliceOffset + vox];
 				}
 				mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, normalise, fitB0);
-				residual = regionContraction<mcDESPOT>(localP, mcd, localLo, localHi,
+				residuals = regionContraction<mcDESPOT>(localP, mcd, localLo, localHi,
 															 samples, retain, contract, 0.05, expand, rSeed);
 				params = localP;
 			}
 			for (int p = 0; p < nP; p++) {
 				paramsData[p][vox]  = params[p];
 			}
-			residualData[vox] = residual;
+			for (int i = 0; i < totalImages; i++) {
+				residualData[i][slice * voxelsPerSlice + vox] = residuals[i];
+			}
 		};
 		apply_for(voxelsPerSlice, processVox);
 		
@@ -435,7 +445,6 @@ int main(int argc, char **argv)
 		
 		for (int p = 0; p < nP; p++)
 			paramsHdrs[p].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
-		residualHdr.writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, residualData);
 	}
     time_t procEnd = time(NULL);
     struct tm *localEnd = localtime(&procEnd);
@@ -445,11 +454,16 @@ int main(int argc, char **argv)
 	          << difftime(procEnd, procStart) << " s." << endl;
 	
 	// Clean up memory and close files (automatically done in destructor)
+	// Residuals can only be written here if we want them to go in a 4D file
+	for (int r = 0; r < residualData.size(); r++) {
+		residualHdr.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData[r]);
+	}
 	residualHdr.close();
 	delete[] paramsHdrs;
 	for (int p = 0; p < nP; p++)
 		delete[] paramsData[p];
-	delete[] residualData;
+	for (int i = 0; i < totalImages; i++)
+		delete[] residualData[i];
 	for (int i = 0; i < signalFiles.size(); i++)	{
 		delete[] signalVolumes[i];
 		if (B1Volumes[i])
