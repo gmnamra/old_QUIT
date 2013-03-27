@@ -391,6 +391,10 @@ int main(int argc, char **argv)
 				voxCount++;
 				
 				vector<VectorXd> signals(signalFiles.size());
+				// Need local copy because B1 changes per voxel. If you assign
+				// to the global 'consts' nothing happens but Clang doesn't give
+				// an error
+				vector<DESPOTConstants> localConsts = consts;
 				for (int i = 0; i < signalFiles.size(); i++) {
 					VectorXd temp(angles[i].size());
 					for (int j = 0; j < angles[i].size(); j++) {
@@ -399,8 +403,8 @@ int main(int argc, char **argv)
 					if (normalise)
 						temp /= temp.mean();
 					signals[i] = temp;
-					consts[i].B0 = B0Volumes[i] ? B0Volumes[i][vox] : 0.;
-					consts[i].B1 = B1Volumes[i] ? B1Volumes[i][vox] : 1.;
+					localConsts[i].B0 = B0Volumes[i] ? B0Volumes[i][vox] : 0.;
+					localConsts[i].B1 = B1Volumes[i] ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
@@ -409,7 +413,7 @@ int main(int argc, char **argv)
 					localLo(0) = (double)PDData[sliceOffset + vox];
 					localHi(0) = (double)PDData[sliceOffset + vox];
 				}
-				mcDESPOT mcd(components, signalTypes, angles, signals, consts, normalise, fitB0);
+				mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, normalise, fitB0);
 				residual = regionContraction<mcDESPOT>(localP, mcd, localLo, localHi,
 															 samples, retain, contract, 0.05, expand, rSeed);
 				params = localP;
