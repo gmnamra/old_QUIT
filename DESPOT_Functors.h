@@ -197,37 +197,36 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const V
                     const bool normalise)
 {
 	VectorXd signal(flipAngles.size());
-	Matrix9d A = Matrix9d::Zero(), eATR, eATE, R = Matrix9d::Zero();
+	Matrix9d A = Matrix9d::Zero();
+	Matrix6d R = Matrix6d::Zero(), eATE6, eATR6;
+	Matrix3d eATE3, eATR3;
 	Vector9d M0;
 	double TE = c.TR / 2., dw = p[0] * 2. * M_PI, k_ab, k_ba,
 	       f_a = p[9], f_c = p[10], f_b = 1. - f_a - f_c;
 	M0 << 0., 0., p[1] * f_a, 0., 0., p[1] * f_b, 0., 0., p[1] * f_c;
-	// Set up the 'A' matrix. It's quite complex.
-
 	CalcExchange(p[8], f_a, f_b, k_ab, k_ba);
 	A.block(0, 0, 3, 3) = Relax(1./p[2], 1./p[3], k_ab, dw);
 	A.block(3, 3, 3, 3) = Relax(1./p[4], 1./p[5], k_ba, dw);
 	A.block(6, 6, 3, 3) = Relax(1./p[6], 1./p[7], 0., dw);
 	A(3, 0) = A(4, 1) = A(5, 2) = k_ab;
 	A(0, 3) = A(1, 4) = A(2, 5) = k_ba;
-	MatrixExponential<Matrix9d> exp(A*TE);
-	exp.compute(eATE);
-	eATR.noalias() = eATE * eATE;
-	const Vector9d eyemaM0 = (Matrix9d::Identity() - eATR) * M0;
+	MatrixExponential<Matrix6d> exp6(A.block(0,0,6,6)*TE);
+	MatrixExponential<Matrix3d> exp3(A.block(6,6,3,3)*TE);
+	exp6.compute(eATE6);
+	exp3.compute(eATE3);
+	eATR6.noalias() = eATE6 * eATE6;
+	eATR3.noalias() = eATE3 * eATE3;
+	const Vector6d eyemaM06 = (Matrix6d::Identity() - eATR6) * M0.head(6);
+	const Vector3d eyemaM03 = (Matrix3d::Identity() - eATR3) * M0.head(3);
 	for (int i = 0; i < flipAngles.size(); i++) {
 		const Matrix3d Rb = RF(c.B1 * flipAngles[i], c.phase);
 		R.block(0, 0, 3, 3) = Rb;
 		R.block(3, 3, 3, 3) = Rb;
-		R.block(6, 6, 3, 3) = Rb;
-		Vector9d MTR = (Matrix9d::Identity() - eATR * R).partialPivLu().solve(eyemaM0);
-		if (!normalise) {
-			Vector9d Mobs = eATE * R * MTR;
-			signal[i] = sqrt(pow(Mobs[0] + Mobs[3] + Mobs[6], 2.) +
-							 pow(Mobs[1] + Mobs[4] + Mobs[7], 2.));
-		} else {
-			signal[i] = sqrt(pow(MTR[0] + MTR[3] + MTR[6], 2.) +
-		                     pow(MTR[1] + MTR[4] + MTR[7], 2.));
-		}
+		Vector9d Mobs;
+		Mobs.head(6) = eATE6 * R * (Matrix6d::Identity() - eATR6 * R).partialPivLu().solve(eyemaM06);
+		Mobs.tail(3) = eATE3 * Rb* (Matrix3d::Identity() - eATR3 * Rb).partialPivLu().solve(eyemaM03);
+		signal[i] = sqrt(pow(Mobs[0] + Mobs[3] + Mobs[6], 2.) +
+						 pow(Mobs[1] + Mobs[4] + Mobs[7], 2.));
 	}
 	return signal;
 }
