@@ -41,15 +41,10 @@ Acknowledgements greatfully received, grant discussions welcome."
 const string usage {
 "Usage is: mcdespot [options]\n\
 \n\
-The input must consist of at least one line such as:\n\
-SPGR path_to_spgr_file (path_to_B1_file) \n\
-SSFP path_to_ssfp_file (path_to_B1) (path_to_B0) \n\
+The program will prompt for input (unless --no-prompt specified)\n\
 \n\
-If -d or --drop is specified further input will be prompted for from stdin.\n\
-\n\
-Phase-cycling is specified in degrees. If no B0/B1 correction is specified,\n\
-default values of B0 = 0 Hz and B1 = 1 will be used. B0 value is only used if\n\
---B0 option specified, otherwise it is a free parameter.\n\
+All times (TR) are in SECONDS. All angles are in degrees.\n\
+If B0/B1 correction unspecified, default values of B0=0 Hz and B1=1 are used.\n\
 \n\
 Options:\n\
 	--help, -h		  : Print this message.\n\
@@ -230,7 +225,7 @@ int main(int argc, char **argv)
 	double *maskData = NULL, *PDData = NULL;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvpt:m:o:znds:r:c:e:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvpt:m:o:nds:r:c:e:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
@@ -416,15 +411,14 @@ int main(int argc, char **argv)
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
-				ArrayXd localLo = loBounds, localHi = hiBounds, localP(nP);
+				ArrayXd localLo = loBounds, localHi = hiBounds;
 				if (PDData) {
 					localLo(0) = (double)PDData[sliceOffset + vox];
 					localHi(0) = (double)PDData[sliceOffset + vox];
 				}
 				mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, normalise, fitB0);
-				residuals = regionContraction<mcDESPOT>(localP, mcd, localLo, localHi,
-															 samples, retain, contract, 0.05, expand, rSeed);
-				params = localP;
+				residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi,
+													    samples, retain, contract, 0.05, expand, rSeed);
 			}
 			for (int p = 0; p < nP; p++) {
 				paramsData[p][vox]  = params[p];

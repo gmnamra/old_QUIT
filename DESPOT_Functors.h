@@ -72,11 +72,10 @@ VectorXd One_SPGR(const VectorXd &flipAngles,
                   const DESPOTConstants& c, const VectorXd &p)
 {
 	VectorXd theory(flipAngles.size());
-	VectorXd sa = (flipAngles.array() * c.B1).sin();
-	VectorXd ca = (flipAngles.array() * c.B1).cos();
+	ArrayXd sa = (flipAngles.array() * c.B1).sin();
+	ArrayXd ca = (flipAngles.array() * c.B1).cos();
 	double expT1 = exp(-c.TR / p[2]);
-	theory = p[1] * (1. - expT1) * sa.array() / (1. - expT1*ca.array());
-	
+	theory = (p[1]*(1. - expT1) * sa) / (1. - expT1*ca);
 	return theory;
 }
 
