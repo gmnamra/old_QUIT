@@ -66,7 +66,7 @@ const void CalcExchange(const double tau_a, const double f_a, const double f_b, 
 
 //******************************************************************************
 #pragma mark One Component Signals
-// Parameters are { B0, PD, T1, T2 }
+// Parameters are { PD, T1, T2 }
 //******************************************************************************
 VectorXd One_SPGR(const VectorXd &flipAngles,
                   const DESPOTConstants& c, const VectorXd &p)
@@ -74,18 +74,18 @@ VectorXd One_SPGR(const VectorXd &flipAngles,
 	VectorXd theory(flipAngles.size());
 	ArrayXd sa = (flipAngles.array() * c.B1).sin();
 	ArrayXd ca = (flipAngles.array() * c.B1).cos();
-	double expT1 = exp(-c.TR / p[2]);
-	theory = (p[1]*(1. - expT1) * sa) / (1. - expT1*ca);
+	double expT1 = exp(-c.TR / p[1]);
+	theory = (p[0]*(1. - expT1) * sa) / (1. - expT1*ca);
 	return theory;
 }
 
 VectorXd One_SSFP(const VectorXd &flipAngles,
                   const DESPOTConstants& c, const VectorXd &p)
 {
-	Matrix3d A = Relax(1./p[2], 1./p[3], 0., 2. * M_PI * p[0]),
+	Matrix3d A = Relax(1./p[1], 1./p[2], 0., 2. * M_PI * c.B0),
 	         R_rf, eATR;
 	Vector3d M0 = Vector3d::Zero(), Mobs;
-	M0[2] = p[1]; // PD
+	M0[2] = p[0]; // PD
 
 	MatrixExponential<Matrix3d> mexp(A * c.TR);
 	mexp.compute(eATR);
@@ -102,7 +102,7 @@ VectorXd One_SSFP(const VectorXd &flipAngles,
 
 //******************************************************************************
 #pragma mark Two Component Signals
-// Parameters are { B0, PD, T1_a, T2_a, T1_b, T2_b, tau_a, f_a }
+// Parameters are { PD, T1_a, T2_a, T1_b, T2_b, tau_a, f_a }
 //******************************************************************************
 typedef Matrix<double, 6, 6> Matrix6d;
 typedef Matrix<double, 6, 1> Vector6d;
@@ -113,11 +113,11 @@ VectorXd Two_SPGR(const VectorXd&flipAngles,
 	Matrix2d A, eATR;
 	Vector2d M0, Mobs;
 	VectorXd signal(flipAngles.size());
-	double k_ab, k_ba, f_a = p[7], f_b = 1. - f_a;
-	CalcExchange(p[6], f_a, f_b, k_ab, k_ba);
-	M0 << p[1] * f_a, p[1] * f_b;
-	A << -((1./p[2]) + k_ab),                    k_ba,
-				        k_ab,      -((1./p[4]) + k_ba);
+	double k_ab, k_ba, f_a = p[6], f_b = 1. - f_a;
+	CalcExchange(p[5], f_a, f_b, k_ab, k_ba);
+	M0 << p[0] * f_a, p[0] * f_b;
+	A << -((1./p[1]) + k_ab),                    k_ba,
+				        k_ab,      -((1./p[3]) + k_ba);
 	MatrixExponential<Matrix2d> expA(A*c.TR);
 	expA.compute(eATR);
 	const Vector2d RHS = (Matrix2d::Identity() - eATR) * M0;
@@ -134,12 +134,12 @@ VectorXd Two_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const Vec
 	VectorXd signal(flipAngles.size());
 	Matrix6d A = Matrix6d::Zero(), eATR, eATE, R = Matrix6d::Zero();
 	Vector6d M0;
-	M0 << 0., 0., p[1] * p[7], 0., 0., p[1] * (1. - p[7]);
+	M0 << 0., 0., p[0] * p[6], 0., 0., p[0] * (1. - p[6]);
 	// Set up the 'A' matrix. It's quite complex.
-	double TE = c.TR / 2., dw = p[0] * 2. * M_PI, k_ab, k_ba;
-	CalcExchange(p[6], p[7], (1 - p[7]), k_ab, k_ba);
-	A.block(0, 0, 3, 3) = Relax(1./p[2], 1./p[3], k_ab, dw);
-	A.block(3, 3, 3, 3) = Relax(1./p[4], 1./p[5], k_ba, dw);
+	double TE = c.TR / 2., dw = c.B0 * 2. * M_PI, k_ab, k_ba;
+	CalcExchange(p[5], p[6], (1 - p[6]), k_ab, k_ba);
+	A.block(0, 0, 3, 3) = Relax(1./p[1], 1./p[2], k_ab, dw);
+	A.block(3, 3, 3, 3) = Relax(1./p[3], 1./p[4], k_ba, dw);
 	A(3, 0) = A(4, 1) = A(5, 2) = k_ab;
 	A(0, 3) = A(1, 4) = A(2, 5) = k_ba;
 	MatrixExponential<Matrix6d> exp(A*TE);
@@ -165,7 +165,7 @@ VectorXd Two_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const Vec
 
 //******************************************************************************
 #pragma mark Three Component
-// Parameters are { B0, PD, T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
+// Parameters are { PD, T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
 //******************************************************************************
 typedef Matrix<double, 9, 9> Matrix9d;
 typedef Matrix<double, 9, 1> Vector9d;
@@ -175,12 +175,12 @@ VectorXd Three_SPGR(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 	Matrix3d A, eATR;
 	Vector3d M0, Mobs;
 	VectorXd signal(flipAngles.size());
-	double k_ab, k_ba, f_a = p[9], f_c = p[10], f_b = 1. - f_a - f_c;
-	CalcExchange(p[8], f_a, f_b, k_ab, k_ba);
-	M0 << p[1] * f_a, p[1] * f_b, p[1] * f_c;
-	A << -((1./p[2]) + k_ab),                     k_ba,         0.,
-					    k_ab,      -((1./p[4]) + k_ba),         0.,
-						  0.,                       0., -(1./p[6]);
+	double k_ab, k_ba, f_a = p[8], f_c = p[9], f_b = 1. - f_a - f_c;
+	CalcExchange(p[7], f_a, f_b, k_ab, k_ba);
+	M0 << p[0] * f_a, p[0] * f_b, p[0] * f_c;
+	A << -((1./p[1]) + k_ab),                     k_ba,         0.,
+					    k_ab,      -((1./p[3]) + k_ba),         0.,
+						  0.,                       0., -(1./p[5]);
 	MatrixExponential<Matrix3d> expA(A*c.TR);
 	expA.compute(eATR);
 	const Vector3d RHS = (Matrix3d::Identity() - eATR) * M0;
@@ -200,13 +200,13 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 	Matrix6d R = Matrix6d::Zero(), eATE6, eATR6;
 	Matrix3d eATE3, eATR3;
 	Vector9d M0;
-	double TE = c.TR / 2., dw = p[0] * 2. * M_PI, k_ab, k_ba,
-	       f_a = p[9], f_c = p[10], f_b = 1. - f_a - f_c;
-	M0 << 0., 0., p[1] * f_a, 0., 0., p[1] * f_b, 0., 0., p[1] * f_c;
-	CalcExchange(p[8], f_a, f_b, k_ab, k_ba);
-	A.block(0, 0, 3, 3) = Relax(1./p[2], 1./p[3], k_ab, dw);
-	A.block(3, 3, 3, 3) = Relax(1./p[4], 1./p[5], k_ba, dw);
-	A.block(6, 6, 3, 3) = Relax(1./p[6], 1./p[7], 0., dw);
+	double TE = c.TR / 2., dw = c.B0 * 2. * M_PI, k_ab, k_ba,
+	       f_a = p[8], f_c = p[9], f_b = 1. - f_a - f_c;
+	M0 << 0., 0., p[0] * f_a, 0., 0., p[0] * f_b, 0., 0., p[0] * f_c;
+	CalcExchange(p[7], f_a, f_b, k_ab, k_ba);
+	A.block(0, 0, 3, 3) = Relax(1./p[1], 1./p[2], k_ab, dw);
+	A.block(3, 3, 3, 3) = Relax(1./p[3], 1./p[4], k_ba, dw);
+	A.block(6, 6, 3, 3) = Relax(1./p[5], 1./p[6], 0., dw);
 	A(3, 0) = A(4, 1) = A(5, 2) = k_ab;
 	A(0, 3) = A(1, 4) = A(2, 5) = k_ba;
 	MatrixExponential<Matrix6d> exp6(A.block(0,0,6,6)*TE);
@@ -273,32 +273,40 @@ class mcDESPOT : public Functor<double> {
 			SignalSPGR = 0,
 			SignalSSFP
 		};
+		
+		enum B0Mode {
+			B0_Single = 0,
+			B0_Multi,
+			B0_Map
+		};
 	
-	private:
-		const int _components;
-		long _nP, _nV;
-		const vector<SignalType> &_types;
-		const vector<VectorXd> &_angles, &_signals;
-		const vector<DESPOTConstants> &_consts;
-		const bool &_normalise, &_fitB0;
-	
-	public:
-		static const int nP(const int components) {
+		static const int nP(const int &components) {
 			switch (components) {
-				case 1: return 4;
-				case 2: return 8;
-				case 3: return 11;
+				case 1: return 3;
+				case 2: return 7;
+				case 3: return 10;
 				default:
-					std::cerr << "Cannot create a " << components << "-component mcDESPOT model." << std::endl;
+					cerr << "Cannot create a " << components << "-component mcDESPOT model." << endl;
+					exit(EXIT_FAILURE);
+			}
+		}
+		
+		static const int nB0(const int &B0Mode, const size_t &nSignals) {
+			switch (B0Mode) {
+				case B0_Map: return 0; break;
+				case B0_Single: return 1; break;
+				case B0_Multi: return static_cast<int>(nSignals); break;
+				default:
+					cerr << "Invalid B0 mode." << endl;
 					exit(EXIT_FAILURE);
 			}
 		}
 		
 		static const vector<const string> &names(const int components) {
 			static const map<int, const vector<const string> > _namesMap {
-				{1, { "1c_B0", "1c_PD", "1c_T1", "1c_T2" } },
-				{2, { "2c_B0", "2c_PD", "2c_T1_a", "2c_T2_a", "2c_T1_b", "2c_T2_b", "2c_tau_a", "2c_f_a"  } },
-				{3, { "3c_B0", "3c_PD", "3c_T1_a", "3c_T2_a", "3c_T1_b", "3c_T2_b", "3c_T1_c", "3c_T2_c", "3c_tau_a", "3c_f_a", "3c_f_c" } } };
+				{1, { "1c_PD", "1c_T1", "1c_T2" } },
+				{2, { "2c_PD", "2c_T1_a", "2c_T2_a", "2c_T1_b", "2c_T2_b", "2c_tau_a", "2c_f_a"  } },
+				{3, { "3c_PD", "3c_T1_a", "3c_T2_a", "3c_T1_b", "3c_T2_b", "3c_T1_c", "3c_T2_c", "3c_tau_a", "3c_f_a", "3c_f_c" } } };
 			map<int, const vector<const string> >::const_iterator it = _namesMap.find(components);
 			if (it == _namesMap.end()) {
 				std::cerr << "Don't have file names for a " << components << "-component mcDESPOT model." << std::endl;
@@ -308,13 +316,13 @@ class mcDESPOT : public Functor<double> {
 		}
 		
 		static const ArrayXd &defaultLo(const int components, const int tesla) {
-			static ArrayXd c1t3(4), c1t7(4), c2t3(8), c2t7(8), c3t3(11), c3t7(11);
-			c1t3 << -150., 0., 0.25, 0.01;
-			c1t7 << -150., 0., 0.25, 0.01;
-			c2t3 << -150., 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.0;
-			c2t7 << -150., 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.0;
-			c3t3 << -150., 0., 0.25, 0.01, 0.75, 0.02, 2.00, 0.15, 0., 0., 0.;
-			c3t7 << -150., 0., 0.25, 0.01, 0.75, 0.02, 4.00, 0.15, 0., 0., 0.;
+			static ArrayXd c1t3(3), c1t7(3), c2t3(7), c2t7(7), c3t3(10), c3t7(10);
+			c1t3 << 0., 0.25, 0.01;
+			c1t7 << 0., 0.25, 0.01;
+			c2t3 << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.0;
+			c2t7 << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.0;
+			c3t3 << 0., 0.25, 0.01, 0.75, 0.02, 2.00, 0.15, 0., 0., 0.;
+			c3t7 << 0., 0.25, 0.01, 0.75, 0.02, 4.00, 0.15, 0., 0., 0.;
 			
 			switch (tesla) {
 				case 3:
@@ -335,13 +343,13 @@ class mcDESPOT : public Functor<double> {
 		}
 		
 		static const ArrayXd defaultHi(const int components, const int tesla) {
-			static ArrayXd c1t3(4), c1t7(4), c2t3(8), c2t7(8), c3t3(11), c3t7(11);
-			c1t3 << 150., 1.e7, 3.0, 0.25;
-			c1t7 << 150., 1.e7, 5.0, 0.10;
-			c2t3 << 150., 1.e7, 1.0, 0.05, 1.5, 0.05,  0.5, 0.95;
-			c2t7 << 150., 1.e7, 1.0, 0.02, 2.0, 0.05,  0.5, 0.95;
-			c3t3 << 150., 1.e7, 1.0, 0.05, 1.5, 0.05,  7.5, 0.6, 0.5, 0.49, 0.95;
-			c3t7 << 150., 1.e7, 1.0, 0.02, 2.0, 0.05, 20.0, 0.6, 0.5, 0.95, 0.95;
+			static ArrayXd c1t3(3), c1t7(3), c2t3(7), c2t7(7), c3t3(10), c3t7(10);
+			c1t3 << 1.e7, 3.0, 0.25;
+			c1t7 << 1.e7, 5.0, 0.10;
+			c2t3 << 1.e7, 1.0, 0.05, 1.5, 0.05,  0.5, 0.95;
+			c2t7 << 1.e7, 1.0, 0.02, 2.0, 0.05,  0.5, 0.95;
+			c3t3 << 1.e7, 1.0, 0.05, 1.5, 0.05,  7.5, 0.6, 0.5, 0.49, 0.95;
+			c3t7 << 1.e7, 1.0, 0.02, 2.0, 0.05, 20.0, 0.6, 0.5, 0.95, 0.95;
 			
 			switch (tesla) {
 				case 3:
@@ -360,31 +368,60 @@ class mcDESPOT : public Functor<double> {
 			std::cerr << "Don't have defaults for a " << components << "-component model." << std::endl;
 			exit(EXIT_FAILURE);
 		}
-		
+	
+	private:
+		const int _components, _B0Mode;
+		long _nP, _nV, _nB0;
+		const vector<SignalType> &_types;
+		const vector<VectorXd> &_angles, &_signals;
+		vector<DESPOTConstants> &_consts;
+		const bool _normalise;
+	
+	public:
+		mcDESPOT(const int components, const vector<SignalType> &types,
+				 const vector<VectorXd> &angles, const vector<VectorXd> &signals,
+				 vector<DESPOTConstants> &constants,
+				 const int &B0Mode, const bool &normalise = false) :
+			_components(components), _types(types),
+			_angles(angles), _signals(signals), _consts(constants),
+			_normalise(normalise), _B0Mode(B0Mode)
+		{
+			_nP = nP(components);
+			_nB0 = nB0(B0Mode, signals.size());
+			_nV = 0;
+			for (int i = 0; i < angles.size(); i++) {
+				if (angles[i].size() != signals[i].size()) {
+					cerr << "Angles and signals size mis-match for signal " << i << endl;
+					cerr << "Angles = " << angles[i].size() << " signal = " << signals[i].size() << endl;
+					exit(EXIT_FAILURE);
+				}
+				_nV += angles[i].size();
+			}
+		}
 		
 		const bool constraint(const VectorXd &params) {
 			// Negative PD or T1/T2 makes no sense
-			if ((params[1] < 0.) || (params[2] <= 0.) || (params[3] <= 0.))
+			if ((params[0] < 0.) || (params[1] <= 0.) || (params[2] <= 0.))
 				return false;
 			
 			if (_components == 1) {
 				return true;
 			} else if (_components == 2) {
 				// Check that T1_a, T2_a < T1_b, T2_b and that f_a makes sense
-				if ((params[4] > 0.) && (params[5] > 0.) &&
+				if ((params[1] > 0.) && (params[2] > 0.) &&
+					(params[1] < params[3]) &&
 					(params[2] < params[4]) &&
-					(params[3] < params[5]) &&
-					(params[7] <= 1.0))
+					(params[6] <= 1.0))
 					return true;
 				else
 					return false;
 			} else if (_components == 3) {
-				if ((params[4] > 0.) && (params[5] > 0.) && (params[6] > 0.) && (params[7] > 0.) &&
+				if ((params[1] > 0.) && (params[2] > 0.) &&
+					(params[1] < params[3]) &&
 					(params[2] < params[4]) &&
 					(params[3] < params[5]) &&
 					(params[4] < params[6]) &&
-					(params[5] < params[7]) &&
-					((params[9] + params[10]) <= 0.95))
+					((params[8] + params[9]) <= 0.95))
 					return true;
 				else
 					return false;
@@ -392,29 +429,8 @@ class mcDESPOT : public Functor<double> {
 				return true;
 		}
 				
-		const long inputs() const { return _nP; }
+		const long inputs() const { return _nP + _nB0; }
 		const long values() const { return _nV; }
-		
-		mcDESPOT(const int components, const vector<SignalType> &types,
-				 const vector<VectorXd> &angles, const vector<VectorXd> &signals,
-		         const vector<DESPOTConstants> &constants,
-				 const bool &normalise = false, const bool &fitB0 = true) :
-			_components(components), _types(types),
-			_angles(angles), _signals(signals), _consts(constants),
-			_normalise(normalise), _fitB0(fitB0)
-		{
-			_nP = nP(components);
-			_nV = 0;
-			
-			for (int i = 0; i < angles.size(); i++) {
-				if (angles[i].size() != signals[i].size()) {
-					std::cerr << "Angles and signals size mis-match for signal " << i << std::endl;
-					std::cerr << "Angles = " << angles[i].size() << " signal = " << signals[i].size() << std::endl;
-					exit(EXIT_FAILURE);
-				}
-				_nV += angles[i].size();
-			}
-		}
 		
 		const ArrayXd signals() const {
 			ArrayXd v(values());
@@ -427,24 +443,23 @@ class mcDESPOT : public Functor<double> {
 		}
 		
 		const ArrayXd theory(const VectorXd &params) const {
-			VectorXd localP = params;
 			ArrayXd t(values());
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				ArrayXd theory(_signals[i].size());
-				if (!_fitB0)
-					localP[0] = _consts[i].B0;
+				if (_B0Mode == B0_Map)
+					_consts[i].B0 = params[_nP + i];
 				if (_types[i] == SignalSPGR) {
 					switch (_components) {
-						case 1: theory = One_SPGR(_angles[i], _consts[i], localP); break;
-						case 2: theory = Two_SPGR(_angles[i], _consts[i], localP); break;
-						case 3: theory = Three_SPGR(_angles[i], _consts[i], localP); break;
+						case 1: theory = One_SPGR(_angles[i], _consts[i], params.head(_nP)); break;
+						case 2: theory = Two_SPGR(_angles[i], _consts[i], params.head(_nP)); break;
+						case 3: theory = Three_SPGR(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				} else if (_types[i] == SignalSSFP) {
 					switch (_components) {
-						case 1: theory = One_SSFP(_angles[i], _consts[i], localP); break;
-						case 2: theory = Two_SSFP(_angles[i], _consts[i], localP, _normalise); break;
-						case 3: theory = Three_SSFP(_angles[i], _consts[i], localP, _normalise); break;
+						case 1: theory = One_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
+						case 2: theory = Two_SSFP(_angles[i], _consts[i], params.head(_nP), _normalise); break;
+						case 3: theory = Three_SSFP(_angles[i], _consts[i], params.head(_nP), _normalise); break;
 					}
 				}
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();

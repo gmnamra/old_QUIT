@@ -44,7 +44,6 @@ const string usage {
 The program will prompt for input (unless --no-prompt specified)\n\
 \n\
 All times (TR) are in SECONDS. All angles are in degrees.\n\
-If B0/B1 correction unspecified, default values of B0=0 Hz and B1=1 are used.\n\
 \n\
 Options:\n\
 	--help, -h		  : Print this message.\n\
@@ -54,7 +53,6 @@ Options:\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 2).\n\
 	--M0 file         : M0 Map file.\n\
-	--B0              : Use the default or specified B0 value (don't fit).\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
 	--normalise, -n   : Normalise signals to maximum (Ignore M0).\n\
@@ -62,16 +60,20 @@ Options:\n\
 	--retain, -r  n   : Retain n samples for new boundary (Default 50).\n\
 	--contract, -c n  : Contract a maximum of n times (Default 10).\n\
 	--expand, -e n    : Re-expand boundary by percentage n (Default 0).\n\
-	--tesla, -t 3     : Boundaries suitable for 3T\n\
-	            7     : Boundaries suitable for 7T (default)\n\
+	--B0, -b 0        : Read B0 values from map files.\n\
+	         1        : Fit one B0 value to all scans.\n\
+			 2        : Fit a B0 value to each scan individually.\n\
+	--tesla, -t 3     : Boundaries suitable for 3T (default)\n\
+	            7     : Boundaries suitable for 7T \n\
 	            u     : User specified boundaries from stdin.\n"
 };
 
 static int verbose = false, prompt = true,
-           normalise = false, drop = false, fitB0 = true,
+           normalise = false, drop = false, B0Mode = mcDESPOT::B0_Single,
            start_slice = -1, end_slice = -1, slice = 0,
 		   samples = 5000, retain = 50, contract = 10,
-		   components = 2, tesla = -1;
+		   components = 2, tesla = 3,
+           nP = 0, nB0 = 0;
 static double expand = 0.;
 static string outPrefix;
 static struct option long_options[] =
@@ -94,7 +96,7 @@ static struct option long_options[] =
 	{"1", no_argument, &components, 1},
 	{"2", no_argument, &components, 2},
 	{"3", no_argument, &components, 3},
-	{"B0", no_argument, &fitB0, false},
+	{"B0", no_argument, 0, 'b'},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
@@ -108,9 +110,13 @@ void int_handler(int sig);
 void int_handler(int sig)
 {
 	fprintf(stdout, "Processing terminated. Writing currently processed data.\n");
-	for (int p = 0; p < mcDESPOT::nP(components); p++) {
+	for (int p = 0; p < nP; p++) {
 		paramsHdrs[p].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
 		paramsHdrs[p].close();
+	}
+	for (int b = 0; b < nB0; b++) {
+		paramsHdrs[nP + b].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[nP + b]);
+		paramsHdrs[nP + b].close();
 	}
 	for (int r = 0; r < residualData.size(); r++) {
 		residualHdr.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData[r]);
@@ -126,12 +132,12 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
                        vector<DESPOTConstants> &consts,
 				       vector<NiftiImage *> &signalFiles,
 				       vector<NiftiImage *> &B1_files,
-				       vector<NiftiImage *> &B0_files);
+				       vector<NiftiImage *> &B0_files, const int &B0Mode);
 NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
                        vector<DESPOTConstants> &consts,
 				       vector<NiftiImage *> &signalFiles,
 				       vector<NiftiImage *> &B1_files,
-				       vector<NiftiImage *> &B0_files) {
+				       vector<NiftiImage *> &B0_files, const int &B0Mode) {
 	NiftiImage *inHdr, *savedHeader;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
@@ -192,7 +198,7 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		B1_files.push_back(inHdr);
 		
 		inHdr = NULL;
-		if (signalTypes.back() == mcDESPOT::SignalSSFP) {
+		if ((B0Mode == mcDESPOT::B0_Map) && (signalTypes.back() == mcDESPOT::SignalSSFP)) {
 			if (prompt) cout << "Enter path to B0 map or NONE: " << flush;
 			getline(cin, path);
 			if (path != "NONE") {
@@ -225,7 +231,7 @@ int main(int argc, char **argv)
 	double *maskData = NULL, *PDData = NULL;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvpt:m:o:nds:r:c:e:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvpt:b:m:o:nds:r:c:e:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
@@ -252,7 +258,18 @@ int main(int argc, char **argv)
 			case 's': samples  = atoi(optarg); break;
 			case 'r': retain   = atoi(optarg); break;
 			case 'c': contract = atoi(optarg); break;
-			case 'e': expand   = atof(optarg); break; 
+			case 'e': expand   = atof(optarg); break;
+			case 'b':
+				switch (*optarg) {
+					case '0' : B0Mode = mcDESPOT::B0_Map; break;
+					case '1' : B0Mode = mcDESPOT::B0_Single; break;
+					case '2' : B0Mode = mcDESPOT::B0_Multi; break;
+					default:
+						cout << "Invalid B0 Mode." << endl;
+						exit(EXIT_FAILURE);
+						break;
+				}
+				break;
 			case 't':
 				switch (*optarg) {
 					case '3': tesla = 3; break;
@@ -260,7 +277,7 @@ int main(int argc, char **argv)
 					case 'u': tesla = -1; break;
 					default:
 						cout << "Unknown boundaries type " << optarg << endl;
-						abort();
+						exit(EXIT_FAILURE);
 						break;
 				}
 				cout << "Using " << tesla << "T boundaries." << endl;
@@ -286,7 +303,7 @@ int main(int argc, char **argv)
 	vector<DESPOTConstants> consts;
 	vector<VectorXd> angles;
 	vector<NiftiImage *> signalFiles, B1_files, B0_files;
-	savedHeader = parseInput(signalTypes, angles, consts, signalFiles, B1_files, B0_files);
+	savedHeader = parseInput(signalTypes, angles, consts, signalFiles, B1_files, B0_files, B0Mode);
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	// Use NULL to indicate that default values should be used -
@@ -305,7 +322,8 @@ int main(int argc, char **argv)
 	}
 	
 	cout << "Using " << components << " component model." << endl;
-	const int nP = mcDESPOT::nP(components);
+	nP = mcDESPOT::nP(components);
+	nB0 = mcDESPOT::nB0(B0Mode, signalFiles.size());
 	const vector<const string> &names = mcDESPOT::names(components);
 	
 	int totalImages = 0;
@@ -318,13 +336,13 @@ int main(int argc, char **argv)
 	residualHdr = *savedHeader;
 	residualHdr.setDim(4, totalImages); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);	residualHdr.open(outPrefix + "MCD_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
 	
-	paramsData.resize(nP);
-	paramsHdrs = new NiftiImage[nP];
+	paramsData.resize(nP + nB0);
+	paramsHdrs = new NiftiImage[nP + nB0];
 
-	ArrayXd loBounds(nP), hiBounds(nP);
+	ArrayXd loBounds(nP + nB0), hiBounds(nP + nB0);
 	if (tesla > 0) {
-		loBounds = mcDESPOT::defaultLo(components, tesla);
-		hiBounds = mcDESPOT::defaultHi(components, tesla);
+		loBounds.head(nP) = mcDESPOT::defaultLo(components, tesla);
+		hiBounds.head(nP) = mcDESPOT::defaultHi(components, tesla);
 	} else if (prompt) {
 		cout << "Enter parameter pairs (low then high)" << endl;
 	}
@@ -339,20 +357,18 @@ int main(int argc, char **argv)
 		paramsHdrs[i].open(outPrefix + "MCD_" + names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE);
 	}
 	
-	// If fitting, give a suitable range. Otherwise fix and let the functors
-	// pick up the specified value (for now assume the last specified file is
-	// an SSFP sequence, needs fixing / generalising)
-	if (fitB0) {
-		loBounds[0] = -0.5 / consts.back().TR;
-		hiBounds[0] =  0.5 / consts.back().TR;
-	} else {
-		loBounds[0] = 0.;
-		hiBounds[0] = 0.;
+	for (int i = 0; i < nB0; i++) {
+		loBounds[nP + i] = -0.5 / consts[i].TR;
+		hiBounds[nP + i] =  0.5 / consts[i].TR;
+		paramsData[nP + i] = new double[voxelsPerSlice];
+		paramsHdrs[nP + i] = *savedHeader;
+		paramsHdrs[nP + i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
+		paramsHdrs[nP + i].open(outPrefix + "MCD_B0_" + to_string(i) + ".nii.gz", NiftiImage::NIFTI_WRITE);
 	}
 	// If normalising, don't bother fitting for PD
 	if (normalise) {
-		loBounds[1] = 1.;
-		hiBounds[1] = 1.;
+		loBounds[0] = 1.;
+		hiBounds[0] = 1.;
 	}
 	
 	if (verbose) {
@@ -386,7 +402,7 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
-			ArrayXd params(nP), residuals(totalImages);
+			ArrayXd params(nP + nB0), residuals(totalImages);
 			params.setZero();
 			residuals.setZero();
 			if ((!maskData || (maskData[sliceOffset + vox] > 0.)) &&
@@ -416,7 +432,7 @@ int main(int argc, char **argv)
 					localLo(0) = (double)PDData[sliceOffset + vox];
 					localHi(0) = (double)PDData[sliceOffset + vox];
 				}
-				mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, normalise, fitB0);
+				mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, normalise, B0Mode);
 				residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi,
 													    samples, retain, contract, 0.05, expand, rSeed);
 			}
@@ -439,6 +455,8 @@ int main(int argc, char **argv)
 		
 		for (int p = 0; p < nP; p++)
 			paramsHdrs[p].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
+		for (int b = 0; b < nB0; b++)
+			paramsHdrs[nP + b].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[nP + b]);
 	}
     time_t procEnd = time(NULL);
     struct tm *localEnd = localtime(&procEnd);
