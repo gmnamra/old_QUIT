@@ -275,9 +275,9 @@ class mcDESPOT : public Functor<double> {
 		};
 		
 		enum B0Mode {
-			B0_Single = 0,
-			B0_Multi,
-			B0_Map
+			B0_Map = 0,
+			B0_Single,
+			B0_Multi
 		};
 	
 		static const int nP(const int &components) {
@@ -447,7 +447,9 @@ class mcDESPOT : public Functor<double> {
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				ArrayXd theory(_signals[i].size());
-				if (_B0Mode == B0_Map)
+				if (_B0Mode == B0_Single)
+					_consts[i].B0 = params[_nP];
+				else if (_B0Mode == B0_Multi)
 					_consts[i].B0 = params[_nP + i];
 				if (_types[i] == SignalSPGR) {
 					switch (_components) {

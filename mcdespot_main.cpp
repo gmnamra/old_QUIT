@@ -334,7 +334,8 @@ int main(int argc, char **argv)
 	for (int i = 0; i < residualData.size(); i ++)
 		residualData[i] = new double[voxelsPerVolume];
 	residualHdr = *savedHeader;
-	residualHdr.setDim(4, totalImages); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);	residualHdr.open(outPrefix + "MCD_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
+	residualHdr.setDim(4, totalImages); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
+	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", NiftiImage::NIFTI_WRITE);
 	
 	paramsData.resize(nP + nB0);
 	paramsHdrs = new NiftiImage[nP + nB0];
@@ -354,7 +355,7 @@ int main(int argc, char **argv)
 		paramsData[i] = new double[voxelsPerSlice];
 		paramsHdrs[i] = *savedHeader;
 		paramsHdrs[i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
-		paramsHdrs[i].open(outPrefix + "MCD_" + names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE);
+		paramsHdrs[i].open(outPrefix + "MCD_" + to_string(components) + "c_" + names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE);
 	}
 	
 	for (int i = 0; i < nB0; i++) {
@@ -363,7 +364,7 @@ int main(int argc, char **argv)
 		paramsData[nP + i] = new double[voxelsPerSlice];
 		paramsHdrs[nP + i] = *savedHeader;
 		paramsHdrs[nP + i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
-		paramsHdrs[nP + i].open(outPrefix + "MCD_B0_" + to_string(i) + ".nii.gz", NiftiImage::NIFTI_WRITE);
+		paramsHdrs[nP + i].open(outPrefix + "MCD_" + to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", NiftiImage::NIFTI_WRITE);
 	}
 	// If normalising, don't bother fitting for PD
 	if (normalise) {
@@ -437,7 +438,10 @@ int main(int argc, char **argv)
 													    samples, retain, contract, 0.05, expand, rSeed);
 			}
 			for (int p = 0; p < nP; p++) {
-				paramsData[p][vox]  = params[p];
+				paramsData[p][vox] = params[p];
+			}
+			for (int b = 0; b < nB0; b++) {
+				paramsData[nP + b][vox] = params[nP + b];
 			}
 			for (int i = 0; i < totalImages; i++) {
 				residualData[i][slice * voxelsPerSlice + vox] = residuals[i];
