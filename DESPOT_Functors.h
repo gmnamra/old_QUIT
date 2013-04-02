@@ -408,20 +408,19 @@ class mcDESPOT : public Functor<double> {
 				return true;
 			} else if (_components == 2) {
 				// Check that T1_a, T2_a < T1_b, T2_b and that f_a makes sense
-				if ((params[1] > 0.) && (params[2] > 0.) &&
-					(params[1] < params[3]) &&
+				if ((params[1] < params[3]) &&
 					(params[2] < params[4]) &&
 					(params[6] <= 1.0))
 					return true;
 				else
 					return false;
 			} else if (_components == 3) {
-				if ((params[1] > 0.) && (params[2] > 0.) &&
-					(params[1] < params[3]) &&
+				// Check that T1/2_a < T1/2_b < T1/2_c and that f_a + f_c makes sense 
+				if ((params[1] < params[3]) &&
 					(params[2] < params[4]) &&
 					(params[3] < params[5]) &&
 					(params[4] < params[6]) &&
-					((params[8] + params[9]) <= 0.95))
+					((params[8] + params[9]) <= 1.0))
 					return true;
 				else
 					return false;
