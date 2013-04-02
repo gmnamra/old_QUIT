@@ -155,6 +155,10 @@ int main(int argc, char **argv)
 	}
 	if ((tesla != 0) && !B0Data)
 		fitB0 = true;
+	if ((argc - optind) < 2) {
+		cout << "Wrong number of arguments. Need at least a T1 map and 1 SSFP file." << endl;
+		exit(EXIT_FAILURE);
+	}
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
 	inFile.open(argv[optind++], 'r');
 	T1Data = inFile.readVolume<double>(0);
@@ -163,7 +167,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	int nFlip, nPhases;
+	int nFlip, nPhases, nResiduals = 0;
 	nPhases = argc - optind;
 	vector<DESPOTConstants> consts(nPhases);
 	VectorXd ssfpAngles;
@@ -212,6 +216,7 @@ int main(int argc, char **argv)
 		// Don't close the first header because we've saved it to write the
 		// results, and FSLIO gets fussy about cloning closed headers
 		inFile.close();
+		nResiduals += ssfpAngles.size();
 		optind++;
 	}
 	ssfpAngles *= M_PI / 180.;
@@ -222,27 +227,24 @@ int main(int argc, char **argv)
 	}
 	
 	// Set up boundaries for DESPOT-FM if needed
-	const long nP = DESPOT2FM::inputs();
+	const long nP = fitB0 ? 3 : 2;
 	ArrayXd loBounds(nP), hiBounds(nP);
 	if (tesla != 0) {
 		if (tesla > 0) {
-			loBounds = DESPOT2FM::defaultLo(tesla);
-			hiBounds = DESPOT2FM::defaultHi(tesla);
+			loBounds.head(2) = DESPOT2FM::defaultLo(tesla);
+			hiBounds.head(2) = DESPOT2FM::defaultHi(tesla);
 		} else if (tesla < 0) {
 			cout << "Enter parameter pairs (low then high)" << endl;
 			for (int i = 0; i < nP; i++) {
-				cout << DESPOT2FM::names()[p] << ": " << flush;
+				cout << DESPOT2FM::names()[i] << ": " << flush;
 				cin >> loBounds[i] >> hiBounds[i];
 			}
 		}
 		// If fitting, give a suitable range and allocate results memory
 		if (fitB0) {
-			loBounds[0] = -0.5 / consts[0].TR;
-			hiBounds[0] =  0.5 / consts[0].TR;
+			loBounds[2] =  0.0 / consts[0].TR;
+			hiBounds[2] =  0.5 / consts[0].TR;
 			B0Data = new double[voxelsPerVolume];
-		} else { // Otherwise fix and let functors pick up the specified value
-			loBounds[0] = 0.;
-			hiBounds[0] = 0.;
 		}
 	}
 	
@@ -258,7 +260,11 @@ int main(int argc, char **argv)
 	vector<double *> paramsData(nP);
 	for (int p = 0; p < nP; p++)
 		paramsData[p] = new double[voxelsPerVolume];
-	double *residuals = new double[voxelsPerVolume];
+	if (tesla == 0)
+		nResiduals = 1;
+	vector<double *> residuals(nResiduals);
+	for (int i = 0; i < nResiduals; i++)
+		residuals[i] = new double[voxelsPerVolume];
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -277,8 +283,9 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			// Set up parameters and constants
-			double residual = 0., T1 = 0.;
+			double T1 = 0.;
 			ArrayXd params(nP); params.setZero();
+			ArrayXd resid(nResiduals); resid.setZero();
 			if (!maskData || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				voxCount++;
@@ -305,17 +312,19 @@ int main(int argc, char **argv)
 							index = p;
 						}
 					}
-					residual = classicDESPOT2(ssfpAngles, signals[index], consts[index].TR, T1, consts[index].B1, params[0], params[1]);
+					resid[0] = classicDESPOT2(ssfpAngles, signals[index], consts[index].TR, T1, consts[index].B1, params[0], params[1]);
 				} else {
 					// DESPOT2-FM
 					DESPOT2FM tc(ssfpAngles, signals, consts, T1, false, fitB0);
-					residual = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds);
+					resid = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds);
 				}
 			}
 			for (int p = 0; p < nP; p++) {
 				paramsData[p][sliceOffset + vox] = params[p];
 			}
-			residuals[sliceOffset + vox] = residual;
+			for (int i = 0; i < nResiduals; i++) {
+				residuals[i][sliceOffset + vox] = resid[i];
+			}
 		};
 		apply_for(voxelsPerSlice, processVox);
 		
@@ -343,8 +352,10 @@ int main(int argc, char **argv)
 			savedHeader.writeVolume(0, paramsData[p]);
 			savedHeader.close();
 		}
+		savedHeader.setDim(4, nResiduals);
 		savedHeader.open(outPrefix + "D2_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
-		savedHeader.writeVolume(0, residuals);
+		for (int i = 0; i < nResiduals; i++)
+			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 		savedHeader.close();
 	} else {
 		for (int p = 0; p < nP; p++) {
@@ -352,8 +363,10 @@ int main(int argc, char **argv)
 			savedHeader.writeVolume(0, paramsData[p]);
 			savedHeader.close();
 		}
+		savedHeader.setDim(4, nResiduals);
 		savedHeader.open(outPrefix + "FM_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
-		savedHeader.writeVolume(0, residuals);
+		for (int i = 0; i < nResiduals; i++)
+			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 		savedHeader.close();
 	}
 	// Clean up memory

@@ -433,7 +433,7 @@ int main(int argc, char **argv)
 					localLo(0) = (double)PDData[sliceOffset + vox];
 					localHi(0) = (double)PDData[sliceOffset + vox];
 				}
-				mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, normalise, B0Mode);
+				mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise);
 				residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi,
 													    samples, retain, contract, 0.05, expand, rSeed);
 			}

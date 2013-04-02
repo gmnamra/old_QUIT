@@ -487,20 +487,20 @@ class DESPOT2FM : public Functor<double> {
 		long _nV;
 		const VectorXd &_angles;
 		const vector<VectorXd> &_signals;
-		const vector<DESPOTConstants> &_consts;
+		vector<DESPOTConstants> &_consts;
 		const double _T1;
 		const bool &_normalise, &_fitB0;
 	
 	public:
 		static const vector<const string> &names() {
-			static const vector<const string> _names { { "FM_B0", "FM_PD", "FM_T2" } };
+			static const vector<const string> _names { { "FM_PD", "FM_T2", "FM_B0" } };
 			return _names;
 		}
 		
 		static const ArrayXd &defaultLo(const int tesla) {
-			static ArrayXd t3(3), t7(3);
-			t3 << -150., 0., 0.010;
-			t7 << -150., 0., 0.005;
+			static ArrayXd t3(2), t7(2);
+			t3 << 0., 0.010;
+			t7 << 0., 0.005;
 			
 			switch (tesla) {
 				case 3: return t3; break;
@@ -511,9 +511,9 @@ class DESPOT2FM : public Functor<double> {
 		}
 		
 		static const ArrayXd defaultHi(const int tesla) {
-			static ArrayXd t3(3), t7(3);
-			t3 << 150., 1.e7, 0.50;
-			t7 << 150., 1.e7, 0.25;
+			static ArrayXd t3(2), t7(2);
+			t3 << 1.e7, 0.50;
+			t7 << 1.e7, 0.25;
 			
 			switch (tesla) {
 				case 3: return t3; break;
@@ -530,11 +530,11 @@ class DESPOT2FM : public Functor<double> {
 				return true;
 		}
 		
-		static const long inputs() { return 3; }
+		const long inputs() { return _fitB0? 3 : 2; }
 		const long values() const { return _nV; }
 		
 		DESPOT2FM(VectorXd &angles, const vector<VectorXd> &signals,
-		          const vector<DESPOTConstants> &consts,
+		          vector<DESPOTConstants> &consts,
 				  const double T1, const bool &normalise = false, const bool &fitB0 = true) :
 			_angles(angles), _signals(signals),
 			_consts(consts),
@@ -562,16 +562,16 @@ class DESPOT2FM : public Functor<double> {
 			return v;
 		}
 		
-		// Params are { B0, PD, T2 }
+		// Params are { PD, T2, B0 }
 		const ArrayXd theory(const VectorXd &params) const {
-			VectorXd withT1(4);
-			withT1 << params[0], params[1], _T1, params[2];
+			VectorXd withT1(3);
+			withT1 << params[0], _T1, params[1];
 			
 			ArrayXd t(values());
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
-				if (!_fitB0)
-					withT1[0] = _consts[i].B0;
+				if (_fitB0)
+					_consts[i].B0 = params[2];
 				ArrayXd theory = One_SSFP(_angles, _consts[i], withT1);
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
 				t.segment(index, _signals[i].size()) = theory;
