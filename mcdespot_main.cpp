@@ -326,15 +326,15 @@ int main(int argc, char **argv)
 	nB0 = mcDESPOT::nB0(B0Mode, signalFiles.size());
 	const vector<const string> &names = mcDESPOT::names(components);
 	
-	int totalImages = 0;
+	int totalResiduals = 0;
 	for (int i = 0; i < angles.size(); i++)
-		totalImages += angles[i].size();
+		totalResiduals += angles[i].size();
 	
-	residualData.resize(totalImages);
+	residualData.resize(totalResiduals);
 	for (int i = 0; i < residualData.size(); i ++)
 		residualData[i] = new double[voxelsPerVolume];
 	residualHdr = *savedHeader;
-	residualHdr.setDim(4, totalImages); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
+	residualHdr.setDim(4, totalResiduals); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
 	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", NiftiImage::NIFTI_WRITE);
 	
 	paramsData.resize(nP + nB0);
@@ -403,7 +403,7 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
-			ArrayXd params(nP + nB0), residuals(totalImages);
+			ArrayXd params(nP + nB0), residuals(totalResiduals);
 			params.setZero();
 			residuals.setZero();
 			if ((!maskData || (maskData[sliceOffset + vox] > 0.)) &&
@@ -443,7 +443,7 @@ int main(int argc, char **argv)
 			for (int b = 0; b < nB0; b++) {
 				paramsData[nP + b][vox] = params[nP + b];
 			}
-			for (int i = 0; i < totalImages; i++) {
+			for (int i = 0; i < totalResiduals; i++) {
 				residualData[i][slice * voxelsPerSlice + vox] = residuals[i];
 			}
 		};
@@ -471,14 +471,14 @@ int main(int argc, char **argv)
 	
 	// Clean up memory and close files (automatically done in destructor)
 	// Residuals can only be written here if we want them to go in a 4D file
-	for (int r = 0; r < residualData.size(); r++) {
+	for (int r = 0; r < totalResiduals; r++) {
 		residualHdr.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData[r]);
 	}
 	residualHdr.close();
 	delete[] paramsHdrs;
 	for (int p = 0; p < nP; p++)
 		delete[] paramsData[p];
-	for (int i = 0; i < totalImages; i++)
+	for (int i = 0; i < totalResiduals; i++)
 		delete[] residualData[i];
 	for (int i = 0; i < signalFiles.size(); i++)	{
 		delete[] signalVolumes[i];

@@ -304,9 +304,9 @@ class mcDESPOT : public Functor<double> {
 		
 		static const vector<const string> &names(const int components) {
 			static const map<int, const vector<const string> > _namesMap {
-				{1, { "1c_PD", "1c_T1", "1c_T2" } },
-				{2, { "2c_PD", "2c_T1_a", "2c_T2_a", "2c_T1_b", "2c_T2_b", "2c_tau_a", "2c_f_a"  } },
-				{3, { "3c_PD", "3c_T1_a", "3c_T2_a", "3c_T1_b", "3c_T2_b", "3c_T1_c", "3c_T2_c", "3c_tau_a", "3c_f_a", "3c_f_c" } } };
+				{1, { "PD", "T1", "T2" } },
+				{2, { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a"  } },
+				{3, { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c" } } };
 			map<int, const vector<const string> >::const_iterator it = _namesMap.find(components);
 			if (it == _namesMap.end()) {
 				std::cerr << "Don't have file names for a " << components << "-component mcDESPOT model." << std::endl;
@@ -321,7 +321,7 @@ class mcDESPOT : public Functor<double> {
 			c1t7 << 0., 0.25, 0.01;
 			c2t3 << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.0;
 			c2t7 << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.0;
-			c3t3 << 0., 0.25, 0.01, 0.75, 0.02, 2.00, 0.15, 0., 0., 0.;
+			c3t3 << 0., 0.35, 0.002, 0.700, 0.075, 3.5, 0.175, 0.05, 0., 0.;
 			c3t7 << 0., 0.25, 0.01, 0.75, 0.02, 4.00, 0.15, 0., 0., 0.;
 			
 			switch (tesla) {
@@ -348,7 +348,7 @@ class mcDESPOT : public Functor<double> {
 			c1t7 << 1.e7, 5.0, 0.10;
 			c2t3 << 1.e7, 1.0, 0.05, 1.5, 0.05,  0.5, 0.95;
 			c2t7 << 1.e7, 1.0, 0.02, 2.0, 0.05,  0.5, 0.95;
-			c3t3 << 1.e7, 1.0, 0.05, 1.5, 0.05,  7.5, 0.6, 0.5, 0.49, 0.95;
+			c3t3 << 1.e7, 0.55, 0.016, 2.0, 0.145,  7.5, 0.5, 0.3, 0.3, 0.7;
 			c3t7 << 1.e7, 1.0, 0.02, 2.0, 0.05, 20.0, 0.6, 0.5, 0.95, 0.95;
 			
 			switch (tesla) {
