@@ -26,7 +26,7 @@ $(INSTALL_LIB)/:
 # Set up all our compiler options
 CXX = clang++
 AR = ar rcs
-CXX_FLAGS = -m64 -msse3 -mssse3 -msse4.1 -msse4.2 -std=c++11 -stdlib=libc++ -DHAVE_NRECON $(DEBUG)
+CXX_FLAGS = -m64 -msse3 -mssse3 -msse4.1 -msse4.2 -mllvm -inline-threshold=1200 -std=c++11 -stdlib=libc++ -DHAVE_NRECON $(DEBUG)
 DEBUG_FLAGS = -g
 RELEASE_FLAGS = -O3
 LD_FLAGS = -std=c++11 -stdlib=libc++ -O3 -L$(INSTALL_LIB) -L$(LIBCPP)/lib
