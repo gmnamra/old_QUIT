@@ -224,7 +224,7 @@ class NiftiImage
 		static void SwapNiftiHeader(struct nifti_1_header *h);
 		static void SwapAnalyzeHeader(nifti_analyze75 *h);
 		
-		void readHeader(string path);
+		bool readHeader(string path);  //!< Attempts to read a header structure from the specified path. Returns true on success, false on failure.
 		void writeHeader(string path);
 		char *readBytes(size_t start, size_t length, char *buffer = NULL);
 		void writeBytes(char *buffer, size_t start, size_t length);
@@ -387,7 +387,7 @@ class NiftiImage
 		NiftiImage &operator=(const NiftiImage &other);
 		static void printDTypeList();
 		
-		bool open(const string &filename, const char &mode);
+		bool open(const string &filename, const char &mode); //!< Attempts to open a NIfTI file. Returns true on success, false on failure.
 		void close();
 		const string &basename();
 		char *readRawVolume(const int vol);

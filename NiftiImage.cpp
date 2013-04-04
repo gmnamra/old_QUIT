@@ -992,7 +992,9 @@ NiftiImage::NiftiImage(const string &filename, const char &mode) :
 {
 	_qform.setIdentity(); _sform.setIdentity();
 	setDatatype(NIFTI_TYPE_FLOAT32);
-	open(filename, mode);
+	if (!open(filename, mode)) {
+		NIFTI_FAIL("Could not open file in constructor.");
+	}
 }
 
 NiftiImage::NiftiImage(const int nx, const int ny, const int nz, const int nt,
@@ -1230,7 +1232,7 @@ inline float NiftiImage::fixFloat(const float f)
 		return 0.;
 }
 
-void NiftiImage::readHeader(string path)
+bool NiftiImage::readHeader(string path)
 {
 	struct nifti_1_header nhdr;
 	
@@ -1238,8 +1240,10 @@ void NiftiImage::readHeader(string path)
 		_file.zipped = gzopen(path.c_str(), "rb");
 	else
 		_file.unzipped = fopen(path.c_str(), "rb");
-	if (!_file.zipped)
-		NIFTI_FAIL("Failed to open header from " + path);
+	if (!_file.zipped) {
+		NIFTI_ERROR("Failed to open header from " + path);
+		return false;
+	}
 	
 	size_t obj_read;
 	if (_gz) {
@@ -1248,16 +1252,20 @@ void NiftiImage::readHeader(string path)
 	}
 	else
 		obj_read = fread(&nhdr, sizeof(nhdr), 1, _file.unzipped);
-	if (obj_read < 1)
-		NIFTI_FAIL("Could not read header structure from " + _hdrname);
+	if (obj_read < 1) {
+		NIFTI_ERROR("Could not read header structure from " + _hdrname);
+		return false;
+	}
 	
 	// Check if disk and CPU byte order match.
 	// The sizeof_hdr field should always be 352, as this is the size of a
 	// NIfTI-1 header
 	if (nhdr.sizeof_hdr != sizeof(nhdr)) {
 		SwapBytes(1, 4, &nhdr.sizeof_hdr);
-		if (nhdr.sizeof_hdr != sizeof(nhdr))
-			NIFTI_FAIL("Could not determine byte order of header " + _hdrname);
+		if (nhdr.sizeof_hdr != sizeof(nhdr)) {
+			NIFTI_ERROR("Could not determine byte order of header " + _hdrname);
+			return false;
+		}
 		// If we didn't fail, then we need to swap the header (first swap sizeof back)
 		_swap = true;
 		SwapBytes(1, 4, &nhdr.sizeof_hdr);
@@ -1274,10 +1282,14 @@ void NiftiImage::readHeader(string path)
 	else if (_swap)
 		SwapAnalyzeHeader((nifti_analyze75 *)&nhdr);
 	
-	if(nhdr.datatype == DT_BINARY || nhdr.datatype == DT_UNKNOWN  )
+	if(nhdr.datatype == DT_BINARY || nhdr.datatype == DT_UNKNOWN  ) {
 		NIFTI_ERROR("Bad datatype in header " << _hdrname);
-	if(nhdr.dim[1] <= 0)
+		return false;
+	}
+	if(nhdr.dim[1] <= 0) {
 		NIFTI_ERROR("Bad first dimension in header " << _hdrname);
+		return false;
+	}
 	
 	/* fix bad dim[] values in the defined dimension range */
 	for(int i=2; i <= nhdr.dim[0]; i++)
@@ -1396,6 +1408,8 @@ void NiftiImage::readHeader(string path)
 			_file.unzipped = fopen(_imgname.c_str(), "rb");
 		}
 	}
+	
+	return true;
 }
 
 void NiftiImage::writeHeader(string path)
@@ -1620,11 +1634,12 @@ bool NiftiImage::open(const string &filename, const char &mode)
 		NIFTI_FAIL("Attempted to open file " + filename +
 		           " using NiftiImage that is already open with file " + _imgname);
 	if (mode == NIFTI_READ) {
-		readHeader(_hdrname); // readHeader leaves _file pointing to image file on success
-		if (!_file.zipped)
+		if (readHeader(_hdrname)) {
+			_mode = NIFTI_READ;
+			seek(_voxoffset, SEEK_SET);
+		} else {
 			return false;
-		_mode = NIFTI_READ;
-		seek(_voxoffset, SEEK_SET);
+		}
 	} else if (mode == NIFTI_WRITE) {
 		writeHeader(_hdrname); // writeHeader ensures file is opened to image file on success
 		if (!_file.zipped)
