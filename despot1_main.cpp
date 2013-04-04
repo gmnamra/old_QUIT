@@ -75,13 +75,17 @@ int main(int argc, char **argv)
 		switch (c) {
 			case '1':
 				cout << "Opening B1 file: " << optarg << endl;
-				inFile.open(optarg, 'r');
+				 if (!inFile.open(optarg, 'r')) {
+				 	exit(EXIT_FAILURE);
+				}
 				B1Data = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
-				inFile.open(optarg, 'r');
+				if (!inFile.open(optarg, 'r')) {
+					exit(EXIT_FAILURE);
+				}
 				maskData = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
@@ -104,7 +108,9 @@ int main(int argc, char **argv)
 	#pragma mark Gather SPGR data
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
-	spgrFile.open(argv[optind], 'r');
+	if (!spgrFile.open(argv[optind], 'r')) {
+		exit(EXIT_FAILURE); //NiftiImage will print an error message
+	}
 	nSPGR = spgrFile.dim(4);
 	VectorXd spgrAngles(nSPGR);
 	

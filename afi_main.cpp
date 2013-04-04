@@ -54,7 +54,9 @@ int main(int argc, char **argv)
 		{
 			case 'm':
 				cout << "Reading mask." << endl;
-				inFile.open(optarg, NiftiImage::NIFTI_READ);
+				if (!inFile.open(optarg, NiftiImage::NIFTI_READ)) {
+					exit(EXIT_FAILURE);
+				}
 				mask = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
@@ -65,7 +67,9 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	cout << "Opening input file " << argv[optind] << endl;
-	inFile.open(argv[optind], NiftiImage::NIFTI_READ);
+	if (!inFile.open(argv[optind], NiftiImage::NIFTI_READ)) {
+		exit(EXIT_FAILURE);
+	}
 	#ifdef HAVE_NRECON
 	ParameterList pars;
 	if (ReadProcpar(inFile.basename() + ".procpar", pars)) {

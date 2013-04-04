@@ -88,7 +88,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
-				inFile.open(optarg, 'r');
+				if (!inFile.open(optarg, 'r')) {
+					exit(EXIT_FAILURE);
+				}
 				maskData = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
@@ -110,7 +112,9 @@ int main(int argc, char **argv) {
 	#pragma mark Gather SPGR data
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
-	spgrFile.open(argv[optind], 'r');
+	if (!spgrFile.open(argv[optind], 'r')) {
+		exit(EXIT_FAILURE);
+	}
 	nSPGR = spgrFile.dim(4);
 	VectorXd spgrAngles(nSPGR);
 	double spgrTR;
@@ -133,7 +137,9 @@ int main(int argc, char **argv) {
 	#pragma mark Gather IR-SPGR data
 	//**************************************************************************	
 	cout << "Opening IR-SPGR file: " << argv[++optind] << endl;
-	irFile.open(argv[optind], 'r');
+	if (!irFile.open(argv[optind], 'r')) {
+		exit(EXIT_FAILURE);
+	}
 	irFile.checkVoxelsCompatible(spgrFile);
 	nIR = irFile.dim(4);
 	VectorXd irTI(nIR);

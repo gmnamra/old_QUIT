@@ -101,25 +101,33 @@ int main(int argc, char **argv)
 				break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
-				inFile.open(optarg, 'r');
+				if (!inFile.open(optarg, 'r')) {
+					exit(EXIT_FAILURE);
+				}
 				maskData = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
 			case '0':
 				cout << "Reading B0 file: " << optarg << endl;
-				inFile.open(optarg, 'r');
+				if (!inFile.open(optarg, 'r')) {
+					exit(EXIT_FAILURE);
+				}
 				B0Data = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
 			case '1':
 				cout << "Reading B1 file: " << optarg << endl;
-				inFile.open(optarg, 'r');
+				if (!inFile.open(optarg, 'r')) {
+					exit(EXIT_FAILURE);
+				}
 				B1Data = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
 			case 'M':
 				cout << "Reading M0 file " << optarg;
-				inFile.open(optarg, 'r');
+				if (!inFile.open(optarg, 'r')) {
+					exit(EXIT_FAILURE);
+				}
 				M0Data = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
@@ -175,7 +183,9 @@ int main(int argc, char **argv)
 	double **ssfpData = (double **)malloc(nPhases * sizeof(double *));
 	for (size_t p = 0; p < nPhases; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
-		inFile.open(argv[optind], 'r');
+		if (!inFile.open(argv[optind], 'r')) {
+			exit(EXIT_FAILURE);
+		}
 		if (p == 0)
 		{	// Read nFlip, TR and flip angles from first file
 			nFlip = inFile.dim(4);

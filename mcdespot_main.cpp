@@ -235,13 +235,17 @@ int main(int argc, char **argv)
 		switch (c) {
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
-				inHeader.open(optarg, NiftiImage::NIFTI_READ);
+				if (!inHeader.open(optarg, NiftiImage::NIFTI_READ)) {
+					exit(EXIT_FAILURE);
+				}
 				maskData = inHeader.readVolume<double>(0);
 				inHeader.close();
 				break;
 			case 'M':
 				cout << "Reading PD file " << optarg << endl;
-				inHeader.open(optarg, NiftiImage::NIFTI_READ);
+				if (!inHeader.open(optarg, NiftiImage::NIFTI_READ)) {
+					exit(EXIT_FAILURE);
+				}
 				PDData = inHeader.readVolume<double>(0);
 				inHeader.close();
 				break;
