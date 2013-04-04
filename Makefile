@@ -12,22 +12,22 @@ INSTALL_DIR := .
 INSTALL_BIN = $(INSTALL_DIR)/bin
 INSTALL_INC = $(INSTALL_DIR)/include
 INSTALL_LIB = $(INSTALL_DIR)/lib
-LIBCPP = /software/local/k1078535
-EIGEN  = /software/local/k1078535/include/eigen3
+LIBCPP  = /software/system/gcc/gcc-4.8.0/lib
+EIGEN  = /home/k1078535/Code/eigen/
 
 $(INSTALL_BIN)/:
 	mkdir -p $(INSTALL_BIN)
 $(INSTALL_INC)/:
-	mkdir -p $(INCLUDE_DIR)
+	mkdir -p $(INSTALL_INC)
 $(INSTALL_LIB)/:
 	mkdir -p $(INSTALL_LIB)
 
 # Set up all our compiler options
-CXX = clang++
+CXX = /software/system/gcc/gcc-4.8.0/bin/gcc
 AR = ar rcs
-CXX_FLAGS = -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -std=c++11 -stdlib=libc++ $(DEBUG)
-LD_FLAGS = -std=c++11 -stdlib=libc++ -O3 -L$(LIBCPP)/lib
-INCLUDE = -I$(SRC_DIR) -I$(EIGEN) -cxx-isystem$(LIBCPP)/include/c++/v1
+CXX_FLAGS = -std=c++11 -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors $(DEBUG)
+LD_FLAGS = -O3 -L$(LIBCPP)
+INCLUDE = -I$(SRC_DIR) -I$(EIGEN)
 
 #
 # Pattern to build a .c in SRC_DIR/subdir to BUILD_DIR/subdir
@@ -48,7 +48,7 @@ NIFTI_DEPS  = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(NIFTI_FILES))
 #
 
 NiftiImage : $(NIFTI_DEPS)
-	$(AR) $(LIB_OPTIONS) $(BUILD_DIR)/libNiftiImage.a $(NIFTI_DEPS)
+	LD_RUN_PATH=$(LIBCPP) $(AR) $(LIB_OPTIONS) $(BUILD_DIR)/libNiftiImage.a $(NIFTI_DEPS)
 
 all     : NiftiImage
 

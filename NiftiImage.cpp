@@ -1295,7 +1295,9 @@ void NiftiImage::readHeader(string path)
 	setDatatype(nhdr.datatype);
 	
 	/**- compute qto_xyz transformation from pixel indexes (i,j,k) to (x,y,z) */
-	Affine3d S; S = Scaling<double>(_voxdim[1], _voxdim[2], _voxdim[3]);
+	Affine3d S; S = Scaling(static_cast<double>(_voxdim[1]),
+                            static_cast<double>(_voxdim[2]),
+	                        static_cast<double>(_voxdim[3]));
 	if( !is_nifti || nhdr.qform_code <= 0 ) {
 		/**- if not nifti or qform_code <= 0, use grid spacing for qto_xyz */
 		_qform = S.matrix();
@@ -1448,7 +1450,9 @@ void NiftiImage::writeHeader(string path)
 	nhdr.qform_code = qform_code;
 	Quaterniond Q(_qform.rotation());
 	Translation3d T(_qform.translation());
-	Affine3d S; S = Scaling<double>(_voxdim[1], _voxdim[2], _voxdim[3]);
+	Affine3d S; S = Scaling(static_cast<double>(_voxdim[1]),
+	                        static_cast<double>(_voxdim[2]),
+	                        static_cast<double>(_voxdim[3]));
 	
 	// NIfTI REQUIRES a (or w) >= 0. Because Q and -Q represent the same
 	// rotation, if w < 0 simply store -Q
