@@ -176,7 +176,7 @@ http://brainvis.wustl.edu/wiki
 
 // Convenience macros for printing errors. Note that err is NOT encased in ()
 // so that NIFTI_ERROR( "string" << number ); works
-#define NIFTI_ERROR( err ) do { cerr << __PRETTY_FUNCTION__ << ": " << err << endl; } while(0)
+#define NIFTI_ERROR( err ) do { cout << __PRETTY_FUNCTION__ << ": " << err << endl; } while(0)
 #define NIFTI_FAIL( err ) do { NIFTI_ERROR( err ); exit(EXIT_FAILURE); } while(0)
 
 class NiftiImage
@@ -211,20 +211,20 @@ class NiftiImage
 		bool _gz;
 		ZFile _file;
 		
-		void setFilenames(const string &filename);
-		static int needs_swap(short dim0, int hdrsize);
-		static float fixFloat(const float f);
+		bool setFilenames(const string &filename); //!< Sets the header and image filenames. Returns true if successful
+		static int needs_swap(short dim0, int hdrsize); //!< Check if file endianism matches host endianism.
+		static float fixFloat(const float f); //!< Converts invalid floats to 0 to ensure a marginally sane header
 		
-		size_t read(void *buff, size_t size, size_t nmemb);
-		size_t write(const void *buff, size_t size, size_t nmemb);
-		long seek(long offset, int whence);
-		int rewind();
+		size_t read(void *buff, size_t size, size_t nmemb); //!< Reads nmemb groups of size bytes from the image file to buff.
+		size_t write(const void *buff, size_t size, size_t nmemb); //!< Writes nmemb groups of size bytes from buff to the image file.
+		long seek(long offset, int whence); //!< Seeks to the specified position in the file
+		int rewind(); //!< Rewind to the start of the file
 		
 		static void SwapBytes(size_t n, int siz, void *ar);
 		static void SwapNiftiHeader(struct nifti_1_header *h);
 		static void SwapAnalyzeHeader(nifti_analyze75 *h);
 		
-		void readHeader(string path);
+		bool readHeader(string path);  //!< Attempts to read a header structure from the specified path. Returns true on success, false on failure.
 		void writeHeader(string path);
 		char *readBytes(size_t start, size_t length, char *buffer = NULL);
 		void writeBytes(char *buffer, size_t start, size_t length);
@@ -387,7 +387,7 @@ class NiftiImage
 		NiftiImage &operator=(const NiftiImage &other);
 		static void printDTypeList();
 		
-		bool open(const string &filename, const char &mode);
+		bool open(const string &filename, const char &mode); //!< Attempts to open a NIfTI file. Returns true on success, false on failure.
 		void close();
 		const string &basename();
 		char *readRawVolume(const int vol);
