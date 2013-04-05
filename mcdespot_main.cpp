@@ -451,7 +451,7 @@ int main(int argc, char **argv)
 				residualData[i][slice * voxelsPerSlice + vox] = residuals[i];
 			}
 		};
-		apply_for(voxelsPerSlice, processVox, 1);
+		apply_for(voxelsPerSlice, processVox);
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
