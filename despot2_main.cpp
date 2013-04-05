@@ -356,7 +356,7 @@ int main(int argc, char **argv)
 	savedHeader.setDim(4, 1);
 	savedHeader.setDatatype(NIFTI_TYPE_FLOAT32);
 	if (tesla == 0) {
-		const vector<const string> classic_names { "D2_PD", "D2_T2" };
+		const vector<string> classic_names { "D2_PD", "D2_T2" };
 		for (int p = 0; p < 2; p++) {
 			savedHeader.open(outPrefix + classic_names[p] + ".nii.gz", NiftiImage::NIFTI_WRITE);
 			savedHeader.writeVolume(0, paramsData[p]);

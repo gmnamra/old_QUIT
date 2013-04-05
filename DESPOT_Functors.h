@@ -129,7 +129,7 @@ VectorXd Two_SPGR(const VectorXd&flipAngles,
 	return signal;
 }
 
-VectorXd Two_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const VectorXd &p, const bool normalise)
+VectorXd Two_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const VectorXd &p)
 {
 	VectorXd signal(flipAngles.size());
 	Matrix6d A = Matrix6d::Zero(), eATR, eATE, R = Matrix6d::Zero();
@@ -151,14 +151,9 @@ VectorXd Two_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const Vec
 		R.block(0, 0, 3, 3) = Rb;
 		R.block(3, 3, 3, 3) = Rb;
 		Vector6d MTR = (Matrix6d::Identity() - eATR * R).partialPivLu().solve(eyemaM0);
-		if (!normalise) {
-			Vector6d Mobs = eATE * R * MTR;
-			signal[i] = sqrt(pow(Mobs[0] + Mobs[3], 2.) +
-							 pow(Mobs[1] + Mobs[4], 2.));
-		} else {
-			signal[i] = sqrt(pow(MTR[0] + MTR[3], 2.) +
-		                     pow(MTR[1] + MTR[4], 2.));
-		}
+		Vector6d Mobs = eATE * R * MTR;
+		signal[i] = sqrt(pow(Mobs[0] + Mobs[3], 2.) +
+						 pow(Mobs[1] + Mobs[4], 2.));
 	}
 	return signal;
 }
@@ -192,27 +187,23 @@ VectorXd Three_SPGR(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 	return signal;
 }
 
-VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const VectorXd &p,
-                    const bool normalise)
+VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const VectorXd &p)
 {
 	VectorXd signal(flipAngles.size());
-	Matrix9d A = Matrix9d::Zero();
-	Matrix6d R = Matrix6d::Zero(), eATE6, eATR6;
-	Matrix3d eATE3, eATR3;
+	Matrix6d R = Matrix6d::Zero(), eATE6, eATR6, A6 = Matrix6d::Zero();
+	Matrix3d eATE3, eATR3, A3 = Matrix3d::Zero();
 	Vector9d M0;
 	double TE = c.TR / 2., dw = c.B0 * 2. * M_PI, k_ab, k_ba,
 	       f_a = p[8], f_c = p[9], f_b = 1. - f_a - f_c;
 	M0 << 0., 0., p[0] * f_a, 0., 0., p[0] * f_b, 0., 0., p[0] * f_c;
 	CalcExchange(p[7], f_a, f_b, k_ab, k_ba);
-	A.block(0, 0, 3, 3) = Relax(1./p[1], 1./p[2], k_ab, dw);
-	A.block(3, 3, 3, 3) = Relax(1./p[3], 1./p[4], k_ba, dw);
-	A.block(6, 6, 3, 3) = Relax(1./p[5], 1./p[6], 0., dw);
-	A(3, 0) = A(4, 1) = A(5, 2) = k_ab;
-	A(0, 3) = A(1, 4) = A(2, 5) = k_ba;
-	MatrixExponential<Matrix6d> exp6(A.block(0,0,6,6)*TE);
-	MatrixExponential<Matrix3d> exp3(A.block(6,6,3,3)*TE);
-	exp6.compute(eATE6);
-	exp3.compute(eATE3);
+	A6.block(0, 0, 3, 3) = Relax(1./p[1], 1./p[2], k_ab, dw);
+	A6.block(3, 3, 3, 3) = Relax(1./p[3], 1./p[4], k_ba, dw);
+	A3 = Relax(1./p[5], 1./p[6], 0., dw);
+	A6(3, 0) = A6(4, 1) = A6(5, 2) = k_ab;
+	A6(0, 3) = A6(1, 4) = A6(2, 5) = k_ba;
+	eATE6 = (A6*TE).exp();
+	eATE3 = (A3*TE).exp();
 	eATR6.noalias() = eATE6 * eATE6;
 	eATR3.noalias() = eATE3 * eATE3;
 	const Vector6d eyemaM06 = (Matrix6d::Identity() - eATR6) * M0.head(6);
@@ -302,14 +293,14 @@ class mcDESPOT : public Functor<double> {
 			}
 		}
 		
-		static const vector<const string> &names(const int components) {
-			static const map<int, const vector<const string> > _namesMap {
+		static const vector<string> names(const int components) {
+			static const map<int, const vector<string> > _namesMap {
 				{1, { "PD", "T1", "T2" } },
 				{2, { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a"  } },
 				{3, { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c" } } };
-			map<int, const vector<const string> >::const_iterator it = _namesMap.find(components);
+			auto it = _namesMap.find(components);
 			if (it == _namesMap.end()) {
-				std::cerr << "Don't have file names for a " << components << "-component mcDESPOT model." << std::endl;
+				cerr << "Don't have file names for a " << components << "-component mcDESPOT model." << std::endl;
 				exit(EXIT_FAILURE);
 			} else
 			return it->second;
@@ -319,9 +310,9 @@ class mcDESPOT : public Functor<double> {
 			static ArrayXd c1t3(3), c1t7(3), c2t3(7), c2t7(7), c3t3(10), c3t7(10);
 			c1t3 << 0., 0.25, 0.01;
 			c1t7 << 0., 0.25, 0.01;
-			c2t3 << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.0;
-			c2t7 << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.0;
-			c3t3 << 0., 0.35, 0.002, 0.700, 0.075, 3.5, 0.175, 0.05, 0., 0.;
+			c2t3 << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001;
+			c2t7 << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001;
+			c3t3 << 0., 0.35, 0.002, 0.700, 0.075, 3.5, 0.175, 0.05, 0.001, 0.001;
 			c3t7 << 0., 0.25, 0.01, 0.75, 0.02, 4.00, 0.15, 0., 0., 0.;
 			
 			switch (tesla) {
@@ -342,7 +333,7 @@ class mcDESPOT : public Functor<double> {
 			exit(EXIT_FAILURE);
 		}
 		
-		static const ArrayXd defaultHi(const int components, const int tesla) {
+		static const ArrayXd &defaultHi(const int components, const int tesla) {
 			static ArrayXd c1t3(3), c1t7(3), c2t3(7), c2t7(7), c3t3(10), c3t7(10);
 			c1t3 << 1.e7, 3.0, 0.25;
 			c1t7 << 1.e7, 5.0, 0.10;
@@ -365,7 +356,7 @@ class mcDESPOT : public Functor<double> {
 						case 3: return c3t7;
 					}
 			}
-			std::cerr << "Don't have defaults for a " << components << "-component model." << std::endl;
+			cerr << "Don't have defaults for a " << components << "-component model." << std::endl;
 			exit(EXIT_FAILURE);
 		}
 	
@@ -459,8 +450,8 @@ class mcDESPOT : public Functor<double> {
 				} else if (_types[i] == SignalSSFP) {
 					switch (_components) {
 						case 1: theory = One_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
-						case 2: theory = Two_SSFP(_angles[i], _consts[i], params.head(_nP), _normalise); break;
-						case 3: theory = Three_SSFP(_angles[i], _consts[i], params.head(_nP), _normalise); break;
+						case 2: theory = Two_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
+						case 3: theory = Three_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
@@ -492,8 +483,8 @@ class DESPOT2FM : public Functor<double> {
 		const bool &_normalise, &_fitB0;
 	
 	public:
-		static const vector<const string> &names() {
-			static const vector<const string> _names { { "FM_PD", "FM_T2", "FM_B0" } };
+		static const vector<string> names() {
+			static const vector<string> _names { { "FM_PD", "FM_T2", "FM_B0" } };
 			return _names;
 		}
 		

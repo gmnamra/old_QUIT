@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 	cout << "Using " << components << " component model." << endl;
 	nP = mcDESPOT::nP(components);
 	nB0 = mcDESPOT::nB0(B0Mode, signalFiles.size());
-	const vector<const string> &names = mcDESPOT::names(components);
+	const vector<string> names = mcDESPOT::names(components);
 	
 	int totalResiduals = 0;
 	for (int i = 0; i < angles.size(); i++)
@@ -451,7 +451,7 @@ int main(int argc, char **argv)
 				residualData[i][slice * voxelsPerSlice + vox] = residuals[i];
 			}
 		};
-		apply_for(voxelsPerSlice, processVox);
+		apply_for(voxelsPerSlice, processVox, 1);
 		
 		if (verbose) {
 			clock_t loopEnd = clock();

@@ -12,25 +12,23 @@ INSTALL_DIR := .
 INSTALL_BIN = $(INSTALL_DIR)/bin
 INSTALL_INC = $(INSTALL_DIR)/include
 INSTALL_LIB = $(INSTALL_DIR)/lib
-INC_DIR = /software/local/k1078535/include 
-LIBCPP  = /software/local/k1078535
-EIGEN   = /software/local/k1078535/include/eigen3
+LIBCPP = /software/system/gcc/gcc-4.8.0/lib64
+EIGEN  = /home/k1078535/Code/eigen/
 
 $(INSTALL_BIN)/:
 	mkdir -p $(INSTALL_BIN)
 $(INSTALL_INC)/:
-	mkdir -p $(INCLUDE_DIR)
+	mkdir -p $(INSTALL_INC)
 $(INSTALL_LIB)/:
 	mkdir -p $(INSTALL_LIB)
 
 # Set up all our compiler options
-CXX = clang++
-AR = ar rcs
-CXX_FLAGS = -m64 -msse3 -mssse3 -msse4.1 -msse4.2 -mllvm -inline-threshold=1200 -std=c++11 -stdlib=libc++ -DHAVE_NRECON $(DEBUG)
+CXX = LD_RUN_PATH=$(LIBCPP) /software/system/gcc/gcc-4.8.0/bin/g++
+CXX_FLAGS = -std=c++11 -lstdc++ -m64 -msse3 -mssse3 -msse4.1 -msse4.2 -pthread -Wfatal-errors $(DEBUG) -DHAVE_NRECON
+LD_FLAGS = -std=c++11 -lstdc++ -O3 -pthread -L$(INSTALL_LIB)
 DEBUG_FLAGS = -g
 RELEASE_FLAGS = -O3
-LD_FLAGS = -std=c++11 -stdlib=libc++ -O3 -L$(INSTALL_LIB) -L$(LIBCPP)/lib
-INCLUDE = -I$(SRC_DIR) -I$(INC_DIR) -I$(EIGEN) -cxx-isystem$(LIBCPP)/include/c++/v1
+INCLUDE = -I$(SRC_DIR) -I$(INSTALL_INC) -I$(EIGEN)
 LD_LIBS  = -lrecon -lNiftiImage -lz
 
 #
