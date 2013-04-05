@@ -176,7 +176,7 @@ http://brainvis.wustl.edu/wiki
 
 // Convenience macros for printing errors. Note that err is NOT encased in ()
 // so that NIFTI_ERROR( "string" << number ); works
-#define NIFTI_ERROR( err ) do { cout << __PRETTY_FUNCTION__ << ": " << err << endl; } while(0)
+#define NIFTI_ERROR( err ) do { cerr << __PRETTY_FUNCTION__ << ": " << err << endl; } while(0)
 #define NIFTI_FAIL( err ) do { NIFTI_ERROR( err ); exit(EXIT_FAILURE); } while(0)
 
 class NiftiImage

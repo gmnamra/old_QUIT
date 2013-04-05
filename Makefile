@@ -12,7 +12,7 @@ INSTALL_DIR := .
 INSTALL_BIN = $(INSTALL_DIR)/bin
 INSTALL_INC = $(INSTALL_DIR)/include
 INSTALL_LIB = $(INSTALL_DIR)/lib
-LIBCPP  = /software/system/gcc/gcc-4.8.0/lib
+LIBCPP = /software/system/gcc/gcc-4.8.0/lib
 EIGEN  = /home/k1078535/Code/eigen/
 
 $(INSTALL_BIN)/:
@@ -23,10 +23,10 @@ $(INSTALL_LIB)/:
 	mkdir -p $(INSTALL_LIB)
 
 # Set up all our compiler options
-CXX = /software/system/gcc/gcc-4.8.0/bin/gcc
-AR = ar rcs
-CXX_FLAGS = -std=c++11 -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors $(DEBUG)
-LD_FLAGS = -O3 -L$(LIBCPP)
+CXX = LD_RUN_PATH=$(LIBCPP) /software/system/gcc/gcc-4.8.0/bin/gcc
+AR = LD_RUN_PATH=$(LIBCPP) ar rcs
+CXX_FLAGS = -std=c++11 -lstdc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors $(DEBUG)
+LD_FLAGS = -O3
 INCLUDE = -I$(SRC_DIR) -I$(EIGEN)
 
 #
@@ -48,7 +48,7 @@ NIFTI_DEPS  = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(NIFTI_FILES))
 #
 
 NiftiImage : $(NIFTI_DEPS)
-	LD_RUN_PATH=$(LIBCPP) $(AR) $(LIB_OPTIONS) $(BUILD_DIR)/libNiftiImage.a $(NIFTI_DEPS)
+	$(AR) $(LIB_OPTIONS) $(BUILD_DIR)/libNiftiImage.a $(NIFTI_DEPS)
 
 all     : NiftiImage
 
