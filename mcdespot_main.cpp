@@ -449,9 +449,7 @@ int main(int argc, char **argv)
 						temp /= temp.mean();
 					signals[i] = temp;
 					if (B0Mode == mcDESPOT::B0_Map) {
-						localConsts[i].B0 = B0LoVolumes[i][vox];
-					} else {
-						localConsts[i].B0 = 0.;
+						localConsts[i].B0 = B0LoVolumes[i] ? B0LoVolumes[i][vox] : 0.;
 					}
 					localConsts[i].B1 = B1Volumes[i] ? B1Volumes[i][vox] : 1.;
 				}
