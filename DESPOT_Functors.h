@@ -86,9 +86,8 @@ VectorXd One_SSFP(const VectorXd &flipAngles,
 	         R_rf, eATR;
 	Vector3d M0 = Vector3d::Zero(), Mobs;
 	M0[2] = p[0]; // PD
-
-	MatrixExponential<Matrix3d> mexp(A * c.TR);
-	mexp.compute(eATR);
+	
+	eATR = (A*c.TR).exp();
 	const Vector3d RHS = (Matrix3d::Identity() - eATR) * M0;
 	
 	VectorXd theory(flipAngles.size());
@@ -118,8 +117,7 @@ VectorXd Two_SPGR(const VectorXd&flipAngles,
 	M0 << p[0] * f_a, p[0] * f_b;
 	A << -((1./p[1]) + k_ab),                    k_ba,
 				        k_ab,      -((1./p[3]) + k_ba);
-	MatrixExponential<Matrix2d> expA(A*c.TR);
-	expA.compute(eATR);
+	eATR = (A*c.TR).exp();
 	const Vector2d RHS = (Matrix2d::Identity() - eATR) * M0;
 	for (int i = 0; i < flipAngles.size(); i++) {
 		double a = flipAngles[i];
@@ -142,8 +140,7 @@ VectorXd Two_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const Vec
 	A.block(3, 3, 3, 3) = Relax(1./p[3], 1./p[4], k_ba, dw);
 	A(3, 0) = A(4, 1) = A(5, 2) = k_ab;
 	A(0, 3) = A(1, 4) = A(2, 5) = k_ba;
-	MatrixExponential<Matrix6d> exp(A*TE);
-	exp.compute(eATE);
+	eATE.noalias() = (A*TE).exp();
 	eATR.noalias() = eATE * eATE;
 	const Vector6d eyemaM0 = (Matrix6d::Identity() - eATR) * M0;
 	for (int i = 0; i < flipAngles.size(); i++) {
@@ -176,8 +173,7 @@ VectorXd Three_SPGR(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 	A << -((1./p[1]) + k_ab),                     k_ba,         0.,
 					    k_ab,      -((1./p[3]) + k_ba),         0.,
 						  0.,                       0., -(1./p[5]);
-	MatrixExponential<Matrix3d> expA(A*c.TR);
-	expA.compute(eATR);
+	eATR = (A*c.TR).exp();
 	const Vector3d RHS = (Matrix3d::Identity() - eATR) * M0;
 	for (int i = 0; i < flipAngles.size(); i++) {
 		double a = flipAngles[i];
@@ -268,7 +264,9 @@ class mcDESPOT : public Functor<double> {
 		enum B0Mode {
 			B0_Map = 0,
 			B0_Single,
-			B0_Multi
+			B0_Multi,
+			B0_Bounded,
+			B0_MultiBounded
 		};
 	
 		static const int nP(const int &components) {
@@ -287,6 +285,8 @@ class mcDESPOT : public Functor<double> {
 				case B0_Map: return 0; break;
 				case B0_Single: return 1; break;
 				case B0_Multi: return static_cast<int>(nSignals); break;
+				case B0_Bounded: return 1; break;
+				case B0_MultiBounded: return static_cast<int>(nSignals); break;
 				default:
 					cerr << "Invalid B0 mode." << endl;
 					exit(EXIT_FAILURE);
@@ -437,9 +437,9 @@ class mcDESPOT : public Functor<double> {
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				ArrayXd theory(_signals[i].size());
-				if (_B0Mode == B0_Single)
+				if ((_B0Mode == B0_Single) || (_B0Mode == B0_Bounded))
 					_consts[i].B0 = params[_nP];
-				else if (_B0Mode == B0_Multi)
+				else if ((_B0Mode == B0_Multi) || (_B0Mode == B0_MultiBounded))
 					_consts[i].B0 = params[_nP + i];
 				if (_types[i] == SignalSPGR) {
 					switch (_components) {

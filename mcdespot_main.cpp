@@ -63,6 +63,8 @@ Options:\n\
 	--B0, -b 0        : Read B0 values from map files.\n\
 	         1        : Fit one B0 value to all scans.\n\
 			 2        : Fit a B0 value to each scan individually.\n\
+			 3        : Fit one, bounded, B0 value to all scans.\n\
+			 4        : Fit a bounded B0 value to each scan.\n\
 	--tesla, -t 3     : Boundaries suitable for 3T (default)\n\
 	            7     : Boundaries suitable for 7T \n\
 	            u     : User specified boundaries from stdin.\n"
@@ -132,12 +134,14 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
                        vector<DESPOTConstants> &consts,
 				       vector<NiftiImage *> &signalFiles,
 				       vector<NiftiImage *> &B1_files,
-				       vector<NiftiImage *> &B0_files, const int &B0Mode);
+				       vector<NiftiImage *> &B0_loFiles,
+					   vector<NiftiImage *> &B0_hiFiles, const int &B0Mode);
 NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
                        vector<DESPOTConstants> &consts,
 				       vector<NiftiImage *> &signalFiles,
 				       vector<NiftiImage *> &B1_files,
-				       vector<NiftiImage *> &B0_files, const int &B0Mode) {
+				       vector<NiftiImage *> &B0_loFiles,
+					   vector<NiftiImage *> &B0_hiFiles, const int &B0Mode) {
 	NiftiImage *inHdr, *savedHeader;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
@@ -198,16 +202,28 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		B1_files.push_back(inHdr);
 		
 		inHdr = NULL;
-		if ((B0Mode == mcDESPOT::B0_Map) && (signalTypes.back() == mcDESPOT::SignalSSFP)) {
-			if (prompt) cout << "Enter path to B0 map or NONE: " << flush;
+		if (((B0Mode == mcDESPOT::B0_Map) || (B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded)) &&
+		    (signalTypes.back() == mcDESPOT::SignalSSFP)) {
+			if (prompt && (B0Mode == mcDESPOT::B0_Map)) cout << "Enter path to B0 map: " << flush;
+			else if (prompt) cout << "Enter path to low B0 bound map: " << flush;
 			getline(cin, path);
-			if (path != "NONE") {
-				inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-				inHdr->checkVoxelsCompatible(*savedHeader);
-				if (verbose) cout << "Opened B0 correction header: " << path << endl;
-			}
+			inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
+			inHdr->checkVoxelsCompatible(*savedHeader);
+			if (verbose) cout << "Opened B0 header: " << path << endl;
+			
 		}
-		B0_files.push_back(inHdr);
+		B0_loFiles.push_back(inHdr);
+		
+		inHdr = NULL;
+		if (((B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded)) &&
+		    (signalTypes.back() == mcDESPOT::SignalSSFP)) {
+			if (prompt) cout << "Enter path to high B0 bound map: " << flush;
+			getline(cin, path);
+			inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
+			inHdr->checkVoxelsCompatible(*savedHeader);
+			if (verbose) cout << "Opened B0 header: " << path << endl;
+		}
+		B0_hiFiles.push_back(inHdr);
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
@@ -268,6 +284,8 @@ int main(int argc, char **argv)
 					case '0' : B0Mode = mcDESPOT::B0_Map; break;
 					case '1' : B0Mode = mcDESPOT::B0_Single; break;
 					case '2' : B0Mode = mcDESPOT::B0_Multi; break;
+					case '3' : B0Mode = mcDESPOT::B0_Bounded; break;
+					case '4' : B0Mode = mcDESPOT::B0_MultiBounded; break;
 					default:
 						cout << "Invalid B0 Mode." << endl;
 						exit(EXIT_FAILURE);
@@ -306,8 +324,8 @@ int main(int argc, char **argv)
 	vector<mcDESPOT::SignalType> signalTypes;
 	vector<DESPOTConstants> consts;
 	vector<VectorXd> angles;
-	vector<NiftiImage *> signalFiles, B1_files, B0_files;
-	savedHeader = parseInput(signalTypes, angles, consts, signalFiles, B1_files, B0_files, B0Mode);
+	vector<NiftiImage *> signalFiles, B1_files, B0_loFiles, B0_hiFiles;
+	savedHeader = parseInput(signalTypes, angles, consts, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0Mode);
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	// Use NULL to indicate that default values should be used -
@@ -318,11 +336,13 @@ int main(int argc, char **argv)
 	
 	vector<double *> signalVolumes(signalFiles.size(), NULL),
 	                 B1Volumes(signalFiles.size(), NULL),
-				     B0Volumes(signalFiles.size(), NULL);
+				     B0LoVolumes(signalFiles.size(), NULL),
+					 B0HiVolumes(signalFiles.size(), NULL);
 	for (int i = 0; i < signalFiles.size(); i++) {
 		signalVolumes[i] = new double[voxelsPerSlice * angles[i].size()];
 		if (B1_files[i]) B1Volumes[i] = new double[voxelsPerSlice];
-		if (B0_files[i]) B0Volumes[i] = new double[voxelsPerSlice];
+		if (B0_loFiles[i]) B0LoVolumes[i] = new double[voxelsPerSlice];
+		if (B0_hiFiles[i]) B0HiVolumes[i] = new double[voxelsPerSlice];
 	}
 	
 	cout << "Using " << components << " component model." << endl;
@@ -401,7 +421,8 @@ int main(int argc, char **argv)
 		for (int i = 0; i < signalFiles.size(); i++) {
 			signalFiles[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, signalVolumes[i]);
 			if (B1_files[i]) B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B1Volumes[i]);
-			if (B0_files[i]) B0_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0Volumes[i]);
+			if (B0_loFiles[i]) B0_loFiles[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0LoVolumes[i]);
+			if (B0_hiFiles[i]) B0_hiFiles[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0HiVolumes[i]);
 		}
 		if (verbose) cout << "processing..." << flush;
 		clock_t loopStart = clock();
@@ -427,7 +448,11 @@ int main(int argc, char **argv)
 					if (normalise)
 						temp /= temp.mean();
 					signals[i] = temp;
-					localConsts[i].B0 = B0Volumes[i] ? B0Volumes[i][vox] : 0.;
+					if (B0Mode == mcDESPOT::B0_Map) {
+						localConsts[i].B0 = B0LoVolumes[i][vox];
+					} else {
+						localConsts[i].B0 = 0.;
+					}
 					localConsts[i].B1 = B1Volumes[i] ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
@@ -437,6 +462,13 @@ int main(int argc, char **argv)
 					localLo(0) = (double)PDData[sliceOffset + vox];
 					localHi(0) = (double)PDData[sliceOffset + vox];
 				}
+				if ((B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded)) {
+					for (int b = 0; b < nB0; b++) {
+						localLo(nP + b) = B0LoVolumes[b] ? B0LoVolumes[b][vox] : 0.;
+						localHi(nP + b) = B0HiVolumes[b] ? B0HiVolumes[b][vox] : 0.;
+					}
+				}
+				
 				mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise);
 				residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi,
 													    samples, retain, contract, 0.05, expand, rSeed);
@@ -488,8 +520,8 @@ int main(int argc, char **argv)
 		delete[] signalVolumes[i];
 		if (B1Volumes[i])
 			delete[] B1Volumes[i];
-		if (B0Volumes[i])
-			delete[] B0Volumes[i];
+		if (B0LoVolumes[i])
+			delete[] B0LoVolumes[i];
 	}
 	delete[] PDData;
 	delete[] maskData;
