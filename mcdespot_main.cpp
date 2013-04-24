@@ -75,7 +75,7 @@ static int verbose = false, prompt = true,
            start_slice = -1, end_slice = -1, slice = 0,
 		   samples = 5000, retain = 50, contract = 10,
 		   components = 2, tesla = 3,
-           nP = 0, nB0 = 0;
+           nP = 0, nB0 = 0, voxI = -1, voxJ = -1;
 static double expand = 0.;
 static string outPrefix;
 static struct option long_options[] =
@@ -247,8 +247,10 @@ int main(int argc, char **argv)
 	double *maskData = NULL, *PDData = NULL;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvpt:b:m:o:nds:r:c:e:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvpt:b:m:o:nds:r:c:e:i:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
+			case 'i': voxI = atoi(optarg); break;
+			case 'j': voxJ = atoi(optarg); break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				if (!inHeader.open(optarg, NiftiImage::NIFTI_READ)) {
@@ -481,7 +483,13 @@ int main(int argc, char **argv)
 				residualData[i][slice * voxelsPerSlice + vox] = residuals[i];
 			}
 		};
-		apply_for(voxelsPerSlice, processVox);
+		if (voxI == -1)
+			apply_for(voxelsPerSlice, processVox);
+		else {
+			int voxInd = savedHeader->dim(1) * voxJ + voxI;
+			processVox(voxInd);
+			exit(0);
+		}
 		
 		if (verbose) {
 			clock_t loopEnd = clock();

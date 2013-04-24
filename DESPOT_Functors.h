@@ -18,6 +18,7 @@
 #include <map>
 #include <iostream>
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 #include <unsupported/Eigen/MatrixFunctions>
 
 using namespace std;
@@ -29,15 +30,10 @@ struct DESPOTConstants {
 
 // A 3x3 matrix rotation of alpha about X and beta around Z
 // Corresponds to RF Flip angle of alpha, and phase-cycling of beta
-// Phase-cycling is negative as it rotates the reference frame instead of the
-// the magnetic vector, hence is seen as "going backwards".
 const Matrix3d RF(const double &alpha, const double &beta)
 {
-	double ca = cos(alpha), sa = sin(alpha), cb = cos(-beta), sb = sin(-beta);
 	Matrix3d R;
-	R << cb, ca*sb, sa*sb,
-	    -sb, ca*cb, sa*cb,
-		  0,   -sa,    ca;
+	R = AngleAxisd(alpha, Vector3d::UnitX()) * AngleAxisd(beta, Vector3d::UnitZ());
 	return R;
 }
 
@@ -188,10 +184,12 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 	VectorXd signal(flipAngles.size());
 	Matrix6d R = Matrix6d::Zero(), eATE6, eATR6, A6 = Matrix6d::Zero();
 	Matrix3d eATE3, eATR3, A3 = Matrix3d::Zero();
-	Vector9d M0;
+	Vector6d M06;
+	Vector3d M03;
 	double TE = c.TR / 2., dw = c.B0 * 2. * M_PI, k_ab, k_ba,
-	       f_a = p[8], f_c = p[9], f_b = 1. - f_a - f_c;
-	M0 << 0., 0., p[0] * f_a, 0., 0., p[0] * f_b, 0., 0., p[0] * f_c;
+	       f_a = p[8], f_c = p[9], f_b = 1. - (f_a + f_c);
+	M06 << 0., 0., p[0] * f_a, 0., 0., p[0] * f_b;
+	M03 << 0., 0., p[0] * f_c;
 	CalcExchange(p[7], f_a, f_b, k_ab, k_ba);
 	A6.block(0, 0, 3, 3) = Relax(1./p[1], 1./p[2], k_ab, dw);
 	A6.block(3, 3, 3, 3) = Relax(1./p[3], 1./p[4], k_ba, dw);
@@ -202,17 +200,18 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 	eATE3 = (A3*TE).exp();
 	eATR6.noalias() = eATE6 * eATE6;
 	eATR3.noalias() = eATE3 * eATE3;
-	const Vector6d eyemaM06 = (Matrix6d::Identity() - eATR6) * M0.head(6);
-	const Vector3d eyemaM03 = (Matrix3d::Identity() - eATR3) * M0.head(3);
+	const Vector6d eyemaM06 = (Matrix6d::Identity() - eATR6) * M06;
+	const Vector3d eyemaM03 = (Matrix3d::Identity() - eATR3) * M03;
 	for (int i = 0; i < flipAngles.size(); i++) {
 		const Matrix3d Rb = RF(c.B1 * flipAngles[i], c.phase);
 		R.block(0, 0, 3, 3) = Rb;
 		R.block(3, 3, 3, 3) = Rb;
-		Vector9d Mobs;
-		Mobs.head(6) = eATE6 * R * (Matrix6d::Identity() - eATR6 * R).partialPivLu().solve(eyemaM06);
-		Mobs.tail(3) = eATE3 * Rb* (Matrix3d::Identity() - eATR3 * Rb).partialPivLu().solve(eyemaM03);
-		signal[i] = sqrt(pow(Mobs[0] + Mobs[3] + Mobs[6], 2.) +
-						 pow(Mobs[1] + Mobs[4] + Mobs[7], 2.));
+		Vector6d Mobs6;
+		Vector3d Mobs3;
+		Mobs6 = eATE6 * R * ((Matrix6d::Identity() - eATR6 * R).partialPivLu().solve(eyemaM06));
+		Mobs3 = eATE3 * Rb* ((Matrix3d::Identity() - eATR3 * Rb).partialPivLu().solve(eyemaM03));
+		signal[i] = sqrt(pow(Mobs6[0] + Mobs6[3] + Mobs3[0], 2.) +
+						 pow(Mobs6[1] + Mobs6[4] + Mobs3[1], 2.));
 	}
 	return signal;
 }
@@ -427,6 +426,7 @@ class mcDESPOT : public Functor<double> {
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				v.segment(index, _signals[i].size()) = _signals[i];
+				//cout << "s:  " << _signals[i].transpose() << endl;
 				index += _signals[i].size();
 			}
 			return v;
@@ -454,7 +454,9 @@ class mcDESPOT : public Functor<double> {
 						case 3: theory = Three_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
+				//cout << "t:  " << theory.transpose() << endl;
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
+				//cout << "tn: " << theory.transpose() << endl;
 				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
 			}
@@ -463,9 +465,14 @@ class mcDESPOT : public Functor<double> {
 				
 		int operator()(const VectorXd &params, ArrayXd &diffs) const {
 			eigen_assert(diffs.size() == values());
+			//cout << endl << "operator()" << endl;
+			//cout << "p: " << params.transpose() << endl;
 			ArrayXd t = theory(params);
 			ArrayXd s = signals();
 			diffs = t - s;
+			//cout << "d:  " << diffs.transpose() << endl;
+			//cout << "ds: " << diffs.square().transpose() << endl;
+			//cout << "sum:" << diffs.square().sum() << endl;
 			return 0;
 		}
 };
