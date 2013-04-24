@@ -118,17 +118,19 @@ VectorXd One_SSFP(const VectorXd &flipAngles,
                   const DESPOTConstants& c, const VectorXd &p)
 {
 	Matrix3d A = Relax(p[1], p[2]) + OffResonance(c.B0),
-	         R_rf, eATR;
+	         R_rf, eATR, eATE;
 	Vector3d M0 = Vector3d::Zero(), Mobs;
 	M0[2] = p[0]; // PD
 	
-	eATR = (A*c.TR).exp();
+	eATR = (-A*c.TR).exp();
+	eATE = (-A*c.TR/2).exp();
+	
 	const Vector3d RHS = (Matrix3d::Identity() - eATR) * M0;
 	
 	VectorXd theory(flipAngles.size());
 	for (int i = 0; i < flipAngles.size(); i++) {
 		const Matrix3d R_rf = RF(c.B1 * flipAngles[i], c.phase);
-		Mobs = (Matrix3d::Identity() - (eATR * R_rf)).partialPivLu().solve(RHS);
+		Mobs = eATE * R_rf * ((Matrix3d::Identity() - (eATR * R_rf)).partialPivLu().solve(RHS));
 		theory[i] = Mobs.head(2).norm();
 	}
 	return theory;
@@ -143,21 +145,18 @@ VectorXd One_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, c
 	double TE = (c.TR - c.Trf) / 2; // Time AFTER the RF Pulse ends that echo is formed
 	
 	Matrix3d l1, l2, le;
-	l2 = le*le;
-	le = ((-R + O) * TE).exp();
-	l2 = ((-R + O) * (c.TR - c.Trf)).exp();
+	le = (-(R + O) * TE).exp();
+	l2 = (-(R + O) * (c.TR - c.Trf)).exp();
 	
 	Vector3d m0; m0 << 0, 0, p[0];
 	Vector3d m2 = (R + O).partialPivLu().solve(R * m0);
-	
 	VectorXd theory(flipAngles.size());
 	for (int i = 0; i < flipAngles.size(); i++) {
-		const Matrix3d A = InfinitesimalRF(flipAngles[i] / c.Trf);
+		const Matrix3d A = InfinitesimalRF(c.B1 * flipAngles[i] / c.Trf);
 		l1 = (-(R + O + A)*(c.Trf)).exp();
 		Vector3d m1 = (R + O + A).partialPivLu().solve(R * m0);
 		Vector3d mp = C*m2 + (I - l1*C*l2).partialPivLu().solve((I - l1)*(m1 - C*m2));
 		Vector3d me = le*(mp - m2) + m2;
-		
 		theory[i] = me.head(2).norm();
 	}
 	return theory;
@@ -194,15 +193,13 @@ VectorXd Two_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const Vec
 	Matrix6d A = Matrix6d::Zero(), eATR, eATE, R = Matrix6d::Zero();
 	Vector6d M0;
 	M0 << 0., 0., p[0] * p[6], 0., 0., p[0] * (1. - p[6]);
-	// Set up the 'A' matrix. It's quite complex.
-	double TE = c.TR / 2., dw = c.B0 * 2. * M_PI, k_ab, k_ba;
+	double TE = c.TR / 2., k_ab, k_ba;
 	CalcExchange(p[5], p[6], (1 - p[6]), k_ab, k_ba);
-	A.block(0, 0, 3, 3) = A.block(3, 3, 3, 3) = Relax(p[1], p[2]) + OffResonance(dw);
+	A.block(0, 0, 3, 3) = Relax(p[1], p[2]) + OffResonance(c.B0);
+	A.block(3, 3, 3, 3) = Relax(p[3], p[4]) + OffResonance(c.B0);
 	A += Exchange(k_ab, k_ba);
-	A(3, 0) = A(4, 1) = A(5, 2) = k_ab;
-	A(0, 3) = A(1, 4) = A(2, 5) = k_ba;
-	eATE.noalias() = (A*TE).exp();
-	eATR.noalias() = eATE * eATE;
+	eATE = (-A*TE).exp();
+	eATR = eATE * eATE;
 	const Vector6d eyemaM0 = (Matrix6d::Identity() - eATR) * M0;
 	for (int i = 0; i < flipAngles.size(); i++) {
 		const Matrix3d Rb = RF(c.B1 * flipAngles[i], c.phase);
@@ -228,15 +225,10 @@ VectorXd Two_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, c
 	Matrix6d RpO = R + O;
 	double k_ab, k_ba;
 	CalcExchange(p[5], p[6], (1 - p[6]), k_ab, k_ba);
-	Matrix6d K = Matrix6d::Zero();
-	K.block(0,0,3,3).diagonal().setConstant(k_ab);
-	K.block(3,3,3,3).diagonal().setConstant(k_ba);
-	K.block(3,0,3,3).diagonal().setConstant(-k_ab);
-	K.block(0,3,3,3).diagonal().setConstant(-k_ba);
+	Matrix6d K = Exchange(k_ab, k_ba);
 	Matrix6d RpOpK = RpO + K;
-	Matrix6d l1, le, temp;
-	MatrixExponential<Matrix6d> b2(-(RpOpK) * (c.TR - c.Trf) / 2);
-	b2.compute(le);
+	Matrix6d l1, temp;
+	const Matrix6d le = (-(RpOpK)*(c.TR-c.Trf)/2).exp();
 	const Matrix6d l2 = le*le;
 	
 	Vector6d m0, mp, me;
@@ -249,15 +241,12 @@ VectorXd Two_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, c
 	Matrix6d A = Matrix6d::Zero();
 	
 	for (int i = 0; i < flipAngles.size(); i++) {
-		A.block(0,0,3,3) = A.block(3,3,3,3) = InfinitesimalRF(flipAngles[i] / c.Trf);
-		
-		MatrixExponential<Matrix6d> b1(-(RpOpK + A)*(c.Trf));
-		b1.compute(l1);
+		A.block(0,0,3,3) = A.block(3,3,3,3) = InfinitesimalRF(c.B1 * flipAngles[i] / c.Trf);
+		l1 = (-(RpOpK+A)*c.Trf).exp();
 		temp.noalias() = -(RpOpK + A)*(c.Trf);
 		Vector6d m1 = (RpO + A).partialPivLu().solve(Rm0);
 		mp.noalias() = Cm2 + (I - l1*C*l2).partialPivLu().solve((I - l1)*(m1 - Cm2));
-		me.noalias() = le*(mp - m2) + m2;
-				
+		me.noalias() = le*(mp - m2) + m2;				
 		theory[i] = (me.head(3) + me.tail(3)).head(2).norm();
 	}
 	return theory;
@@ -295,16 +284,17 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 	Matrix3d eATE3, eATR3, A3 = Matrix3d::Zero();
 	Vector6d M06;
 	Vector3d M03;
-	double TE = c.TR / 2., dw = c.B0 * 2. * M_PI, k_ab, k_ba,
+	double TE = c.TR / 2., k_ab, k_ba,
 	       f_a = p[8], f_c = p[9], f_b = 1. - (f_a + f_c);
 	M06 << 0., 0., p[0] * f_a, 0., 0., p[0] * f_b;
 	M03 << 0., 0., p[0] * f_c;
 	CalcExchange(p[7], f_a, f_b, k_ab, k_ba);
-	A6.block(0, 0, 3, 3) = A6.block(3, 3, 3, 3) = Relax(p[1], p[2]) + OffResonance(dw);
+	A6.block(0, 0, 3, 3) = Relax(p[1], p[2]) + OffResonance(c.B0);
+	A6.block(3, 3, 3, 3) = Relax(p[3], p[4]) + OffResonance(c.B0);
 	A6 += Exchange(k_ab, k_ba);
-	A3 = Relax(p[5], p[6]) + OffResonance(dw);
-	eATE6 = (A6*TE).exp();
-	eATE3 = (A3*TE).exp();
+	A3 = Relax(p[5], p[6]) + OffResonance(c.B0);
+	eATE6 = (-A6*TE).exp();
+	eATE3 = (-A3*TE).exp();
 	eATR6.noalias() = eATE6 * eATE6;
 	eATR3.noalias() = eATE3 * eATE3;
 	const Vector6d eyemaM06 = (Matrix6d::Identity() - eATR6) * M06;
@@ -331,56 +321,44 @@ VectorXd Three_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c,
 	Matrix6d R6 = Matrix6d::Zero();
 	R6.block(0,0,3,3) = Relax(p[1], p[2]);
 	R6.block(3,3,3,3) = Relax(p[3], p[4]);
-	Matrix3d R = Relax(p[5], p[6]);
+	Matrix3d R3 = Relax(p[5], p[6]);
 	
 	Matrix6d O6 = Matrix6d::Zero();
 	Matrix3d O = OffResonance(c.B0);
 	O6.block(0,0,3,3) = O6.block(3,3,3,3) = O;
 	
 	Matrix6d C6 = Matrix6d::Zero();
-	Matrix3d C; C = AngleAxisd(c.phase, Vector3d::UnitZ());
-	C6.block(0,0,3,3) = C6.block(3,3,3,3) = C;
+	Matrix3d C3; C3 = AngleAxisd(c.phase, Vector3d::UnitZ());
+	C6.block(0,0,3,3) = C6.block(3,3,3,3) = C3;
 	
 	double k_ab, k_ba, f_a = p[8], f_c = p[9], f_b = 1. - f_a - f_c;
 	CalcExchange(p[7], f_a, f_b, k_ab, k_ba);
-	Matrix6d K6 = Matrix6d::Zero();
-	K6.block(0,0,3,3).diagonal().setConstant(k_ab);
-	K6.block(3,3,3,3).diagonal().setConstant(k_ba);
-	K6.block(3,0,3,3).diagonal().setConstant(-k_ab);
-	K6.block(0,3,3,3).diagonal().setConstant(-k_ba);
+	Matrix6d K6 = Exchange(k_ab, k_ba);
 	
-	Matrix6d l16, l26, le6;
-	Matrix3d l1, l2, le;
-	MatrixExponential<Matrix6d> b26(-(R6 + O6 + K6) * (c.TR - c.Trf) / 2);
-	b26.compute(le6);
-	l26 = le6*le6;
-	MatrixExponential<Matrix3d> b2(-(R + O) * (c.TR - c.Trf) / 2);
-	b2.compute(le);
-	l2 = le*le;
-	
-	Vector9d m0; m0 << 0., 0., p[0]*f_a, 0., 0., p[0]*f_b, 0., 0., p[0]*f_c;
-	Vector9d m2;
-	m2.head(6) = (R6 + O6).partialPivLu().solve(R6 * m0.head(6));
-	m2.tail(3) = (R + O).inverse() * (R * m0.tail(3));
+	const Matrix6d le6 = (-(R6 + O6 + K6) * (c.TR - c.Trf) / 2).exp();
+	const Matrix6d l26 = le6*le6;
+	const Matrix3d le3 = (-(R3 + O) * (c.TR - c.Trf) / 2).exp();
+	const Matrix3d l23 = le3*le3;
+	Matrix6d l16;
+	Matrix3d l13;
+	Vector6d m06; m06 << 0., 0., p[0]*f_a, 0., 0., p[0]*f_b;
+	Vector3d m03; m03 << 0., 0., p[0]*f_c;
+	const Vector6d m26 = (R6 + O6).partialPivLu().solve(R6 * m06);
+	const Vector3d m23 = (R3 + O).inverse() * (R3 * m03);
 	Matrix6d A6 = Matrix6d::Zero();
 	VectorXd theory(flipAngles.size());
 	for (int i = 0; i < flipAngles.size(); i++) {
-		Matrix3d A = InfinitesimalRF(flipAngles[i] / c.Trf);
+		Matrix3d A = InfinitesimalRF(c.B1 * flipAngles[i] / c.Trf);
 		A6.block(0,0,3,3) = A6.block(3,3,3,3) = A;
-		MatrixExponential<Matrix6d> b16(-(R6 + O6 + A6 + K6)*(c.Trf));
-		MatrixExponential<Matrix3d> b1(-(R + O + A)*(c.Trf));
-		b16.compute(l16);
-		b1.compute(l1);
-		Vector9d m1;
-		m1.head(6) = (R6 + O6 + A6).partialPivLu().solve(R6 * m0.head(6));
-		m1.tail(3) = (R + O + A).inverse() * (R * m0.tail(3));
-		Vector9d mp;
-		mp.head(6) = C6*m2.head(6) + (I6 - l16*C6*l26).partialPivLu().solve((I6 - l16)*(m1.head(6) - C6*m2.head(6)));
-		mp.tail(3) = C*m2.tail(3) + (I3 - l1*C*l2).partialPivLu().solve((I3 - l1)*(m1.tail(3) - C*m2.tail(3)));
-		Vector9d me;
-		me.head(6) = le6*(mp.head(6) - m2.head(6)) + m2.head(6);
-		me.tail(3) = le*(mp.tail(3) - m2.tail(3)) + m2.tail(3);
-		theory[i] = (me.head(3) + me.segment(3,3) + me.tail(3)).head(2).norm();
+		l16 = (-(R6 + O6 + A6 + K6)*(c.Trf)).exp();
+		l13 = (-(R3 + O + A)*(c.Trf)).exp();
+		const Vector6d m16 = (R6 + O6 + A6).partialPivLu().solve(R6 * m06);
+		const Vector3d m13 = (R3 + O + A).inverse() * (R3 * m03);
+		const Vector6d mp6 = C6*m26 + (I6 - l16*C6*l26).partialPivLu().solve((I6 - l16)*(m16 - C6*m26));
+		const Vector3d mp3 = C3*m23 + (I3 - l13*C3*l23).partialPivLu().solve((I3 - l13)*(m13 - C3*m23));
+		const Vector6d me6 = le6*(mp6 - m26) + m26;
+		const Vector3d me3 = le3*(mp3 - m23) + m23;
+		theory[i] = (me6.head(3) + me6.tail(3) + me3).head(2).norm();
 	}
 	return theory;
 }
@@ -663,6 +641,7 @@ class mcFinite : public mcDESPOT {
 			int index = 0;
 			for (int i = 0; i < _signals.size(); i++) {
 				ArrayXd theory(_signals[i].size());
+				ArrayXd temp(_signals[i].size());
 				if ((_B0Mode == B0_Single) || (_B0Mode == B0_Bounded))
 					_consts[i].B0 = params[_nP];
 				else if ((_B0Mode == B0_Multi) || (_B0Mode == B0_MultiBounded))
@@ -675,9 +654,15 @@ class mcFinite : public mcDESPOT {
 					}
 				} else if (_types[i] == SignalSSFP) {
 					switch (_components) {
-						case 1: theory = One_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
-						case 2: theory = Two_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
-						case 3:	theory = Three_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
+						case 1:
+							temp = One_SSFP(_angles[i], _consts[i], params.head(_nP));
+							theory = One_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
+						case 2:
+							temp = Two_SSFP(_angles[i], _consts[i], params.head(_nP));
+							theory = Two_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
+						case 3:
+							temp = Three_SSFP(_angles[i], _consts[i], params.head(_nP));
+							theory = Three_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();

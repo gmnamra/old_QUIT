@@ -27,6 +27,7 @@ typedef Array<bool, Dynamic, Dynamic> ArrayXb;
 template<typename Derived>
 vector<size_t> index_partial_sort(const ArrayBase<Derived> &x, size_t N)
 {
+<<<<<<< HEAD
 	eigen_assert(x.size() >= N);
     vector<size_t> allIndices(x.size()), indices(N);
     for(int i=0;i<allIndices.size();i++) {
