@@ -72,7 +72,7 @@ Options:\n\
 };
 
 static int verbose = false, prompt = true,
-           normalise = false, drop = false,
+           normalise = false,
 		   B0Mode = mcDESPOT::B0_Single, finiteRF = false,
            start_slice = -1, end_slice = -1, slice = 0,
 		   samples = 5000, retain = 50, contract = 10,
@@ -342,7 +342,7 @@ int main(int argc, char **argv)
 	vector<DESPOTConstants> consts;
 	vector<VectorXd> angles;
 	vector<NiftiImage *> signalFiles, B1_files, B0_loFiles, B0_hiFiles;
-	savedHeader = parseInput(signalTypes, angles, consts, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0Mode);
+	savedHeader = parseInput(signalTypes, angles, consts, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0Mode, finiteRF);
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	// Use NULL to indicate that default values should be used -
@@ -484,9 +484,15 @@ int main(int argc, char **argv)
 					}
 				}
 				
-				mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise, (voxI > -1));
-				residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi,
-													    samples, retain, contract, 0.05, expand, rSeed);
+				if (!finiteRF) {
+					mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise, (voxI > -1));
+					residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi,
+															samples, retain, contract, 0.05, expand, rSeed);
+				} else {
+					mcFinite mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise);
+					residuals = regionContraction<mcFinite>(params, mcd, localLo, localHi,
+															samples, retain, contract, 0.05, expand, rSeed);
+				}
 			}
 			for (int p = 0; p < nP; p++) {
 				paramsData[p][vox] = params[p];
