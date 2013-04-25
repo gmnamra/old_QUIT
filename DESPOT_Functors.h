@@ -631,7 +631,7 @@ class mcFinite : public mcDESPOT {
 		mcFinite(const int components, const vector<SignalType> &types,
 				 const vector<VectorXd> &angles, const vector<VectorXd> &signals,
 				 vector<DESPOTConstants> &constants,
-				 const int &B0Mode, const bool &normalise = false, const bool &debug) :
+				 const int &B0Mode, const bool &normalise = false, const bool &debug = false) :
 				mcDESPOT(components, types, angles, signals, constants, B0Mode, normalise, debug)
 		{
 		}

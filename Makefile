@@ -13,7 +13,7 @@ INSTALL_BIN = $(INSTALL_DIR)/bin
 INSTALL_INC = $(INSTALL_DIR)/include
 INSTALL_LIB = $(INSTALL_DIR)/lib
 LIBCPP = /software/system/gcc/gcc-4.8.0/lib64
-EIGEN  = /home/k1078535/Code/eigen/
+EIGEN  = /software/local/k1078535/src/eigen/
 
 $(INSTALL_BIN)/:
 	mkdir -p $(INSTALL_BIN)
