@@ -631,8 +631,8 @@ class mcFinite : public mcDESPOT {
 		mcFinite(const int components, const vector<SignalType> &types,
 				 const vector<VectorXd> &angles, const vector<VectorXd> &signals,
 				 vector<DESPOTConstants> &constants,
-				 const int &B0Mode, const bool &normalise = false) :
-				mcDESPOT(components, types, angles, signals, constants, B0Mode, normalise)
+				 const int &B0Mode, const bool &normalise = false, const bool &debug) :
+				mcDESPOT(components, types, angles, signals, constants, B0Mode, normalise, debug)
 		{
 		}
 		
@@ -665,7 +665,10 @@ class mcFinite : public mcDESPOT {
 							theory = Three_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
+				if (_debug) cout << "Params:     " << params.transpose() << endl;
+				if (_debug) cout << "Theory:     " << theory.transpose() << endl;
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
+				if (_debug) cout << "Normalised: " << theory.transpose() << endl;
 				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
 			}
