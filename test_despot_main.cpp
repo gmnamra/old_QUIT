@@ -11,7 +11,8 @@
 #include <vector>
 #include <string>
 
-#include "DESPOT_Functors.h"
+#include "RegionContraction.h"
+//#include "DESPOT_Functors.h"
 #include "NiftiImage.h"
 #include "procpar.h"
 
@@ -31,7 +32,12 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-	int indexptr = 0, c;
+	ArrayXd data(50000); data.setRandom();
+	vector<size_t> indices;
+	for (int i = 0; i < 100; i++) {
+		indices = arg_partial_sort(data, 1000);
+	}
+	/*int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "c:sf", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'c':
@@ -84,7 +90,7 @@ int main(int argc, char **argv)
 			clock_t end = clock();
 			cout << c << "-component model average time " << ((end - start) / ((float)loops * CLOCKS_PER_SEC)) * 1000 << " ms" << endl;
 		}
-	}
+	}*/
 	
 	/*
 	// Now create our images

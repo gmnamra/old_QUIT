@@ -17,29 +17,25 @@
 #include <random>
 #include <iostream>
 
+#include <Eigen/Dense>
+
 using namespace std;
+using namespace Eigen;
 
 typedef Array<bool, Dynamic, Dynamic> ArrayXb;
-typedef pair<int, double> argsort_pair;
-
-bool argsort_comp(const argsort_pair& left, const argsort_pair& right) {
-    return left.second < right.second;
-}
 
 template<typename Derived>
-VectorXi arg_partial_sort(const MatrixBase<Derived> &x, int middle)
+vector<size_t> index_partial_sort(const ArrayBase<Derived> &x, size_t N)
 {
-    VectorXi indices(middle);
-    vector<argsort_pair> data(x.size());
-    for(int i=0;i<x.size();i++)
-	{
-        data[i].first = i;
-        data[i].second = x(i);
+    vector<size_t> allIndices(x.size()), indices(N);
+    for(int i=0;i<allIndices.size();i++) {
+		allIndices[i] = i;
     }
-    partial_sort(data.begin(), data.begin() + middle, data.end(), argsort_comp);
-    for(int i=0;i<middle;i++) {
-        indices(i) = data[i].first;
-    }    
+	partial_sort(allIndices.begin(), allIndices.begin() + N, allIndices.end(),
+	             [&x](size_t i1, size_t i2) { return x[i1] < x[i2]; });
+	for (size_t i = 0; i < N; i++) {
+		indices[i] = allIndices[i];
+	}
     return indices;
 }
 
@@ -52,13 +48,13 @@ ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 	static bool finiteWarning = false;
 	static bool constraintWarning = false;
 	int nP = static_cast<int>(params.size());
-	MatrixXd samples(nP, nS);
-	MatrixXd retained(nP, nR);
-	VectorXd sampleRes(nS);
-	VectorXi indices(nR);
-	VectorXd loBounds = loStart;
-	VectorXd hiBounds = hiStart;
-	VectorXd regionSize = (hiBounds - loBounds);
+	ArrayXd samples(nP, nS);
+	ArrayXd retained(nP, nR);
+	ArrayXd sampleRes(nS);
+	vector<size_t> indices(nR);
+	ArrayXd loBounds = loStart;
+	ArrayXd hiBounds = hiStart;
+	ArrayXd regionSize = (hiBounds - loBounds);
 	ArrayXd diffs(f.values()); diffs.setZero();
 	size_t c;
 	
@@ -67,7 +63,7 @@ ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 	
 	for (c = 0; c < maxContractions; c++) {
 		for (int s = 0; s < nS; s++) {
-			VectorXd tempSample(nP);
+			ArrayXd tempSample(nP);
 			size_t nTries = 0;
 			do {
 				for (int p = 0; p < nP; p++)
@@ -103,7 +99,7 @@ ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 			}
 			samples.col(s) = tempSample;
 		}
-		indices = arg_partial_sort(sampleRes, nR);
+		indices = index_partial_sort(sampleRes, nR);
 		for (int i = 0; i < nR; i++)
 			retained.col(i) = samples.col(indices[i]);
 		
