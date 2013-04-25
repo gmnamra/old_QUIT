@@ -469,7 +469,7 @@ int main(int argc, char **argv)
 					}
 				}
 				
-				mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise);
+				mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise, (voxI > -1));
 				residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi,
 													    samples, retain, contract, 0.05, expand, rSeed);
 			}

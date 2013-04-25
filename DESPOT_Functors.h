@@ -365,16 +365,16 @@ class mcDESPOT : public Functor<double> {
 		const vector<SignalType> &_types;
 		const vector<VectorXd> &_angles, &_signals;
 		vector<DESPOTConstants> &_consts;
-		const bool _normalise;
+		const bool _normalise, _debug;
 	
 	public:
 		mcDESPOT(const int components, const vector<SignalType> &types,
 				 const vector<VectorXd> &angles, const vector<VectorXd> &signals,
 				 vector<DESPOTConstants> &constants,
-				 const int &B0Mode, const bool &normalise = false) :
+				 const int &B0Mode, const bool &normalise = false, const bool &debug = false) :
 			_components(components), _types(types),
 			_angles(angles), _signals(signals), _consts(constants),
-			_normalise(normalise), _B0Mode(B0Mode)
+			_normalise(normalise), _B0Mode(B0Mode), _debug(debug)
 		{
 			_nP = nP(components);
 			_nB0 = nB0(B0Mode, signals.size());
@@ -454,9 +454,10 @@ class mcDESPOT : public Functor<double> {
 						case 3: theory = Three_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
-				//cout << "t:  " << theory.transpose() << endl;
+				if (_debug) cout << "Params:     " << params.transpose() << endl;
+				if (_debug) cout << "Theory:     " << theory.transpose() << endl;
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
-				//cout << "tn: " << theory.transpose() << endl;
+				if (_debug) cout << "Normalised: " << theory.transpose() << endl;
 				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
 			}

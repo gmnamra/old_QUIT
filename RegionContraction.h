@@ -27,6 +27,7 @@ typedef Array<bool, Dynamic, Dynamic> ArrayXb;
 template<typename Derived>
 vector<size_t> index_partial_sort(const ArrayBase<Derived> &x, size_t N)
 {
+	eigen_assert(x.size() >= N);
     vector<size_t> allIndices(x.size()), indices(N);
     for(int i=0;i<allIndices.size();i++) {
 		allIndices[i] = i;
@@ -48,8 +49,8 @@ ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 	static bool finiteWarning = false;
 	static bool constraintWarning = false;
 	int nP = static_cast<int>(params.size());
-	ArrayXd samples(nP, nS);
-	ArrayXd retained(nP, nR);
+	ArrayXXd samples(nP, nS);
+	ArrayXXd retained(nP, nR);
 	ArrayXd sampleRes(nS);
 	vector<size_t> indices(nR);
 	ArrayXd loBounds = loStart;
