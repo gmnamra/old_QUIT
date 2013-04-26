@@ -32,11 +32,17 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-	ArrayXd data(50000); data.setRandom();
-	vector<size_t> indices;
-	for (int i = 0; i < 100; i++) {
-		indices = arg_partial_sort(data, 1000);
-	}
+	ArrayXd data(5000); data.setRandom();
+	
+	cout << "First 10: " << data.head(10).transpose() << endl;
+	
+	vector<size_t> indices = index_partial_sort(data, 10);
+	
+	cout << "Indices: ";
+	for (auto i: indices)
+		cout << i << ": " << data(i) << " ";
+	cout << endl;
+	
 	/*int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "c:sf", long_options, &indexptr)) != -1) {
 		switch (c) {
