@@ -38,7 +38,7 @@ struct DESPOTConstants {
 const Matrix3d RF(const double &alpha, const double &beta)
 {
 	Matrix3d R;
-	R = AngleAxisd(alpha, Vector3d::UnitX()) * AngleAxisd(beta, Vector3d::UnitZ());
+	R = AngleAxisd(alpha, Vector3d::UnitX()) * AngleAxisd(-beta, Vector3d::UnitZ());
 	return R;
 }
 
@@ -293,8 +293,8 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 	A6.block(3, 3, 3, 3) = Relax(p[3], p[4]) + OffResonance(c.B0);
 	A6 += Exchange(k_ab, k_ba);
 	A3 = Relax(p[5], p[6]) + OffResonance(c.B0);
-	eATE6 = (-A6*TE).exp();
-	eATE3 = (-A3*TE).exp();
+	eATE6 = (-TE * A6).exp();
+	eATE3 = (-TE * A3).exp();
 	eATR6.noalias() = eATE6 * eATE6;
 	eATR3.noalias() = eATE3 * eATE3;
 	const Vector6d eyemaM06 = (Matrix6d::Identity() - eATR6) * M06;
@@ -316,6 +316,7 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 VectorXd Three_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, const VectorXd &p)
 {
 	// Parameters are { PD, T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
+	cout << "c: " << c.TR << " " << c.Trf << " " << c.phase << " " << c.B0 << " " << c.B1 << endl;
 	const Matrix6d I6 = Matrix6d::Identity();
 	const Matrix3d I3 = Matrix3d::Identity();
 	Matrix6d R6 = Matrix6d::Zero();
@@ -335,9 +336,9 @@ VectorXd Three_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c,
 	CalcExchange(p[7], f_a, f_b, k_ab, k_ba);
 	Matrix6d K6 = Exchange(k_ab, k_ba);
 	
-	const Matrix6d le6 = (-(R6 + O6 + K6) * (c.TR - c.Trf) / 2).exp();
+	const Matrix6d le6 = ((R6 + O6 + K6) * -(c.TR - c.Trf) / 2).exp();
 	const Matrix6d l26 = le6*le6;
-	const Matrix3d le3 = (-(R3 + O) * (c.TR - c.Trf) / 2).exp();
+	const Matrix3d le3 = ((R3 + O) * -(c.TR - c.Trf) / 2).exp();
 	const Matrix3d l23 = le3*le3;
 	Matrix6d l16;
 	Matrix3d l13;
@@ -665,10 +666,10 @@ class mcFinite : public mcDESPOT {
 							theory = Three_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
-				if (_debug) cout << "Params:     " << params.transpose() << endl;
-				if (_debug) cout << "Theory:     " << theory.transpose() << endl;
+				if (_debug) cout << "Params: " << params.transpose() << endl;
+				if (_debug) cout << "Theory: " << theory.transpose() << endl;
+				if (_debug) cout << "Infini: " << temp.transpose() << endl;
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
-				if (_debug) cout << "Normalised: " << theory.transpose() << endl;
 				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
 			}

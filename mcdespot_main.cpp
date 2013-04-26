@@ -489,7 +489,7 @@ int main(int argc, char **argv)
 					residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi,
 															samples, retain, contract, 0.05, expand, rSeed);
 				} else {
-					mcFinite mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise);
+					mcFinite mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise, (voxI > -1));
 					residuals = regionContraction<mcFinite>(params, mcd, localLo, localHi,
 															samples, retain, contract, 0.05, expand, rSeed);
 				}
