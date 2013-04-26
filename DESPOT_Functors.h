@@ -601,7 +601,6 @@ class mcDESPOT : public Functor<double> {
 						case 3: theory = Three_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
-				if (_debug) cout << "Params:     " << params.transpose() << endl;
 				if (_debug) cout << "Theory:     " << theory.transpose() << endl;
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
 				if (_debug) cout << "Normalised: " << theory.transpose() << endl;
@@ -613,14 +612,13 @@ class mcDESPOT : public Functor<double> {
 				
 		int operator()(const VectorXd &params, ArrayXd &diffs) const {
 			eigen_assert(diffs.size() == values());
-			//cout << endl << "operator()" << endl;
-			//cout << "p: " << params.transpose() << endl;
+			if (_debug) cout << endl << __PRETTY_FUNCTION__ << endl;
+			if (_debug) cout << "Params: " << params.transpose() << endl;
 			ArrayXd t = theory(params);
 			ArrayXd s = signals();
 			diffs = t - s;
-			//cout << "d:  " << diffs.transpose() << endl;
-			//cout << "ds: " << diffs.square().transpose() << endl;
-			//cout << "sum:" << diffs.square().sum() << endl;
+			if (_debug) cout << "Diffs:  " << diffs.transpose() << endl;
+			if (_debug) cout << "Sum:    " << diffs.square().sum() << endl;
 			return 0;
 		}
 };
@@ -654,15 +652,9 @@ class mcFinite : public mcDESPOT {
 					}
 				} else if (_types[i] == SignalSSFP) {
 					switch (_components) {
-						case 1:
-							temp = One_SSFP(_angles[i], _consts[i], params.head(_nP));
-							theory = One_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
-						case 2:
-							temp = Two_SSFP(_angles[i], _consts[i], params.head(_nP));
-							theory = Two_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
-						case 3:
-							temp = Three_SSFP(_angles[i], _consts[i], params.head(_nP));
-							theory = Three_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
+						case 1: theory = One_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
+						case 2: theory = Two_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
+						case 3: theory = Three_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
 				if (_debug) cout << "Params:     " << params.transpose() << endl;
