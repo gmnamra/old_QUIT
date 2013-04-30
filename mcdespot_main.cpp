@@ -56,7 +56,6 @@ Options:\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
 	--normalise, -n   : Normalise signals to maximum (Ignore M0).\n\
-	--finite, -f      : Use finite RF pulse length correction.\n\
 	--samples, -s n   : Use n samples for region contraction (Default 5000).\n\
 	--retain, -r  n   : Retain n samples for new boundary (Default 50).\n\
 	--contract, -c n  : Contract a maximum of n times (Default 10).\n\
@@ -78,7 +77,7 @@ static int verbose = false, prompt = true,
 		   samples = 5000, retain = 50, contract = 10,
 		   components = 2, tesla = 3,
            nP = 0, nB0 = 0, voxI = -1, voxJ = -1;
-static double expand = 0.;
+static double expand = 0., weighting = 1.0;
 static string outPrefix;
 static struct option long_options[] =
 {
@@ -262,7 +261,7 @@ int main(int argc, char **argv)
 	double *maskData = NULL, *PDData = NULL;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvpt:b:m:o:nfs:r:c:e:i:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvpt:b:m:o:nfw:s:r:c:e:i:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
@@ -292,6 +291,7 @@ int main(int argc, char **argv)
 			case 'E': end_slice = atoi(optarg); break;
 			case 'n': normalise = true; break;
 			case 'f': finiteRF = true; break;
+			case 'w': weighting = atof(optarg); break;
 			case 's': samples  = atoi(optarg); break;
 			case 'r': retain   = atoi(optarg); break;
 			case 'c': contract = atoi(optarg); break;
@@ -367,15 +367,24 @@ int main(int argc, char **argv)
 	nB0 = mcDESPOT::nB0(B0Mode, signalFiles.size());
 	const vector<string> names = mcDESPOT::names(components);
 	
-	int totalResiduals = 0;
+	int totalSignals = 0;
 	for (int i = 0; i < angles.size(); i++)
-		totalResiduals += angles[i].size();
+		totalSignals += angles[i].size();
+	ArrayXd weights(totalSignals);
+	size_t index = 0;
+	for (int i = 0; i < signalTypes.size(); i++) {
+		if (signalTypes[i] == mcDESPOT::SignalSPGR)
+			weights.segment(index, angles[i].size()).setConstant(weighting);
+		else
+			weights.segment(index, angles[i].size()).setConstant(1.0);
+		index += angles[i].size();
+	}
 	
-	residualData.resize(totalResiduals);
+	residualData.resize(totalSignals);
 	for (int i = 0; i < residualData.size(); i ++)
 		residualData[i] = new double[voxelsPerVolume];
 	residualHdr = *savedHeader;
-	residualHdr.setDim(4, totalResiduals); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
+	residualHdr.setDim(4, totalSignals); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
 	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", NiftiImage::NIFTI_WRITE);
 	
 	paramsData.resize(nP + nB0);
@@ -445,7 +454,7 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
-			ArrayXd params(nP + nB0), residuals(totalResiduals);
+			ArrayXd params(nP + nB0), residuals(totalSignals);
 			params.setZero();
 			residuals.setZero();
 			if ((!maskData || (maskData[sliceOffset + vox] > 0.)) &&
@@ -486,11 +495,11 @@ int main(int argc, char **argv)
 				
 				if (!finiteRF) {
 					mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise, (voxI > -1));
-					residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi,
+					residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi, weights,
 															samples, retain, contract, 0.05, expand, rSeed);
 				} else {
-					mcFinite mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise);
-					residuals = regionContraction<mcFinite>(params, mcd, localLo, localHi,
+					mcFinite mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise, (voxI > -1));
+					residuals = regionContraction<mcFinite>(params, mcd, localLo, localHi, weights,
 															samples, retain, contract, 0.05, expand, rSeed);
 				}
 			}
@@ -500,7 +509,7 @@ int main(int argc, char **argv)
 			for (int b = 0; b < nB0; b++) {
 				paramsData[nP + b][vox] = params[nP + b];
 			}
-			for (int i = 0; i < totalResiduals; i++) {
+			for (int i = 0; i < totalSignals; i++) {
 				residualData[i][slice * voxelsPerSlice + vox] = residuals[i];
 			}
 		};
@@ -534,14 +543,14 @@ int main(int argc, char **argv)
 	
 	// Clean up memory and close files (automatically done in destructor)
 	// Residuals can only be written here if we want them to go in a 4D file
-	for (int r = 0; r < totalResiduals; r++) {
+	for (int r = 0; r < totalSignals; r++) {
 		residualHdr.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData[r]);
 	}
 	residualHdr.close();
 	delete[] paramsHdrs;
 	for (int p = 0; p < nP; p++)
 		delete[] paramsData[p];
-	for (int i = 0; i < totalResiduals; i++)
+	for (int i = 0; i < totalSignals; i++)
 		delete[] residualData[i];
 	for (int i = 0; i < signalFiles.size(); i++)	{
 		delete[] signalVolumes[i];

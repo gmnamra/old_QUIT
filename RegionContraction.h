@@ -43,9 +43,13 @@ vector<size_t> index_partial_sort(const ArrayBase<Derived> &x, size_t N)
 template <typename Functor_t, typename Derived>
 ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
                           const ArrayBase<Derived> &loStart, const ArrayBase<Derived> &hiStart,
+						  const ArrayBase<Derived> &weights,
 					      const int nS = 5000, const int nR = 50, const int maxContractions = 10,
 						  const double thresh = 0.05, const double expand = 0., const int seed = 0)
 {
+	eigen_assert(params.size() == loStart.size());
+	eigen_assert(loStart.size() == hiStart.size());
+	
 	static bool finiteWarning = false;
 	static bool constraintWarning = false;
 	int nP = static_cast<int>(params.size());
@@ -84,7 +88,7 @@ ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 				}
 			} while (!f.constraint(tempSample));
 			f(tempSample, diffs);
-			sampleRes(s) = diffs.square().sum();
+			sampleRes(s) = (diffs * weights).square().sum();
 			if (!isfinite(diffs.square().sum())) {
 				if (!finiteWarning) {
 					finiteWarning = true;

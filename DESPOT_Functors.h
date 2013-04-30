@@ -72,11 +72,12 @@ inline const Matrix3d InfinitesimalRF(const double &dalpha) {
 }
 
 inline const Matrix3d OffResonance(const double &inHertz) {
+	// Minus signs are this way round to make phase cycling go the right way
 	Matrix3d O;
 	double dw = inHertz * 2. * M_PI;
-	O << 0, -dw, 0,
-		dw,   0, 0,
-		 0,   0, 0;
+	O <<  0, dw, 0,
+	    -dw,  0, 0,
+		  0,  0, 0;
 	return O;
 }
 
@@ -293,8 +294,8 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 	A6.block(3, 3, 3, 3) = Relax(p[3], p[4]) + OffResonance(c.B0);
 	A6 += Exchange(k_ab, k_ba);
 	A3 = Relax(p[5], p[6]) + OffResonance(c.B0);
-	eATE6 = (-A6*TE).exp();
-	eATE3 = (-A3*TE).exp();
+	eATE6 = (-TE * A6).exp();
+	eATE3 = (-TE * A3).exp();
 	eATR6.noalias() = eATE6 * eATE6;
 	eATR3.noalias() = eATE3 * eATE3;
 	const Vector6d eyemaM06 = (Matrix6d::Identity() - eATR6) * M06;
@@ -316,6 +317,7 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 VectorXd Three_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, const VectorXd &p)
 {
 	// Parameters are { PD, T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
+	cout << "c: " << c.TR << " " << c.Trf << " " << c.phase << " " << c.B0 << " " << c.B1 << endl;
 	const Matrix6d I6 = Matrix6d::Identity();
 	const Matrix3d I3 = Matrix3d::Identity();
 	Matrix6d R6 = Matrix6d::Zero();
@@ -335,9 +337,9 @@ VectorXd Three_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c,
 	CalcExchange(p[7], f_a, f_b, k_ab, k_ba);
 	Matrix6d K6 = Exchange(k_ab, k_ba);
 	
-	const Matrix6d le6 = (-(R6 + O6 + K6) * (c.TR - c.Trf) / 2).exp();
+	const Matrix6d le6 = ((R6 + O6 + K6) * -(c.TR - c.Trf) / 2).exp();
 	const Matrix6d l26 = le6*le6;
-	const Matrix3d le3 = (-(R3 + O) * (c.TR - c.Trf) / 2).exp();
+	const Matrix3d le3 = ((R3 + O) * -(c.TR - c.Trf) / 2).exp();
 	const Matrix3d l23 = le3*le3;
 	Matrix6d l16;
 	Matrix3d l13;
@@ -582,6 +584,7 @@ class mcDESPOT : public Functor<double> {
 		const ArrayXd theory(const VectorXd &params) const {
 			ArrayXd t(values());
 			int index = 0;
+			if (_debug) cout << endl << "Params: " << params.transpose() << endl;
 			for (int i = 0; i < _signals.size(); i++) {
 				ArrayXd theory(_signals[i].size());
 				if ((_B0Mode == B0_Single) || (_B0Mode == B0_Bounded))
@@ -601,9 +604,12 @@ class mcDESPOT : public Functor<double> {
 						case 3: theory = Three_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
-				if (_debug) cout << "Theory:     " << theory.transpose() << endl;
+				if (_debug) {
+					cout << "Consts: " << _consts[i].TR << " " << _consts[i].Trf << " " 
+					                   << _consts[i].phase << " " << _consts[i].B0 << " " << _consts[i].B1 << endl;
+					cout << "Theory: " << theory.transpose() << endl;
+				}
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
-				if (_debug) cout << "Normalised: " << theory.transpose() << endl;
 				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
 			}
@@ -637,6 +643,7 @@ class mcFinite : public mcDESPOT {
 		const ArrayXd theory(const VectorXd &params) const {
 			ArrayXd t(values());
 			int index = 0;
+			if (_debug) cout << endl << "Params: " << params.transpose() << endl;
 			for (int i = 0; i < _signals.size(); i++) {
 				ArrayXd theory(_signals[i].size());
 				ArrayXd temp(_signals[i].size());
@@ -657,10 +664,12 @@ class mcFinite : public mcDESPOT {
 						case 3: theory = Three_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
-				if (_debug) cout << "Params:     " << params.transpose() << endl;
-				if (_debug) cout << "Theory:     " << theory.transpose() << endl;
+				if (_debug) {
+					cout << "Consts: " << _consts[i].TR << " " << _consts[i].Trf << " " 
+					                   << _consts[i].phase << " " << _consts[i].B0 << " " << _consts[i].B1 << endl;
+					cout << "Theory: " << theory.transpose() << endl;
+				}
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
-				if (_debug) cout << "Normalised: " << theory.transpose() << endl;
 				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
 			}
