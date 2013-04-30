@@ -38,7 +38,7 @@ struct DESPOTConstants {
 const Matrix3d RF(const double &alpha, const double &beta)
 {
 	Matrix3d R;
-	R = AngleAxisd(alpha, Vector3d::UnitX()) * AngleAxisd(-beta, Vector3d::UnitZ());
+	R = AngleAxisd(alpha, Vector3d::UnitX()) * AngleAxisd(beta, Vector3d::UnitZ());
 	return R;
 }
 
@@ -72,11 +72,12 @@ inline const Matrix3d InfinitesimalRF(const double &dalpha) {
 }
 
 inline const Matrix3d OffResonance(const double &inHertz) {
+	// Minus signs are this way round to make phase cycling go the right way
 	Matrix3d O;
 	double dw = inHertz * 2. * M_PI;
-	O << 0, -dw, 0,
-		dw,   0, 0,
-		 0,   0, 0;
+	O <<  0, dw, 0,
+	    -dw,  0, 0,
+		  0,  0, 0;
 	return O;
 }
 
@@ -583,6 +584,7 @@ class mcDESPOT : public Functor<double> {
 		const ArrayXd theory(const VectorXd &params) const {
 			ArrayXd t(values());
 			int index = 0;
+			if (_debug) cout << endl << "Params: " << params.transpose() << endl;
 			for (int i = 0; i < _signals.size(); i++) {
 				ArrayXd theory(_signals[i].size());
 				if ((_B0Mode == B0_Single) || (_B0Mode == B0_Bounded))
@@ -602,10 +604,12 @@ class mcDESPOT : public Functor<double> {
 						case 3: theory = Three_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
-				if (_debug) cout << "Params:     " << params.transpose() << endl;
-				if (_debug) cout << "Theory:     " << theory.transpose() << endl;
+				if (_debug) {
+					cout << "Consts: " << _consts[i].TR << " " << _consts[i].Trf << " " 
+					                   << _consts[i].phase << " " << _consts[i].B0 << " " << _consts[i].B1 << endl;
+					cout << "Theory: " << theory.transpose() << endl;
+				}
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
-				if (_debug) cout << "Normalised: " << theory.transpose() << endl;
 				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
 			}
@@ -640,6 +644,7 @@ class mcFinite : public mcDESPOT {
 		const ArrayXd theory(const VectorXd &params) const {
 			ArrayXd t(values());
 			int index = 0;
+			if (_debug) cout << endl << "Params: " << params.transpose() << endl;
 			for (int i = 0; i < _signals.size(); i++) {
 				ArrayXd theory(_signals[i].size());
 				ArrayXd temp(_signals[i].size());
@@ -655,20 +660,16 @@ class mcFinite : public mcDESPOT {
 					}
 				} else if (_types[i] == SignalSSFP) {
 					switch (_components) {
-						case 1:
-							temp = One_SSFP(_angles[i], _consts[i], params.head(_nP));
-							theory = One_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
-						case 2:
-							temp = Two_SSFP(_angles[i], _consts[i], params.head(_nP));
-							theory = Two_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
-						case 3:
-							temp = Three_SSFP(_angles[i], _consts[i], params.head(_nP));
-							theory = Three_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
+						case 1: theory = One_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
+						case 2: theory = Two_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
+						case 3: theory = Three_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
 					}
 				}
-				if (_debug) cout << "Params: " << params.transpose() << endl;
-				if (_debug) cout << "Theory: " << theory.transpose() << endl;
-				if (_debug) cout << "Infini: " << temp.transpose() << endl;
+				if (_debug) {
+					cout << "Consts: " << _consts[i].TR << " " << _consts[i].Trf << " " 
+					                   << _consts[i].phase << " " << _consts[i].B0 << " " << _consts[i].B1 << endl;
+					cout << "Theory: " << theory.transpose() << endl;
+				}
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
 				t.segment(index, _signals[i].size()) = theory;
 				index += _signals[i].size();
