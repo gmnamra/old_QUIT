@@ -55,6 +55,8 @@ PHASEMAP_FILES = phasemap_main.cpp
 PHASEMAP_DEPS  = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(PHASEMAP_FILES))
 AFI_FILES      = afi_main.cpp
 AFI_DEPS       = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(AFI_FILES))
+CROP_FILES     = crop_main.cpp
+CROP_DEPS      = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(CROP_FILES))
 
 #
 # Targets
@@ -71,6 +73,8 @@ phasemap : $(PHASEMAP_DEPS)
 	$(CXX) $(PHASEMAP_DEPS) -o $(BUILD_DIR)/phasemap $(LD_FLAGS) $(LD_LIBS)
 afi : $(AFI_DEPS)
 	$(CXX) $(AFI_DEPS) -o $(BUILD_DIR)/afi $(LD_FLAGS) $(LD_LIBS)
+crop : $(CROP_DEPS)
+	$(CXX) $(CROP_DEPS) -o $(BUILD_DIR)/crop $(LD_FLAGS) ${LD_LIBS)
 
 .PHONY : build release debug install clean
 

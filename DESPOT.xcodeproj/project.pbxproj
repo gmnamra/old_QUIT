@@ -32,6 +32,9 @@
 		F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F681257615E239D8007A3362 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F681257915E23F3A007A3362 /* test_despot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */; };
+		F6A51DA11732C0D500436441 /* crop_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6A51D9F1732C0D500436441 /* crop_main.cpp */; };
+		F6A51DA21732CA3F00436441 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */; };
+		F6A51DA41732CA4600436441 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6A51DA31732CA4600436441 /* libz.dylib */; };
 		F6E1F8DF1591E20E00DA918F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F6E1F9141591FFF200DA918F /* phasemap_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */; };
 		F6E1F9181592000C00DA918F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
@@ -184,6 +187,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		F6A51D921732C00900436441 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		F6E1F9081591FFD200DA918F /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -246,6 +258,9 @@
 		F622517B167B49CD00DB3BD9 /* despot-hifi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "despot-hifi"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F675C8CB15CC11E000BA95FC /* afi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = afi; sourceTree = BUILT_PRODUCTS_DIR; };
 		F675C8D515CC120100BA95FC /* afi_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = afi_main.cpp; sourceTree = SOURCE_ROOT; };
+		F6A51D941732C00900436441 /* crop */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = crop; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6A51D9F1732C0D500436441 /* crop_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = crop_main.cpp; sourceTree = SOURCE_ROOT; };
+		F6A51DA31732CA4600436441 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/lib/libz.dylib; sourceTree = DEVELOPER_DIR; };
 		F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = NiftiImage.xcodeproj; path = ../NiftiImage/NiftiImage.xcodeproj; sourceTree = "<group>"; };
 		F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Nrecon.xcodeproj; path = ../Nrecon/Nrecon.xcodeproj; sourceTree = "<group>"; };
 		F6E1F8DE1591E20E00DA918F /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
@@ -284,6 +299,15 @@
 				F6410964161075BF00D91F69 /* libNiftiImage.a in Frameworks */,
 				F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */,
 				F6225176167B3FB500DB3BD9 /* libRecon.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6A51D911732C00900436441 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6A51DA41732CA4600436441 /* libz.dylib in Frameworks */,
+				F6A51DA21732CA3F00436441 /* libNiftiImage.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -369,6 +393,7 @@
 		F6E4A2361590D9B000DA4001 = {
 			isa = PBXGroup;
 			children = (
+				F6A51DA31732CA4600436441 /* libz.dylib */,
 				F6E1F8DE1591E20E00DA918F /* libz.dylib */,
 				F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */,
 				F6C3F6FC15ADD1DA00359F68 /* Nrecon.xcodeproj */,
@@ -388,6 +413,7 @@
 				F675C8CB15CC11E000BA95FC /* afi */,
 				F6EA0A7E15DE3C490059E436 /* test_despot */,
 				F622517B167B49CD00DB3BD9 /* despot-hifi */,
+				F6A51D941732C00900436441 /* crop */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -407,6 +433,7 @@
 				F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */,
 				F675C8D515CC120100BA95FC /* afi_main.cpp */,
 				F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */,
+				F6A51D9F1732C0D500436441 /* crop_main.cpp */,
 			);
 			path = DESPOT;
 			sourceTree = "<group>";
@@ -450,6 +477,23 @@
 			name = afi;
 			productName = afi;
 			productReference = F675C8CB15CC11E000BA95FC /* afi */;
+			productType = "com.apple.product-type.tool";
+		};
+		F6A51D931732C00900436441 /* crop */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6A51D9E1732C00900436441 /* Build configuration list for PBXNativeTarget "crop" */;
+			buildPhases = (
+				F6A51D901732C00900436441 /* Sources */,
+				F6A51D911732C00900436441 /* Frameworks */,
+				F6A51D921732C00900436441 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = crop;
+			productName = crop;
+			productReference = F6A51D941732C00900436441 /* crop */;
 			productType = "com.apple.product-type.tool";
 		};
 		F6E1F9091591FFD200DA918F /* phasemap */ = {
@@ -601,6 +645,7 @@
 				F675C8CA15CC11E000BA95FC /* afi */,
 				F6EA0A7D15DE3C490059E436 /* test_despot */,
 				F622517A167B49CD00DB3BD9 /* despot-hifi */,
+				F6A51D931732C00900436441 /* crop */,
 			);
 		};
 /* End PBXProject section */
@@ -651,6 +696,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				F675C8D615CC120100BA95FC /* afi_main.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6A51D901732C00900436441 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6A51DA11732C0D500436441 /* crop_main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -803,6 +856,39 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		F6A51D9A1732C00900436441 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		F6A51D9B1732C00900436441 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
 			};
 			name = Release;
 		};
@@ -974,6 +1060,14 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		F6A51D9E1732C00900436441 /* Build configuration list for PBXNativeTarget "crop" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6A51D9A1732C00900436441 /* Debug */,
+				F6A51D9B1732C00900436441 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
 		};
 		F6E1F9111591FFD200DA918F /* Build configuration list for PBXNativeTarget "phasemap" */ = {
 			isa = XCConfigurationList;
