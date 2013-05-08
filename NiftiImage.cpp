@@ -1241,7 +1241,7 @@ bool NiftiImage::readHeader(string path)
 	else
 		_file.unzipped = fopen(path.c_str(), "rb");
 	if (!_file.zipped) {
-		NIFTI_ERROR("Failed to open header from " + path);
+		NIFTI_ERROR("Failed to open file: " + path);
 		return false;
 	}
 	
@@ -1783,7 +1783,7 @@ void NiftiImage::setDatatype(const int dt)
 		_datatype = it->second;
 }
 
-bool NiftiImage::voxelsCompatible(const NiftiImage &other) const
+bool NiftiImage::matchesVoxels(const NiftiImage &other) const
 {
 	if ((dim(1) == other.dim(1)) && (dim(2) == other.dim(2)) && (dim(3) == other.dim(3)) &&
 		(voxDim(1) == other.voxDim(1)) && (voxDim(2) == other.voxDim(2)) && (voxDim(3) == other.voxDim(3)))
@@ -1793,24 +1793,26 @@ bool NiftiImage::voxelsCompatible(const NiftiImage &other) const
 		return false;
 }
 
-void NiftiImage::checkVoxelsCompatible(const NiftiImage &other) const
+const string NiftiImage::warningVoxels(const NiftiImage &other) const
 {
-	if (!voxelsCompatible(other)) {
+	if (!matchesVoxels(other)) {
 		stringstream message;
-		message << "voxels do not match." << endl
+		message << "Voxel dimensions do not match." << endl
 		        << _basename << endl
 				<< "Image dims: " << dim(1) << " " << dim(2) << " " << dim(3)
 				<< " Voxel size: " << voxDim(1) << " " << voxDim(2) << " " << voxDim(3)
 				<< other._basename << endl
 				<< "Image dims: " << other.dim(1) << " " << other.dim(2) << " " << other.dim(3)
 				<< " Voxel size: " << other.voxDim(1) << " " << other.voxDim(2) << " " << other.voxDim(3);
-		NIFTI_FAIL(message.str());
+		return message.str();
+	} else {
+		return "Voxel dimensions match.";
 	}
 }
 
-bool NiftiImage::compatible(const NiftiImage &other) const
+bool NiftiImage::matchesSpace(const NiftiImage &other) const
 {
-	if (voxelsCompatible(other) &&
+	if (matchesVoxels(other) &&
 	   ((ijk_to_xyz() - other.ijk_to_xyz()).norm() < (numeric_limits<double>::epsilon() * ijk_to_xyz().size())))
 		// Then we have the same number of voxels, dimensions are the same,
 	    // and get transformed to the same spatial locations.
@@ -1819,11 +1821,11 @@ bool NiftiImage::compatible(const NiftiImage &other) const
 		return false;	
 }
 
-void NiftiImage::checkCompatible(const NiftiImage &other) const
+const string NiftiImage::warningSpace(const NiftiImage &other) const
 {
-	if (!compatible(other)) {
+	if (!matchesSpace(other)) {
 		stringstream message;
-		message << "volumes do not match." << endl
+		message << "Image spaces do not match." << endl
 		        << _basename << endl
 				<< "Image dims: " << dim(1) << " " << dim(2) << " " << dim(3)
 				<< " Voxel size: " << voxDim(1) << " " << voxDim(2) << " " << voxDim(3)
@@ -1832,7 +1834,9 @@ void NiftiImage::checkCompatible(const NiftiImage &other) const
 				<< "Image dims: " << other.dim(1) << " " << other.dim(2) << " " << other.dim(3)
 				<< " Voxel size: " << other.voxDim(1) << " " << other.voxDim(2) << " " << other.voxDim(3)
 				<< " Transform:" << endl << other.ijk_to_xyz() << endl;
-		NIFTI_FAIL(message.str());
+		return message.str();
+	} else {
+		return "Image spaces match.";
 	}
 }
 

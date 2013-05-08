@@ -410,10 +410,10 @@ class NiftiImage
 		
 		int datatype() const;
 		void setDatatype(const int dt);
-		bool compatible(const NiftiImage &other) const; //!< Check if voxel dimensions, data size and transform match
-		bool voxelsCompatible(const NiftiImage &other) const; //!< Looser check if voxel dimensions and data size match
-		void checkVoxelsCompatible(const NiftiImage &other) const; //!< Exits program if voxels differ
-		void checkCompatible(const NiftiImage &other) const; //!< Exits program if headers do not match
+		bool matchesSpace(const NiftiImage &other) const; //!< Check if voxel dimensions, data size and transform match
+		bool matchesVoxels(const NiftiImage &other) const; //!< Looser check if voxel dimensions and data size match
+		const string warningSpace(const NiftiImage &other) const; //!< Prints warning if voxels differ
+		const string warningVoxels(const NiftiImage &other) const; //!< Prints warning if spaces do not match
 		
 		float scaling_slope;
 		float scaling_inter;
