@@ -73,8 +73,8 @@ phasemap : $(PHASEMAP_DEPS)
 	$(CXX) $(PHASEMAP_DEPS) -o $(BUILD_DIR)/phasemap $(LD_FLAGS) $(LD_LIBS)
 afi : $(AFI_DEPS)
 	$(CXX) $(AFI_DEPS) -o $(BUILD_DIR)/afi $(LD_FLAGS) $(LD_LIBS)
-crop : $(CROP_DEPS)
-	$(CXX) $(CROP_DEPS) -o $(BUILD_DIR)/crop $(LD_FLAGS) ${LD_LIBS)
+niicrop : $(CROP_DEPS)
+	$(CXX) $(CROP_DEPS) -o $(BUILD_DIR)/niicrop $(LD_FLAGS) $(LD_LIBS)
 
 .PHONY : build release debug install clean
 
@@ -84,7 +84,7 @@ release : build
 debug   : CXX_FLAGS+=$(DEBUG_FLAGS)
 debug   : build
 
-build : despot1 despot2 despot-hifi mcdespot phasemap afi
+build : despot1 despot2 despot-hifi mcdespot phasemap afi niicrop
 
 install : $(INSTALL_BIN)
 	cp $(BUILD_DIR)/despot1 $(INSTALL_BIN)/

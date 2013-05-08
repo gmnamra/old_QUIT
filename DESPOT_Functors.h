@@ -317,7 +317,6 @@ VectorXd Three_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const V
 VectorXd Three_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, const VectorXd &p)
 {
 	// Parameters are { PD, T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
-	cout << "c: " << c.TR << " " << c.Trf << " " << c.phase << " " << c.B0 << " " << c.B1 << endl;
 	const Matrix6d I6 = Matrix6d::Identity();
 	const Matrix3d I3 = Matrix3d::Identity();
 	Matrix6d R6 = Matrix6d::Zero();
