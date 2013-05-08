@@ -140,7 +140,10 @@ int main(int argc, char **argv) {
 	if (!irFile.open(argv[optind], 'r')) {
 		exit(EXIT_FAILURE);
 	}
-	irFile.checkVoxelsCompatible(spgrFile);
+	if (!irFile.matchesSpace(spgrFile)) {
+		cout << irFile.warningSpace(spgrFile) << endl;
+		exit(EXIT_FAILURE);
+	}
 	nIR = irFile.dim(4);
 	VectorXd irTI(nIR);
 	double irAngle, irTR;
