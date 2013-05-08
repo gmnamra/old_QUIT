@@ -690,8 +690,8 @@ class DESPOT2FM : public Functor<double> {
 		const bool &_normalise, &_fitB0;
 	
 	public:
-		static const vector<string> names() {
-			static const vector<string> _names { { "FM_PD", "FM_T2", "FM_B0" } };
+		static const vector<string> &names() {
+			static const vector<string> _names = { { "FM_PD", "FM_T2", "FM_B0" } };
 			return _names;
 		}
 		

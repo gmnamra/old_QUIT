@@ -164,7 +164,10 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		if (verbose) cout << "Opened " << type << " header: " << path << endl;
 		if (signalFiles.size() == 0) // First time through save the header for comparison
 			savedHeader = inHdr;
-		inHdr->checkVoxelsCompatible(*savedHeader);
+		if (!(inHdr->matchesSpace(*savedHeader))) {
+			cerr << inHdr->warningSpace(*savedHeader);
+			exit(EXIT_FAILURE);
+		}
 		signalFiles.push_back(inHdr);
 		double inTR = 0., inTrf = 0., inPhase = 0., inTE = 0.;
 		VectorXd inAngles(inHdr->dim(4));
@@ -210,7 +213,10 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		getline(cin, path);
 		if (path != "NONE") {
 			inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-			inHdr->checkVoxelsCompatible(*savedHeader);
+			if (!(inHdr->matchesSpace(*savedHeader))) {
+				cerr << inHdr->warningSpace(*savedHeader);
+				exit(EXIT_FAILURE);
+			}
 			if (verbose) cout << "Opened B1 correction header: " << path << endl;
 		}
 		B1_files.push_back(inHdr);
@@ -222,7 +228,10 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 			else if (prompt) cout << "Enter path to low B0 bound map: " << flush;
 			getline(cin, path);
 			inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-			inHdr->checkVoxelsCompatible(*savedHeader);
+			if (!(inHdr->matchesSpace(*savedHeader))) {
+				cerr << inHdr->warningSpace(*savedHeader);
+				exit(EXIT_FAILURE);
+			}
 			if (verbose) cout << "Opened B0 header: " << path << endl;
 			
 		}
@@ -234,7 +243,10 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 			if (prompt) cout << "Enter path to high B0 bound map: " << flush;
 			getline(cin, path);
 			inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-			inHdr->checkVoxelsCompatible(*savedHeader);
+			if (!(inHdr->matchesSpace(*savedHeader))) {
+				cerr << inHdr->warningSpace(*savedHeader);
+				exit(EXIT_FAILURE);
+			}
 			if (verbose) cout << "Opened B0 header: " << path << endl;
 		}
 		B0_hiFiles.push_back(inHdr);

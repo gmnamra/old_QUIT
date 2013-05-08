@@ -325,8 +325,10 @@ int main(int argc, char **argv)
 					resid[0] = classicDESPOT2(ssfpAngles, signals[index], consts[index].TR, T1, consts[index].B1, params[0], params[1]);
 				} else {
 					// DESPOT2-FM
+					ArrayXd weights(nResiduals);
+					weights.setConstant(1.0);
 					DESPOT2FM tc(ssfpAngles, signals, consts, T1, false, fitB0);
-					resid = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds);
+					resid = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds, weights);
 				}
 			}
 			for (int p = 0; p < nP; p++) {
