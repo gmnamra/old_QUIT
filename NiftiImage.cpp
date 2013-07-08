@@ -1311,26 +1311,24 @@ bool NiftiImage::readHeader(string path)
 	setDatatype(nhdr.datatype);
 	
 	/**- compute qto_xyz transformation from pixel indexes (i,j,k) to (x,y,z) */
-	Affine3d S; S = Scaling(static_cast<double>(_voxdim[1]),
-                            static_cast<double>(_voxdim[2]),
-	                        static_cast<double>(_voxdim[3]));
+	Affine3f S; S = Scaling(_voxdim[1], _voxdim[2], _voxdim[3]);
 	if( !is_nifti || nhdr.qform_code <= 0 ) {
 		/**- if not nifti or qform_code <= 0, use grid spacing for qto_xyz */
 		_qform = S.matrix();
 		qform_code = NIFTI_XFORM_UNKNOWN ;
 	} else {
 		/**- else NIFTI: use the quaternion-specified transformation */
-		double b = fixFloat(nhdr.quatern_b);
-		double c = fixFloat(nhdr.quatern_c);
-		double d = fixFloat(nhdr.quatern_d);
+		float b = fixFloat(nhdr.quatern_b);
+		float c = fixFloat(nhdr.quatern_c);
+		float d = fixFloat(nhdr.quatern_d);
 		
-		double x = fixFloat(nhdr.qoffset_x);
-		double y = fixFloat(nhdr.qoffset_y);
-		double z = fixFloat(nhdr.qoffset_z);
-		double qfac = (nhdr.pixdim[0] < 0.0) ? -1.0 : 1.0 ;  /* left-handedness? */
-		double a = sqrt(1 - (b*b + c*c + d*d));
-		Quaterniond Q(a, b, c, d);
-		Affine3d T; T = Translation3d(x, y, z);
+		float x = fixFloat(nhdr.qoffset_x);
+		float y = fixFloat(nhdr.qoffset_y);
+		float z = fixFloat(nhdr.qoffset_z);
+		float qfac = (nhdr.pixdim[0] < 0.0) ? -1.0 : 1.0 ;  /* left-handedness? */
+		float a = sqrt(1 - (b*b + c*c + d*d));
+		Quaternionf Q(a, b, c, d);
+		Affine3f T; T = Translation3f(x, y, z);
 		_qform = T*Q*S;
 		if (qfac < 0.)
 			_qform.matrix().block(0, 2, 3, 1) *= -1.;
@@ -1466,8 +1464,8 @@ void NiftiImage::writeHeader(string path)
 	nhdr.toffset    = toffset ;
 	
 	nhdr.qform_code = qform_code;
-	Quaterniond Q(_qform.rotation());
-	Translation3d T(_qform.translation());
+	Quaternionf Q(_qform.rotation());
+	Translation3f T(_qform.translation());
 	Affine3d S; S = Scaling(static_cast<double>(_voxdim[1]),
 	                        static_cast<double>(_voxdim[2]),
 	                        static_cast<double>(_voxdim[3]));
@@ -1840,18 +1838,18 @@ const string NiftiImage::warningSpace(const NiftiImage &other) const
 	}
 }
 
-const Matrix4d &NiftiImage::qform() const { return _qform.matrix(); }
-const Matrix4d &NiftiImage::sform() const { return _sform.matrix(); }
-const Matrix4d &NiftiImage::ijk_to_xyz() const
+const Matrix4f &NiftiImage::qform() const { return _qform.matrix(); }
+const Matrix4f &NiftiImage::sform() const { return _sform.matrix(); }
+const Matrix4f &NiftiImage::ijk_to_xyz() const
 {
 	if ((sform_code > 0) && (sform_code >= qform_code))
 		return _sform.matrix();
 	else // There is always a _qform matrix
 		return _qform.matrix();
 }
-const Matrix4d &NiftiImage::xyz_to_ijk() const
+const Matrix4f &NiftiImage::xyz_to_ijk() const
 {
-	static Matrix4d inverse;
+	static Matrix4f inverse;
 	if ((sform_code > 0) && (sform_code >= qform_code))
 		inverse = _sform.matrix().inverse();
 	else // There is always a _qform matrix

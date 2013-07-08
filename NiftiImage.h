@@ -199,7 +199,7 @@ class NiftiImage
 		
 		int _dim[8];               //!< Number of voxels = nx*ny*nz*...*nw
 		float _voxdim[8];          //!< Dimensions of each voxel
-		Affine3d _qform, _sform;   //!< Tranformation matrices from voxel indices to physical co-ords
+		Affine3f _qform, _sform;   //!< Tranformation matrices from voxel indices to physical co-ords
 		
 		string _basename, _imgname, _hdrname; // Paths to header and image files
 		int _voxoffset;
@@ -422,15 +422,10 @@ class NiftiImage
 		
 		int qform_code;
 		int sform_code;
-		const Matrix4d &qform() const;
-		const Matrix4d &sform() const;
-		void set_qform(const Matrix4d& new_qform);
-		void set_qform(const Affine3d &R, const Affine3d &T);
-		void set_qform(const double b, const double c, const double d,
-					   const double x, const double y, const double z);
-		void set_sform(const Matrix4d& new_sform);
-		const Matrix4d &ijk_to_xyz() const;
-		const Matrix4d &xyz_to_ijk() const;
+		const Matrix4f &qform() const;
+		const Matrix4f &sform() const;
+		const Matrix4f &ijk_to_xyz() const;
+		const Matrix4f &xyz_to_ijk() const;
 		
 		int freq_dim ;                //!< indexes (1,2,3, or 0) for MRI
 		int phase_dim;                //!< directions in dim[]/pixdim[]
