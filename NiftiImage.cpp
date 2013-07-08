@@ -596,18 +596,15 @@ bool NiftiImage::readHeader(string path)
 		_dim[i] = nhdr.dim[i + 1];
 		_voxdim[i] = nhdr.pixdim[i + 1];
 	}
-	
-	/**- set the type of data in voxels and how many bytes per voxel */
 	setDatatype(nhdr.datatype);
 	
-	/**- compute qto_xyz transformation from pixel indexes (i,j,k) to (x,y,z) */
-	Affine3f S; S = Scaling(_voxdim[1], _voxdim[2], _voxdim[3]);
+	// Compute Q-Form
+	Affine3f S; S = Scaling(_voxdim[0], _voxdim[1], _voxdim[2]);
 	if( !is_nifti || nhdr.qform_code <= 0 ) {
-		/**- if not nifti or qform_code <= 0, use grid spacing for qto_xyz */
+		// If Q-Form not set or ANALYZE then just use voxel scaling
 		_qform = S.matrix();
 		qform_code = NIFTI_XFORM_UNKNOWN ;
 	} else {
-		/**- else NIFTI: use the quaternion-specified transformation */
 		float b = fixFloat(nhdr.quatern_b);
 		float c = fixFloat(nhdr.quatern_c);
 		float d = fixFloat(nhdr.quatern_d);
@@ -615,7 +612,7 @@ bool NiftiImage::readHeader(string path)
 		float x = fixFloat(nhdr.qoffset_x);
 		float y = fixFloat(nhdr.qoffset_y);
 		float z = fixFloat(nhdr.qoffset_z);
-		float qfac = (nhdr.pixdim[0] < 0.0) ? -1.0 : 1.0 ;  /* left-handedness? */
+		float qfac = (nhdr.pixdim[0] < 0.0) ? -1.0 : 1.0 ;  // Ensure Q-Form is consistent
 		float a = sqrt(1 - (b*b + c*c + d*d));
 		Quaternionf Q(a, b, c, d);
 		Affine3f T; T = Translation3f(x, y, z);
@@ -624,12 +621,10 @@ bool NiftiImage::readHeader(string path)
 			_qform.matrix().block(0, 2, 3, 1) *= -1.;
 		qform_code = nhdr.qform_code;
 	}
-	/**- load sto_xyz affine transformation, if present */
-	if( !is_nifti || nhdr.sform_code <= 0 )
-	{	/**- if not nifti or sform_code <= 0, then no sto transformation */
+	// Load S-Form
+	if( !is_nifti || nhdr.sform_code <= 0 ) {
 		sform_code = NIFTI_XFORM_UNKNOWN ;
 	} else {
-		/**- else set the sto transformation from srow_*[] */
 		_sform.setIdentity();
 		for (int i = 0; i < 4; i++) {
 			_sform(0, i) = nhdr.srow_x[i];
@@ -639,7 +634,6 @@ bool NiftiImage::readHeader(string path)
 		sform_code = nhdr.sform_code ;
 	}
 	
-	/**- set miscellaneous NIFTI stuff */
 	if (is_nifti) {
 		scaling_slope   = fixFloat(nhdr.scl_slope);
 		if (scaling_slope == 0.)
@@ -662,16 +656,12 @@ bool NiftiImage::readHeader(string path)
 		slice_end      = nhdr.slice_end;
 		slice_duration = fixFloat(nhdr.slice_duration);
 	}
-	
-	/**- set Miscellaneous ANALYZE stuff */
-	
 	calibration_min = fixFloat(nhdr.cal_min);
 	calibration_max = fixFloat(nhdr.cal_max);
 	
 	description = string(nhdr.descrip);
 	aux_file    = string(nhdr.aux_file);
 	
-	/**- set ioff from vox_offset (but at least sizeof(header)) */
 	if (_hdrname == _imgname) {
 		_voxoffset = (int)nhdr.vox_offset;
 		if (_voxoffset < (int)sizeof(nhdr)) _voxoffset = (int)sizeof(nhdr);
@@ -688,8 +678,7 @@ bool NiftiImage::readHeader(string path)
 	
 	//(void)nifti_read_extensions(nim, fp, remaining);
 	
-	if (_hdrname != _imgname) {
-		// Need to close the header and open the image
+	if (_hdrname != _imgname) { // Need to close the header and open the image
 		if (_gz) {
 			gzclose(_file.zipped);
 			_file.zipped = gzopen(_imgname.c_str(), "rb");
@@ -1006,6 +995,7 @@ void NiftiImage::setDim(const int d, const int n) {
 	} else
 		NIFTI_FAIL("Cannot change image dimensions for open file.");
 }
+const ArrayXi &NiftiImage::dims() const { return _dim; }
 void NiftiImage::setDims(const ArrayXi &n) {
 	if (_mode == CLOSED) {
 		if (n.rows() == _dim.rows())
@@ -1016,16 +1006,9 @@ void NiftiImage::setDims(const ArrayXi &n) {
 		NIFTI_FAIL("Cannot change image dimensions for open file.");
 }
 
-int NiftiImage::voxelsPerSlice() const  { return _dim[1]*_dim[2]; };
-int NiftiImage::voxelsPerVolume() const { return _dim[1]*_dim[2]*_dim[3]; };
-int NiftiImage::voxelsTotal() const     {
-	int total = _dim[1]*_dim[2]*_dim[3];
-	for (int i = 4; i < 8; i++) {
-		if (_dim[i] > 0)
-			total *= _dim[i];
-	}
-	return total;
-}
+int NiftiImage::voxelsPerSlice() const  { return _dim[0]*_dim[1]; };
+int NiftiImage::voxelsPerVolume() const { return _dim[0]*_dim[1]*_dim[2]; };
+int NiftiImage::voxelsTotal() const     { return _dim.prod(); }
 
 float NiftiImage::voxDim(const int d) const {
 	if ((d > 0) && (d <= _voxdim.rows()))
@@ -1042,6 +1025,7 @@ void NiftiImage::setVoxDim(const int d, const float f) {
 	} else
 		NIFTI_FAIL("Cannot change voxel sizes for open file.");
 }
+const ArrayXf &NiftiImage::voxDims() const { return _voxdim; }
 void NiftiImage::setVoxDims(const ArrayXf &n) {
 	if (_mode == CLOSED) {
 		if (n.rows() == _voxdim.rows())

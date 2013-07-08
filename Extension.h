@@ -45,8 +45,10 @@ int    nifti_is_valid_ecode        (int ecode);
 #define LNI_MAX_NIA_EXT_LEN 100000  /* consider a longer extension invalid */
 
 class Extension {
-
-
+	private:
+		int    esize ; /*!< size of extension, in bytes (must be multiple of 16) */
+		int    ecode ; /*!< extension code, one of the NIFTI_ECODE_ values       */
+		char * edata ; /*!< raw data, with no byte swapping (length is esize-8)  */
 };
 
 }; // End namespace Nifti
