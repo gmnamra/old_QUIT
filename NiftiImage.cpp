@@ -1813,7 +1813,7 @@ const string NiftiImage::warningVoxels(const NiftiImage &other) const
 bool NiftiImage::matchesSpace(const NiftiImage &other) const
 {
 	if (matchesVoxels(other) &&
-	   ((ijk_to_xyz() - other.ijk_to_xyz()).norm() < (numeric_limits<double>::epsilon() * ijk_to_xyz().size())))
+	   ((ijk_to_xyz() - other.ijk_to_xyz()).isMuchSmallerThan(NumTraits<float>::epsilon())))
 		// Then we have the same number of voxels, dimensions are the same,
 	    // and get transformed to the same spatial locations.
 		return true;
