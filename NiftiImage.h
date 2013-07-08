@@ -183,11 +183,11 @@ class NiftiImage
 {
 	private:
 
-		struct NiftiDataType {
+		struct DataType {
 			int code, size, swapsize;
 			string name;
 		};
-		typedef map<int, NiftiDataType> DTMap;
+		typedef map<int, DataType> DTMap;
 		typedef map<int, string> StringMap;
 		
 		union ZFile {
@@ -196,14 +196,13 @@ class NiftiImage
 		};
 		static const int MaxZippedBytes = 1 << 30;
 		
-		
-		int _dim[8];               //!< Number of voxels = nx*ny*nz*...*nw
-		float _voxdim[8];          //!< Dimensions of each voxel
+		ArrayXi _dim;              //!< Number of voxels = nx*ny*nz*...*nw
+		ArrayXf _voxdim;           //!< Dimensions of each voxel
 		Affine3f _qform, _sform;   //!< Tranformation matrices from voxel indices to physical co-ords
 		
 		string _basename, _imgname, _hdrname; // Paths to header and image files
 		int _voxoffset;
-		NiftiDataType _datatype;                   // Datatype on disk
+		DataType _datatype;                   // Datatype on disk
 		int _swap;                                 // True if byte order on disk is different to CPU
 		int _num_ext;
 		nifti1_extension *_ext_list;
@@ -370,11 +369,11 @@ class NiftiImage
 		 *  can only be open for either reading or writing at any one time, and
 		 *  must be closed before re-opening.
 		 */
-		enum NIFTIIMAGE_MODES
+		enum IMAGE_MODES
 		{
-			NIFTI_CLOSED = 0,
-			NIFTI_READ = 'r',
-			NIFTI_WRITE = 'w'
+			CLOSED = 0,
+			READ = 'r',
+			WRITE = 'w'
 		};
 		
 		~NiftiImage();
@@ -393,20 +392,21 @@ class NiftiImage
 		char *readRawVolume(const int vol);
 		char *readRawAllVolumes();
 		
-		int nDim() const;                       //!< Get the number of dimensions (rank) of this image
-		void setNDim(const int n);              //!< Set the number of dimensions (rank) for this image
+		int dimensions() const;                //!< Get the number of dimensions (rank) of this image
+		void setDimensions(const int n, const ArrayXi &dims, const ArrayXf &voxDims); //!< Set all dimension information in one go
+		
 		int dim(const int d) const;             //!< Get the size (voxel count) of a dimension
 		void setDim(const int d, const int n);  //!< Set the size (voxel count) of a dimension d
-		void setDims(const int n1, const int n2, const int n3, const int n4 = 1,
-		             const int n5 = 0, const int n6 = 0, const int n7 = 0); //!< Set all dimensions in one go
+		const ArrayXi &dims() const;            //!< Get all dimension sizes
+		void setDims(const ArrayXi &newDims);   //!< Set all dimension sizes
 		int voxelsPerSlice() const;             //!< Voxel count for a whole slice (dim1 x dim2)
 		int voxelsPerVolume() const;            //!< Voxel count for a volume (dim1 x dim2 x dim3)
 		int voxelsTotal() const;                //!< Voxel count for whole image (all dimensions)
 		
 		float voxDim(const int d) const;            //!< Get the voxel size along dimension d
 		void setVoxDim(const int d, const float f); //!< Set the voxel size along dimension d
-		void setVoxDims(const float d1, const float d2, const float d3, const float d4 = 1,
-		                const float d5 = 0, const float d6 = 0, const float d7 = 0); //!< Set all voxel sizes in one go
+		const ArrayXf &voxDims() const;             //!< Get all voxel sizes
+		void setVoxDims(const ArrayXf &newVoxDims); //!< Set all voxel sizes
 		
 		int datatype() const;
 		void setDatatype(const int dt);

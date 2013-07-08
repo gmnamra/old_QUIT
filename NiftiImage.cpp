@@ -968,14 +968,12 @@ int disp_nifti_1_header( const char * info, const nifti_1_header * hp )
 
 NiftiImage::~NiftiImage()
 {
-	if (_mode != NIFTI_CLOSED)
+	if (_mode != CLOSED)
 		close();
 }
 
 NiftiImage::NiftiImage() :
-	_dim{0, 0, 0, 0, 0, 0, 0, 0},
-	_voxdim{0., 1., 1., 1., 0., 0., 0., 0.},
-	_mode(NIFTI_CLOSED),
+	_mode(CLOSED),
 	_gz(false),
 	_swap(false)
 {
@@ -986,7 +984,7 @@ NiftiImage::NiftiImage() :
 NiftiImage::NiftiImage(const string &filename, const char &mode) :
 	_dim(),
 	_voxdim(),
-	_mode(NIFTI_CLOSED),
+	_mode(CLOSED),
 	_gz(false),
 	_swap(false)
 {
@@ -1000,20 +998,28 @@ NiftiImage::NiftiImage(const string &filename, const char &mode) :
 NiftiImage::NiftiImage(const int nx, const int ny, const int nz, const int nt,
 		               const float dx, const float dy, const float dz, const float dt,
 		               const int datatype) :
-	_mode(NIFTI_CLOSED),
+	_mode(CLOSED),
 	_gz(false),
 	_swap(false)
 {
 	setDatatype(datatype);
 	_qform.setIdentity(); _sform.setIdentity();
-	_dim[1] = nx; _dim[2] = ny; _dim[3] = nz; _dim[4] = nt;
-	_dim[0] = (nt > 1) ? 4 : 3;
-	_voxdim[1] = dx; _voxdim[2] = ny; _voxdim[3] = dz; _voxdim[4] = dt;
+	if (nt > 1) {
+		_dim.resize(4, 1);
+		_voxdim.resize(4, 1);
+		_dim[3] = nt;
+		_voxdim[3] = dt;
+	} else {
+		_dim.resize(3, 1);
+		_voxdim.resize(3, 1);
+	}
+	_dim[0] = nx; _dim[1] = ny; _dim[2] = nz;
+	_voxdim[0] = dx; _voxdim[1] = ny; _voxdim[2] = dz;
 }
 
 NiftiImage::NiftiImage(const NiftiImage &clone) :
 	_qform(clone._qform), _sform(clone._sform),
-	_datatype(clone._datatype),	_mode(NIFTI_CLOSED), _gz(false),
+	_datatype(clone._datatype),	_mode(CLOSED), _gz(false),
 	_voxoffset(0),
 	scaling_slope(clone.scaling_slope), scaling_inter(clone.scaling_inter),
 	calibration_min(clone.calibration_min), calibration_max(clone.calibration_max),
@@ -1040,12 +1046,12 @@ NiftiImage &NiftiImage::operator=(const NiftiImage &other)
 {
 	if (this == &other)
 		return *this;
-	else if (_mode != NIFTI_CLOSED)
+	else if (_mode != CLOSED)
 		close();
 	
 	_qform = other._qform;
 	_sform = other._sform;
-	_mode = NIFTI_CLOSED;
+	_mode = CLOSED;
 	_gz = false;
 	_voxoffset = 0;
 	scaling_slope = other.scaling_slope;
@@ -1187,7 +1193,7 @@ size_t NiftiImage::write(const void *buff, size_t size, size_t nmemb)
  */
 long NiftiImage::seek(long offset, int whence)
 {
-	if (_mode == NIFTI_CLOSED)	// Seek is private, so this should not happen
+	if (_mode == CLOSED)	// Seek is private, so this should not happen
 		NIFTI_FAIL("Cannot seek in a closed file.");
 	long newpos, currpos, error;
 	if (_gz)
@@ -1214,7 +1220,7 @@ long NiftiImage::seek(long offset, int whence)
 		return 0;	// No need to seek
 	else if (newpos < _voxoffset)
 		NIFTI_FAIL("Attempted to seek into the header of file " + _imgname);
-	else if (_gz && (_mode == NIFTI_WRITE) && (newpos < currpos))
+	else if (_gz && (_mode == WRITE) && (newpos < currpos))
 		NIFTI_FAIL("Cannot seek backwards while writing a file with libz.");
 	
 	if (_gz)
@@ -1291,20 +1297,13 @@ bool NiftiImage::readHeader(string path)
 		return false;
 	}
 	
-	/* fix bad dim[] values in the defined dimension range */
-	for(int i=2; i <= nhdr.dim[0]; i++)
-		if(nhdr.dim[i] <= 0) nhdr.dim[i] = 1;
-	
-	/* fix any remaining bad dim[] values, so garbage does not propagate */
-	/* (only values 0 or 1 seem rational, otherwise set to arbirary 1)   */
-	for(int i=nhdr.dim[0]+1; i < 8; i++)
-		if(nhdr.dim[i] != 1 && nhdr.dim[i] != 0) nhdr.dim[i] = 1 ;
-	
-	/**- Set dimensions arrays */
-	for (int i = 0; i < 8; i++)
-	{
-		_dim[i] = nhdr.dim[i];
-		_voxdim[i] = nhdr.pixdim[i];
+	// Set up dimensions. The number of dimensions is specified in dim[0],
+	// ignore anything else even if set in the file
+	_dim.resize(nhdr.dim[0], 1);
+	_voxdim.resize(nhdr.dim[0], 1);
+	for (int i = 0; i < nhdr.dim[0]; i++) {
+		_dim[i] = nhdr.dim[i + 1];
+		_voxdim[i] = nhdr.pixdim[i + 1];
 	}
 	
 	/**- set the type of data in voxels and how many bytes per voxel */
@@ -1420,10 +1419,11 @@ void NiftiImage::writeHeader(string path)
 	nhdr.sizeof_hdr = sizeof(nhdr);
 	nhdr.regular    = 'r';             /* for some stupid reason */
 	
-	for (int i = 0; i < 8; i++)
+	nhdr.dim[0] = _dim.rows();
+	for (int i = 0; i < _dim.rows(); i++)
 	{	// Copy this way so types can be changed
-		nhdr.dim[i] = _dim[i];
-		nhdr.pixdim[i] = _voxdim[i];
+		nhdr.dim[i + 1] = _dim[i];
+		nhdr.pixdim[i + 1] = _voxdim[i];
 	}
 	
 	nhdr.datatype = _datatype.code;
@@ -1545,11 +1545,11 @@ void NiftiImage::writeHeader(string path)
   */
 char *NiftiImage::readBytes(size_t start, size_t length, char *buffer)
 {
-	if (_mode == NIFTI_CLOSED) {
+	if (_mode == CLOSED) {
 		NIFTI_ERROR("Cannot read from a closed file.");
 		return NULL;
 	}
-	if (_mode == NIFTI_WRITE) {
+	if (_mode == WRITE) {
 		NIFTI_ERROR("Cannot read from a file opened for writing.");
 		return NULL;
 	}
@@ -1590,11 +1590,11 @@ char *NiftiImage::readBytes(size_t start, size_t length, char *buffer)
   */
 void NiftiImage::writeBytes(char *buffer, size_t start, size_t length)
 {
-	if (_mode == NIFTI_CLOSED) {
+	if (_mode == CLOSED) {
 		NIFTI_ERROR("Cannot write to a closed file.");
 		return;
 	}
-	if (_mode == NIFTI_READ) {
+	if (_mode == READ) {
 		NIFTI_ERROR("Cannot write to a file opened for writing.");
 		return;
 	}
@@ -1632,21 +1632,21 @@ bool NiftiImage::open(const string &filename, const char &mode)
 {
 	if (!setFilenames(filename))
 		return false;
-	if (_mode != NIFTI_CLOSED)
+	if (_mode != CLOSED)
 		NIFTI_FAIL("Attempted to open file " + filename +
 		           " using NiftiImage that is already open with file " + _imgname);
-	if (mode == NIFTI_READ) {
+	if (mode == READ) {
 		if (readHeader(_hdrname)) {
-			_mode = NIFTI_READ;
+			_mode = READ;
 			seek(_voxoffset, SEEK_SET);
 		} else {
 			return false;
 		}
-	} else if (mode == NIFTI_WRITE) {
+	} else if (mode == WRITE) {
 		writeHeader(_hdrname); // writeHeader ensures file is opened to image file on success
 		if (!_file.zipped)
 			return false;
-		_mode = NIFTI_WRITE;
+		_mode = WRITE;
 		seek(_voxoffset, SEEK_SET);
 	} else {
 		NIFTI_FAIL(string("Invalid NiftImage mode '") + mode + "'.");
@@ -1659,7 +1659,7 @@ void NiftiImage::close()
 	// If we've been writing subvolumes then we may not have written a complete file
 	// Write a single zero-byte at the end to persuade the OS to write a file of the
 	// correct size.
-	if (_mode == NIFTI_CLOSED) {
+	if (_mode == CLOSED) {
 		NIFTI_ERROR("file " + _basename + " is already closed.");
 		return;
 	}
@@ -1685,19 +1685,29 @@ void NiftiImage::close()
 		fclose(_file.unzipped);
 		_file.unzipped = NULL;
 	}
-	_mode = NIFTI_CLOSED;
+	_mode = CLOSED;
 }
 
-int NiftiImage::nDim() const { return _dim[0]; }
-void NiftiImage::setNDim(const int n) { _dim[0] = n; }
+int NiftiImage::nDimensions() const { return static_cast<int>(_dim.rows()); }
+void NiftiImage::setDimensions(const int n, const ArrayXi &dims, const ArrayXf &voxDims) {
+	if (dims.rows() != n)
+		NIFTI_FAIL("Length of dimension size array did not match new number of dimensions.");
+	if (voxDims.rows() != n)
+		NIFTI_FAIL("Length of voxel dimension array did not match new number of dimensions.");
+	if ((n < 1) || (n > 7))
+		NIFTI_FAIL("Tried to set an invalid number of dimensions (" << n << "). Valid numbers are 1 to 7.");
+	_dim = dims;
+	_voxdim = voxDims;
+}
+	
 int NiftiImage::dim(const int d) const {
-	if ((d > 0) && (d < 8))
-		return _dim[d];
+	if ((d > 0) && (d <= _dim.rows()))
+		return _dim[d - 1];
 	else
 		NIFTI_FAIL("Tried to read invalid dimension: " << d);
 }
 void NiftiImage::setDim(const int d, const int n) {
-	if (_mode == NIFTI_CLOSED) {
+	if (_mode == CLOSED) {
 		if ((d > 0) && (d < 8))
 			_dim[d] = n;
 		else
@@ -1705,10 +1715,14 @@ void NiftiImage::setDim(const int d, const int n) {
 	} else
 		NIFTI_FAIL("Cannot change image dimensions for open file.");
 }
-void NiftiImage::setDims(const int n1, const int n2, const int n3, const int n4,
-                         const int n5, const int n6, const int n7) {
-	_dim[1] = n1; _dim[2] = n2; _dim[3] = n3; _dim[4] = n4;
-	_dim[5] = n5; _dim[6] = n6; _dim[7] = n7;
+void NiftiImage::setDims(const ArrayXi &n) {
+	if (_mode == CLOSED) {
+		if (n.rows() == _dim.rows())
+			_dim = n;
+		else
+			NIFTI_FAIL("New number of dimensions does not match old number.");
+	} else
+		NIFTI_FAIL("Cannot change image dimensions for open file.");
 }
 
 int NiftiImage::voxelsPerSlice() const  { return _dim[1]*_dim[2]; };
@@ -1723,24 +1737,28 @@ int NiftiImage::voxelsTotal() const     {
 }
 
 float NiftiImage::voxDim(const int d) const {
-	if ((d > 0) && (d < 8))
-		return _voxdim[d];
+	if ((d > 0) && (d <= _voxdim.rows()))
+		return _voxdim[d - 1];
 	else
 		NIFTI_FAIL("Tried to read voxel size for invalid dimension: " << d);
 }
 void NiftiImage::setVoxDim(const int d, const float f) {
-	if (_mode == NIFTI_CLOSED) {
-		if ((d > 0) && (d < 8))
+	if (_mode == CLOSED) {
+		if ((d > 0) && (d <= _voxdim.rows()))
 			_voxdim[d] = f;
 		else
 			NIFTI_FAIL("Tried to write voxel szie for invalid dimension: " << d);
 	} else
 		NIFTI_FAIL("Cannot change voxel sizes for open file.");
 }
-void NiftiImage::setVoxDims(const float d1, const float d2, const float d3, const float d4,
-				            const float d5, const float d6, const float d7) {
-	_voxdim[1] = d1; _voxdim[2] = d2; _voxdim[3] = d3; _voxdim[4] = d4;
-	_voxdim[5] = d5; _voxdim[6] = d6; _voxdim[7] = d7;
+void NiftiImage::setVoxDims(const ArrayXf &n) {
+	if (_mode == CLOSED) {
+		if (n.rows() == _voxdim.rows())
+			_voxdim = n;
+		else
+			NIFTI_FAIL("New number of dimensions does not match old number.");
+	} else
+		NIFTI_FAIL("Cannot change voxel sizes for open file.");
 }
 
 int NiftiImage::datatype() const { return _datatype.code; }
@@ -1770,7 +1788,7 @@ void NiftiImage::setDatatype(const int dt)
 		{NIFTI_TYPE_RGBA32, {NIFTI_TYPE_RGBA32, 4,   0, "NIFTI_TYPE_RGBA32"} }
 	};
 
-	if (_mode == NIFTI_READ) {
+	if (_mode == READ) {
 		NIFTI_ERROR("Cannot set the datatype of a file opened for reading.");
 		return;
 	}
