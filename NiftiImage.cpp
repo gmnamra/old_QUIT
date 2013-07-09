@@ -293,9 +293,7 @@ NiftiImage::NiftiImage(const string &filename, const char &mode) :
 NiftiImage::NiftiImage(const int nx, const int ny, const int nz, const int nt,
 		               const float dx, const float dy, const float dz, const float dt,
 		               const int datatype) :
-	_mode(CLOSED),
-	_gz(false),
-	_swap(false)
+	_mode(CLOSED), _gz(false), _nii(false), _swap(false)
 {
 	setDatatype(datatype);
 	_qform.setIdentity(); _sform.setIdentity();
@@ -306,6 +304,17 @@ NiftiImage::NiftiImage(const int nx, const int ny, const int nz, const int nt,
 	_dim[2] = nz < 1 ? 1 : nz;
 	_dim[3] = nt < 1 ? 1 : nt;
 	_voxdim[0] = dx; _voxdim[1] = ny; _voxdim[2] = dz; _voxdim[3] = dt;
+}
+
+NiftiImage::NiftiImage(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
+                       const Matrix4f &qform, const Matrix4f &sform) :
+	_mode(CLOSED), _gz(false), _nii(false), _swap(false),
+	_dim(dim), _voxdim(voxdim), _qform(qform), _sform(sform)
+{
+	assert(dim.rows() < 8);
+	assert(dim.rows() == voxdim.rows());
+	
+	setDatatype(datatype);
 }
 
 NiftiImage &NiftiImage::operator=(const NiftiImage &other)
@@ -682,10 +691,13 @@ void NiftiImage::writeHeader(string path)
 	nhdr.regular    = 'r';             /* for some stupid reason */
 	
 	nhdr.dim[0] = _dim.rows();
-	for (int i = 0; i < _dim.rows(); i++)
-	{	// Copy this way so types can be changed
+	for (int i = 0; i < _dim.rows(); i++) {	// Copy this way so types can be changed
 		nhdr.dim[i + 1] = _dim[i];
 		nhdr.pixdim[i + 1] = _voxdim[i];
+	}
+	for (long i = _dim.rows() + 1; i < 8; i++) { // Long because that's currently Eigen's Index type
+		nhdr.dim[i] = 0;
+		nhdr.pixdim[i] = 0;
 	}
 	
 	nhdr.datatype = _datatype.code;
@@ -728,9 +740,7 @@ void NiftiImage::writeHeader(string path)
 	nhdr.qform_code = qform_code;
 	Quaternionf Q(_qform.rotation());
 	Translation3f T(_qform.translation());
-	Affine3d S; S = Scaling(static_cast<double>(_voxdim[1]),
-	                        static_cast<double>(_voxdim[2]),
-	                        static_cast<double>(_voxdim[3]));
+	Affine3f S; S = Scaling(_voxdim[0], _voxdim[1], _voxdim[2]);
 	
 	// NIfTI REQUIRES a (or w) >= 0. Because Q and -Q represent the same
 	// rotation, if w < 0 simply store -Q
@@ -996,11 +1006,10 @@ int NiftiImage::dim(const int d) const {
 		return -1;
 	}
 }
-
 void NiftiImage::setDim(const int d, const int n) {
 	if (_mode == CLOSED) {
 		if ((d > 0) && (d < _dim.rows()))
-			_dim[d] = n;
+			_dim[d - 1] = n;
 		else if (d < 8) {
 			NIFTI_ERROR("Tried to set size of dimension " << d << ", file only has " << _dim.rows() << " dimensions.");
 		} else {

@@ -317,6 +317,8 @@ class NiftiImage
 		NiftiImage(const int nx, const int ny, const int nz, const int nt,
 		           const float dx, const float dy, const float dz, const float dt,
 				   const int datatype);
+		NiftiImage(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
+                   const Matrix4f &qform = Matrix4f::Identity(), const Matrix4f &sform = Matrix4f::Identity());
 		NiftiImage(const string &filename, const char &mode);
 		NiftiImage &operator=(const NiftiImage &other);
 		static void printDTypeList();
