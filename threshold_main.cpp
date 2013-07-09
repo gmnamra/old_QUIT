@@ -81,7 +81,7 @@ int main(int argc, const char * argv[])
 			mask[i] = 1;
 	}
 	
-	image.setDim(4, 1);
+	image.setDimensions(3, image.dims().head(3), image.voxDims().head(3));
 	image.setDatatype(DT_FLOAT);
 	image.open(argv[thisArg + 2], 'w');
 	image.writeVolume<float>(0, mask);

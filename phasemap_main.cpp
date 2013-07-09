@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 	int indexptr = 0, c;
 	double TE1, TE2, deltaTE, phasetime = 0.;
 	double *data1, *data2, *B0, *mask = NULL;
-	NiftiImage inFile, outFile;
+	NiftiImage inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
@@ -142,9 +142,9 @@ int main(int argc, char** argv)
 	}
 	cout << "Writing B0 map." << endl;
 	string outPath = outPrefix + "_B0.nii.gz";
-	outFile = inFile;
-	outFile.setDim(4, 1);
-	outFile.setDatatype(NIFTI_TYPE_FLOAT32);
+	
+	NiftiImage outFile(inFile.dims().head(3), inFile.voxDims().head(3), DT_FLOAT32,
+	                   inFile.qform(), inFile.sform());
 	outFile.open(outPath, NiftiImage::WRITE);
 	outFile.writeVolume(0, B0);
 	outFile.close();

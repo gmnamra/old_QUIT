@@ -207,9 +207,8 @@ int main(int argc, char **argv)
 		}
 	}
 	const string names[NR] = { "D1_PD", "D1_T1", "D1_Residual" };
-	NiftiImage outFile(spgrFile);
-	outFile.setDatatype(DT_FLOAT32);
-	outFile.setDim(4, 1);
+	NiftiImage outFile(spgrFile.dims().head(3), spgrFile.voxDims().head(3), DT_FLOAT32,
+	                   spgrFile.qform(), spgrFile.sform());
 	for (int r = 0; r < NR; r++) {
 		string outName = outPrefix + names[r] + ".nii.gz";
 		if (verbose)

@@ -105,7 +105,8 @@ static struct option long_options[] =
 //******************************************************************************
 #pragma mark SIGTERM interrupt handler - for ensuring data is saved on a ctrl-c
 //******************************************************************************
-NiftiImage *paramsHdrs, residualHdr;
+vector<NiftiImage> paramsHdrs;
+NiftiImage residualHdr;
 vector<double *> paramsData;
 vector<double *> residualData;
 
@@ -391,8 +392,8 @@ int main(int argc, char **argv)
 	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", NiftiImage::WRITE);
 	
 	paramsData.resize(nP + nB0);
-	paramsHdrs = new NiftiImage[nP + nB0];
-
+	paramsHdrs.resize(nP + nB0, NiftiImage(savedHeader->dims().head(3), savedHeader->voxDims().head(3), DT_FLOAT32, savedHeader->qform(), savedHeader->sform()));
+	
 	ArrayXd loBounds(nP + nB0), hiBounds(nP + nB0);
 	if (tesla > 0) {
 		loBounds.head(nP) = mcDESPOT::defaultLo(components, tesla);
@@ -406,8 +407,6 @@ int main(int argc, char **argv)
 			cin >> loBounds[i] >> hiBounds[i];
 		}
 		paramsData[i] = new double[voxelsPerSlice];
-		paramsHdrs[i] = *savedHeader;
-		paramsHdrs[i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
 		paramsHdrs[i].open(outPrefix + "MCD_" + to_string(components) + "c_" + names[i] + ".nii.gz", NiftiImage::WRITE);
 	}
 	
@@ -415,8 +414,6 @@ int main(int argc, char **argv)
 		loBounds[nP + i] = -0.5 / consts[i].TR;
 		hiBounds[nP + i] =  0.5 / consts[i].TR;
 		paramsData[nP + i] = new double[voxelsPerSlice];
-		paramsHdrs[nP + i] = *savedHeader;
-		paramsHdrs[nP + i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
 		paramsHdrs[nP + i].open(outPrefix + "MCD_" + to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", NiftiImage::WRITE);
 	}
 	// If normalising, don't bother fitting for PD
@@ -550,7 +547,6 @@ int main(int argc, char **argv)
 		residualHdr.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData[r]);
 	}
 	residualHdr.close();
-	delete[] paramsHdrs;
 	for (int p = 0; p < nP; p++)
 		delete[] paramsData[p];
 	for (int i = 0; i < totalSignals; i++)

@@ -270,11 +270,9 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	#pragma mark Write out data
 	//**************************************************************************
-	NiftiImage outFile(spgrFile);
-	outFile.setDatatype(DT_FLOAT32);
-	outFile.setDim(4, 1);
-	for (int r = 0; r < NR; r++)
-	{
+	NiftiImage outFile(spgrFile.dims().head(3), spgrFile.voxDims().head(3), DT_FLOAT32,
+	                   spgrFile.qform(), spgrFile.sform());
+	for (int r = 0; r < NR; r++) {
 		string outName = outPrefix + names[r] + ".nii.gz";
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;

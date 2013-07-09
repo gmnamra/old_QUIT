@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 	Eigen::initParallel();
-	NiftiImage inFile, savedHeader;
+	NiftiImage inFile;
 	double *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *T1Data = NULL,
 	       *M0Data = NULL;
 	string procPath;
@@ -171,7 +171,8 @@ int main(int argc, char **argv)
 	inFile.open(argv[optind++], 'r');
 	T1Data = inFile.readVolume<double>(0);
 	inFile.close();
-	savedHeader = inFile;
+	NiftiImage savedHeader(inFile.dims().head(3), inFile.voxDims().head(3), DT_FLOAT32,
+	                       inFile.qform(), inFile.sform());
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
@@ -355,8 +356,6 @@ int main(int argc, char **argv)
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << endl;
 	
-	savedHeader.setDim(4, 1);
-	savedHeader.setDatatype(NIFTI_TYPE_FLOAT32);
 	if (tesla == 0) {
 		const vector<string> classic_names { "D2_PD", "D2_T2" };
 		for (int p = 0; p < 2; p++) {
