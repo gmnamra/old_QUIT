@@ -367,7 +367,11 @@ bool isGZippedFile(const string &fname)
 	return false;
 }
 
-const string NiftiImage::imagePath() {
+const string NiftiImage::basePath() const {
+	return _basepath;
+}
+
+const string NiftiImage::imagePath() const {
 	string path(_basepath);
 	if (_nii) {
 		path += ".nii";
@@ -380,7 +384,7 @@ const string NiftiImage::imagePath() {
 	return path;
 }
 
-const string NiftiImage::headerPath() {
+const string NiftiImage::headerPath() const {
 	string path(_basepath);
 	if (_nii) {
 		path += ".nii";
@@ -912,7 +916,7 @@ bool NiftiImage::open(const string &path, const char &mode)
 	if (_mode != CLOSED)
 		NIFTI_FAIL("Attempted to open file " + path +
 		           " using NiftiImage that is already open with file " + imagePath());
-	if (mode == READ) {
+	if ((mode == READ) || (mode == READ_HEADER)) {
 		if (readHeader(headerPath())) {
 			_mode = READ;
 			seek(_voxoffset, SEEK_SET);
@@ -927,6 +931,9 @@ bool NiftiImage::open(const string &path, const char &mode)
 		seek(_voxoffset, SEEK_SET);
 	} else {
 		NIFTI_FAIL(string("Invalid NiftImage mode '") + mode + "'.");
+	}
+	if (mode == READ_HEADER) {
+		close();
 	}
 	return true;
 }

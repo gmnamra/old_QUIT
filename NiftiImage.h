@@ -300,13 +300,16 @@ class NiftiImage
 		/*
 		 *  Used when opening a NiftiImage to specify read or write. NiftiImages
 		 *  can only be open for either reading or writing at any one time, and
-		 *  must be closed before re-opening.
+		 *  must be closed before re-opening. READ_HEADER is a special mode that
+		 *  will just read the header and then close the file.
+		 *
 		 */
 		enum IMAGE_MODES
 		{
 			CLOSED = 0,
 			READ = 'r',
-			WRITE = 'w'
+			WRITE = 'w',
+			READ_HEADER = 'h'
 		};
 		
 		~NiftiImage();
@@ -320,8 +323,9 @@ class NiftiImage
 		
 		bool open(const string &filename, const char &mode); //!< Attempts to open a NIfTI file. Returns true on success, false on failure.
 		void close();
-		const string imagePath();
-		const string headerPath();
+		const string basePath() const;
+		const string imagePath() const;
+		const string headerPath() const;
 		char *readRawVolume(const int vol);
 		char *readRawAllVolumes();
 		
