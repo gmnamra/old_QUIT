@@ -942,34 +942,40 @@ void NiftiImage::close()
 {
 	if (_mode == CLOSED) {
 		NIFTI_ERROR("file " + imagePath() + " is already closed.");
-		return;
-	}
-	// If we've been writing subvolumes then we may not have written a complete file
-	// Write a single zero-byte at the end to persuade the OS to write a file of the
-	// correct size.
-	seek(0, SEEK_END);
-	long correctEnd = (voxelsTotal() * _datatype.size + _voxoffset);
-	char zero = 0;
-	if (_gz) {
-		long pos = gztell(_file.zipped);
-		if (pos < correctEnd) {
-			gzseek(_file.zipped, correctEnd - 1, SEEK_SET);
-			gzwrite(_file.zipped, &zero, 1);
-		}
-		gzflush(_file.zipped, Z_FINISH);
-		gzclose(_file.zipped);
-		_file.zipped = NULL;
+	} else if ((_mode == READ) || (_mode == READ_HEADER)) {
+		if (_gz)
+			gzclose(_file.zipped);
+		else
+			fclose(_file.unzipped);
+		_mode = CLOSED;
 	} else {
-		long pos = ftell(_file.unzipped);
-		if (pos < correctEnd) {
-			fseek(_file.unzipped, correctEnd - 1, SEEK_SET);
-			fwrite(&zero, 1, 1, _file.unzipped);
+		// If we've been writing subvolumes then we may not have written a complete file
+		// Write a single zero-byte at the end to persuade the OS to write a file of the
+		// correct size.
+		seek(0, SEEK_END);
+		long correctEnd = (voxelsTotal() * _datatype.size + _voxoffset);
+		char zero = 0;
+		if (_gz) {
+			long pos = gztell(_file.zipped);
+			if (pos < correctEnd) {
+				gzseek(_file.zipped, correctEnd - 1, SEEK_SET);
+				gzwrite(_file.zipped, &zero, 1);
+			}
+			gzflush(_file.zipped, Z_FINISH);
+			gzclose(_file.zipped);
+			_file.zipped = NULL;
+		} else {
+			long pos = ftell(_file.unzipped);
+			if (pos < correctEnd) {
+				fseek(_file.unzipped, correctEnd - 1, SEEK_SET);
+				fwrite(&zero, 1, 1, _file.unzipped);
+			}
+			fflush(_file.unzipped);
+			fclose(_file.unzipped);
+			_file.unzipped = NULL;
 		}
-		fflush(_file.unzipped);
-		fclose(_file.unzipped);
-		_file.unzipped = NULL;
+		_mode = CLOSED;
 	}
-	_mode = CLOSED;
 }
 
 int NiftiImage::dimensions() const { return static_cast<int>(_dim.rows()); }
