@@ -313,31 +313,6 @@ NiftiImage::NiftiImage(const int nx, const int ny, const int nz, const int nt,
 	_voxdim[0] = dx; _voxdim[1] = ny; _voxdim[2] = dz;
 }
 
-NiftiImage::NiftiImage(const NiftiImage &clone) :
-	_qform(clone._qform), _sform(clone._sform),
-	_datatype(clone._datatype),	_mode(CLOSED), _gz(false),
-	_voxoffset(0),
-	scaling_slope(clone.scaling_slope), scaling_inter(clone.scaling_inter),
-	calibration_min(clone.calibration_min), calibration_max(clone.calibration_max),
-	qform_code(clone.qform_code), sform_code(clone.sform_code),
-	freq_dim(clone.freq_dim), phase_dim(clone.phase_dim),
-	slice_dim(clone.slice_dim), slice_code(clone.slice_code),
-	slice_start(clone.slice_start), slice_end(clone.slice_end),
-	slice_duration(clone.slice_duration),
-	toffset(clone.toffset),
-	xyz_units(clone.xyz_units), time_units(clone.time_units),
-	intent_code(clone.intent_code),
-	intent_p1(clone.intent_p1), intent_p2(clone.intent_p2), intent_p3(clone.intent_p3),
-	intent_name(clone.intent_name),
-	description(clone.description),
-	aux_file(clone.aux_file)
-{
-	for (int i = 0; i < 8; i++) {
-		_dim[i] = clone._dim[i];
-		_voxdim[i] = clone._voxdim[i];
-	}
-}
-
 NiftiImage &NiftiImage::operator=(const NiftiImage &other)
 {
 	if (this == &other)
@@ -345,11 +320,16 @@ NiftiImage &NiftiImage::operator=(const NiftiImage &other)
 	else if (_mode != CLOSED)
 		close();
 	
+	_dim = other._dim;
+	_voxdim = other._voxdim;
 	_qform = other._qform;
 	_sform = other._sform;
+	_basepath = other._basepath;
+	_gz = other._gz;
+	_nii = other._nii;
 	_mode = CLOSED;
-	_gz = false;
 	_voxoffset = 0;
+	setDatatype(other.datatype());
 	scaling_slope = other.scaling_slope;
 	scaling_inter = other.scaling_inter;
 	calibration_min = other.calibration_min;
@@ -373,11 +353,6 @@ NiftiImage &NiftiImage::operator=(const NiftiImage &other)
 	intent_name = other.intent_name;
 	description = other.description;
 	aux_file = other.aux_file;
-	setDatatype(other.datatype());
-	for (int i = 0; i < 8; i++) {
-		_dim[i] = other._dim[i];
-		_voxdim[i] = other._voxdim[i];
-	}
 	return *this;
 }
 
@@ -392,33 +367,32 @@ bool isGZippedFile(const string &fname)
 	return false;
 }
 
-bool NiftiImage::setFilenames(const string &fname)
-{	
-	string ext = fname.substr(fname.find_last_of(".") + 1);
-	_basename = fname.substr(0, fname.find_last_of("."));
-	_gz = false;
-	if (ext == "gz") {
-		_gz = true;
-		ext = _basename.substr(_basename.find_last_of(".") + 1);
-		_basename = _basename.substr(0, _basename.find_last_of("."));
-	}
-	if (ext == "hdr" || ext == "img") {
-		_imgname = _basename + ".img";
-		_hdrname = _basename + ".hdr";
-	} else if (ext == "nii") {
-		_imgname = _hdrname = _basename + ".nii";
+const string NiftiImage::imagePath() {
+	string path(_basepath);
+	if (_nii) {
+		path += ".nii";
 	} else {
-		NIFTI_ERROR("Invalid NIfTI extension: " + ext);
-		return false;
+		path += ".img";
 	}
+	if (_gz)
+		path += ".gz";
 	
-	if (_gz) {
-		_imgname += ".gz";
-		_hdrname += ".gz";
-	}
-	return true;
+	return path;
 }
-const string &NiftiImage::basename() { return _basename; }
+
+const string NiftiImage::headerPath() {
+	string path(_basepath);
+	if (_nii) {
+		path += ".nii";
+	} else {
+		path += ".hdr";
+	}
+	if (_gz)
+		path += ".gz";
+	
+	return path;
+}
+
 
 size_t NiftiImage::read(void *buff, size_t size, size_t nmemb)
 {
@@ -510,7 +484,7 @@ long NiftiImage::seek(long offset, int whence)
 	if (newpos == currpos)
 		return 0;	// No need to seek
 	else if (newpos < _voxoffset)
-		NIFTI_FAIL("Attempted to seek into the header of file " + _imgname);
+		NIFTI_FAIL("Attempted to seek before the start of data in " + imagePath());
 	else if (_gz && (_mode == WRITE) && (newpos < currpos))
 		NIFTI_FAIL("Cannot seek backwards while writing a file with libz.");
 	
@@ -550,7 +524,7 @@ bool NiftiImage::readHeader(string path)
 	else
 		obj_read = fread(&nhdr, sizeof(nhdr), 1, _file.unzipped);
 	if (obj_read < 1) {
-		NIFTI_ERROR("Could not read header structure from " + _hdrname);
+		NIFTI_ERROR("Could not read header structure from " + headerPath());
 		return false;
 	}
 	
@@ -560,7 +534,7 @@ bool NiftiImage::readHeader(string path)
 	if (nhdr.sizeof_hdr != sizeof(nhdr)) {
 		SwapBytes(1, 4, &nhdr.sizeof_hdr);
 		if (nhdr.sizeof_hdr != sizeof(nhdr)) {
-			NIFTI_ERROR("Could not determine byte order of header " + _hdrname);
+			NIFTI_ERROR("Could not determine byte order of header " + headerPath());
 			return false;
 		}
 		// If we didn't fail, then we need to swap the header (first swap sizeof back)
@@ -580,16 +554,24 @@ bool NiftiImage::readHeader(string path)
 		SwapAnalyzeHeader((nifti_analyze75 *)&nhdr);
 	
 	if(nhdr.datatype == DT_BINARY || nhdr.datatype == DT_UNKNOWN  ) {
-		NIFTI_ERROR("Bad datatype in header " << _hdrname);
+		NIFTI_ERROR("Bad datatype in header " << headerPath());
 		return false;
 	}
 	if(nhdr.dim[1] <= 0) {
-		NIFTI_ERROR("Bad first dimension in header " << _hdrname);
+		NIFTI_ERROR("Bad first dimension in header " << headerPath());
 		return false;
 	}
 	
 	// Set up dimensions. The number of dimensions is specified in dim[0],
 	// ignore anything else even if set in the file
+	if (nhdr.dim[0] < 3) {
+		// Make sure we have at least 3 dimensions, otherwise the transforms don't make sense
+		for (int i = nhdr.dim[0] + 1; i < 4; i++) {
+			nhdr.dim[i] = 1;
+			nhdr.pixdim[i] = 1.;
+		}
+		nhdr.dim[0] = 3;
+	}
 	_dim.resize(nhdr.dim[0], 1);
 	_voxdim.resize(nhdr.dim[0], 1);
 	for (int i = 0; i < nhdr.dim[0]; i++) {
@@ -662,7 +644,7 @@ bool NiftiImage::readHeader(string path)
 	description = string(nhdr.descrip);
 	aux_file    = string(nhdr.aux_file);
 	
-	if (_hdrname == _imgname) {
+	if (_nii) {
 		_voxoffset = (int)nhdr.vox_offset;
 		if (_voxoffset < (int)sizeof(nhdr)) _voxoffset = (int)sizeof(nhdr);
 	} else {
@@ -678,13 +660,13 @@ bool NiftiImage::readHeader(string path)
 	
 	//(void)nifti_read_extensions(nim, fp, remaining);
 	
-	if (_hdrname != _imgname) { // Need to close the header and open the image
+	if (!_nii) { // Need to close the header and open the image
 		if (_gz) {
 			gzclose(_file.zipped);
-			_file.zipped = gzopen(_imgname.c_str(), "rb");
+			_file.zipped = gzopen(imagePath().c_str(), "rb");
 		} else {
 			fclose(_file.unzipped);
-			_file.unzipped = fopen(_imgname.c_str(), "rb");
+			_file.unzipped = fopen(imagePath().c_str(), "rb");
 		}
 	}
 	
@@ -723,7 +705,7 @@ void NiftiImage::writeHeader(string path)
 	strncpy(nhdr.aux_file, aux_file.c_str(), 24);
 	
 
-	if(_imgname == _hdrname)
+	if(_nii)
 		strcpy(nhdr.magic,"n+1");
 	else
 		strcpy(nhdr.magic,"ni1");
@@ -737,7 +719,7 @@ void NiftiImage::writeHeader(string path)
 	strncpy(nhdr.intent_name, intent_name.c_str(), 16);
 	
 	// Check that _voxoffset is sensible
-	if (_imgname == _hdrname && _voxoffset < nhdr.sizeof_hdr)
+	if (_nii && _voxoffset < nhdr.sizeof_hdr)
 		_voxoffset = 352;
 	nhdr.vox_offset = _voxoffset ;
 	nhdr.xyzt_units = SPACE_TIME_TO_XYZT(xyz_units, time_units);
@@ -779,12 +761,12 @@ void NiftiImage::writeHeader(string path)
 	nhdr.slice_duration = slice_duration;
 	
 	if (_gz)
-		_file.zipped = gzopen(_hdrname.c_str(), "wb");
+		_file.zipped = gzopen(headerPath().c_str(), "wb");
 	else
-		_file.unzipped = fopen(_hdrname.c_str(), "wb");
+		_file.unzipped = fopen(headerPath().c_str(), "wb");
 		
 	if(!_file.zipped)
-		NIFTI_FAIL("Cannot open header file " + _hdrname + " for writing.");
+		NIFTI_FAIL("Cannot open header file " + headerPath() + " for writing.");
 	
 	/* write the header and extensions */
 	size_t bytesWritten;
@@ -796,19 +778,19 @@ void NiftiImage::writeHeader(string path)
 	//if( nim->nifti_type != NIFTI_FTYPE_ANALYZE )
 	//	(void)nifti_write_extensions(fp,nim);
 	if(bytesWritten < sizeof(nhdr))
-		NIFTI_FAIL("Could not write header to file " + _hdrname + ".");
+		NIFTI_FAIL("Could not write header to file " + headerPath() + ".");
 	
-	if (_hdrname != _imgname)
+	if (!_nii)
 	{	// Close header and open image file
 		if (_gz) {
 			gzclose(_file.zipped);
-			_file.zipped = gzopen(_imgname.c_str(), "wb");
+			_file.zipped = gzopen(imagePath().c_str(), "wb");
 		} else {
 			fclose(_file.unzipped);
-			_file.unzipped = fopen(_imgname.c_str(), "wb");
+			_file.unzipped = fopen(imagePath().c_str(), "wb");
 		}
 		if (!_file.zipped)
-			NIFTI_FAIL("Could not open image file " + _imgname + " for writing.");
+			NIFTI_FAIL("Could not open image file " + imagePath() + " for writing.");
 	}
 }
 
@@ -908,22 +890,37 @@ char *NiftiImage::readRawAllVolumes()
 	return raw;
 }
 		
-bool NiftiImage::open(const string &filename, const char &mode)
+bool NiftiImage::open(const string &path, const char &mode)
 {
-	if (!setFilenames(filename))
+	string ext = path.substr(path.find_last_of(".") + 1);
+	_basepath = path.substr(0, path.find_last_of("."));
+	_gz = false;
+	if (ext == "gz") {
+		_gz = true;
+		ext = _basepath.substr(_basepath.find_last_of(".") + 1);
+		_basepath = _basepath.substr(0, _basepath.find_last_of("."));
+	}
+	if (ext == "hdr" || ext == "img") {
+		_nii = false;
+	} else if (ext == "nii") {
+		_nii = true;
+	} else {
+		NIFTI_ERROR("Invalid NIfTI extension: " + ext);
 		return false;
+	}
+	
 	if (_mode != CLOSED)
-		NIFTI_FAIL("Attempted to open file " + filename +
-		           " using NiftiImage that is already open with file " + _imgname);
+		NIFTI_FAIL("Attempted to open file " + path +
+		           " using NiftiImage that is already open with file " + imagePath());
 	if (mode == READ) {
-		if (readHeader(_hdrname)) {
+		if (readHeader(headerPath())) {
 			_mode = READ;
 			seek(_voxoffset, SEEK_SET);
 		} else {
 			return false;
 		}
 	} else if (mode == WRITE) {
-		writeHeader(_hdrname); // writeHeader ensures file is opened to image file on success
+		writeHeader(headerPath()); // writeHeader ensures file is opened to image file on success
 		if (!_file.zipped)
 			return false;
 		_mode = WRITE;
@@ -936,13 +933,13 @@ bool NiftiImage::open(const string &filename, const char &mode)
 
 void NiftiImage::close()
 {
+	if (_mode == CLOSED) {
+		NIFTI_ERROR("file " + imagePath() + " is already closed.");
+		return;
+	}
 	// If we've been writing subvolumes then we may not have written a complete file
 	// Write a single zero-byte at the end to persuade the OS to write a file of the
 	// correct size.
-	if (_mode == CLOSED) {
-		NIFTI_ERROR("file " + _basename + " is already closed.");
-		return;
-	}
 	seek(0, SEEK_END);
 	long correctEnd = (voxelsTotal() * _datatype.size + _voxoffset);
 	char zero = 0;
@@ -1076,29 +1073,11 @@ void NiftiImage::setDatatype(const int dt)
 
 bool NiftiImage::matchesVoxels(const NiftiImage &other) const
 {
-	if ((dim(1) == other.dim(1)) && (dim(2) == other.dim(2)) && (dim(3) == other.dim(3)) &&
-		(voxDim(1) == other.voxDim(1)) && (voxDim(2) == other.voxDim(2)) && (voxDim(3) == other.voxDim(3)))
+	if ((_dim == other._dim).all() && (_voxdim.isApprox(other._voxdim)))
 		// Voxel numbers and sizes match, can process on a volume basis
 		return true;
 	else
 		return false;
-}
-
-const string NiftiImage::warningVoxels(const NiftiImage &other) const
-{
-	if (!matchesVoxels(other)) {
-		stringstream message;
-		message << "Voxel dimensions do not match." << endl
-		        << _basename << endl
-				<< "Image dims: " << dim(1) << " " << dim(2) << " " << dim(3)
-				<< " Voxel size: " << voxDim(1) << " " << voxDim(2) << " " << voxDim(3)
-				<< other._basename << endl
-				<< "Image dims: " << other.dim(1) << " " << other.dim(2) << " " << other.dim(3)
-				<< " Voxel size: " << other.voxDim(1) << " " << other.voxDim(2) << " " << other.voxDim(3);
-		return message.str();
-	} else {
-		return "Voxel dimensions match.";
-	}
 }
 
 bool NiftiImage::matchesSpace(const NiftiImage &other) const
@@ -1110,25 +1089,6 @@ bool NiftiImage::matchesSpace(const NiftiImage &other) const
 		return true;
 	else
 		return false;	
-}
-
-const string NiftiImage::warningSpace(const NiftiImage &other) const
-{
-	if (!matchesSpace(other)) {
-		stringstream message;
-		message << "Image spaces do not match." << endl
-		        << _basename << endl
-				<< "Image dims: " << dim(1) << " " << dim(2) << " " << dim(3)
-				<< " Voxel size: " << voxDim(1) << " " << voxDim(2) << " " << voxDim(3)
-				<< " Transform:" << endl << ijk_to_xyz() << endl
-				<< other._basename << endl
-				<< "Image dims: " << other.dim(1) << " " << other.dim(2) << " " << other.dim(3)
-				<< " Voxel size: " << other.voxDim(1) << " " << other.voxDim(2) << " " << other.voxDim(3)
-				<< " Transform:" << endl << other.ijk_to_xyz() << endl;
-		return message.str();
-	} else {
-		return "Image spaces match.";
-	}
 }
 
 const Matrix4f &NiftiImage::qform() const { return _qform.matrix(); }

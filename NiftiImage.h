@@ -134,17 +134,16 @@ class NiftiImage
 		ArrayXf _voxdim;           //!< Dimensions of each voxel
 		Affine3f _qform, _sform;   //!< Tranformation matrices from voxel indices to physical co-ords
 		
-		string _basename, _imgname, _hdrname; // Paths to header and image files
-		int _voxoffset;
-		DataType _datatype;                   // Datatype on disk
-		int _swap;                                 // True if byte order on disk is different to CPU
+		string _basepath;          //!< Path to file without extension
+		bool _nii, _gz;
+		char _mode;                //!< Whether the file is closed or open for reading/writing
+		ZFile _file;
+		DataType _datatype;        //!< Datatype on disk
+		int _voxoffset;            //!< Offset to start of voxel data
+		int _swap;                 //!< True if byte order on disk is different to CPU
 		int _num_ext;
 		nifti1_extension *_ext_list;
-		char _mode;
-		bool _gz;
-		ZFile _file;
 		
-		bool setFilenames(const string &filename); //!< Sets the header and image filenames. Returns true if successful
 		static int needs_swap(short dim0, int hdrsize); //!< Check if file endianism matches host endianism.
 		static float fixFloat(const float f); //!< Converts invalid floats to 0 to ensure a marginally sane header
 		
@@ -312,7 +311,6 @@ class NiftiImage
 		
 		~NiftiImage();
 		NiftiImage();
-		NiftiImage(const NiftiImage &clone);
 		NiftiImage(const int nx, const int ny, const int nz, const int nt,
 		           const float dx, const float dy, const float dz, const float dt,
 				   const int datatype);
@@ -322,7 +320,8 @@ class NiftiImage
 		
 		bool open(const string &filename, const char &mode); //!< Attempts to open a NIfTI file. Returns true on success, false on failure.
 		void close();
-		const string &basename();
+		const string imagePath();
+		const string headerPath();
 		char *readRawVolume(const int vol);
 		char *readRawAllVolumes();
 		
@@ -346,8 +345,6 @@ class NiftiImage
 		void setDatatype(const int dt);
 		bool matchesSpace(const NiftiImage &other) const; //!< Check if voxel dimensions, data size and transform match
 		bool matchesVoxels(const NiftiImage &other) const; //!< Looser check if voxel dimensions and data size match
-		const string warningSpace(const NiftiImage &other) const; //!< Prints warning if voxels differ
-		const string warningVoxels(const NiftiImage &other) const; //!< Prints warning if spaces do not match
 		
 		float scaling_slope;
 		float scaling_inter;
