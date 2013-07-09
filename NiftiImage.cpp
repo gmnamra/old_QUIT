@@ -299,17 +299,13 @@ NiftiImage::NiftiImage(const int nx, const int ny, const int nz, const int nt,
 {
 	setDatatype(datatype);
 	_qform.setIdentity(); _sform.setIdentity();
-	if (nt > 1) {
-		_dim.resize(4, 1);
-		_voxdim.resize(4, 1);
-		_dim[3] = nt;
-		_voxdim[3] = dt;
-	} else {
-		_dim.resize(3, 1);
-		_voxdim.resize(3, 1);
-	}
-	_dim[0] = nx; _dim[1] = ny; _dim[2] = nz;
-	_voxdim[0] = dx; _voxdim[1] = ny; _voxdim[2] = dz;
+	_dim.resize(4, 1);
+	_voxdim.resize(4, 1);
+	_dim[0] = nx < 1 ? 1 : nx;
+	_dim[1] = ny < 1 ? 1 : ny;
+	_dim[2] = nz < 1 ? 1 : nz;
+	_dim[3] = nt < 1 ? 1 : nt;
+	_voxdim[0] = dx; _voxdim[1] = ny; _voxdim[2] = dz; _voxdim[3] = dt;
 }
 
 NiftiImage &NiftiImage::operator=(const NiftiImage &other)
@@ -568,7 +564,8 @@ bool NiftiImage::readHeader(string path)
 	// Set up dimensions. The number of dimensions is specified in dim[0],
 	// ignore anything else even if set in the file
 	if (nhdr.dim[0] < 3) {
-		// Make sure we have at least 3 dimensions, otherwise the transforms don't make sense
+		// Make sure we have at least 3 space dimensions
+		// otherwise the transforms don't make sense
 		for (int i = nhdr.dim[0] + 1; i < 4; i++) {
 			nhdr.dim[i] = 1;
 			nhdr.pixdim[i] = 1.;
@@ -992,15 +989,23 @@ void NiftiImage::setDimensions(const int n, const ArrayXi &dims, const ArrayXf &
 int NiftiImage::dim(const int d) const {
 	if ((d > 0) && (d <= _dim.rows()))
 		return _dim[d - 1];
-	else
-		NIFTI_FAIL("Tried to read invalid dimension: " << d);
+	else if (d < 8) {
+		return 1;
+	} else {
+		NIFTI_ERROR("Tried to read invalid dimension: " << d);
+		return -1;
+	}
 }
+
 void NiftiImage::setDim(const int d, const int n) {
 	if (_mode == CLOSED) {
-		if ((d > 0) && (d < 8))
+		if ((d > 0) && (d < _dim.rows()))
 			_dim[d] = n;
-		else
-			NIFTI_FAIL("Tried to write invalid dimension: " << d);
+		else if (d < 8) {
+			NIFTI_ERROR("Tried to set size of dimension " << d << ", file only has " << _dim.rows() << " dimensions.");
+		} else {
+			NIFTI_ERROR("Tried to write invalid dimension: " << d);
+		}
 	} else
 		NIFTI_FAIL("Cannot change image dimensions for open file.");
 }
