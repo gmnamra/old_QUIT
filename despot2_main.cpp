@@ -195,7 +195,7 @@ int main(int argc, char **argv)
 			
 			#ifdef HAVE_NRECON
 			ParameterList pars;
-			if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
+			if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
 				consts[0].TR = RealValue(pars, "tr");
 				for (int i = 0; i < nFlip; i++)
 					ssfpAngles[i] = RealValue(pars, "flip1", i);
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 		}
 		#ifdef HAVE_NRECON
 		ParameterList pars;
-		if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
+		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
 			consts[p].phase = RealValue(pars, "rfphase") * M_PI / 180.;
 		} else
 		#endif
@@ -360,23 +360,23 @@ int main(int argc, char **argv)
 	if (tesla == 0) {
 		const vector<string> classic_names { "D2_PD", "D2_T2" };
 		for (int p = 0; p < 2; p++) {
-			savedHeader.open(outPrefix + classic_names[p] + ".nii.gz", NiftiImage::NIFTI_WRITE);
+			savedHeader.open(outPrefix + classic_names[p] + ".nii.gz", NiftiImage::WRITE);
 			savedHeader.writeVolume(0, paramsData[p]);
 			savedHeader.close();
 		}
 		savedHeader.setDim(4, nResiduals);
-		savedHeader.open(outPrefix + "D2_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
+		savedHeader.open(outPrefix + "D2_Residual.nii.gz", NiftiImage::WRITE);
 		for (int i = 0; i < nResiduals; i++)
 			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 		savedHeader.close();
 	} else {
 		for (int p = 0; p < nP; p++) {
-			savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", NiftiImage::NIFTI_WRITE);
+			savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", NiftiImage::WRITE);
 			savedHeader.writeVolume(0, paramsData[p]);
 			savedHeader.close();
 		}
 		savedHeader.setDim(4, nResiduals);
-		savedHeader.open(outPrefix + "FM_Residual.nii.gz", NiftiImage::NIFTI_WRITE);
+		savedHeader.open(outPrefix + "FM_Residual.nii.gz", NiftiImage::WRITE);
 		for (int i = 0; i < nResiduals; i++)
 			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 		savedHeader.close();

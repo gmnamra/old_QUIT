@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
 	
 	#ifdef HAVE_NRECON
 	ParameterList pars;
-	if (ReadProcpar(spgrFile.basename() + ".procpar", pars)) {
+	if (ReadProcpar(spgrFile.basePath() + ".procpar", pars)) {
 		spgrTR = RealValue(pars, "tr");
 		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = RealValue(pars, "flip1", i);
 	} else
@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	if (!irFile.matchesSpace(spgrFile)) {
-		cout << irFile.warningSpace(spgrFile) << endl;
+		cerr << "Header of " << spgrFile.imagePath() << " does not match " << irFile.imagePath() << endl;
 		exit(EXIT_FAILURE);
 	}
 	nIR = irFile.dim(4);
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
 	double irAngle, irTR;
 	
 	#ifdef HAVE_NRECON
-	if (ReadProcpar(irFile.basename() + ".procpar", pars)) {
+	if (ReadProcpar(irFile.basePath() + ".procpar", pars)) {
 		irAngle = RealValue(pars, "flip1") * M_PI / 180.;
 		for (int i = 0; i < nIR; i++) irTI[i] = RealValue(pars, "ti", i);
 		irTR = RealValue(pars, "trseg") - irTI[0];

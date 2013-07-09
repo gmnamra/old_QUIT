@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 		switch (c) {
 			case 'm':
 				cout << "Reading mask from " << optarg << endl;
-				inFile.open(optarg, NiftiImage::NIFTI_READ);
+				inFile.open(optarg, NiftiImage::READ);
 				mask = inFile.readVolume<double>(0);
 				inFile.close();
 				break;
@@ -66,11 +66,11 @@ int main(int argc, char** argv)
 	}
 	if ((argc - optind) == 2) {
 		cout << "Opening input file " << argv[optind] << "." << endl;
-		inFile.open(argv[optind], NiftiImage::NIFTI_READ);
+		inFile.open(argv[optind], NiftiImage::READ);
 		
 		#ifdef HAVE_NRECON
 		ParameterList pars;
-		if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
+		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
 			TE1 = RealValue(pars, "te", 0);
 			TE2 = RealValue(pars, "te", 1);
 		} else
@@ -84,10 +84,10 @@ int main(int argc, char** argv)
 		inFile.close();
 	} else if ((argc - optind) == 3) {
 		cout << "Opening input file 1" << argv[optind] << "." << endl;
-		inFile.open(argv[optind], NiftiImage::NIFTI_READ);
+		inFile.open(argv[optind], NiftiImage::READ);
 		#ifdef HAVE_NRECON
 		ParameterList pars;
-		if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
+		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
 			TE1 = RealValue(pars, "te", 0);
 		} else
 		#endif
@@ -98,9 +98,9 @@ int main(int argc, char** argv)
 		data1 = inFile.readVolume<double>(0);
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
-		inFile.open(argv[optind], NiftiImage::NIFTI_READ);
+		inFile.open(argv[optind], NiftiImage::READ);
 		#ifdef HAVE_NRECON
-		if (ReadProcpar(inFile.basename() + ".procpar", pars)){
+		if (ReadProcpar(inFile.basePath() + ".procpar", pars)){
 			TE2 = RealValue(pars, "te", 0);
 		} else
 		#endif
@@ -145,7 +145,7 @@ int main(int argc, char** argv)
 	outFile = inFile;
 	outFile.setDim(4, 1);
 	outFile.setDatatype(NIFTI_TYPE_FLOAT32);
-	outFile.open(outPath, NiftiImage::NIFTI_WRITE);
+	outFile.open(outPath, NiftiImage::WRITE);
 	outFile.writeVolume(0, B0);
 	outFile.close();
 	cout << "Finished." << endl;

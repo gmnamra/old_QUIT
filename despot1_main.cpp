@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 	
 	#ifdef HAVE_NRECON
 	ParameterList pars;
-	if (ReadProcpar(spgrFile.basename() + ".procpar", pars)) {
+	if (ReadProcpar(spgrFile.basePath() + ".procpar", pars)) {
 		spgrTR = RealValue(pars, "tr");
 		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = RealValue(pars, "flip1", i);
 	} else

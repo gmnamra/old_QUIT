@@ -131,6 +131,17 @@ void int_handler(int sig)
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
+//Utility function
+NiftiImage *openAndCheck(const string &path, const NiftiImage *saved, const string &type) {
+	NiftiImage *in = new NiftiImage(path, NiftiImage::READ);
+	if (!(in->matchesSpace(*saved))) {
+		cerr << "Header for " << in->imagePath() << " does not match " << saved->imagePath() << endl;
+		exit(EXIT_FAILURE);
+	}
+	if (verbose) cout << "Opened " << type << " image: " << in->imagePath() << endl;
+	return in;
+}
+
 NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
                        vector<DESPOTConstants> &consts,
 				       vector<NiftiImage *> &signalFiles,
@@ -160,20 +171,16 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		}
 		if (prompt) cout << "Enter image path: " << flush;
 		getline(cin, path);
-		inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-		if (verbose) cout << "Opened " << type << " header: " << path << endl;
-		if (signalFiles.size() == 0) // First time through save the header for comparison
-			savedHeader = inHdr;
-		if (!(inHdr->matchesSpace(*savedHeader))) {
-			cerr << inHdr->warningSpace(*savedHeader);
-			exit(EXIT_FAILURE);
+		if (signalFiles.size() == 0) {
+			savedHeader = new NiftiImage(path, NiftiImage::READ_HEADER);
 		}
+		inHdr = openAndCheck(path, savedHeader, type);
 		signalFiles.push_back(inHdr);
 		double inTR = 0., inTrf = 0., inPhase = 0., inTE = 0.;
 		VectorXd inAngles(inHdr->dim(4));
 		#ifdef HAVE_NRECON
 		ParameterList pars;
-		if (ReadProcpar(inHdr->basename() + ".procpar", pars)) {
+		if (ReadProcpar(inHdr->basePath() + ".procpar", pars)) {
 			inTR = RealValue(pars, "tr");
 			for (int i = 0; i < inAngles.size(); i++)
 				inAngles[i] = RealValue(pars, "flip1", i);
@@ -212,42 +219,26 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		if (prompt) cout << "Enter B1 Map Path (blank or NONE): " << flush;
 		getline(cin, path);
 		if (path != "NONE") {
-			inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-			if (!(inHdr->matchesSpace(*savedHeader))) {
-				cerr << inHdr->warningSpace(*savedHeader);
-				exit(EXIT_FAILURE);
-			}
-			if (verbose) cout << "Opened B1 correction header: " << path << endl;
+			inHdr = openAndCheck(path, savedHeader, "B1");
 		}
 		B1_files.push_back(inHdr);
 		
 		inHdr = NULL;
-		if (((B0Mode == mcDESPOT::B0_Map) || (B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded)) &&
-		    (signalTypes.back() == mcDESPOT::SignalSSFP)) {
+		if ((signalTypes.back() == mcDESPOT::SignalSSFP) &&
+		    ((B0Mode == mcDESPOT::B0_Map) || (B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
 			if (prompt && (B0Mode == mcDESPOT::B0_Map)) cout << "Enter path to B0 map: " << flush;
 			else if (prompt) cout << "Enter path to low B0 bound map: " << flush;
 			getline(cin, path);
-			inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-			if (!(inHdr->matchesSpace(*savedHeader))) {
-				cerr << inHdr->warningSpace(*savedHeader);
-				exit(EXIT_FAILURE);
-			}
-			if (verbose) cout << "Opened B0 header: " << path << endl;
-			
+			inHdr = openAndCheck(path, savedHeader, "B0");		
 		}
 		B0_loFiles.push_back(inHdr);
 		
 		inHdr = NULL;
-		if (((B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded)) &&
-		    (signalTypes.back() == mcDESPOT::SignalSSFP)) {
+		if ((signalTypes.back() == mcDESPOT::SignalSSFP) &&
+		    ((B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
 			if (prompt) cout << "Enter path to high B0 bound map: " << flush;
 			getline(cin, path);
-			inHdr = new NiftiImage(path, NiftiImage::NIFTI_READ);
-			if (!(inHdr->matchesSpace(*savedHeader))) {
-				cerr << inHdr->warningSpace(*savedHeader);
-				exit(EXIT_FAILURE);
-			}
-			if (verbose) cout << "Opened B0 header: " << path << endl;
+			inHdr = openAndCheck(path, savedHeader, "B0");
 		}
 		B0_hiFiles.push_back(inHdr);
 		// Print message ready for next loop
@@ -279,7 +270,7 @@ int main(int argc, char **argv)
 			case 'j': voxJ = atoi(optarg); break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
-				if (!inHeader.open(optarg, NiftiImage::NIFTI_READ)) {
+				if (!inHeader.open(optarg, NiftiImage::READ)) {
 					exit(EXIT_FAILURE);
 				}
 				maskData = inHeader.readVolume<double>(0);
@@ -287,7 +278,7 @@ int main(int argc, char **argv)
 				break;
 			case 'M':
 				cout << "Reading PD file " << optarg << endl;
-				if (!inHeader.open(optarg, NiftiImage::NIFTI_READ)) {
+				if (!inHeader.open(optarg, NiftiImage::READ)) {
 					exit(EXIT_FAILURE);
 				}
 				PDData = inHeader.readVolume<double>(0);
@@ -397,7 +388,7 @@ int main(int argc, char **argv)
 		residualData[i] = new double[voxelsPerVolume];
 	residualHdr = *savedHeader;
 	residualHdr.setDim(4, totalSignals); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
-	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", NiftiImage::NIFTI_WRITE);
+	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", NiftiImage::WRITE);
 	
 	paramsData.resize(nP + nB0);
 	paramsHdrs = new NiftiImage[nP + nB0];
@@ -417,7 +408,7 @@ int main(int argc, char **argv)
 		paramsData[i] = new double[voxelsPerSlice];
 		paramsHdrs[i] = *savedHeader;
 		paramsHdrs[i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
-		paramsHdrs[i].open(outPrefix + "MCD_" + to_string(components) + "c_" + names[i] + ".nii.gz", NiftiImage::NIFTI_WRITE);
+		paramsHdrs[i].open(outPrefix + "MCD_" + to_string(components) + "c_" + names[i] + ".nii.gz", NiftiImage::WRITE);
 	}
 	
 	for (int i = 0; i < nB0; i++) {
@@ -426,7 +417,7 @@ int main(int argc, char **argv)
 		paramsData[nP + i] = new double[voxelsPerSlice];
 		paramsHdrs[nP + i] = *savedHeader;
 		paramsHdrs[nP + i].setDim(4, 1); paramsHdrs[i].setDatatype(NIFTI_TYPE_FLOAT32);
-		paramsHdrs[nP + i].open(outPrefix + "MCD_" + to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", NiftiImage::NIFTI_WRITE);
+		paramsHdrs[nP + i].open(outPrefix + "MCD_" + to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", NiftiImage::WRITE);
 	}
 	// If normalising, don't bother fitting for PD
 	if (normalise) {

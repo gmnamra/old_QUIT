@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 		{
 			case 'm':
 				cout << "Reading mask." << endl;
-				if (!inFile.open(optarg, NiftiImage::NIFTI_READ)) {
+				if (!inFile.open(optarg, NiftiImage::READ)) {
 					exit(EXIT_FAILURE);
 				}
 				mask = inFile.readVolume<double>(0);
@@ -67,12 +67,12 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	cout << "Opening input file " << argv[optind] << endl;
-	if (!inFile.open(argv[optind], NiftiImage::NIFTI_READ)) {
+	if (!inFile.open(argv[optind], NiftiImage::READ)) {
 		exit(EXIT_FAILURE);
 	}
 	#ifdef HAVE_NRECON
 	ParameterList pars;
-	if (ReadProcpar(inFile.basename() + ".procpar", pars)) {
+	if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
 		// From Sam Hurley. The sequence is implemented by waiting afi_dummy
 		// periods after the first afi_tr.
 		n = RealValue(pars, "afi_dummy") + 1;
@@ -113,13 +113,13 @@ int main(int argc, char **argv)
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
 	outFile.setDim(4, 1);
 	outFile.setDatatype(NIFTI_TYPE_FLOAT32);
-	outFile.open(outPath, NiftiImage::NIFTI_WRITE);
+	outFile.open(outPath, NiftiImage::WRITE);
 	outFile.writeVolume(0, flip);
 	outFile.close();
 	
 	outPath = outPrefix + "_B1.nii.gz";
 	cout << "Writing B1 ratio to " << outPath << "..." << endl;
-	outFile.open(outPath, NiftiImage::NIFTI_WRITE);
+	outFile.open(outPath, NiftiImage::WRITE);
 	outFile.writeVolume(0, B1);
 	outFile.close();
 	

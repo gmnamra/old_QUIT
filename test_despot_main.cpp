@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 	pars[1] = createPar("flip1", PAR_REAL, alphaSPGR.size(), alphaSPGR.data());
 	pars[2] = createPar("rfphase", PAR_REAL, 1, &spgrPhase);
 	outName = "SPGR_Noiseless.nii.gz";
-	outFile.open(outName, NIFTI_WRITE);
+	outFile.open(outName, WRITE);
 	outFile.writeAllVolumes(dataSPGR);
 	outFile.close();
 	outName = "SPGR_Noiseless.procpar";
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 		double phaseDeg = phases[p];
 		outName = (std::stringstream("SSFP-") << outName << phaseDeg << "_Noiseless.nii.gz").str();
 		outFile.setnt(alphaSSFP.size());
-		outFile.open(outName, NIFTI_WRITE);
+		outFile.open(outName, WRITE);
 		outFile.writeAllVolumes(dataSSFP[p]);
 		outFile.close();
 		outName = (std::stringstream("SSFP-") << outName << phaseDeg << "_Noiseless.procpar").str();
@@ -196,11 +196,11 @@ int main(int argc, char **argv)
 	
 	outName = "B0_Noiseless.nii.gz";
 	outFile.setnt(1);
-	outFile.open(outName, NIFTI_WRITE);
+	outFile.open(outName, WRITE);
 	outFile.writeAllVolumes(dataB0);
 	outFile.close();
 	outName = "B1_Noiseless.nii.gz";
-	outFile.open(outName, NIFTI_WRITE);
+	outFile.open(outName, WRITE);
 	outFile.writeAllVolumes(dataB1);
 	outFile.close();
 	switch (components)

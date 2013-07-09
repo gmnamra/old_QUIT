@@ -31,7 +31,7 @@ int main(int argc, const char * argv[])
 	
 	
 	NiftiImage image;
-	image.open(argv[1], NiftiImage::NIFTI_READ);
+	image.open(argv[1], NiftiImage::READ);
 	
 	float *data = image.readVolume<float>(0);
 	float thresh = 0.;
