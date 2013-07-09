@@ -345,7 +345,9 @@ class NiftiImage
 		const ArrayXf &voxDims() const;             //!< Get all voxel sizes
 		void setVoxDims(const ArrayXf &newVoxDims); //!< Set all voxel sizes
 		
-		int datatype() const;
+		const int &datatype() const;
+		const string &dtypeName() const;
+		const int &bytesPerVoxel() const;
 		void setDatatype(const int dt);
 		bool matchesSpace(const NiftiImage &other) const; //!< Check if voxel dimensions, data size and transform match
 		bool matchesVoxels(const NiftiImage &other) const; //!< Looser check if voxel dimensions and data size match
@@ -386,7 +388,6 @@ class NiftiImage
 		nifti1_extension * ext_list ; //!< array of extension structs (with data)
 		analyze_75_orient_code analyze75_orient; //!< for old analyze files, orient
 		
-		const string &dtypeName() const;
 		const string &spaceUnits() const;
 		const string &timeUnits() const;
 		const string &intentName() const;

@@ -1,6 +1,5 @@
 #include "NiftiImage.h"
 
-const string &NiftiImage::dtypeName() const { return _datatype.name; }
 /*
  * Map for string representations of NIfTI unit codes.
  *
@@ -1046,14 +1045,16 @@ void NiftiImage::setVoxDims(const ArrayXf &n) {
 		NIFTI_FAIL("Cannot change voxel sizes for open file.");
 }
 
-int NiftiImage::datatype() const { return _datatype.code; }
-/*  The map is declared here because making it a static member of NiftiImage was
- *  causing problems with looking up the datatype in close() when called by 
- *  ~NiftiImage. It's possible for C++ to destruct static members even when
- *  objects still exist in another translation unit.
- */
+const int &NiftiImage::datatype() const { return _datatype.code; }
+const string &NiftiImage::dtypeName() const { return _datatype.name; }
+const int &NiftiImage::bytesPerVoxel() const { return _datatype.size; }
 void NiftiImage::setDatatype(const int dt)
 {
+	/*  The map is declared here because making it a static member of NiftiImage was
+	 *  causing problems with looking up the datatype in close() when called by 
+	 *  ~NiftiImage. It's possible for C++ to destruct static members even when
+	 *  objects still exist in another translation unit.
+	 */
 	static const DTMap DataTypes{
 		{NIFTI_TYPE_UINT8,    {NIFTI_TYPE_UINT8, 1, 0, "NIFTI_TYPE_UINT8"} },
 		{NIFTI_TYPE_INT16,    {NIFTI_TYPE_INT16, 2, 2, "NIFTI_TYPE_INT16"} },
