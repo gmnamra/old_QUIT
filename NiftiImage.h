@@ -29,9 +29,28 @@ using namespace Eigen;
 #define NIFTI_ERROR( err ) do { cerr << __PRETTY_FUNCTION__ << ": " << err << endl; } while(0)
 #define NIFTI_FAIL( err ) do { NIFTI_ERROR( err ); exit(EXIT_FAILURE); } while(0)
 
+/*! Utility class that wraps unzipped and zipped files into one object */
+// zlib 1.2.5 and above support a "Transparent" mode that would remove the need for this,
+// but Mac OS is stuck on 1.2.1
+class ZipFile {
+	private:
+		FILE *_unzipped;
+		gzFile _zipped;
+		bool _zip;
+		static const int MaxZippedBytes = 1 << 30;
+		
+	public:
+		bool open(const string &path, const string &mode, const bool zip);
+		void close();
+		int read(void *buff, int size);        //!< Attempts to reads size bytes from the image file to buff. Returns actual number read.
+		int write(const void *buff, int size); //!< Attempts to write size bytes from buff to the image file. Returns actual number written.
+		long seek(long offset, int whence);    //!< Seeks to the specified position in the file
+		long tell();                           //!< Returns the current position in the file
+		void flush();                          //!< Flushes unwritten buffer contents
+};
+	
 /*! NIfTI header class */
-class NiftiImage
-{
+class NiftiImage {
 	private:
 
 		struct DataType {
@@ -41,12 +60,6 @@ class NiftiImage
 		typedef map<int, DataType> DTMap;
 		typedef map<int, string> StringMap;
 		
-		union ZFile {
-			FILE *unzipped;
-			gzFile zipped;
-		};
-		static const int MaxZippedBytes = 1 << 30;
-		
 		ArrayXi _dim;              //!< Number of voxels = nx*ny*nz*...*nw
 		ArrayXf _voxdim;           //!< Dimensions of each voxel
 		Affine3f _qform, _sform;   //!< Tranformation matrices from voxel indices to physical co-ords
@@ -54,7 +67,7 @@ class NiftiImage
 		string _basepath;          //!< Path to file without extension
 		bool _nii, _gz;
 		char _mode;                //!< Whether the file is closed or open for reading/writing
-		ZFile _file;
+		ZipFile _file;
 		DataType _datatype;        //!< Datatype on disk
 		int _voxoffset;            //!< Offset to start of voxel data
 		int _swap;                 //!< True if byte order on disk is different to CPU
@@ -62,17 +75,12 @@ class NiftiImage
 		static int needs_swap(short dim0, int hdrsize); //!< Check if file endianism matches host endianism.
 		static float fixFloat(const float f); //!< Converts invalid floats to 0 to ensure a marginally sane header
 		
-		size_t read(void *buff, size_t size, size_t nmemb); //!< Reads nmemb groups of size bytes from the image file to buff.
-		size_t write(const void *buff, size_t size, size_t nmemb); //!< Writes nmemb groups of size bytes from buff to the image file.
-		long seek(long offset, int whence); //!< Seeks to the specified position in the file
-		int rewind(); //!< Rewind to the start of the file
-		
 		static void SwapBytes(size_t n, int siz, void *ar);
 		static void SwapNiftiHeader(struct nifti_1_header *h);
 		static void SwapAnalyzeHeader(nifti_analyze75 *h);
 		
-		bool readHeader(string path);  //!< Attempts to read a header structure from the specified path. Returns true on success, false on failure.
-		void writeHeader(string path);
+		bool readHeader();  //!< Attempts to read a header structure from the currently open file. Returns true on success, false on failure.
+		bool writeHeader(); //!< Attempts to write a header structure to the currently open file. Returns true on success, false on failure.
 		char *readBytes(size_t start, size_t length, char *buffer = NULL);
 		void writeBytes(char *buffer, size_t start, size_t length);
 
