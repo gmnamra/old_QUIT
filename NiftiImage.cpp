@@ -1086,8 +1086,8 @@ void NiftiImage::setDatatype(const int dt)
 
 bool NiftiImage::matchesVoxels(const NiftiImage &other) const
 {
-	if ((_dim == other._dim).all() && (_voxdim.isApprox(other._voxdim)))
-		// Voxel numbers and sizes match, can process on a volume basis
+	// Only check the first 3 dimensions
+	if ((_dim.head(3) == other._dim.head(3)).all() && (_voxdim.head(3).isApprox(other._voxdim.head(3))))
 		return true;
 	else
 		return false;
@@ -1095,10 +1095,7 @@ bool NiftiImage::matchesVoxels(const NiftiImage &other) const
 
 bool NiftiImage::matchesSpace(const NiftiImage &other) const
 {
-	if (matchesVoxels(other) &&
-	   (ijk_to_xyz().isApprox(other.ijk_to_xyz())))
-		// Then we have the same number of voxels, dimensions are the same,
-	    // and get transformed to the same spatial locations.
+	if (matchesVoxels(other) && ijk_to_xyz().isApprox(other.ijk_to_xyz()))
 		return true;
 	else
 		return false;	
