@@ -40,13 +40,15 @@ enum Modes {
 };
 
 static int mode = Nothing;
-static int printDims = false, printVoxdims = false, printTransform = false;
+static int printDims = false, printVoxdims = false, printTransform = false, printSize = false, printData = false;
 
 static struct option long_options[] =
 {
 	{"dims",   no_argument, &printDims, true},
 	{"vox",    no_argument, &printVoxdims, true},
 	{"trans",  no_argument, &printTransform, true},
+	{"size",   no_argument, &printSize, true},
+	{"data",   no_argument, &printData, true},
 	{"abbrev", no_argument, &mode, Abbreviated},
 	{"full",   no_argument, &mode, Full},
 	{"comp",   no_argument, &mode, Compare},
@@ -54,7 +56,7 @@ static struct option long_options[] =
 	{0, 0, 0, 0}
 };
 
-string voxMessage(const NiftiImage& im) {
+string voxMessage(const NiftiImage &im) {
 	stringstream m;
 	m << "Voxel sizes: " << im.voxDims().transpose() << " " << im.spaceUnits();
 	if (im.voxDims().rows() > 3) {
@@ -63,13 +65,27 @@ string voxMessage(const NiftiImage& im) {
 	return m.str();
 }
 
+string sizeMessage(const NiftiImage &im) {
+	stringstream m;
+	m << "Voxels per slice, per volume, total: "
+      << im.voxelsPerSlice() << ", " << im.voxelsPerVolume() << ", " << im.voxelsTotal();
+	return m.str();
+}
+
+string dataMessage(const NiftiImage &im) {
+	stringstream m;
+	m << "Datatype: " << im.dtypeName() << ", size in bytes: " << im.bytesPerVoxel();
+	return m.str();
+}
+
 int main(int argc, char **argv) {
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "dvtafch", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "dvtafchsd", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'd': printDims = true; break;
 			case 'v': printVoxdims = true; break;
 			case 't': printTransform = true; break;
+			case 's': printSize = true; break;
 			case 'a': mode = Abbreviated; break;
 			case 'f': mode = Full; break;
 			case 'c': mode = Compare; break;
@@ -105,6 +121,8 @@ int main(int argc, char **argv) {
 		if (printDims) cout << im.dims().transpose() << endl;
 		if (printVoxdims) cout << voxMessage(im) << endl;
 		if (printTransform) cout << im.ijk_to_xyz() << endl;
+		if (printSize) cout << sizeMessage(im) << endl;
+		if (printData) cout << dataMessage(im) << endl;
 		
 		if (mode == Abbreviated) {
 			cout << "Short Nifti Header for file: " << im.imagePath() << endl;
