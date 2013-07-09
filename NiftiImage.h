@@ -98,21 +98,12 @@ typedef struct {
 	int smax, smin;                  /* 192 + 8              200 bytes */
 } nifti_analyze75;                                   /* total:  348 bytes */
 
-int    disp_nifti_1_header(const char * info, const nifti_1_header * hp ) ;
-
-
-/*--------------------- Low level IO routines ------------------------------*/
-/* other routines */
-int    nifti_hdr_looks_good        (const nifti_1_header * hdr);
-
-
-/*! NIfTI header class */
-
 // Convenience macros for printing errors. Note that err is NOT encased in ()
 // so that NIFTI_ERROR( "string" << number ); works
 #define NIFTI_ERROR( err ) do { cerr << __PRETTY_FUNCTION__ << ": " << err << endl; } while(0)
 #define NIFTI_FAIL( err ) do { NIFTI_ERROR( err ); exit(EXIT_FAILURE); } while(0)
 
+/*! NIfTI header class */
 class NiftiImage
 {
 	private:
@@ -141,8 +132,6 @@ class NiftiImage
 		DataType _datatype;        //!< Datatype on disk
 		int _voxoffset;            //!< Offset to start of voxel data
 		int _swap;                 //!< True if byte order on disk is different to CPU
-		int _num_ext;
-		nifti1_extension *_ext_list;
 		
 		static int needs_swap(short dim0, int hdrsize); //!< Check if file endianism matches host endianism.
 		static float fixFloat(const float f); //!< Converts invalid floats to 0 to ensure a marginally sane header
@@ -385,10 +374,6 @@ class NiftiImage
 		string intent_name;      //!< optional description of intent data
 		string description;      //!< optional text to describe dataset
 		string aux_file;         //!< auxiliary filename
-		
-		int                num_ext ;  //!< number of extensions in ext_list
-		nifti1_extension * ext_list ; //!< array of extension structs (with data)
-		analyze_75_orient_code analyze75_orient; //!< for old analyze files, orient
 		
 		const string &spaceUnits() const;
 		const string &timeUnits() const;

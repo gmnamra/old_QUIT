@@ -268,23 +268,22 @@ NiftiImage::~NiftiImage()
 }
 
 NiftiImage::NiftiImage() :
-	_mode(CLOSED),
-	_gz(false),
-	_swap(false)
+	_mode(CLOSED), _gz(false), _nii(false), _swap(false), _voxoffset(0),
+	scaling_slope(1.), scaling_inter(0.), calibration_min(0.), calibration_max(0.),
+	freq_dim(0), phase_dim(0), slice_dim(0),
+	slice_code(0), slice_start(0), slice_end(0), slice_duration(0),
+	toffset(0), xyz_units(NIFTI_UNITS_MM), time_units(NIFTI_UNITS_SEC),
+	intent_code(NIFTI_INTENT_DIMLESS), intent_p1(0), intent_p2(0), intent_p3(0),
+	intent_name(""), description(""), aux_file(""),
+	qform_code(NIFTI_XFORM_SCANNER_ANAT), sform_code(0)
 {
 	_qform.setIdentity(); _sform.setIdentity();
 	setDatatype(NIFTI_TYPE_FLOAT32);
 }
 
 NiftiImage::NiftiImage(const string &filename, const char &mode) :
-	_dim(),
-	_voxdim(),
-	_mode(CLOSED),
-	_gz(false),
-	_swap(false)
+	NiftiImage()
 {
-	_qform.setIdentity(); _sform.setIdentity();
-	setDatatype(NIFTI_TYPE_FLOAT32);
 	if (!open(filename, mode)) {
 		NIFTI_FAIL("Could not open file in constructor.");
 	}
@@ -293,7 +292,7 @@ NiftiImage::NiftiImage(const string &filename, const char &mode) :
 NiftiImage::NiftiImage(const int nx, const int ny, const int nz, const int nt,
 		               const float dx, const float dy, const float dz, const float dt,
 		               const int datatype) :
-	_mode(CLOSED), _gz(false), _nii(false), _swap(false)
+	NiftiImage()
 {
 	setDatatype(datatype);
 	_qform.setIdentity(); _sform.setIdentity();
@@ -308,12 +307,15 @@ NiftiImage::NiftiImage(const int nx, const int ny, const int nz, const int nt,
 
 NiftiImage::NiftiImage(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
                        const Matrix4f &qform, const Matrix4f &sform) :
-	_mode(CLOSED), _gz(false), _nii(false), _swap(false),
-	_dim(dim), _voxdim(voxdim), _qform(qform), _sform(sform)
+	NiftiImage()
 {
 	assert(dim.rows() < 8);
 	assert(dim.rows() == voxdim.rows());
 	
+	_dim = dim;
+	_voxdim = voxdim;
+	_qform = qform;
+	_sform = sform;
 	setDatatype(datatype);
 }
 
@@ -659,16 +661,7 @@ bool NiftiImage::readHeader(string path)
 	} else {
 		_voxoffset = (int)nhdr.vox_offset ;
 	}
-	
-	/* clear extension fields */
-	_num_ext = 0;
-	_ext_list = NULL;
-	/**- check for extensions (any errors here means no extensions) */
-	//if( NIFTI_ONEFILE(nhdr) ) remaining = nim->iname_offset - sizeof(nhdr);
-	//else                      remaining = filesize - sizeof(nhdr);
-	
-	//(void)nifti_read_extensions(nim, fp, remaining);
-	
+		
 	if (!_nii) { // Need to close the header and open the image
 		if (_gz) {
 			gzclose(_file.zipped);
@@ -696,8 +689,8 @@ void NiftiImage::writeHeader(string path)
 		nhdr.pixdim[i + 1] = _voxdim[i];
 	}
 	for (long i = _dim.rows() + 1; i < 8; i++) { // Long because that's currently Eigen's Index type
-		nhdr.dim[i] = 0;
-		nhdr.pixdim[i] = 0;
+		nhdr.dim[i] = 1;
+		nhdr.pixdim[i] = 1;
 	}
 	
 	nhdr.datatype = _datatype.code;
@@ -731,7 +724,7 @@ void NiftiImage::writeHeader(string path)
 	strncpy(nhdr.intent_name, intent_name.c_str(), 16);
 	
 	// Check that _voxoffset is sensible
-	if (_nii && _voxoffset < nhdr.sizeof_hdr)
+	if (_nii && (_voxoffset < nhdr.sizeof_hdr))
 		_voxoffset = 352;
 	nhdr.vox_offset = _voxoffset ;
 	nhdr.xyzt_units = SPACE_TIME_TO_XYZT(xyz_units, time_units);
@@ -740,7 +733,6 @@ void NiftiImage::writeHeader(string path)
 	nhdr.qform_code = qform_code;
 	Quaternionf Q(_qform.rotation());
 	Translation3f T(_qform.translation());
-	Affine3f S; S = Scaling(_voxdim[0], _voxdim[1], _voxdim[2]);
 	
 	// NIfTI REQUIRES a (or w) >= 0. Because Q and -Q represent the same
 	// rotation, if w < 0 simply store -Q
