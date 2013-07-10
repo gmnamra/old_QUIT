@@ -573,16 +573,18 @@ bool NiftiImage::readHeader() {
 		float b = fixFloat(nhdr.quatern_b);
 		float c = fixFloat(nhdr.quatern_c);
 		float d = fixFloat(nhdr.quatern_d);
-		
+		float a = sqrt(1 - (b*b + c*c + d*d));
+				
 		float x = fixFloat(nhdr.qoffset_x);
 		float y = fixFloat(nhdr.qoffset_y);
 		float z = fixFloat(nhdr.qoffset_z);
-		float qfac = (nhdr.pixdim[0] < 0.0) ? -1.0 : 1.0 ;  // Ensure Q-Form is consistent
-		float a = sqrt(1 - (b*b + c*c + d*d));
+
 		Quaternionf Q(a, b, c, d);
 		Affine3f T; T = Translation3f(x, y, z);
 		_qform = T*Q*S;
-		if (qfac < 0.)
+		
+		// Fix left-handed co-ords in a very dumb way (see writeHeader())
+		if (nhdr.pixdim[0] < 0.)
 			_qform.matrix().block(0, 2, 3, 1) *= -1.;
 		qform_code = nhdr.qform_code;
 	}
@@ -645,13 +647,14 @@ bool NiftiImage::writeHeader() {
 	nhdr.regular    = 'r';             /* for some stupid reason */
 	
 	nhdr.dim[0] = _dim.rows();
+	nhdr.pixdim[0] = 1.; // Set a proper co-ord system for now
 	for (int i = 0; i < _dim.rows(); i++) {	// Copy this way so types can be changed
 		nhdr.dim[i + 1] = _dim[i];
 		nhdr.pixdim[i + 1] = _voxdim[i];
 	}
 	for (long i = _dim.rows() + 1; i < 8; i++) { // Long because that's currently Eigen's Index type
 		nhdr.dim[i] = 1;
-		nhdr.pixdim[i] = 1;
+		nhdr.pixdim[i] = 1.;
 	}
 	
 	nhdr.datatype = _datatype.code;
@@ -694,7 +697,13 @@ bool NiftiImage::writeHeader() {
 	nhdr.qform_code = qform_code;
 	Quaternionf Q(_qform.rotation());
 	Translation3f T(_qform.translation());
-	
+	// Fix left-handed co-ord systems in an incredibly dumb manner.
+	// First - NIFTI stores this information in pixdim[0], with both inconsistent
+	// documentation and a reference implementation that hides pixdim[0] on reading
+	// Second - Eigen .rotation() simultaneously calculates a scaling, and so may
+	// hide axes flips. Hence we need to use .linear() to get the determinant
+	if (_qform.linear().determinant() < 0)
+		nhdr.pixdim[0] = -1.;
 	// NIfTI REQUIRES a (or w) >= 0. Because Q and -Q represent the same
 	// rotation, if w < 0 simply store -Q
 	if (Q.w() < 0) {
