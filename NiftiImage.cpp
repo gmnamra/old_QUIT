@@ -53,9 +53,15 @@ int ZipFile::write(const void *buff, int size)
 		while(remaining > 0 ) {
 			chunkSize = (remaining < MaxZippedBytes) ? remaining : MaxZippedBytes;
 			nwritten = gzwrite(_zipped, chunk, chunkSize);
+			if (nwritten == 0) {
+				NIFTI_ERROR("Error during write to file.");
+				return 0;
+			}
 			remaining -= nwritten;
-			if(nwritten < (int)chunkSize)
-				NIFTI_ERROR("Zipped write short by " << remaining << " bytes.");
+			if(nwritten < (int)chunkSize) {
+				NIFTI_ERROR("Zipped write short by " << (chunkSize - nwritten) << " bytes.");
+				return totalWritten;
+			}
 			chunk += nwritten;
 			totalWritten += nwritten;
 		}
@@ -803,8 +809,7 @@ char *NiftiImage::readRawAllVolumes()
 	return raw;
 }
 		
-bool NiftiImage::open(const string &path, const char &mode)
-{
+bool NiftiImage::open(const string &path, const char &mode) {
 	_basepath = path.substr(0, path.find_first_of("."));
 	if (path.substr(path.find_last_of(".") + 1) == "gz") {
 		_gz = true;
@@ -826,6 +831,7 @@ bool NiftiImage::open(const string &path, const char &mode)
 		           " using NiftiImage that is already open with file " + imagePath());
 		return false;
 	} else {
+		_mode = mode;
 		if ((mode == READ) || (mode == READ_HEADER)) {
 			if(!_file.open(headerPath().c_str(), "rb", _gz)) {
 				NIFTI_ERROR("Could not open header file " + headerPath() + " for reading.");
@@ -833,7 +839,7 @@ bool NiftiImage::open(const string &path, const char &mode)
 			}
 			if (!readHeader())
 				return false;
-			if (mode == READ_HEADER) {
+			if (_mode == READ_HEADER) {
 				close();
 				return true;
 			}
@@ -847,7 +853,6 @@ bool NiftiImage::open(const string &path, const char &mode)
 		} else {
 			NIFTI_FAIL(string("Invalid NiftImage mode '") + mode + "'.");
 		}
-		_mode = mode;
 		_file.seek(_voxoffset, SEEK_SET);
 		if (!_nii) {
 			// Need to close the header and open the image
@@ -868,10 +873,12 @@ bool NiftiImage::open(const string &path, const char &mode)
 
 void NiftiImage::close()
 {
-	if ((_mode == READ) || (_mode == READ_HEADER)) {
+	if (_mode == CLOSED) {
+		NIFTI_ERROR("File is already closed: " << imagePath());
+	} else if ((_mode == READ) || (_mode == READ_HEADER)) {
 		_file.close();
 		_mode = CLOSED;
-	} else {
+	} else if (_mode == WRITE) {
 		// If we've been writing subvolumes then we may not have written a complete file
 		// Write a single zero-byte at the end to persuade the OS to write a file of the
 		// correct size.

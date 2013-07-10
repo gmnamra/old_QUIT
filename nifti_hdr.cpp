@@ -40,13 +40,16 @@ enum Modes {
 };
 
 static int mode = Nothing;
-static int printDims = false, printVoxdims = false, printTransform = false, printSize = false, printData = false;
+static int printDims = false, printVoxdims = false, printSize = false, printData = false,
+           printTransform = false, printSform = false, printQform = false;
 
 static struct option long_options[] =
 {
 	{"dims",   no_argument, &printDims, true},
 	{"vox",    no_argument, &printVoxdims, true},
-	{"trans",  no_argument, &printTransform, true},
+	{"form",   no_argument, &printTransform, true},
+	{"sform",  no_argument, &printSform, true},
+	{"qform",  no_argument, &printQform, true},
 	{"size",   no_argument, &printSize, true},
 	{"data",   no_argument, &printData, true},
 	{"abbrev", no_argument, &mode, Abbreviated},
@@ -131,6 +134,26 @@ int main(int argc, char **argv) {
 			cout << "Transform matrix: " << endl << im.ijk_to_xyz() << endl;
 		} else if (mode == Full) {
 			cout << "Full Nifti Header for file: " << im.imagePath() << endl;
+			cout << dataMessage(im) << endl;
+			cout << "Dimensions: " << im.dims().transpose() << endl;
+			cout << voxMessage(im) << endl;
+			
+			cout << "Calibration (min, max): " << im.calibration_min << ", " << im.calibration_max << endl;
+			cout << "Scaling (slope, inter): " << im.scaling_slope << ", " << im.scaling_inter << endl;
+			cout << "Dimension labels (Phase, Freq, Slice):   " << im.phase_dim << ", " << im.freq_dim << ", " << im.slice_dim << endl;
+			cout << "Slice info (Code, Start, End, Duration): " << ", " << im.slice_code << ", " << im.slice_start << ", " << im.slice_end << ", " << im.slice_duration << endl;
+			cout << "Slice name: " << im.sliceName() << endl;
+			cout << "Time offset: " << im.toffset << endl;
+			
+			cout << "Intent name:   " << im.intent_name << endl;
+			cout << "Intent code:   " << im.intentName() << endl;
+			cout << "Intent params: " << im.intent_p1 << ", " << im.intent_p2 << ", " << im.intent_p3 << endl;
+			cout << "Description: " << im.description << endl;
+			cout << "Aux File:    " << im.aux_file << endl;
+			cout << "QForm (code):  " << im.qform_code << endl;
+			cout << im.qform() << endl;
+			cout << "SForm (code):  " << im.sform_code << endl;
+			cout << im.sform() << endl;
 		}
 	}
 	
