@@ -33,9 +33,15 @@ int ZipFile::read(void *buff, int size)
 		while (remaining > 0) {
 			chunkSize = (remaining < MaxZippedBytes) ? remaining : MaxZippedBytes;
 			nread = gzread(_zipped, cbuff, chunkSize);
+			if (nread == -1) {
+				NIFTI_ERROR("Could not read from file.");
+				return 0;
+			}
 			remaining -= nread;
-			if (nread < chunkSize)
+			if (nread < chunkSize) {
 				NIFTI_ERROR("Zipped read short by " << remaining << " bytes.");
+				return totalRead;
+			}
 			cbuff += nread;
 			totalRead += nread;
 		}
@@ -831,7 +837,6 @@ bool NiftiImage::open(const string &path, const char &mode) {
 		           " using NiftiImage that is already open with file " + imagePath());
 		return false;
 	} else {
-		_mode = mode;
 		if ((mode == READ) || (mode == READ_HEADER)) {
 			if(!_file.open(headerPath().c_str(), "rb", _gz)) {
 				NIFTI_ERROR("Could not open header file " + headerPath() + " for reading.");
@@ -839,6 +844,8 @@ bool NiftiImage::open(const string &path, const char &mode) {
 			}
 			if (!readHeader())
 				return false;
+			_mode = mode; // This must be set after readHeader() as there is setDatatype() call in it
+			// But must be set before this to avoid an "already closed" warning
 			if (_mode == READ_HEADER) {
 				close();
 				return true;
@@ -848,6 +855,7 @@ bool NiftiImage::open(const string &path, const char &mode) {
 				NIFTI_ERROR("Could not open header file " + headerPath() + " for writing.");
 				return false;
 			}
+			_mode = mode; // This must be set after readHeader() as there is setDatatype() call in it
 			if (!writeHeader())
 				return false;
 		} else {
@@ -1007,8 +1015,8 @@ void NiftiImage::setDatatype(const int dt)
 		{NIFTI_TYPE_RGBA32, {NIFTI_TYPE_RGBA32, 4,   0, "NIFTI_TYPE_RGBA32"} }
 	};
 
-	if (_mode == READ) {
-		NIFTI_ERROR("Cannot set the datatype of a file opened for reading.");
+	if (_mode != CLOSED) {
+		NIFTI_ERROR("Cannot set the datatype of open file: " << imagePath());
 		return;
 	}
     DTMap::const_iterator it = DataTypes.find(dt);
