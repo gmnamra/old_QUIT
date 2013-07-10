@@ -270,8 +270,9 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	#pragma mark Write out data
 	//**************************************************************************
-	NiftiImage outFile(spgrFile.dims().head(3), spgrFile.voxDims().head(3), DT_FLOAT32,
-	                   spgrFile.qform(), spgrFile.sform());
+	NiftiImage outFile(spgrFile);
+	outFile.setDim(4, 1);
+	outFile.setDatatype(DT_FLOAT32);
 	for (int r = 0; r < NR; r++) {
 		string outName = outPrefix + names[r] + ".nii.gz";
 		if (verbose)
