@@ -108,8 +108,9 @@ int main(int argc, char **argv)
 		else
 			B1[vox] = 1.; // So smoothing doesn't get messed up
 	}
-	NiftiImage outFile(inFile.dims().head(3), inFile.voxDims().head(3), DT_FLOAT32,
-	                   inFile.qform(), inFile.sform());
+	NiftiImage outFile(inFile);
+	inFile.setDim(4,1);
+	inFile.setDatatype(DT_FLOAT32);
 	string outPath = outPrefix + "_flip.nii.gz";
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
 	outFile.open(outPath, NiftiImage::WRITE);

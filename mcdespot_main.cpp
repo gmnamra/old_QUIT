@@ -392,7 +392,9 @@ int main(int argc, char **argv)
 	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", NiftiImage::WRITE);
 	
 	paramsData.resize(nP + nB0);
-	paramsHdrs.resize(nP + nB0, NiftiImage(savedHeader->dims().head(3), savedHeader->voxDims().head(3), DT_FLOAT32, savedHeader->qform(), savedHeader->sform()));
+	savedHeader->setDim(4, 1);
+	savedHeader->setDatatype(DT_FLOAT32);
+	paramsHdrs.resize(nP + nB0, *savedHeader);
 	
 	ArrayXd loBounds(nP + nB0), hiBounds(nP + nB0);
 	if (tesla > 0) {
