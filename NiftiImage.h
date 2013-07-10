@@ -309,10 +309,12 @@ class NiftiImage {
 		string description;      //!< optional text to describe dataset
 		string aux_file;         //!< auxiliary filename
 		
+		static const string &TransformName(const int code);
+		const string &qformName() const;
+		const string &sformName() const;
 		const string &spaceUnits() const;
 		const string &timeUnits() const;
 		const string &intentName() const;
-		const string &transformName() const;
 		const string &sliceName() const;
 		
 		template<typename T> T *readVolume(const int &vol, T *converted = NULL)

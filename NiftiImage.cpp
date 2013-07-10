@@ -203,7 +203,7 @@ const string &NiftiImage::intentName() const
  *
  *\sa NIFTI1_XFORM_CODES group in nifti1.h
  */
-const string &NiftiImage::transformName() const
+const string &NiftiImage::TransformName(const int code)
 {
 	static const StringMap Transforms
 	{
@@ -213,12 +213,14 @@ const string &NiftiImage::transformName() const
 		{ NIFTI_XFORM_MNI_152,      "MNI_152" }
 	};
 	static string unknown("Unknown transform code");
-	StringMap::const_iterator it = Transforms.find(sform_code);
+	StringMap::const_iterator it = Transforms.find(code);
 	if (it == Transforms.end())
 		return unknown;
 	else
 		return it->second;
 }
+const string &NiftiImage::qformName() const { return TransformName(qform_code); }
+const string &NiftiImage::sformName() const { return TransformName(sform_code); }
 
 /*
  * Map for string representations of NIfTI slice_codes

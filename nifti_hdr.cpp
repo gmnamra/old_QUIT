@@ -41,15 +41,13 @@ enum Modes {
 
 static int mode = Nothing;
 static int printDims = false, printVoxdims = false, printSize = false, printData = false,
-           printTransform = false, printSform = false, printQform = false;
+           printTransform = false;
 
 static struct option long_options[] =
 {
 	{"dims",   no_argument, &printDims, true},
 	{"vox",    no_argument, &printVoxdims, true},
 	{"form",   no_argument, &printTransform, true},
-	{"sform",  no_argument, &printSform, true},
-	{"qform",  no_argument, &printQform, true},
 	{"size",   no_argument, &printSize, true},
 	{"data",   no_argument, &printData, true},
 	{"abbrev", no_argument, &mode, Abbreviated},
@@ -150,9 +148,9 @@ int main(int argc, char **argv) {
 			cout << "Intent params: " << im.intent_p1 << ", " << im.intent_p2 << ", " << im.intent_p3 << endl;
 			cout << "Description: " << im.description << endl;
 			cout << "Aux File:    " << im.aux_file << endl;
-			cout << "QForm (code):  " << im.qform_code << endl;
+			cout << "QForm: " << im.qformName() << endl;
 			cout << im.qform() << endl;
-			cout << "SForm (code):  " << im.sform_code << endl;
+			cout << "SForm: " << im.sformName() << endl;
 			cout << im.sform() << endl;
 		}
 	}
