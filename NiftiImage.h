@@ -60,8 +60,8 @@ class NiftiImage {
 		typedef map<int, DataType> DTMap;
 		typedef map<int, string> StringMap;
 		
-		ArrayXi _dim;              //!< Number of voxels = nx*ny*nz*...*nw
-		ArrayXf _voxdim;           //!< Dimensions of each voxel
+		Array<int, 7, 1> _dim;     //!< Number of voxels = nx*ny*nz*...*nw
+		Array<float, 7, 1> _voxdim;//!< Dimensions of each voxel
 		Affine3f _qform, _sform;   //!< Tranformation matrices from voxel indices to physical co-ords
 		
 		string _basepath;          //!< Path to file without extension
@@ -255,11 +255,11 @@ class NiftiImage {
 		char *readRawAllVolumes();
 		
 		int dimensions() const;                //!< Get the number of dimensions (rank) of this image
-		void setDimensions(const int n, const ArrayXi &dims, const ArrayXf &voxDims); //!< Set all dimension information in one go
+		void setDimensions(const ArrayXi &dims, const ArrayXf &voxDims); //!< Set all dimension information in one go
 		
 		int dim(const int d) const;             //!< Get the size (voxel count) of a dimension
 		void setDim(const int d, const int n);  //!< Set the size (voxel count) of a dimension d
-		const ArrayXi &dims() const;            //!< Get all dimension sizes
+		const ArrayXi dims() const;            //!< Get all dimension sizes
 		void setDims(const ArrayXi &newDims);   //!< Set all dimension sizes
 		int voxelsPerSlice() const;             //!< Voxel count for a whole slice (dim1 x dim2)
 		int voxelsPerVolume() const;            //!< Voxel count for a volume (dim1 x dim2 x dim3)
@@ -267,7 +267,7 @@ class NiftiImage {
 		
 		float voxDim(const int d) const;            //!< Get the voxel size along dimension d
 		void setVoxDim(const int d, const float f); //!< Set the voxel size along dimension d
-		const ArrayXf &voxDims() const;             //!< Get all voxel sizes
+		const ArrayXf voxDims() const;             //!< Get all voxel sizes
 		void setVoxDims(const ArrayXf &newVoxDims); //!< Set all voxel sizes
 		
 		const int &datatype() const;
