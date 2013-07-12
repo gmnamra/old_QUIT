@@ -50,16 +50,14 @@ int main(int argc, char** argv)
 	int indexptr = 0, c;
 	double TE1, TE2, deltaTE, phasetime = 0.;
 	vector<double> data1, data2, B0, mask;
-	bool haveMask = false;
-	NiftiImage inFile;
+	NiftiImage maskFile, inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
 				cout << "Reading mask from " << optarg << endl;
-				inFile.open(optarg, NiftiImage::READ);
-				mask = inFile.readVolume<double>(0);
-				inFile.close();
-				haveMask = true;
+				maskFile.open(optarg, NiftiImage::READ);
+				mask = maskFile.readVolume<double>(0);
+				maskFile.close();
 				break;
 			case 'p':
 				phasetime = atof(optarg);
@@ -69,7 +67,10 @@ int main(int argc, char** argv)
 	if ((argc - optind) == 2) {
 		cout << "Opening input file " << argv[optind] << "." << endl;
 		inFile.open(argv[optind], NiftiImage::READ);
-		
+		if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
+			cerr << "Mask dimensions/transform do not match input file." << endl;
+			exit(EXIT_FAILURE);
+		}
 		#ifdef HAVE_NRECON
 		ParameterList pars;
 		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
@@ -87,6 +88,10 @@ int main(int argc, char** argv)
 	} else if ((argc - optind) == 3) {
 		cout << "Opening input file 1" << argv[optind] << "." << endl;
 		inFile.open(argv[optind], NiftiImage::READ);
+		if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
+			cerr << "Mask dimensions/transform do not match input file." << endl;
+			exit(EXIT_FAILURE);
+		}
 		#ifdef HAVE_NRECON
 		ParameterList pars;
 		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
@@ -101,6 +106,10 @@ int main(int argc, char** argv)
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
 		inFile.open(argv[optind], NiftiImage::READ);
+		if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
+			cerr << "Mask dimensions/transform do not match input file." << endl;
+			exit(EXIT_FAILURE);
+		}
 		#ifdef HAVE_NRECON
 		if (ReadProcpar(inFile.basePath() + ".procpar", pars)){
 			TE2 = RealValue(pars, "te", 0);
@@ -129,7 +138,7 @@ int main(int argc, char** argv)
 	B0.resize(inFile.voxelsPerVolume());
 	cout << "Processing..." << endl;
 	for (size_t vox = 0; vox < inFile.voxelsPerVolume(); vox++) {
-		if (!haveMask || mask[vox] > 0.) {
+		if (!maskFile.isValid() || mask[vox] > 0.) {
 			double deltaPhase = data2[vox] - data1[vox];
 			B0[vox] = deltaPhase / (2 * M_PI * deltaTE);
 			if (phasetime > 0.) {

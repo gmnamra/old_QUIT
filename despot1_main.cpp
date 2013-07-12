@@ -68,29 +68,26 @@ int main(int argc, char **argv)
 	double spgrTR = 0.;
 	int nSPGR;
 	vector<double> B1Data, maskData;
-	bool haveB1 = false, haveMask = false;
-	NiftiImage spgrFile, inFile;
+	NiftiImage spgrFile, B1File, maskFile;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "m:o:vd", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case '1':
 				cout << "Opening B1 file: " << optarg << endl;
-				 if (!inFile.open(optarg, 'r')) {
+				 if (!B1File.open(optarg, 'r')) {
 				 	exit(EXIT_FAILURE);
 				}
-				B1Data = inFile.readVolume<double>(0);
-				inFile.close();
-				haveB1 = true;
+				B1Data = B1File.readVolume<double>(0);
+				B1File.close();
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
-				if (!inFile.open(optarg, 'r')) {
+				if (!maskFile.open(optarg, 'r')) {
 					exit(EXIT_FAILURE);
 				}
-				maskData = inFile.readVolume<double>(0);
-				inFile.close();
-				haveMask = true;
+				maskData = maskFile.readVolume<double>(0);
+				maskFile.close();
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -113,6 +110,11 @@ int main(int argc, char **argv)
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	if (!spgrFile.open(argv[optind], 'r')) {
 		exit(EXIT_FAILURE); //NiftiImage will print an error message
+	}
+	if ((maskFile.isValid() && !maskFile.matchesSpace(spgrFile)) ||
+	    (B1File.isValid() && !B1File.matchesSpace(spgrFile))) {
+		cerr << "Mask or B1 dimensions/transform do not match SPGR file." << endl;
+		exit(EXIT_FAILURE);
 	}
 	nSPGR = spgrFile.dim(4);
 	VectorXd spgrAngles(nSPGR);
@@ -170,8 +172,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	for (int slice = 0; slice < spgrFile.dim(3); slice++)
-	{
+	for (int slice = 0; slice < spgrFile.dim(3); slice++) {
 		clock_t loopStart;
 		// Read in data
 		if (verbose)
@@ -182,10 +183,10 @@ int main(int argc, char **argv)
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
-			if (!haveMask || (maskData[sliceOffset + vox] > 0.))
+			if (!maskFile.isValid() || (maskData[sliceOffset + vox] > 0.))
 			{
 				voxCount++;
-				if (haveB1)
+				if (B1File.isValid())
 					B1 = B1Data[sliceOffset + vox];
 				ArrayXd spgrs(nSPGR);
 				int vol = 0;

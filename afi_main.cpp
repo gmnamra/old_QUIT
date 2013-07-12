@@ -47,20 +47,18 @@ int main(int argc, char **argv)
 	string procPath, outPrefix;
 	double n, nomFlip;
 	vector<double> tr1, tr2, flip, B1, mask;
-	bool haveMask = false;
-	NiftiImage inFile;
+	NiftiImage maskFile, inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
 			case 'm':
 				cout << "Reading mask." << endl;
-				if (!inFile.open(optarg, NiftiImage::READ)) {
+				if (!maskFile.open(optarg, NiftiImage::READ)) {
 					exit(EXIT_FAILURE);
 				}
-				mask = inFile.readVolume<double>(0);
-				inFile.close();
-				haveMask = true;
+				mask = maskFile.readVolume<double>(0);
+				maskFile.close();
 				break;
 		}
 	}
@@ -70,6 +68,10 @@ int main(int argc, char **argv)
 	}
 	cout << "Opening input file " << argv[optind] << endl;
 	if (!inFile.open(argv[optind], NiftiImage::READ)) {
+		exit(EXIT_FAILURE);
+	}
+	if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
+		cerr << "Mask dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
 	}
 	#ifdef HAVE_NRECON
@@ -96,7 +98,7 @@ int main(int argc, char **argv)
 	cout << "Allocated output memory." << endl;
 	cout << "Processing..." << endl;
 	for (int vox = 0; vox < inFile.voxelsPerVolume(); vox++) {
-		if (!haveMask || mask[vox] > 0.) {
+		if (!maskFile.isValid() || mask[vox] > 0.) {
 			double r = tr2[vox] / tr1[vox];
 			double temp = (r*n - 1.) / (n - r);
 			if (temp > 1.)

@@ -73,9 +73,8 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	cout << credit << endl;
 	int nSPGR = 0, nIR = 0;
-	NiftiImage inFile, spgrFile, irFile;
+	NiftiImage maskFile, spgrFile, irFile;
 	vector<double> maskData;
-	bool haveMask = false;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "i:m:o:vp:", long_options, &indexptr)) != -1) {
@@ -89,12 +88,11 @@ int main(int argc, char **argv) {
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
-				if (!inFile.open(optarg, 'r')) {
+				if (!maskFile.open(optarg, 'r')) {
 					exit(EXIT_FAILURE);
 				}
-				maskData = inFile.readVolume<double>(0);
-				inFile.close();
-				haveMask = true;
+				maskData = maskFile.readVolume<double>(0);
+				maskFile.close();
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -115,6 +113,10 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	if (!spgrFile.open(argv[optind], 'r')) {
+		exit(EXIT_FAILURE);
+	}
+	if (maskFile.isValid() && !maskFile.matchesSpace(spgrFile)) {
+		cerr << "SPGR file dimensions or transform do not match mask." << endl;
 		exit(EXIT_FAILURE);
 	}
 	nSPGR = spgrFile.dim(4);
@@ -236,7 +238,7 @@ int main(int argc, char **argv) {
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Assume B1 field is uniform for classic DESPOT
-			if (!haveMask || (maskData[sliceOffset + vox] > 0.))
+			if (!maskFile.isValid() || (maskData[sliceOffset + vox] > 0.))
 			{
 				voxCount++;
 				ArrayXd spgrs(nSPGR), irs(nIR);

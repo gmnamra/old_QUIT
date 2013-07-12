@@ -133,31 +133,31 @@ void int_handler(int sig)
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
 //Utility function
-NiftiImage *openAndCheck(const string &path, const NiftiImage *saved, const string &type) {
-	NiftiImage *in = new NiftiImage(path, NiftiImage::READ);
-	if (!(in->matchesSpace(*saved))) {
-		cerr << "Header for " << in->imagePath() << " does not match " << saved->imagePath() << endl;
+NiftiImage openAndCheck(const string &path, const NiftiImage &saved, const string &type) {
+	NiftiImage in(path, NiftiImage::READ);
+	if (!(in.matchesSpace(saved))) {
+		cerr << "Header for " << in.imagePath() << " does not match " << saved.imagePath() << endl;
 		exit(EXIT_FAILURE);
 	}
-	if (verbose) cout << "Opened " << type << " image: " << in->imagePath() << endl;
+	if (verbose) cout << "Opened " << type << " image: " << in.imagePath() << endl;
 	return in;
 }
 
-NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
+NiftiImage parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
                        vector<DESPOTConstants> &consts,
-				       vector<NiftiImage *> &signalFiles,
-				       vector<NiftiImage *> &B1_files,
-				       vector<NiftiImage *> &B0_loFiles,
-					   vector<NiftiImage *> &B0_hiFiles,
+				       vector<NiftiImage > &signalFiles,
+				       vector<NiftiImage > &B1_files,
+				       vector<NiftiImage > &B0_loFiles,
+					   vector<NiftiImage > &B0_hiFiles,
 					   const int &B0Mode, const bool &finiteRF);
-NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
+NiftiImage parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
                        vector<DESPOTConstants> &consts,
-				       vector<NiftiImage *> &signalFiles,
-				       vector<NiftiImage *> &B1_files,
-				       vector<NiftiImage *> &B0_loFiles,
-					   vector<NiftiImage *> &B0_hiFiles,
+				       vector<NiftiImage > &signalFiles,
+				       vector<NiftiImage > &B1_files,
+				       vector<NiftiImage > &B0_loFiles,
+					   vector<NiftiImage > &B0_hiFiles,
 					   const int &B0Mode, const bool &finiteRF) {
-	NiftiImage *inHdr, *savedHeader;
+	NiftiImage inHdr, savedHeader;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
@@ -173,15 +173,14 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		if (prompt) cout << "Enter image path: " << flush;
 		getline(cin, path);
 		if (signalFiles.size() == 0) {
-			savedHeader = new NiftiImage(path, NiftiImage::READ_HEADER);
+			savedHeader.open(path, NiftiImage::READ_HEADER);
 		}
-		inHdr = openAndCheck(path, savedHeader, type);
-		signalFiles.push_back(inHdr);
+		signalFiles.push_back(openAndCheck(path, savedHeader, type));
 		double inTR = 0., inTrf = 0., inPhase = 0., inTE = 0.;
-		VectorXd inAngles(inHdr->dim(4));
+		VectorXd inAngles(inHdr.dim(4));
 		#ifdef HAVE_NRECON
 		ParameterList pars;
-		if (ReadProcpar(inHdr->basePath() + ".procpar", pars)) {
+		if (ReadProcpar(inHdr.basePath() + ".procpar", pars)) {
 			inTR = RealValue(pars, "tr");
 			for (int i = 0; i < inAngles.size(); i++)
 				inAngles[i] = RealValue(pars, "flip1", i);
@@ -216,32 +215,32 @@ NiftiImage *parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		consts.push_back( { inTR, inTrf, inPhase * M_PI / 180., 0., 0. } );
 		angles.push_back(inAngles * M_PI / 180.);
 		
-		inHdr = NULL;
 		if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
 		getline(cin, path);
 		if ((path != "NONE") && (path != "")) {
-			inHdr = openAndCheck(path, savedHeader, "B1");
+			B1_files.push_back(openAndCheck(path, savedHeader, "B1"));
+		} else {
+			B1_files.push_back(NiftiImage());
 		}
-		B1_files.push_back(inHdr);
 		
-		inHdr = NULL;
 		if ((signalTypes.back() == mcDESPOT::SignalSSFP) &&
 		    ((B0Mode == mcDESPOT::B0_Map) || (B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
 			if (prompt && (B0Mode == mcDESPOT::B0_Map)) cout << "Enter path to B0 map: " << flush;
 			else if (prompt) cout << "Enter path to low B0 bound map: " << flush;
 			getline(cin, path);
-			inHdr = openAndCheck(path, savedHeader, "B0");		
+			B0_loFiles.push_back(openAndCheck(path, savedHeader, "B0"));
+		} else {
+			B0_loFiles.push_back(NiftiImage());
 		}
-		B0_loFiles.push_back(inHdr);
 		
-		inHdr = NULL;
 		if ((signalTypes.back() == mcDESPOT::SignalSSFP) &&
 		    ((B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
 			if (prompt) cout << "Enter path to high B0 bound map: " << flush;
 			getline(cin, path);
-			inHdr = openAndCheck(path, savedHeader, "B0");
+			B0_hiFiles.push_back(openAndCheck(path, savedHeader, "B0"));
+		} else {
+			B0_hiFiles.push_back(NiftiImage());
 		}
-		B0_hiFiles.push_back(inHdr);
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
@@ -261,9 +260,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	Eigen::initParallel();
-	NiftiImage inHeader, *savedHeader;
+	NiftiImage maskFile, PDFile, savedHeader;
 	vector<double> maskData, PDData;
-	bool haveMask = false, havePD = false;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvpt:b:m:o:nfw:s:r:c:e:i:j:", long_options, &indexptr)) != -1) {
@@ -272,21 +270,19 @@ int main(int argc, char **argv)
 			case 'j': voxJ = atoi(optarg); break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
-				if (!inHeader.open(optarg, NiftiImage::READ)) {
+				if (!maskFile.open(optarg, NiftiImage::READ)) {
 					exit(EXIT_FAILURE);
 				}
-				maskData = inHeader.readVolume<double>(0);
-				inHeader.close();
-				haveMask = true;
+				maskData = maskFile.readVolume<double>(0);
+				maskFile.close();
 				break;
 			case 'M':
 				cout << "Reading PD file " << optarg << endl;
-				if (!inHeader.open(optarg, NiftiImage::READ)) {
+				if (!PDFile.open(optarg, NiftiImage::READ)) {
 					exit(EXIT_FAILURE);
 				}
-				PDData = inHeader.readVolume<double>(0);
-				inHeader.close();
-				havePD = true;
+				PDData = PDFile.readVolume<double>(0);
+				PDFile.close();
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -348,15 +344,15 @@ int main(int argc, char **argv)
 	vector<mcDESPOT::SignalType> signalTypes;
 	vector<DESPOTConstants> consts;
 	vector<VectorXd> angles;
-	vector<NiftiImage *> signalFiles, B1_files, B0_loFiles, B0_hiFiles;
+	vector<NiftiImage > signalFiles, B1_files, B0_loFiles, B0_hiFiles;
 	savedHeader = parseInput(signalTypes, angles, consts, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0Mode, finiteRF);
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	// Use NULL to indicate that default values should be used -
 	// 0 for B0, 1 for B1
 	//**************************************************************************
-	int voxelsPerSlice = savedHeader->voxelsPerSlice();
-	int voxelsPerVolume = savedHeader->voxelsPerVolume();
+	int voxelsPerSlice = savedHeader.voxelsPerSlice();
+	int voxelsPerVolume = savedHeader.voxelsPerVolume();
 	
 	vector<vector<double>> signalVolumes(signalFiles.size()),
 	                 B1Volumes(signalFiles.size()),
@@ -364,9 +360,9 @@ int main(int argc, char **argv)
 					 B0HiVolumes(signalFiles.size());
 	for (int i = 0; i < signalFiles.size(); i++) {
 		signalVolumes[i].resize(voxelsPerSlice * angles[i].size());
-		if (B1_files[i]) B1Volumes[i].resize(voxelsPerSlice);
-		if (B0_loFiles[i]) B0LoVolumes[i].resize(voxelsPerSlice);
-		if (B0_hiFiles[i]) B0HiVolumes[i].resize(voxelsPerSlice);
+		if (B1_files[i].isValid()) B1Volumes[i].resize(voxelsPerSlice);
+		if (B0_loFiles[i].isValid()) B0LoVolumes[i].resize(voxelsPerSlice);
+		if (B0_hiFiles[i].isValid()) B0HiVolumes[i].resize(voxelsPerSlice);
 	}
 	
 	cout << "Using " << components << " component model." << endl;
@@ -390,15 +386,16 @@ int main(int argc, char **argv)
 	residualData.resize(totalSignals);
 	for (int i = 0; i < residualData.size(); i ++)
 		residualData[i].resize(voxelsPerVolume);
-	residualHdr = *savedHeader;
-	residualHdr.setDim(4, totalSignals); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
+	residualHdr = savedHeader;
+	residualHdr.setDim(4, totalSignals);
+	residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
 	if (!residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", NiftiImage::WRITE))
 		exit(EXIT_FAILURE);
 	
 	paramsData.resize(nP + nB0);
-	savedHeader->setDim(4, 1);
-	savedHeader->setDatatype(DT_FLOAT32);
-	paramsHdrs.resize(nP + nB0, *savedHeader);
+	savedHeader.setDim(4, 1);
+	savedHeader.setDatatype(DT_FLOAT32);
+	paramsHdrs.resize(nP + nB0, savedHeader);
 	
 	ArrayXd loBounds(nP + nB0), hiBounds(nP + nB0);
 	if (tesla > 0) {
@@ -438,10 +435,10 @@ int main(int argc, char **argv)
 	#pragma mark Do the fitting
 	//**************************************************************************
     time_t procStart = time(NULL);
-	if ((start_slice < 0) || (start_slice >= savedHeader->dim(3)))
+	if ((start_slice < 0) || (start_slice >= savedHeader.dim(3)))
 		start_slice = 0;
-	if ((end_slice < 0) || (end_slice > savedHeader->dim(3)))
-		end_slice = savedHeader->dim(3);
+	if ((end_slice < 0) || (end_slice > savedHeader.dim(3)))
+		end_slice = savedHeader.dim(3);
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	cout << "Starting processing." << endl;
 	
@@ -453,10 +450,10 @@ int main(int argc, char **argv)
 		
 		// Read data for slices
 		for (size_t i = 0; i < signalFiles.size(); i++) {
-			signalFiles[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, signalVolumes[i]);
-			if (B1_files[i]) B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B1Volumes[i]);
-			if (B0_loFiles[i]) B0_loFiles[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0LoVolumes[i]);
-			if (B0_hiFiles[i]) B0_hiFiles[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0HiVolumes[i]);
+			signalFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, signalVolumes[i]);
+			if (B1_files[i].isValid()) B1_files[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B1Volumes[i]);
+			if (B0_loFiles[i].isValid()) B0_loFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0LoVolumes[i]);
+			if (B0_hiFiles[i].isValid()) B0_hiFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0HiVolumes[i]);
 		}
 		if (verbose) cout << "processing..." << flush;
 		clock_t loopStart = clock();
@@ -465,8 +462,8 @@ int main(int argc, char **argv)
 			ArrayXd params(nP + nB0), residuals(totalSignals);
 			params.setZero();
 			residuals.setZero();
-			if ((!haveMask || (maskData[sliceOffset + vox] > 0.)) &&
-			    (!havePD || (PDData[sliceOffset + vox] > 0.))) {
+			if ((!maskFile.isValid() || (maskData[sliceOffset + vox] > 0.)) &&
+			    (!PDFile.isValid() || (PDData[sliceOffset + vox] > 0.))) {
 				voxCount++;
 				
 				vector<VectorXd> signals(signalFiles.size());
@@ -483,9 +480,9 @@ int main(int argc, char **argv)
 						temp /= temp.mean();
 					signals[i] = temp;
 					if (B0Mode == mcDESPOT::B0_Map) {
-						localConsts[i].B0 = B0_loFiles[i] ? B0LoVolumes[i][vox] : 0.;
+						localConsts[i].B0 = B0_loFiles[i].isValid() ? B0LoVolumes[i][vox] : 0.;
 					}
-					localConsts[i].B1 = B1_files[i] ? B1Volumes[i][vox] : 1.;
+					localConsts[i].B1 = B1_files[i].isValid() ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
@@ -496,8 +493,8 @@ int main(int argc, char **argv)
 				}
 				if ((B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded)) {
 					for (int b = 0; b < nB0; b++) {
-						localLo(nP + b) = B0_loFiles[b] ? B0LoVolumes[b][vox] : 0.;
-						localHi(nP + b) = B0_hiFiles[b] ? B0HiVolumes[b][vox] : 0.;
+						localLo(nP + b) = B0_loFiles[b].isValid() ? B0LoVolumes[b][vox] : 0.;
+						localHi(nP + b) = B0_hiFiles[b].isValid() ? B0HiVolumes[b][vox] : 0.;
 					}
 				}
 				
@@ -524,7 +521,7 @@ int main(int argc, char **argv)
 		if (voxI == -1)
 			apply_for(voxelsPerSlice, processVox);
 		else {
-			int voxInd = savedHeader->dim(1) * voxJ + voxI;
+			int voxInd = savedHeader.dim(1) * voxJ + voxI;
 			processVox(voxInd);
 			exit(0);
 		}
