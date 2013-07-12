@@ -392,7 +392,8 @@ int main(int argc, char **argv)
 		residualData[i].resize(voxelsPerVolume);
 	residualHdr = *savedHeader;
 	residualHdr.setDim(4, totalSignals); residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
-	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", NiftiImage::WRITE);
+	if (!residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", NiftiImage::WRITE))
+		exit(EXIT_FAILURE);
 	
 	paramsData.resize(nP + nB0);
 	savedHeader->setDim(4, 1);
@@ -412,14 +413,16 @@ int main(int argc, char **argv)
 			cin >> loBounds[i] >> hiBounds[i];
 		}
 		paramsData[i].resize(voxelsPerSlice);
-		paramsHdrs[i].open(outPrefix + "MCD_" + to_string(components) + "c_" + names[i] + ".nii.gz", NiftiImage::WRITE);
+		if (!paramsHdrs[i].open(outPrefix + "MCD_" + to_string(components) + "c_" + names[i] + ".nii.gz", NiftiImage::WRITE))
+			exit(EXIT_FAILURE);
 	}
 	
 	for (int i = 0; i < nB0; i++) {
 		loBounds[nP + i] = -0.5 / consts[i].TR;
 		hiBounds[nP + i] =  0.5 / consts[i].TR;
 		paramsData[nP + i] .resize(voxelsPerSlice);
-		paramsHdrs[nP + i].open(outPrefix + "MCD_" + to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", NiftiImage::WRITE);
+		if (!paramsHdrs[nP + i].open(outPrefix + "MCD_" + to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", NiftiImage::WRITE))
+			exit(EXIT_FAILURE);
 	}
 	// If normalising, don't bother fitting for PD
 	if (normalise) {
@@ -449,7 +452,7 @@ int main(int argc, char **argv)
 		const int sliceOffset = slice * voxelsPerSlice;
 		
 		// Read data for slices
-		for (int i = 0; i < signalFiles.size(); i++) {
+		for (size_t i = 0; i < signalFiles.size(); i++) {
 			signalFiles[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, signalVolumes[i]);
 			if (B1_files[i]) B1_files[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B1Volumes[i]);
 			if (B0_loFiles[i]) B0_loFiles[i]->readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0LoVolumes[i]);
@@ -471,9 +474,9 @@ int main(int argc, char **argv)
 				// to the global 'consts' nothing happens but Clang doesn't give
 				// an error
 				vector<DESPOTConstants> localConsts = consts;
-				for (int i = 0; i < signalFiles.size(); i++) {
+				for (size_t i = 0; i < signalFiles.size(); i++) {
 					VectorXd temp(angles[i].size());
-					for (int j = 0; j < angles[i].size(); j++) {
+					for (size_t j = 0; j < angles[i].size(); j++) {
 						temp[j] = signalVolumes[i][voxelsPerSlice*j + vox];
 					}
 					if (normalise)
