@@ -263,6 +263,7 @@ int main(int argc, char **argv)
 	Eigen::initParallel();
 	NiftiImage inHeader, *savedHeader;
 	vector<double> maskData, PDData;
+	bool haveMask = false, havePD = false;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvpt:b:m:o:nfw:s:r:c:e:i:j:", long_options, &indexptr)) != -1) {
@@ -276,6 +277,7 @@ int main(int argc, char **argv)
 				}
 				maskData = inHeader.readVolume<double>(0);
 				inHeader.close();
+				haveMask = true;
 				break;
 			case 'M':
 				cout << "Reading PD file " << optarg << endl;
@@ -284,6 +286,7 @@ int main(int argc, char **argv)
 				}
 				PDData = inHeader.readVolume<double>(0);
 				inHeader.close();
+				havePD = true;
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -459,8 +462,8 @@ int main(int argc, char **argv)
 			ArrayXd params(nP + nB0), residuals(totalSignals);
 			params.setZero();
 			residuals.setZero();
-			if (!haveMask || (maskData[sliceOffset + vox] > 0.)) &&
-			    havePD && (PDData[sliceOffset + vox] > 0.))) {
+			if ((!haveMask || (maskData[sliceOffset + vox] > 0.)) &&
+			    (!havePD || (PDData[sliceOffset + vox] > 0.))) {
 				voxCount++;
 				
 				vector<VectorXd> signals(signalFiles.size());
