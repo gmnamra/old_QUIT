@@ -3,6 +3,10 @@
 /*******************************
 #pragma mark Methods for ZipFile
 *******************************/
+ZipFile::ZipFile() :
+	_unzipped(NULL), _zipped(NULL), _zip(false)
+{}
+
 bool ZipFile::open(const string &path, const string &mode, const bool zip) {
 	_zip = zip;
 	if (_zip) {
@@ -25,14 +29,14 @@ void ZipFile::close() {
 	_zipped = _unzipped = NULL;
 }
 
-int ZipFile::read(void *buff, int size)
+size_t ZipFile::read(void *buff, size_t size)
 {
 	if (_zip) {
-		int remaining = size, totalRead = 0, nread, chunkSize;
+		size_t remaining = size, totalRead = 0, nread, chunkSize;
 		char *cbuff = (char *)buff;
 		while (remaining > 0) {
 			chunkSize = (remaining < MaxZippedBytes) ? remaining : MaxZippedBytes;
-			nread = gzread(_zipped, cbuff, chunkSize);
+			nread = gzread(_zipped, cbuff, static_cast<unsigned int>(chunkSize));
 			if (nread == -1) {
 				NIFTI_ERROR("Could not read from file.");
 				return 0;
@@ -47,12 +51,15 @@ int ZipFile::read(void *buff, int size)
 		}
 		return totalRead;
 	} else {
-		return (int)fread(buff, size, 1, _unzipped) * size;
+		return fread(buff, size, 1, _unzipped) * size;
 	}
 }
 
 int ZipFile::write(const void *buff, int size)
 {
+	if (buff == NULL) {
+		NIFTI_FAIL("Attempted to write data from null pointer.");
+	}
 	if (_zip) {
 		int remaining = size, chunkSize, totalWritten = 0, nwritten;
 		char *chunk = (char *)buff;
@@ -644,6 +651,57 @@ bool NiftiImage::readHeader() {
 	return true;
 }
 
+bool NiftiImage::readExtensions()
+{
+	long target = _voxoffset;
+	if (!_nii) {
+		_file.seek(0, SEEK_END);
+		target = _file.tell();
+	}
+	_file.seek(sizeof(nifti_1_header), SEEK_SET);
+	char extender[4];
+	if (_file.read(extender, 4) != 4) {
+		NIFTI_ERROR("Hit end of file while checking for extensions.");
+		return false;
+	}
+	if (extender[0] != 1) // There are no more extensions
+		return true;
+	
+	while (_file.tell() < target) {		
+		if(_file.tell() > target - 16 ){
+			NIFTI_ERROR("Insufficient space for remaining extensions.");
+			return 0;
+		}
+		
+		int size, code;
+		long bytesRead = _file.read(&size, 4);
+		bytesRead += _file.read(&code, 4);
+		if (bytesRead != 8) {
+			NIFTI_ERROR("Error while reading extension size and code.");
+			return false;
+		}
+		
+		if (_swap) {
+			SwapBytes(1, 4, &size);
+			SwapBytes(1, 4, &code);
+		}
+		
+		vector<char> dataBytes(size - 8);
+		if (_file.read(dataBytes.data(), size - 8) < (size - 8)) {
+			NIFTI_ERROR("Could not read extension.");
+			return false;
+		}
+		_extensions.emplace_back(Extension(size, code, dataBytes));
+
+		if (_nii && (_file.tell() > _voxoffset)) {
+			NIFTI_ERROR("Went past start of voxel data while reading extensions.");
+			return false;
+		}
+	}
+	return true;
+}
+
+
 bool NiftiImage::writeHeader() {
 	struct nifti_1_header nhdr;
 	memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
@@ -739,6 +797,33 @@ bool NiftiImage::writeHeader() {
 	return true;
 }
 
+bool NiftiImage::writeExtensions() {
+	_file.seek(sizeof(nifti_1_header), SEEK_SET);
+	char extender[4] = {0, 0, 0, 0};
+	if (_extensions.size() > 0)
+		extender[0] = 1;
+	if (_file.write(extender, 4) < 4) {
+		NIFTI_ERROR("Could not write extender block.");
+		return false;
+	}
+	
+	for (auto ext : _extensions) {
+		int size = ext.size();
+		long bytesWritten = _file.write(&size, 4);
+		int code = ext.code();
+		bytesWritten += _file.write(&code, 4);
+		if (bytesWritten != 16) {
+			NIFTI_ERROR("Could not write extension size and code.");
+			return false;
+		}
+		if (_file.write(ext.data().data(), size - 8) != (size - 8)) {
+			NIFTI_ERROR("Could not write extension data.");
+			return false;
+		}
+	}
+	return true;
+}
+
 /**
   *   Reads a sequence of bytes from the open NIfTI image.
   *
@@ -764,10 +849,8 @@ char *NiftiImage::readBytes(size_t start, size_t length, char *buffer)
 		NIFTI_ERROR("Asked to read a buffer of 0 bytes.");
 		return NULL;
 	}
-	bool didAllocate = false;
 	if (!buffer) {
 		buffer = new char[length];
-		didAllocate = true;
 	}
 	_file.seek(_voxoffset + start, SEEK_SET);
 	if (_file.read(buffer, static_cast<unsigned int>(length)) != length)
@@ -786,7 +869,7 @@ char *NiftiImage::readBytes(size_t start, size_t length, char *buffer)
   *   @param start Location in file to start the write
   *   @param length Number of bytes to write
   */
-void NiftiImage::writeBytes(char *buffer, size_t start, size_t length)
+void NiftiImage::writeBytes(size_t start, size_t length, char *buffer)
 {
 	if (_mode == CLOSED) {
 		NIFTI_ERROR("Cannot write to a closed file.");
@@ -803,18 +886,6 @@ void NiftiImage::writeBytes(char *buffer, size_t start, size_t length)
 	_file.seek(_voxoffset + start, SEEK_SET);
 	if (_file.write(buffer, static_cast<unsigned int>(length)) != length)
 		NIFTI_ERROR("Write buffer failed.");
-}
-
-char *NiftiImage::readRawVolume(const int vol)
-{
-	size_t bytesPerVolume = voxelsPerVolume() * _datatype.size;
-	char *raw = readBytes(vol * bytesPerVolume, bytesPerVolume);
-	return raw;
-}
-char *NiftiImage::readRawAllVolumes()
-{
-	char *raw =	readBytes(0, voxelsTotal() * _datatype.size);
-	return raw;
 }
 		
 bool NiftiImage::open(const string &path, const char &mode) {
@@ -893,8 +964,8 @@ void NiftiImage::close()
 		// Write a single zero-byte at the end to persuade the OS to write a file of the
 		// correct size.
 		_file.seek(0, SEEK_END);
-		long correctEnd = (voxelsTotal() * _datatype.size + _voxoffset);
-		char zero = 0;
+		long correctEnd = (voxelsTotal() * bytesPerVoxel() + _voxoffset);
+		char zero{0};
 		long pos = _file.tell();
 		if (pos < correctEnd) {
 			_file.seek(correctEnd - 1, SEEK_SET);

@@ -9,8 +9,9 @@
 #define NIFTI_EXTENSION
 
 #include <iostream>
+#include <vector>
 
-namespace Nifti {
+using namespace std;
 /*int    nifti_add_extension(nifti_image * nim, const char * data, int len,
                            int ecode );
 int    nifti_copy_extensions (nifti_image *nim_dest,const nifti_image *nim_src);
@@ -46,11 +47,27 @@ int    nifti_is_valid_ecode        (int ecode);
 
 class Extension {
 	private:
-		int    esize ; /*!< size of extension, in bytes (must be multiple of 16) */
-		int    ecode ; /*!< extension code, one of the NIFTI_ECODE_ values       */
-		char * edata ; /*!< raw data, with no byte swapping (length is esize-8)  */
+		int _size;          //!< Size of extension, in bytes (must be multiple of 16)
+		int _code;          //!< Extension code, one of the NIFTI_ECODE_ values
+		vector<char> _data; //!< Raw data, with no byte swapping (length is esize-8)
+	
+	public:
+		Extension(int size, int code, vector<char> data) :
+			_size(size), _code(code), _data(data)
+		{};
+		Extension(int size, int code, char *data) :
+			_size(size), _code(code)
+		{
+			_data.resize(size - 8);
+			for (int i = 0; i < (size - 8); i++) {
+				_data[i] = data[i];
+			}
+		};
+		const int &size() const { return _size; };
+		const int &code() const { return _code; };
+		void setCode(int code);
+		const vector<char> &data() const { return _data; };
+		void setData(const vector<char> &data);
 };
-
-}; // End namespace Nifti
 
 #endif // NIFTI_EXTENSION

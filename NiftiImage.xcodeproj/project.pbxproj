@@ -11,7 +11,7 @@
 		F63EBC73160CA81200F4D0BD /* NiftiImage.h in Headers */ = {isa = PBXBuildFile; fileRef = F6C4AF17160B156C00254B6C /* NiftiImage.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F63EBC74160CA81200F4D0BD /* nifti1.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E9DAAC16022D06005D73E3 /* nifti1.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F64D55EC178B750A005BF1A8 /* Extension.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F64D55EB178B750A005BF1A8 /* Extension.cpp */; };
-		F64D55EE178B752B005BF1A8 /* Extension.h in Headers */ = {isa = PBXBuildFile; fileRef = F64D55ED178B752B005BF1A8 /* Extension.h */; };
+		F64D55EE178B752B005BF1A8 /* Extension.h in Headers */ = {isa = PBXBuildFile; fileRef = F64D55ED178B752B005BF1A8 /* Extension.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F6B0AB6C178CB9EB0098443E /* nifti_analyze.h in Headers */ = {isa = PBXBuildFile; fileRef = F6B0AB6B178CB9510098443E /* nifti_analyze.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F6BADCE6178B75DD00DCD475 /* nifti_hdr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F64D55DB178B0C3B005BF1A8 /* nifti_hdr.cpp */; };
 		F6BADCE7178B75E400DCD475 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBCA5160CA86C00F4D0BD /* libNiftiImage.a */; };
