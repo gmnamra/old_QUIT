@@ -166,6 +166,13 @@
 			remoteGlobalIDString = F6B19DE8160B6748009F84C5;
 			remoteInfo = NiftiImage;
 		};
+		F6B883DC178D6DA50096997A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F6BADCDD178B75CA00DCD475;
+			remoteInfo = nifti_hdr;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -386,6 +393,7 @@
 			isa = PBXGroup;
 			children = (
 				F63EBC3E160C5DC100F4D0BD /* libNiftiImage.a */,
+				F6B883DD178D6DA50096997A /* nifti_hdr */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -679,6 +687,13 @@
 			remoteRef = F63EBC3D160C5DC100F4D0BD /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
+		F6B883DD178D6DA50096997A /* nifti_hdr */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = nifti_hdr;
+			remoteRef = F6B883DC178D6DA50096997A /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 /* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -911,6 +926,7 @@
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
 				COPY_PHASE_STRIP = NO;
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -935,6 +951,10 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "-DHAVE_NRECON";
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-ferror-limit=20",
+				);
 				OTHER_LDFLAGS = "";
 				SDKROOT = macosx10.7;
 				VALID_ARCHS = x86_64;
@@ -947,6 +967,7 @@
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = c99;
@@ -966,6 +987,10 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "-DHAVE_NRECON";
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-ferror-limit=20",
+				);
 				OTHER_LDFLAGS = "";
 				SDKROOT = macosx10.7;
 				VALID_ARCHS = x86_64;

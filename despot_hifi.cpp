@@ -74,7 +74,8 @@ int main(int argc, char **argv) {
 	cout << credit << endl;
 	int nSPGR = 0, nIR = 0;
 	NiftiImage inFile, spgrFile, irFile;
-	double *maskData = NULL;
+	vector<double> maskData;
+	bool haveMask = false;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "i:m:o:vp:", long_options, &indexptr)) != -1) {
@@ -93,6 +94,7 @@ int main(int argc, char **argv) {
 				}
 				maskData = inFile.readVolume<double>(0);
 				inFile.close();
+				haveMask = true;
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -205,8 +207,8 @@ int main(int argc, char **argv) {
 	int voxelsPerVolume = spgrFile.voxelsPerVolume();
 	
 	cout << "Reading image data..." << flush;
-	double *SPGR = spgrFile.readAllVolumes<double>();
-	double *IR   = irFile.readAllVolumes<double>();
+	vector<double> SPGR = spgrFile.readAllVolumes<double>();
+	vector<double> IR   = irFile.readAllVolumes<double>();
 	spgrFile.close();
 	irFile.close();
 	cout << "done." << endl;
@@ -214,9 +216,9 @@ int main(int argc, char **argv) {
 	// Create results data storage
 	//**************************************************************************
 	#define NR 4
-	double **resultsData   = new double*[NR];
+	vector<vector<double>> resultsData(NR);
 	for (int i = 0; i < NR; i++)
-		resultsData[i] = new double[voxelsPerVolume];
+		resultsData[i].resize(voxelsPerVolume);
 	const string names[NR] = { "HIFI_M0", "HIFI_T1", "HIFI_B1", "HIFI_residual" };
 	
 	//**************************************************************************
@@ -234,7 +236,7 @@ int main(int argc, char **argv) {
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Assume B1 field is uniform for classic DESPOT
-			if ((!maskData) || (maskData[sliceOffset + vox] > 0.))
+			if (!haveMask || (maskData[sliceOffset + vox] > 0.))
 			{
 				voxCount++;
 				ArrayXd spgrs(nSPGR), irs(nIR);
@@ -280,13 +282,7 @@ int main(int argc, char **argv) {
 		outFile.open(outName, 'w');
 		outFile.writeVolume<double>(0, resultsData[r]);
 		outFile.close();
-		delete[] resultsData[r];
 	}
-	// Clean up memory
-	delete[] resultsData;
-	delete[] SPGR;
-	delete[] IR;
-	delete[] maskData;
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
 }

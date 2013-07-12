@@ -67,7 +67,8 @@ int main(int argc, char **argv)
 	cout << credit << endl;
 	double spgrTR = 0.;
 	int nSPGR;
-	double *B1Data = NULL, *maskData = NULL;
+	vector<double> B1Data, maskData;
+	bool haveB1 = false, haveMask = false;
 	NiftiImage spgrFile, inFile;
 	
 	int indexptr = 0, c;
@@ -80,6 +81,7 @@ int main(int argc, char **argv)
 				}
 				B1Data = inFile.readVolume<double>(0);
 				inFile.close();
+				haveB1 = true;
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
@@ -88,6 +90,7 @@ int main(int argc, char **argv)
 				}
 				maskData = inFile.readVolume<double>(0);
 				inFile.close();
+				haveMask = true;
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -151,19 +154,19 @@ int main(int argc, char **argv)
 	// Allocate memory for slices
 	//**************************************************************************	
 	int voxelsPerSlice = spgrFile.voxelsPerSlice();
-	int totalVoxels = spgrFile.voxelsPerVolume();
+	int voxelsPerVolume = spgrFile.voxelsPerVolume();
 	
 	cout << "Reading SPGR data..." << flush;
-	double *SPGR = spgrFile.readAllVolumes<double>();
+	vector<double> spgrData = spgrFile.readAllVolumes<double>();
 	spgrFile.close();
 	cout << "done." << endl;
 	//**************************************************************************
 	// Create results data storage
 	//**************************************************************************
 	#define NR 3
-	double **resultsData   = new double*[NR];
+	vector<vector<double>> resultsData(NR);
 	for (int i = 0; i < NR; i++)
-		resultsData[i] = new double[totalVoxels];
+		resultsData[i].resize(voxelsPerVolume);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -179,16 +182,16 @@ int main(int argc, char **argv)
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
-			if ((!maskData) || (maskData[sliceOffset + vox] > 0.))
+			if (!haveMask || (maskData[sliceOffset + vox] > 0.))
 			{
 				voxCount++;
-				if (B1Data)
+				if (haveB1)
 					B1 = B1Data[sliceOffset + vox];
 				ArrayXd spgrs(nSPGR);
 				int vol = 0;
 				for (int img = 0; img < nSPGR; img++) {
 					if (spgrKeep(img))
-						spgrs[vol++] = SPGR[img * totalVoxels + sliceOffset + vox];
+						spgrs[vol++] = spgrData[img * voxelsPerVolume + sliceOffset + vox];
 				}
 				res = classicDESPOT1(spgrAngles, spgrs, spgrTR, B1, M0, T1);
 			}
@@ -217,13 +220,7 @@ int main(int argc, char **argv)
 		outFile.open(outName, 'w');
 		outFile.writeVolume<double>(0, resultsData[r]);
 		outFile.close();
-		delete[] resultsData[r];
 	}
-	// Clean up memory
-	delete[] resultsData;
-	delete[] SPGR;
-	delete[] B1Data;
-	delete[] maskData;
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
 }

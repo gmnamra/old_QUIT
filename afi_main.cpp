@@ -46,7 +46,8 @@ int main(int argc, char **argv)
 	int indexptr = 0, c;
 	string procPath, outPrefix;
 	double n, nomFlip;
-	double *tr1, *tr2, *flip, *B1, *mask = NULL;
+	vector<double> tr1, tr2, flip, B1, mask;
+	bool haveMask;
 	NiftiImage inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1)
 	{
@@ -59,6 +60,7 @@ int main(int argc, char **argv)
 				}
 				mask = inFile.readVolume<double>(0);
 				inFile.close();
+				haveMask = true;
 				break;
 		}
 	}
@@ -89,12 +91,12 @@ int main(int argc, char **argv)
 	tr2 = inFile.readVolume<double>(1);
 	inFile.close();
 	outPrefix = string(argv[++optind]);
-	flip = (double *)malloc(inFile.voxelsPerVolume() * sizeof(double));
-	B1   = (double *)malloc(inFile.voxelsPerVolume() * sizeof(double));
+	flip.resize(inFile.voxelsPerVolume());
+	B1.resize(inFile.voxelsPerVolume());
 	cout << "Allocated output memory." << endl;
 	cout << "Processing..." << endl;
 	for (size_t vox = 0; vox < inFile.voxelsPerVolume(); vox++) {
-		if (!mask || mask[vox] > 0.) {
+		if (!haveMask || mask[vox] > 0.) {
 			double r = tr2[vox] / tr1[vox];
 			double temp = (r*n - 1.) / (n - r);
 			if (temp > 1.)

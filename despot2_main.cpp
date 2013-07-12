@@ -46,7 +46,6 @@ Options:\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
 	--B0 file         : B0 Map file.\n\
 	--B1 file         : B1 Map file.\n\
-	--M0 file         : Proton density file.\n\
 	--verbose, -v     : Print slice processing times.\n\
 	--start_slice N   : Start processing from slice N.\n\
 	--end_slice   N   : Finish processing at slice N.\n\
@@ -63,7 +62,6 @@ static struct option long_options[] =
 {
 	{"B0", required_argument, 0, '0'},
 	{"B1", required_argument, 0, '1'},
-	{"M0", required_argument, 0, 'M'},
 	{"help", no_argument, 0, 'h'},
 	{"mask", required_argument, 0, 'm'},
 	{"tesla", required_argument, 0, 't'},
@@ -88,8 +86,8 @@ int main(int argc, char **argv)
 	}
 	Eigen::initParallel();
 	NiftiImage inFile;
-	double *maskData = NULL, *B0Data = NULL, *B1Data = NULL, *T1Data = NULL,
-	       *M0Data = NULL;
+	vector<double> maskData, B0Data, B1Data, T1Data;
+	bool haveMask = false, haveB0 = false, haveB1 = false;
 	string procPath;
 	
 	int indexptr = 0, c;
@@ -106,6 +104,7 @@ int main(int argc, char **argv)
 				}
 				maskData = inFile.readVolume<double>(0);
 				inFile.close();
+				haveMask = true;
 				break;
 			case '0':
 				cout << "Reading B0 file: " << optarg << endl;
@@ -114,6 +113,7 @@ int main(int argc, char **argv)
 				}
 				B0Data = inFile.readVolume<double>(0);
 				inFile.close();
+				haveB0 = true;
 				break;
 			case '1':
 				cout << "Reading B1 file: " << optarg << endl;
@@ -122,14 +122,7 @@ int main(int argc, char **argv)
 				}
 				B1Data = inFile.readVolume<double>(0);
 				inFile.close();
-				break;
-			case 'M':
-				cout << "Reading M0 file " << optarg;
-				if (!inFile.open(optarg, 'r')) {
-					exit(EXIT_FAILURE);
-				}
-				M0Data = inFile.readVolume<double>(0);
-				inFile.close();
+				haveB1 = true;
 				break;
 			case 't':
 				switch (*optarg) {
@@ -161,7 +154,7 @@ int main(int argc, char **argv)
 				return EXIT_FAILURE;
 		}
 	}
-	if ((tesla != 0) && !B0Data)
+	if ((tesla != 0) && !haveB0)
 		fitB0 = true;
 	if ((argc - optind) < 2) {
 		cout << "Wrong number of arguments. Need at least a T1 map and 1 SSFP file." << endl;
@@ -181,7 +174,7 @@ int main(int argc, char **argv)
 	vector<DESPOTConstants> consts(nPhases);
 	VectorXd ssfpAngles;
 	int voxelsPerSlice, voxelsPerVolume;
-	double **ssfpData = (double **)malloc(nPhases * sizeof(double *));
+	vector<vector<double>> ssfpData(nPhases);
 	for (size_t p = 0; p < nPhases; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
 		if (!inFile.open(argv[optind], 'r')) {
@@ -255,7 +248,7 @@ int main(int argc, char **argv)
 		if (fitB0) {
 			loBounds[2] =  0.0 / consts[0].TR;
 			hiBounds[2] =  0.5 / consts[0].TR;
-			B0Data = new double[voxelsPerVolume];
+			B0Data.resize(voxelsPerVolume);
 		}
 	}
 	
@@ -268,14 +261,14 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
-	vector<double *> paramsData(nP);
+	vector<vector<double>> paramsData(nP);
 	for (int p = 0; p < nP; p++)
-		paramsData[p] = new double[voxelsPerVolume];
+		paramsData[p].resize(voxelsPerVolume);
 	if (tesla == 0)
 		nResiduals = 1;
-	vector<double *> residuals(nResiduals);
+	vector<vector<double>> residuals(nResiduals);
 	for (int i = 0; i < nResiduals; i++)
-		residuals[i] = new double[voxelsPerVolume];
+		residuals[i].resize(voxelsPerVolume);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -297,15 +290,15 @@ int main(int argc, char **argv)
 			double T1 = 0.;
 			ArrayXd params(nP); params.setZero();
 			ArrayXd resid(nResiduals); resid.setZero();
-			if (!maskData || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
+			if (!haveMask || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				voxCount++;
 				T1 = T1Data[sliceOffset + vox];
 				// Gather signals.
 				vector<VectorXd> signals;
 				for (int p = 0; p < nPhases; p++) {
-					consts[p].B0 = (B0Data) ? B0Data[sliceOffset + vox] : 0.;
-					consts[p].B1 = (B1Data) ? B1Data[sliceOffset + vox] : 1.;
+					consts[p].B0 = haveB0 ? B0Data[sliceOffset + vox] : 0.;
+					consts[p].B1 = haveB1 ? B1Data[sliceOffset + vox] : 1.;
 					VectorXd temp(nFlip);
 					for (int i = 0; i < nFlip; i++)
 						temp(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
@@ -380,14 +373,5 @@ int main(int argc, char **argv)
 			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 		savedHeader.close();
 	}
-	// Clean up memory
-	for (int p = 0; p < nPhases; p++)
-		free(ssfpData[p]);
-	if (B0Data)
-		free(B0Data);
-	if (B1Data)
-		free(B1Data);
-	if (maskData)
-		free(maskData);
 	return EXIT_SUCCESS;
 }

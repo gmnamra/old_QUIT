@@ -49,7 +49,8 @@ int main(int argc, char** argv)
 	
 	int indexptr = 0, c;
 	double TE1, TE2, deltaTE, phasetime = 0.;
-	double *data1, *data2, *B0, *mask = NULL;
+	vector<double> data1, data2, B0, mask;
+	bool haveMask = false;
 	NiftiImage inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1) {
 		switch (c) {
@@ -58,6 +59,7 @@ int main(int argc, char** argv)
 				inFile.open(optarg, NiftiImage::READ);
 				mask = inFile.readVolume<double>(0);
 				inFile.close();
+				haveMask = true;
 				break;
 			case 'p':
 				phasetime = atof(optarg);
@@ -117,19 +119,17 @@ int main(int argc, char** argv)
 	string outPrefix(argv[++optind]);
 	if (TE2 < TE1) {	// Swap them
 		fprintf(stdout, "TE2 < TE1, swapping.\n");
-		double *tmp = data1;
-		data1 = data2;
-		data2 = tmp;
+		data1.swap(data2);
 		double tmpTE = TE2;
 		TE2 = TE1;
 		TE1 = tmpTE;
 	}
 	deltaTE = TE2 - TE1;
 	cout << "Delta TE = " << deltaTE << endl;
-	B0 = (double *)malloc(inFile.voxelsPerVolume() * sizeof(double));
+	B0.resize(inFile.voxelsPerVolume());
 	cout << "Processing..." << endl;
 	for (size_t vox = 0; vox < inFile.voxelsPerVolume(); vox++) {
-		if (!mask || mask[vox] > 0.) {
+		if (!haveMask || mask[vox] > 0.) {
 			double deltaPhase = data2[vox] - data1[vox];
 			B0[vox] = deltaPhase / (2 * M_PI * deltaTE);
 			if (phasetime > 0.) {
