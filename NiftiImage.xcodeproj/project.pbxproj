@@ -10,8 +10,6 @@
 		F63EBC72160CA80B00F4D0BD /* NiftiImage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6C4AF16160B156C00254B6C /* NiftiImage.cpp */; };
 		F63EBC73160CA81200F4D0BD /* NiftiImage.h in Headers */ = {isa = PBXBuildFile; fileRef = F6C4AF17160B156C00254B6C /* NiftiImage.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F63EBC74160CA81200F4D0BD /* nifti1.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E9DAAC16022D06005D73E3 /* nifti1.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		F64D55EC178B750A005BF1A8 /* Extension.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F64D55EB178B750A005BF1A8 /* Extension.cpp */; };
-		F64D55EE178B752B005BF1A8 /* Extension.h in Headers */ = {isa = PBXBuildFile; fileRef = F64D55ED178B752B005BF1A8 /* Extension.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F6B0AB6C178CB9EB0098443E /* nifti_analyze.h in Headers */ = {isa = PBXBuildFile; fileRef = F6B0AB6B178CB9510098443E /* nifti_analyze.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F6BADCE6178B75DD00DCD475 /* nifti_hdr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F64D55DB178B0C3B005BF1A8 /* nifti_hdr.cpp */; };
 		F6BADCE7178B75E400DCD475 /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F63EBCA5160CA86C00F4D0BD /* libNiftiImage.a */; };
@@ -34,8 +32,6 @@
 		F63EBCA5160CA86C00F4D0BD /* libNiftiImage.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libNiftiImage.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		F64D55DB178B0C3B005BF1A8 /* nifti_hdr.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = nifti_hdr.cpp; sourceTree = "<group>"; };
 		F64D55E5178B16DC005BF1A8 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/lib/libz.dylib; sourceTree = DEVELOPER_DIR; };
-		F64D55EB178B750A005BF1A8 /* Extension.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Extension.cpp; sourceTree = "<group>"; };
-		F64D55ED178B752B005BF1A8 /* Extension.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Extension.h; sourceTree = "<group>"; };
 		F6B0AB6B178CB9510098443E /* nifti_analyze.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = nifti_analyze.h; sourceTree = "<group>"; };
 		F6BADCDD178B75CA00DCD475 /* nifti_hdr */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = nifti_hdr; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6C4AF16160B156C00254B6C /* NiftiImage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NiftiImage.cpp; sourceTree = "<group>"; };
@@ -80,8 +76,6 @@
 			children = (
 				F6C4AF16160B156C00254B6C /* NiftiImage.cpp */,
 				F6C4AF17160B156C00254B6C /* NiftiImage.h */,
-				F64D55ED178B752B005BF1A8 /* Extension.h */,
-				F64D55EB178B750A005BF1A8 /* Extension.cpp */,
 				F6E9DAAC16022D06005D73E3 /* nifti1.h */,
 				F64D55DB178B0C3B005BF1A8 /* nifti_hdr.cpp */,
 				F6B0AB6B178CB9510098443E /* nifti_analyze.h */,
@@ -98,7 +92,6 @@
 			files = (
 				F63EBC73160CA81200F4D0BD /* NiftiImage.h in Headers */,
 				F63EBC74160CA81200F4D0BD /* nifti1.h in Headers */,
-				F64D55EE178B752B005BF1A8 /* Extension.h in Headers */,
 				F6B0AB6C178CB9EB0098443E /* nifti_analyze.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -172,7 +165,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F64D55EC178B750A005BF1A8 /* Extension.cpp in Sources */,
 				F63EBC72160CA80B00F4D0BD /* NiftiImage.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

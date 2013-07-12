@@ -724,7 +724,7 @@ bool NiftiImage::readExtensions()
 			NIFTI_ERROR("Could not read extension.");
 			return false;
 		}
-		_extensions.emplace_back(Extension(size, code, dataBytes));
+		_extensions.emplace_back(NiftiExtension(code, dataBytes));
 
 		if (_nii && (_file.tell() > _voxoffset)) {
 			NIFTI_ERROR("Went past start of voxel data while reading extensions.");
@@ -841,7 +841,7 @@ bool NiftiImage::writeExtensions() {
 	}
 	
 	for (auto ext : _extensions) {
-		int size = ext.size();
+		size_t size = ext.size();
 		long bytesWritten = _file.write(&size, 4);
 		int code = ext.code();
 		bytesWritten += _file.write(&code, 4);
