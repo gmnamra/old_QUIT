@@ -1,5 +1,5 @@
-/** \file NiftiImage.h
- \brief Declaration for NiftiImage class
+/** \file File.h
+ \brief Declaration for File class
  - Written by Tobias Wood, IoP KCL
  - Based on nifti1_io.h (Thanks to Robert Cox et al)
  - This code is released to the public domain. Do with it what you will.
@@ -7,30 +7,63 @@
 #ifndef NIFTI_IMAGE
 #define NIFTI_IMAGE
 
-#include <stdio.h>
 #include <zlib.h>
 
 #include <string>
 #include <iostream>
+#include <cstdio>
 #include <algorithm>
 #include <complex>
+#include <vector>
 #include <map>
-#include <memory>
+#include <limits>
 
 #include "Eigen/Geometry"
 
 #include "nifti1.h" // NIFTI-1 header specification
 #include "nifti_analyze.h" // NIFTI version of the ANALYZE 7.5 header
-#include "Extension.h"
 
 using namespace std;
 using namespace Eigen;
 
+#pragma mark Start namespace Nifti
+namespace Nifti {
+
+#pragma mark Error macros
 // Convenience macros for printing errors. Note that err is NOT encased in ()
 // so that NIFTI_ERROR( "string" << number ); works
 #define NIFTI_ERROR( err ) do { cerr << __PRETTY_FUNCTION__ << ": " << err << endl; } while(0)
 #define NIFTI_FAIL( err ) do { NIFTI_ERROR( err ); exit(EXIT_FAILURE); } while(0)
 
+#pragma mark Enums, structs and typedefs
+struct DataType {
+	int code, size, swapsize;
+	string name;
+};
+typedef map<int, DataType> DTMap;
+static void printDTypeList();
+typedef map<int, string> StringMap;
+
+/*
+ *  Used when opening a File to specify read or write. Files
+ *  can only be open for either reading or writing at any one time, and
+ *  must be closed before re-opening. READ_HEADER is a special mode that
+ *  will just read the header and then close the file.
+ *
+ */
+enum IMAGE_MODES
+{
+	CLOSED = 0,
+	READ = 'r',
+	READ_HEADER = 'h',
+	READ_SKIP_EXT = 's',
+	WRITE = 'w',
+	WRITE_SKIP_EXT = 'x'
+};
+
+
+
+#pragma mark ZipFile
 /*! Utility class that wraps unzipped and zipped files into one object */
 // zlib 1.2.5 and above support a "Transparent" mode that would remove the need for this,
 // but Mac OS is stuck on 1.2.1
@@ -39,21 +72,20 @@ class ZipFile {
 		FILE *_unzipped;
 		gzFile _zipped;
 		bool _zip;
-		static const int MaxZippedBytes = 1 << 30;
 		
 	public:
 		ZipFile();
 		bool open(const string &path, const string &mode, const bool zip);
 		void close();
-		size_t read(void *buff, size_t size);  //!< Attempts to reads size bytes from the image file to buff. Returns actual number read.
-		int write(const void *buff, int size); //!< Attempts to write size bytes from buff to the image file. Returns actual number written.
-		bool seek(long offset, int whence);    //!< Seeks to the specified position in the file. Returns true if successful.
-		long tell();                           //!< Returns the current position in the file
-		void flush();                          //!< Flushes unwritten buffer contents
+		size_t read(void *buff, unsigned size);   //!< Attempts to reads size bytes from the image file to buff. Returns actual number read.
+		size_t write(const void *buff, int size); //!< Attempts to write size bytes from buff to the image file. Returns actual number written.
+		bool seek(long offset, int whence);       //!< Seeks to the specified position in the file. Returns true if successful.
+		long tell();                              //!< Returns the current position in the file
+		void flush();                             //!< Flushes unwritten buffer contents
 };
 
-/* NIfTI-1.1 extension codes:
- see http://nifti.nimh.nih.gov/nifti-1/documentation/faq#Q21 */
+#pragma mark Extension Codes
+/* NIfTI-1.1 extension codes: see http://nifti.nimh.nih.gov/nifti-1/documentation/faq#Q21 */
 
 #define NIFTI_ECODE_IGNORE           0  /* changed from UNKNOWN, 29 June 2005 */
 #define NIFTI_ECODE_DICOM            2  /* intended for raw DICOM attributes  */
@@ -71,56 +103,35 @@ class ZipFile {
 #define NIFTI_ECODE_DT_COMPONENT    24
 #define NIFTI_ECODE_SHC_DEGREEORDER 26  /* end LONI MiND codes                */
 #define NIFTI_ECODE_VOXBO           28  /* Dan Kimberg: www.voxbo.org         */
-#define NIFTI_ECODE_CARET           30  /* John Harwell: john@brainvis.wustl.edu http://brainvis.wustl.edu/wiki/index.php/Caret:Documentation:CaretNiftiExtension */
+#define NIFTI_ECODE_CARET           30  /* John Harwell: john@brainvis.wustl.edu http://brainvis.wustl.edu/wiki/index.php/Caret:Documentation:CaretExtension */
 #define NIFTI_MAX_ECODE             30  /******* maximum extension code *******/
 #define LNI_MAX_NIA_EXT_LEN 100000  /* consider a longer extension invalid */
 
-class NiftiExtension {
+#pragma mark Extension Class
+class Extension {
 	private:
 		int _code;          //!< Extension code, one of the NIFTI_ECODE_ values
 		vector<char> _data; //!< Raw data, with no byte swapping (length is esize-8)
 	
 	public:
-		NiftiExtension(int code, vector<char> data) :
-			_code(code), _data(data)
-		{};
-		NiftiExtension(int size, int code, char *data) :
-			_code(code)
-		{
-			_data.resize(size - 8);
-			for (int i = 0; i < (size - 8); i++) {
-				_data[i] = data[i];
-			}
-		};
-		const size_t size() const {
-			size_t s = _data.size() + 8;
-			size_t r = s % 16;
-			if (r == 0)
-				return s;
-			else
-				return (s + 16 - r);
-		};
-		const int &code() const { return _code; };
-		void setCode(int code) {
-			// Code must be in range and even
-			if ((code > NIFTI_ECODE_IGNORE) && (code < NIFTI_MAX_ECODE) && !(code & 1 ))
-				_code = code;
-		}
+		static const string &CodeName(const int code);
 		
-		const vector<char> &data() const { return _data; };
+		Extension(int code, vector<char> data);
+		Extension(int size, int code, char *data);
+		const int size() const;
+		const int padding() const;
+		const int code() const;
+		const string &codeName() const;
+		void setCode(int code);
+		
+		const vector<char> &data() const;
 		void setData(const vector<char> &data);
 };
 
-/*! NIfTI header class */
-class NiftiImage {
-	private:
-
-		struct DataType {
-			int code, size, swapsize;
-			string name;
-		};
-		typedef map<int, DataType> DTMap;
-		typedef map<int, string> StringMap;
+#pragma mark NIfTI File Class
+class File {
+	private:		
+		static const DTMap &DataTypes();
 		
 		Array<int, 7, 1> _dim;     //!< Number of voxels = nx*ny*nz*...*nw
 		Array<float, 7, 1> _voxdim;//!< Dimensions of each voxel
@@ -134,7 +145,7 @@ class NiftiImage {
 		int _voxoffset;            //!< Offset to start of voxel data
 		int _swap;                 //!< True if byte order on disk is different to CPU
 		
-		vector<NiftiExtension> _extensions;
+		vector<Extension> _extensions;
 		
 		static int needs_swap(short dim0, int hdrsize); //!< Check if file endianism matches host endianism.
 		static float fixFloat(const float f); //!< Converts invalid floats to 0 to ensure a marginally sane header
@@ -147,6 +158,7 @@ class NiftiImage {
 		bool readExtensions();  //!< Attempts to read any extensions
 		bool writeHeader();     //!< Attempts to write a header structure to the currently open file. Returns true on success, false on failure.
 		bool writeExtensions(); //!< Attempts to write extensions
+		int totalExtensionSize(); //!< Counts the total number of bytes for all extensions.
 		char *readBytes(size_t start, size_t length, char *buffer);
 		void writeBytes(size_t start, size_t length, char *buffer);
 
@@ -275,33 +287,17 @@ class NiftiImage {
 		}
 		
 	public:
-		/*
-		 *  Used when opening a NiftiImage to specify read or write. NiftiImages
-		 *  can only be open for either reading or writing at any one time, and
-		 *  must be closed before re-opening. READ_HEADER is a special mode that
-		 *  will just read the header and then close the file.
-		 *
-		 */
-		enum IMAGE_MODES
-		{
-			CLOSED = 0,
-			READ = 'r',
-			WRITE = 'w',
-			READ_HEADER = 'h'
-		};
-		static void printDTypeList();
-		
-		~NiftiImage();
-		NiftiImage();
-		NiftiImage(const NiftiImage &other);
-		NiftiImage(NiftiImage &&other); //!< Move constructor
-		NiftiImage(const int nx, const int ny, const int nz, const int nt,
+		~File();
+		File();
+		File(const File &other);
+		File(File &&other); //!< Move constructor
+		File(const int nx, const int ny, const int nz, const int nt,
 		           const float dx, const float dy, const float dz, const float dt,
 				   const int datatype);
-		NiftiImage(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
+		File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
                    const Matrix4f &qform = Matrix4f::Identity(), const Matrix4f &sform = Matrix4f::Identity());
-		NiftiImage(const string &filename, const char &mode);
-		NiftiImage &operator=(const NiftiImage &other);
+		File(const string &filename, const char &mode);
+		File &operator=(const File &other);
 		
 		bool isValid(); //!< Reports if this header is valid, i.e. has successfully opened a file at some point, and nothing has gone wrong with reading or writing
 		bool open(const string &filename, const char &mode); //!< Attempts to open a NIfTI file. Returns true on success, false on failure.
@@ -332,8 +328,8 @@ class NiftiImage {
 		const string &dtypeName() const;
 		const int &bytesPerVoxel() const;
 		void setDatatype(const int dt);
-		bool matchesSpace(const NiftiImage &other) const; //!< Check if voxel dimensions, data size and transform match
-		bool matchesVoxels(const NiftiImage &other) const; //!< Looser check if voxel dimensions and data size match
+		bool matchesSpace(const File &other) const; //!< Check if voxel dimensions, data size and transform match
+		bool matchesVoxels(const File &other) const; //!< Looser check if voxel dimensions and data size match
 		
 		float scaling_slope;
 		float scaling_inter;
@@ -525,4 +521,5 @@ class NiftiImage {
 		}
 };
 
+}; // End namespace Nifti
 #endif // NIFTI_IMAGE

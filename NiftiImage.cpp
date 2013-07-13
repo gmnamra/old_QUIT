@@ -1,8 +1,9 @@
 #include "NiftiImage.h"
 
-/*******************************
+namespace Nifti {
+//******************************
 #pragma mark Methods for ZipFile
-*******************************/
+//******************************
 ZipFile::ZipFile() :
 	_unzipped(NULL), _zipped(NULL), _zip(false)
 {}
@@ -29,16 +30,22 @@ void ZipFile::close() {
 	_zipped = _unzipped = NULL;
 }
 
-size_t ZipFile::read(void *buff, size_t size)
-{
+/*! Attempts to read the specified number of bytes into the buffer
+ *
+ * Currently the best we can do for sizes is unsigned int, as this is what
+ * gzread uses
+ *
+ */
+size_t ZipFile::read(void *buff, unsigned size) {
 	if (_zip) {
-		size_t remaining = size, totalRead = 0, nread, chunkSize;
+		unsigned remaining = size, totalRead = 0;
 		char *cbuff = (char *)buff;
 		while (remaining > 0) {
-			chunkSize = (remaining < MaxZippedBytes) ? remaining : MaxZippedBytes;
-			nread = gzread(_zipped, cbuff, static_cast<unsigned int>(chunkSize));
-			if (nread == -1) {
-				NIFTI_ERROR("Could not read from file.");
+			unsigned chunkSize = (remaining < numeric_limits<int>::max()) ? remaining : numeric_limits<int>::max();
+			int nread = gzread(_zipped, cbuff, static_cast<unsigned int>(chunkSize));
+			if (nread <= 0) {
+				int dummy;
+				NIFTI_ERROR(gzerror(_zipped, &dummy));
 				return 0;
 			}
 			remaining -= nread;
@@ -51,27 +58,34 @@ size_t ZipFile::read(void *buff, size_t size)
 		}
 		return totalRead;
 	} else {
-		return fread(buff, size, 1, _unzipped) * size;
+		size_t nread = fread(buff, size, 1, _unzipped) * size;
+		if (ferror(_unzipped)) {
+			NIFTI_ERROR("Read failed. Error message was:");
+			perror("");
+			return 0;
+		}
+		return nread;
 	}
 }
 
-int ZipFile::write(const void *buff, int size)
+size_t ZipFile::write(const void *buff, int size)
 {
 	if (buff == NULL) {
 		NIFTI_FAIL("Attempted to write data from null pointer.");
 	}
 	if (_zip) {
-		int remaining = size, chunkSize, totalWritten = 0, nwritten;
+		unsigned remaining = size, totalWritten = 0;
 		char *chunk = (char *)buff;
 		while(remaining > 0 ) {
-			chunkSize = (remaining < MaxZippedBytes) ? remaining : MaxZippedBytes;
-			nwritten = gzwrite(_zipped, chunk, chunkSize);
+			unsigned chunkSize = (remaining < numeric_limits<int>::max()) ? remaining : numeric_limits<int>::max();
+			int nwritten = gzwrite(_zipped, chunk, chunkSize);
 			if (nwritten == 0) {
-				NIFTI_ERROR("Error during write to file.");
+				int dummy;
+				NIFTI_ERROR(gzerror(_zipped, &dummy));
 				return 0;
 			}
 			remaining -= nwritten;
-			if(nwritten < (int)chunkSize) {
+			if (nwritten < chunkSize) {
 				NIFTI_ERROR("Zipped write short by " << (chunkSize - nwritten) << " bytes.");
 				return totalWritten;
 			}
@@ -80,7 +94,13 @@ int ZipFile::write(const void *buff, int size)
 		}
 		return totalWritten;
 	} else {
-		return (int)fwrite(buff, size, 1, _unzipped) * size;
+		size_t nwritten = fwrite(buff, size, 1, _unzipped) * size;
+		if (ferror(_unzipped)) {
+			NIFTI_ERROR("Write failed. Error message was:");
+			perror("");
+			return 0;
+		}
+		return nwritten;
 	}
 }
 
@@ -106,15 +126,112 @@ void ZipFile::flush() {
 		fflush(_unzipped);
 }
 
-/**********************************
-#pragma mark Methods for NiftiImage
-**********************************/
+//*********************************
+#pragma mark Methods for Extension
+//*********************************
+const string &Extension::CodeName(const int code) {
+	static const StringMap Codes {
+		{ NIFTI_ECODE_IGNORE,           "Ignore" },
+		{ NIFTI_ECODE_DICOM,            "DICOM Attributes" },
+		{ NIFTI_ECODE_AFNI,             "AFNI" },
+		{ NIFTI_ECODE_COMMENT,          "Plain ASCII text" },
+		{ NIFTI_ECODE_XCEDE,            "XCEDE" },
+		{ NIFTI_ECODE_JIMDIMINFO,       "JIM Dimension Information" },
+		{ NIFTI_ECODE_WORKFLOW_FWDS,    "Workflow Forwards" },
+		{ NIFTI_ECODE_FREESURFER,       "Freesurfer" },
+		{ NIFTI_ECODE_PYPICKLE,         "Pickled Python Objects" },
+		{ NIFTI_ECODE_MIND_IDENT,       "Mind Ident" },
+		{ NIFTI_ECODE_B_VALUE,          "B Value" },
+		{ NIFTI_ECODE_SPHERICAL_DIRECTION, "Spherical Direction" },
+		{ NIFTI_ECODE_DT_COMPONENT,     "DT Component" },
+		{ NIFTI_ECODE_SHC_DEGREEORDER,  "SHC Degree Order" },
+		{ NIFTI_ECODE_VOXBO,            "VOXBO" },
+		{ NIFTI_ECODE_CARET,            "CARET" }
+	};
+	static string unknown("Unknown extension code");
+	StringMap::const_iterator it = Codes.find(code);
+	if (it == Codes.end())
+		return unknown;
+	else
+		return it->second;
+}
+
+Extension::Extension(int code, vector<char> data) :
+	_code(code), _data(data)
+{}
+Extension::Extension(int size, int code, char *data) :
+	_code(code)
+{
+	_data.resize(size - 8);
+	for (int i = 0; i < (size - 8); i++) {
+		_data[i] = data[i];
+	}
+}
+
+const int Extension::size() const {
+	size_t rem = _data.size() % 16;
+	if (rem == 0) {
+		return static_cast<int>(_data.size());
+	} else {
+		return static_cast<int>(_data.size() + rem);
+	}
+}
+const int Extension::padding() const {
+	return static_cast<int>(_data.size() % 16);
+}
+const int Extension::code() const { return _code; }
+const string &Extension::codeName() const { return CodeName(_code); }
+void Extension::setCode(int code) {
+	// Code must be in range and even
+	if ((code > NIFTI_ECODE_IGNORE) && (code < NIFTI_MAX_ECODE) && !(code & 1 ))
+		_code = code;
+	else
+		NIFTI_ERROR("Invalid extension code.");
+}
+
+const vector<char> &Extension::data() const { return _data; };
+void Extension::setData(const vector<char> &data) {
+	_data = data;
+}
+
+//*********************************
+#pragma mark Methods for File
+//********************************
+/*	Internal map of datatype properties
+ *
+ *  The map is declared here because making it a static member of File was
+ *  causing problems with looking up the datatype in close() when called by 
+ *  ~File. It's possible for C++ to destruct static members even when
+ *  objects still exist in another translation unit.
+ */
+const DTMap &File::DataTypes() {
+	static const DTMap DT{
+		{NIFTI_TYPE_UINT8,    {NIFTI_TYPE_UINT8, 1, 0, "NIFTI_TYPE_UINT8"} },
+		{NIFTI_TYPE_INT16,    {NIFTI_TYPE_INT16, 2, 2, "NIFTI_TYPE_INT16"} },
+		{NIFTI_TYPE_INT32,    {NIFTI_TYPE_INT32, 4, 4, "NIFTI_TYPE_INT32"} },
+		{NIFTI_TYPE_FLOAT32,   {NIFTI_TYPE_FLOAT32, 4, 4, "NIFTI_TYPE_FLOAT32"} },
+		{NIFTI_TYPE_COMPLEX64,   {NIFTI_TYPE_COMPLEX64, 8, 4, "NIFTI_TYPE_COMPLEX64"} },
+		{NIFTI_TYPE_FLOAT64,   {NIFTI_TYPE_FLOAT64, 8, 8, "NIFTI_TYPE_FLOAT64"} },
+		{NIFTI_TYPE_RGB24,  {NIFTI_TYPE_RGB24, 3, 0, "NIFTI_TYPE_RGB24"} },
+		{NIFTI_TYPE_INT8,  {NIFTI_TYPE_INT8, 1, 0, "NIFTI_TYPE_INT8"} },
+		{NIFTI_TYPE_UINT16,  {NIFTI_TYPE_UINT16, 2, 2, "NIFTI_TYPE_UINT16"} },
+		{NIFTI_TYPE_UINT32,  {NIFTI_TYPE_UINT32, 4, 4, "NIFTI_TYPE_UINT32"} },
+		{NIFTI_TYPE_INT64, {NIFTI_TYPE_INT64, 8, 8, "NIFTI_TYPE_INT64"} },
+		{NIFTI_TYPE_UINT64, {NIFTI_TYPE_UINT64, 8, 8, "NIFTI_TYPE_UINT64"} },
+		{NIFTI_TYPE_FLOAT128, {NIFTI_TYPE_FLOAT128, 16, 16, "NIFTI_TYPE_FLOAT128"} },
+		{NIFTI_TYPE_COMPLEX128, {NIFTI_TYPE_COMPLEX128, 16,  8, "NIFTI_TYPE_COMPLEX128"} },
+		{NIFTI_TYPE_COMPLEX256, {NIFTI_TYPE_COMPLEX256, 32, 16, "NIFTI_TYPE_COMPLEX256"} },
+		{NIFTI_TYPE_RGBA32, {NIFTI_TYPE_RGBA32, 4,   0, "NIFTI_TYPE_RGBA32"} }
+	};
+	return DT;
+}
+
 /*
  * Map for string representations of NIfTI unit codes.
  *
  *\sa NIFTI1_UNITS group in nifti1.h
  */
-const string &NiftiImage::spaceUnits() const
+const string &File::spaceUnits() const
 {
 	static const StringMap Units
 	{
@@ -130,7 +247,7 @@ const string &NiftiImage::spaceUnits() const
 	else
 		return it->second;
 }
-const string &NiftiImage::timeUnits() const
+const string &File::timeUnits() const
 {
 	static const StringMap Units
 	{
@@ -154,10 +271,9 @@ const string &NiftiImage::timeUnits() const
  *
  *\sa NIFTI1_INTENT_CODES group in nifti1.h
  */
-const string &NiftiImage::intentName() const
+const string &File::intentName() const
 {
-	const StringMap Intents
-	{
+	static const StringMap Intents {
 		{ NIFTI_INTENT_CORREL,     "Correlation statistic" },
 		{ NIFTI_INTENT_TTEST,      "T-statistic" },
 		{ NIFTI_INTENT_FTEST,      "F-statistic" },
@@ -209,7 +325,7 @@ const string &NiftiImage::intentName() const
  *
  *\sa NIFTI1_XFORM_CODES group in nifti1.h
  */
-const string &NiftiImage::TransformName(const int code)
+const string &File::TransformName(const int code)
 {
 	static const StringMap Transforms
 	{
@@ -225,15 +341,15 @@ const string &NiftiImage::TransformName(const int code)
 	else
 		return it->second;
 }
-const string &NiftiImage::qformName() const { return TransformName(qform_code); }
-const string &NiftiImage::sformName() const { return TransformName(sform_code); }
+const string &File::qformName() const { return TransformName(qform_code); }
+const string &File::sformName() const { return TransformName(sform_code); }
 
 /*
  * Map for string representations of NIfTI slice_codes
  *
  *\sa NIFTI1_SLICE_ORDER group in nifti1.h
  */
-const string &NiftiImage::sliceName() const
+const string &File::sliceName() const
 {
 	static const StringMap SliceOrders
 	{
@@ -257,7 +373,7 @@ const string &NiftiImage::sliceName() const
  *  Declared void * so that the fields from the headers can be passed through
  *  without casting.
  */
-void NiftiImage::SwapBytes(size_t n, int size, void *bytes)
+void File::SwapBytes(size_t n, int size, void *bytes)
 {
 	size_t i;
 	char *cp0 = (char *)bytes, *cp1, *cp2;
@@ -277,7 +393,7 @@ void NiftiImage::SwapBytes(size_t n, int size, void *bytes)
 /*
  *  Byte swap the individual fields of a NIFTI-1 header struct.
  */
-void NiftiImage::SwapNiftiHeader(struct nifti_1_header *h)
+void File::SwapNiftiHeader(struct nifti_1_header *h)
 {
 	SwapBytes(1, 4, &h->sizeof_hdr);
 	SwapBytes(1, 4, &h->extents);
@@ -327,7 +443,7 @@ void NiftiImage::SwapNiftiHeader(struct nifti_1_header *h)
 /*
  *! Byte swap as an ANALYZE 7.5 header
  */
-void NiftiImage::SwapAnalyzeHeader(nifti_analyze75 * h)
+void File::SwapAnalyzeHeader(nifti_analyze75 * h)
 {
 	SwapBytes(1, 4, &h->sizeof_hdr);
 	SwapBytes(1, 4, &h->extents);
@@ -372,28 +488,28 @@ void NiftiImage::SwapAnalyzeHeader(nifti_analyze75 * h)
 	SwapBytes(1, 4, &h->smin);
 }
 
-NiftiImage::~NiftiImage()
+File::~File()
 {
 	if (_mode != CLOSED)
 		close();
 }
 
-NiftiImage::NiftiImage() :
+File::File() :
 	_mode(CLOSED), _gz(false), _nii(false), _valid(false), _swap(false), _voxoffset(0),
 	_dim(Matrix<int, 7, 1>::Ones()), _voxdim(Matrix<float, 7, 1>::Ones()),
 	scaling_slope(1.), scaling_inter(0.), calibration_min(0.), calibration_max(0.),
 	freq_dim(0), phase_dim(0), slice_dim(0),
 	slice_code(0), slice_start(0), slice_end(0), slice_duration(0),
 	toffset(0), xyz_units(NIFTI_UNITS_MM), time_units(NIFTI_UNITS_SEC),
-	intent_code(NIFTI_INTENT_DIMLESS), intent_p1(0), intent_p2(0), intent_p3(0),
+	intent_code(NIFTI_INTENT_NONE), intent_p1(0), intent_p2(0), intent_p3(0),
 	intent_name(""), description(""), aux_file(""),
 	qform_code(NIFTI_XFORM_UNKNOWN), sform_code(NIFTI_XFORM_UNKNOWN)
 {
 	_qform.setIdentity(); _sform.setIdentity();
-	setDatatype(NIFTI_TYPE_FLOAT32);
+	_datatype = DataTypes().find(DT_FLOAT32)->second;
 }
 
-NiftiImage::NiftiImage(const NiftiImage &other) :
+File::File(const File &other) :
 	_mode(CLOSED), _gz(other._gz), _nii(other._nii),
 	_valid(false), _swap(other._swap), _voxoffset(other._voxoffset),
 	_dim(other._dim), _voxdim(other._voxdim),
@@ -412,7 +528,7 @@ NiftiImage::NiftiImage(const NiftiImage &other) :
 
 }
 
-NiftiImage::NiftiImage(NiftiImage &&other) :
+File::File(File &&other) :
 	_mode(other._mode), _gz(other._gz), _nii(other._nii),
 	_valid(other._valid), _swap(other._swap), _voxoffset(other._voxoffset),
 	_dim(other._dim), _voxdim(other._voxdim),
@@ -432,8 +548,8 @@ NiftiImage::NiftiImage(NiftiImage &&other) :
 	other._mode = CLOSED;
 }
 
-NiftiImage::NiftiImage(const string &filename, const char &mode) :
-	NiftiImage()
+File::File(const string &filename, const char &mode) :
+	File()
 {
 	if (!open(filename, mode)) {
 		NIFTI_FAIL("Could not open file in constructor.");
@@ -443,12 +559,12 @@ NiftiImage::NiftiImage(const string &filename, const char &mode) :
 	}
 }
 
-NiftiImage::NiftiImage(const int nx, const int ny, const int nz, const int nt,
+File::File(const int nx, const int ny, const int nz, const int nt,
 		               const float dx, const float dy, const float dz, const float dt,
 		               const int datatype) :
-	NiftiImage()
+	File()
 {
-	setDatatype(datatype);
+	_datatype = DataTypes().find(datatype)->second;
 	_qform.setIdentity(); _sform.setIdentity();
 	_dim[0] = nx < 1 ? 1 : nx;
 	_dim[1] = ny < 1 ? 1 : ny;
@@ -458,9 +574,9 @@ NiftiImage::NiftiImage(const int nx, const int ny, const int nz, const int nt,
 	_valid = true;
 }
 
-NiftiImage::NiftiImage(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
+File::File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
                        const Matrix4f &qform, const Matrix4f &sform) :
-	NiftiImage()
+	File()
 {
 	assert(dim.rows() < 8);
 	assert(dim.rows() == voxdim.rows());
@@ -469,11 +585,11 @@ NiftiImage::NiftiImage(const ArrayXi &dim, const ArrayXf &voxdim, const int &dat
 	_voxdim.head(voxdim.rows()) = voxdim;
 	_qform = qform;
 	_sform = sform;
-	setDatatype(datatype);
+	_datatype = DataTypes().find(datatype)->second;
 	_valid = true;
 }
 
-NiftiImage &NiftiImage::operator=(const NiftiImage &other)
+File &File::operator=(const File &other)
 {
 	if (this == &other)
 		return *this;
@@ -490,7 +606,7 @@ NiftiImage &NiftiImage::operator=(const NiftiImage &other)
 	_mode = CLOSED;
 	_valid = other._valid;
 	_voxoffset = 0;
-	setDatatype(other.datatype());
+	_datatype = other._datatype;
 	scaling_slope = other.scaling_slope;
 	scaling_inter = other.scaling_inter;
 	calibration_min = other.calibration_min;
@@ -517,11 +633,11 @@ NiftiImage &NiftiImage::operator=(const NiftiImage &other)
 	return *this;
 }
 
-const string NiftiImage::basePath() const {
+const string File::basePath() const {
 	return _basepath;
 }
 
-const string NiftiImage::imagePath() const {
+const string File::imagePath() const {
 	string path(_basepath);
 	if (_nii) {
 		path += ".nii";
@@ -534,7 +650,7 @@ const string NiftiImage::imagePath() const {
 	return path;
 }
 
-const string NiftiImage::headerPath() const {
+const string File::headerPath() const {
 	string path(_basepath);
 	if (_nii) {
 		path += ".nii";
@@ -547,7 +663,7 @@ const string NiftiImage::headerPath() const {
 	return path;
 }
 
-inline float NiftiImage::fixFloat(const float f)
+inline float File::fixFloat(const float f)
 {
 	if (isfinite(f))
 		return f;
@@ -555,7 +671,7 @@ inline float NiftiImage::fixFloat(const float f)
 		return 0.;
 }
 
-bool NiftiImage::readHeader() {
+bool File::readHeader() {
 	struct nifti_1_header nhdr;
 	
 	if (_file.read(&nhdr, sizeof(nhdr)) < sizeof(nhdr)) {
@@ -592,14 +708,12 @@ bool NiftiImage::readHeader() {
 		NIFTI_ERROR("Bad datatype in header " << headerPath());
 		return false;
 	}
+	_datatype = DataTypes().find(nhdr.datatype)->second;
+	
 	if(nhdr.dim[1] <= 0) {
 		NIFTI_ERROR("Bad first dimension in header " << headerPath());
 		return false;
 	}
-	
-	setDatatype(nhdr.datatype);
-	// Set up dimensions. For now, trust dim[0] to hold the number of dimensions
-	// and set trailing dims to sensible numbers
 	for (int i = 0; i < nhdr.dim[0]; i++) {
 		_dim[i] = nhdr.dim[i + 1];
 		_voxdim[i] = nhdr.pixdim[i + 1];
@@ -684,7 +798,7 @@ bool NiftiImage::readHeader() {
 	return true;
 }
 
-bool NiftiImage::readExtensions()
+bool File::readExtensions()
 {
 	long target = _voxoffset;
 	if (!_nii) {
@@ -724,7 +838,7 @@ bool NiftiImage::readExtensions()
 			NIFTI_ERROR("Could not read extension.");
 			return false;
 		}
-		_extensions.emplace_back(NiftiExtension(code, dataBytes));
+		_extensions.emplace_back(Extension(code, dataBytes));
 
 		if (_nii && (_file.tell() > _voxoffset)) {
 			NIFTI_ERROR("Went past start of voxel data while reading extensions.");
@@ -735,7 +849,7 @@ bool NiftiImage::readExtensions()
 }
 
 
-bool NiftiImage::writeHeader() {
+bool File::writeHeader() {
 	struct nifti_1_header nhdr;
 	memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
 	/**- load the ANALYZE-7.5 generic parts of the header struct */
@@ -779,6 +893,8 @@ bool NiftiImage::writeHeader() {
 	// Check that _voxoffset is sensible
 	if (_nii && (_voxoffset < nhdr.sizeof_hdr))
 		_voxoffset = 352;
+	if (_nii && (_mode != WRITE_SKIP_EXT))
+		_voxoffset += totalExtensionSize();
 	nhdr.vox_offset = _voxoffset ;
 	nhdr.xyzt_units = SPACE_TIME_TO_XYZT(xyz_units, time_units);
 	nhdr.toffset    = toffset ;
@@ -830,7 +946,15 @@ bool NiftiImage::writeHeader() {
 	return true;
 }
 
-bool NiftiImage::writeExtensions() {
+int File::totalExtensionSize() {
+	int total = 0;
+	for (auto ext: _extensions) {
+		total += ext.size();
+	}
+	return total;
+}
+
+bool File::writeExtensions() {
 	_file.seek(sizeof(nifti_1_header), SEEK_SET);
 	char extender[4] = {0, 0, 0, 0};
 	if (_extensions.size() > 0)
@@ -841,7 +965,8 @@ bool NiftiImage::writeExtensions() {
 	}
 	
 	for (auto ext : _extensions) {
-		size_t size = ext.size();
+		int size = ext.size();
+		int padding = ext.padding();
 		long bytesWritten = _file.write(&size, 4);
 		int code = ext.code();
 		bytesWritten += _file.write(&code, 4);
@@ -853,6 +978,17 @@ bool NiftiImage::writeExtensions() {
 			NIFTI_ERROR("Could not write extension data.");
 			return false;
 		}
+		if (padding) {
+			vector<char> pad(padding, 0);
+			if (_file.write(pad.data(), padding) != padding) {
+				NIFTI_ERROR("Could not write extension padding.");
+				return false;
+			}
+		}
+	}
+	if ((_file.tell() - totalExtensionSize()) != sizeof(nifti_1_header)) {
+		NIFTI_ERROR("Wrote wrong number of bytes for extensions.");
+		return false;
 	}
 	return true;
 }
@@ -868,7 +1004,7 @@ bool NiftiImage::writeExtensions() {
   *   @return On success a pointer to the read bytes (if buffer was specified
   *           then will be the same). NULL on fail.
   */
-char *NiftiImage::readBytes(size_t start, size_t length, char *buffer)
+char *File::readBytes(size_t start, size_t length, char *buffer)
 {
 	if (!_valid) {
 		NIFTI_ERROR("Cannot read from a file marked as invalid.");
@@ -918,7 +1054,7 @@ char *NiftiImage::readBytes(size_t start, size_t length, char *buffer)
   *   @param start Location in file to start the write
   *   @param length Number of bytes to write
   */
-void NiftiImage::writeBytes(size_t start, size_t length, char *buffer)
+void File::writeBytes(size_t start, size_t length, char *buffer)
 {
 	if (!_valid) {
 		NIFTI_ERROR("Cannot write to a file marked as invalid.");
@@ -948,7 +1084,7 @@ void NiftiImage::writeBytes(size_t start, size_t length, char *buffer)
 	}
 }
 
-bool NiftiImage::open(const string &path, const char &mode) {
+bool File::open(const string &path, const char &mode) {
 	_basepath = path.substr(0, path.find_first_of("."));
 	if (path.substr(path.find_last_of(".") + 1) == "gz") {
 		_gz = true;
@@ -968,37 +1104,36 @@ bool NiftiImage::open(const string &path, const char &mode) {
 	
 	if (_mode != CLOSED) {
 		NIFTI_ERROR("Attempted to open file " << path <<
-		           " using NiftiImage that is already open with file " + imagePath());
+		           " using File that is already open with file " + imagePath());
 		_valid = false;
 	} else {
-		if ((mode == READ) || (mode == READ_HEADER)) {
-			if(!_file.open(headerPath().c_str(), "rb", _gz)) {
-				NIFTI_ERROR("Could not open header file " + headerPath() + " for reading.");
+		_mode = mode;
+		_valid = true;
+		if ((_mode == READ) || (_mode == READ_HEADER) || (_mode == READ_SKIP_EXT)) {
+			if(!_file.open(headerPath().c_str(), "rb", _gz))
 				_valid = false;
-				return _valid;
-			}
-			if (!readHeader()) {
+			if (!readHeader())
 				_valid = false;
-				return _valid;
-			}
-		} else if (mode == WRITE) {
-			if(!_file.open(headerPath().c_str(), "wb", _gz)) {
-				NIFTI_ERROR("Could not open header file " + headerPath() + " for writing.");
+			if ((_mode == READ) && (!readExtensions()))
 				_valid = false;
-				return _valid;
-			}
-			if (!writeHeader()) {
+		} else if (_mode == WRITE) {
+			if(!_file.open(headerPath().c_str(), "wb", _gz))
 				_valid = false;
-				return _valid;
-			}
+			if (!writeHeader())
+				_valid = false;
+			if ((_mode == WRITE) && (!writeExtensions()))
+				_valid = false;
 		} else {
 			NIFTI_FAIL(string("Invalid NiftImage mode '") + mode + "'.");
 			_valid = false;
 		}
-		_mode = mode; // This must be set after readHeader() as there is setDatatype() call in it
-		if (mode == READ_HEADER) {
+		if (!_valid) {
+			NIFTI_ERROR("Error while opening header.");
+			return _valid;
+		}
+		
+		if (_mode == READ_HEADER) {
 			close();
-			_valid = true;
 		} else {
 			if (!_nii) {
 				// Need to close the header and open the image
@@ -1011,24 +1146,20 @@ bool NiftiImage::open(const string &path, const char &mode) {
 				if (!result) {
 					NIFTI_ERROR("Could not open image file: " << imagePath());
 					_valid = false;
-					return _valid;
 				}
 			}
 			if (!_file.seek(_voxoffset, SEEK_SET)) {
 				cout << _file.tell() << endl;
 				NIFTI_ERROR("Could not seek to voxel offset.");
 				_valid = false;
-				return _valid;
-			} else {
-				_valid = true;
 			}
 		}
 	}
 	return _valid;
 }
 
-bool NiftiImage::isValid() { return _valid; }
-void NiftiImage::close()
+bool File::isValid() { return _valid; }
+void File::close()
 {
 	if (_mode == CLOSED) {
 		NIFTI_ERROR("File is already closed: " << imagePath());
@@ -1053,7 +1184,7 @@ void NiftiImage::close()
 	}
 }
 
-int NiftiImage::dimensions() const {
+int File::dimensions() const {
 	for (int d = 7; d > 0; d--) {
 		if (_dim[d - 1] > 1) {
 			return d;
@@ -1061,7 +1192,7 @@ int NiftiImage::dimensions() const {
 	}
 	return 1;
 }
-void NiftiImage::setDimensions(const ArrayXi &dims, const ArrayXf &voxDims) {
+void File::setDimensions(const ArrayXi &dims, const ArrayXf &voxDims) {
 	if (dims.rows() != voxDims.rows())
 		NIFTI_FAIL("Length of dimension and voxel size arrays did not match.");
 	if ((dims.rows() < 1) || (dims.rows() > 7))
@@ -1074,7 +1205,7 @@ void NiftiImage::setDimensions(const ArrayXi &dims, const ArrayXf &voxDims) {
 	}
 }
 	
-int NiftiImage::dim(const int d) const {
+int File::dim(const int d) const {
 	if ((d > 0) && (d <= _dim.rows())) {
 		return _dim[d - 1];
 	} else {
@@ -1082,7 +1213,7 @@ int NiftiImage::dim(const int d) const {
 		return -1;
 	}
 }
-void NiftiImage::setDim(const int d, const int n) {
+void File::setDim(const int d, const int n) {
 	if (_mode == CLOSED) {
 		if ((d > 0) && (d < 8)) {
 			_dim[d - 1] = n;
@@ -1093,8 +1224,8 @@ void NiftiImage::setDim(const int d, const int n) {
 		NIFTI_FAIL("Cannot change image dimensions for open file: " << imagePath());
 	}
 }
-const ArrayXi NiftiImage::dims() const { return _dim.head(dimensions()); }
-void NiftiImage::setDims(const ArrayXi &n) {
+const ArrayXi File::dims() const { return _dim.head(dimensions()); }
+void File::setDims(const ArrayXi &n) {
 	if (_mode == CLOSED) {
 		if (n.rows() <= _dim.rows())
 			_dim.head(n.rows()) = n;
@@ -1105,17 +1236,17 @@ void NiftiImage::setDims(const ArrayXi &n) {
 	}
 }
 
-int NiftiImage::voxelsPerSlice() const  { return _dim[0]*_dim[1]; };
-int NiftiImage::voxelsPerVolume() const { return _dim[0]*_dim[1]*_dim[2]; };
-int NiftiImage::voxelsTotal() const     { return _dim.prod(); }
+int File::voxelsPerSlice() const  { return _dim[0]*_dim[1]; };
+int File::voxelsPerVolume() const { return _dim[0]*_dim[1]*_dim[2]; };
+int File::voxelsTotal() const     { return _dim.prod(); }
 
-float NiftiImage::voxDim(const int d) const {
+float File::voxDim(const int d) const {
 	if ((d > 0) && (d <= _voxdim.rows()))
 		return _voxdim[d - 1];
 	else
 		NIFTI_FAIL("Tried to read voxel size for invalid dimension: " << d << " from file: " << imagePath());
 }
-void NiftiImage::setVoxDim(const int d, const float f) {
+void File::setVoxDim(const int d, const float f) {
 	if (_mode == CLOSED) {
 		if ((d > 0) && (d <= _voxdim.rows()))
 			_voxdim[d] = f;
@@ -1124,8 +1255,8 @@ void NiftiImage::setVoxDim(const int d, const float f) {
 	} else
 		NIFTI_FAIL("Cannot change voxel sizes for open file.");
 }
-const ArrayXf NiftiImage::voxDims() const { return _voxdim; }
-void NiftiImage::setVoxDims(const ArrayXf &n) {
+const ArrayXf File::voxDims() const { return _voxdim; }
+void File::setVoxDims(const ArrayXf &n) {
 	if (_mode == CLOSED) {
 		if (n.rows() <= _voxdim.rows())
 			_voxdim.head(n.rows()) = n;
@@ -1135,47 +1266,23 @@ void NiftiImage::setVoxDims(const ArrayXf &n) {
 		NIFTI_FAIL("Cannot change voxel sizes for open file: " << imagePath());
 }
 
-const int &NiftiImage::datatype() const { return _datatype.code; }
-const string &NiftiImage::dtypeName() const { return _datatype.name; }
-const int &NiftiImage::bytesPerVoxel() const { return _datatype.size; }
-void NiftiImage::setDatatype(const int dt)
+const int &File::datatype() const { return _datatype.code; }
+const string &File::dtypeName() const { return _datatype.name; }
+const int &File::bytesPerVoxel() const { return _datatype.size; }
+void File::setDatatype(const int dt)
 {
-	/*  The map is declared here because making it a static member of NiftiImage was
-	 *  causing problems with looking up the datatype in close() when called by 
-	 *  ~NiftiImage. It's possible for C++ to destruct static members even when
-	 *  objects still exist in another translation unit.
-	 */
-	static const DTMap DataTypes{
-		{NIFTI_TYPE_UINT8,    {NIFTI_TYPE_UINT8, 1, 0, "NIFTI_TYPE_UINT8"} },
-		{NIFTI_TYPE_INT16,    {NIFTI_TYPE_INT16, 2, 2, "NIFTI_TYPE_INT16"} },
-		{NIFTI_TYPE_INT32,    {NIFTI_TYPE_INT32, 4, 4, "NIFTI_TYPE_INT32"} },
-		{NIFTI_TYPE_FLOAT32,   {NIFTI_TYPE_FLOAT32, 4, 4, "NIFTI_TYPE_FLOAT32"} },
-		{NIFTI_TYPE_COMPLEX64,   {NIFTI_TYPE_COMPLEX64, 8, 4, "NIFTI_TYPE_COMPLEX64"} },
-		{NIFTI_TYPE_FLOAT64,   {NIFTI_TYPE_FLOAT64, 8, 8, "NIFTI_TYPE_FLOAT64"} },
-		{NIFTI_TYPE_RGB24,  {NIFTI_TYPE_RGB24, 3, 0, "NIFTI_TYPE_RGB24"} },
-		{NIFTI_TYPE_INT8,  {NIFTI_TYPE_INT8, 1, 0, "NIFTI_TYPE_INT8"} },
-		{NIFTI_TYPE_UINT16,  {NIFTI_TYPE_UINT16, 2, 2, "NIFTI_TYPE_UINT16"} },
-		{NIFTI_TYPE_UINT32,  {NIFTI_TYPE_UINT32, 4, 4, "NIFTI_TYPE_UINT32"} },
-		{NIFTI_TYPE_INT64, {NIFTI_TYPE_INT64, 8, 8, "NIFTI_TYPE_INT64"} },
-		{NIFTI_TYPE_UINT64, {NIFTI_TYPE_UINT64, 8, 8, "NIFTI_TYPE_UINT64"} },
-		{NIFTI_TYPE_FLOAT128, {NIFTI_TYPE_FLOAT128, 16, 16, "NIFTI_TYPE_FLOAT128"} },
-		{NIFTI_TYPE_COMPLEX128, {NIFTI_TYPE_COMPLEX128, 16,  8, "NIFTI_TYPE_COMPLEX128"} },
-		{NIFTI_TYPE_COMPLEX256, {NIFTI_TYPE_COMPLEX256, 32, 16, "NIFTI_TYPE_COMPLEX256"} },
-		{NIFTI_TYPE_RGBA32, {NIFTI_TYPE_RGBA32, 4,   0, "NIFTI_TYPE_RGBA32"} }
-	};
-
 	if (_mode != CLOSED) {
 		NIFTI_ERROR("Cannot set the datatype of open file: " << imagePath());
 		return;
 	}
-    DTMap::const_iterator it = DataTypes.find(dt);
-	if (it == DataTypes.end())
+    DTMap::const_iterator it = DataTypes().find(dt);
+	if (it == DataTypes().end())
 		NIFTI_ERROR("Attempted to set invalid datatype.");
 	else
 		_datatype = it->second;
 }
 
-bool NiftiImage::matchesVoxels(const NiftiImage &other) const
+bool File::matchesVoxels(const File &other) const
 {
 	// Only check the first 3 dimensions
 	if ((_dim.head(3) == other._dim.head(3)).all() && (_voxdim.head(3).isApprox(other._voxdim.head(3))))
@@ -1184,7 +1291,7 @@ bool NiftiImage::matchesVoxels(const NiftiImage &other) const
 		return false;
 }
 
-bool NiftiImage::matchesSpace(const NiftiImage &other) const
+bool File::matchesSpace(const File &other) const
 {
 	if (matchesVoxels(other) && ijk_to_xyz().isApprox(other.ijk_to_xyz()))
 		return true;
@@ -1192,16 +1299,16 @@ bool NiftiImage::matchesSpace(const NiftiImage &other) const
 		return false;	
 }
 
-const Matrix4f &NiftiImage::qform() const { return _qform.matrix(); }
-const Matrix4f &NiftiImage::sform() const { return _sform.matrix(); }
-const Matrix4f &NiftiImage::ijk_to_xyz() const
+const Matrix4f &File::qform() const { return _qform.matrix(); }
+const Matrix4f &File::sform() const { return _sform.matrix(); }
+const Matrix4f &File::ijk_to_xyz() const
 {
 	if ((sform_code > 0) && (sform_code >= qform_code))
 		return _sform.matrix();
 	else // There is always a _qform matrix
 		return _qform.matrix();
 }
-const Matrix4f &NiftiImage::xyz_to_ijk() const
+const Matrix4f &File::xyz_to_ijk() const
 {
 	static Matrix4f inverse;
 	if ((sform_code > 0) && (sform_code >= qform_code))
@@ -1210,3 +1317,5 @@ const Matrix4f &NiftiImage::xyz_to_ijk() const
 		inverse = _qform.matrix().inverse();
 	return inverse;
 }
+
+}; // End namespace Nifti

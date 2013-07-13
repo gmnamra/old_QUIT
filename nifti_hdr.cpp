@@ -11,9 +11,10 @@
 #include <iostream>
 #include <getopt.h>
 
-using namespace std;
-
 #include "NiftiImage.h"
+
+using namespace std;
+using namespace Nifti;
 
 const string usage = "nifti_hdr - A utility for getting information from Nifti headers.\n\
 \n\
@@ -57,7 +58,7 @@ static struct option long_options[] =
 	{0, 0, 0, 0}
 };
 
-string voxMessage(const NiftiImage &im) {
+string voxMessage(const File &im) {
 	stringstream m;
 	m << "Voxel sizes: " << im.voxDims().transpose() << " " << im.spaceUnits();
 	if (im.voxDims().rows() > 3) {
@@ -66,14 +67,14 @@ string voxMessage(const NiftiImage &im) {
 	return m.str();
 }
 
-string sizeMessage(const NiftiImage &im) {
+string sizeMessage(const File &im) {
 	stringstream m;
 	m << "Voxels per slice, per volume, total: "
       << im.voxelsPerSlice() << ", " << im.voxelsPerVolume() << ", " << im.voxelsTotal();
 	return m.str();
 }
 
-string dataMessage(const NiftiImage &im) {
+string dataMessage(const File &im) {
 	stringstream m;
 	m << "Datatype: " << im.dtypeName() << ", size in bytes: " << im.bytesPerVoxel();
 	return m.str();
@@ -96,7 +97,6 @@ int main(int argc, char **argv) {
 				return EXIT_FAILURE;
 		}
 	}
-	
 	if ((argc - optind) <= 0 ) {
 		cerr << "No input image file specified." << endl;
 		exit(EXIT_FAILURE);
@@ -104,10 +104,10 @@ int main(int argc, char **argv) {
 	if (optind == 1) { // No options specified, default is short header
 		mode = Abbreviated;
 	}
-	vector<NiftiImage> images;
+	vector<File> images;
 	images.reserve(argc - optind); // emplace_back can still trigger copies if the vector has to be resized
 	for (;optind < argc; optind++) {
-		images.emplace_back(argv[optind], NiftiImage::READ_HEADER);
+		images.emplace_back(argv[optind], READ_HEADER);
 	}
 	
 	if (mode == Compare) { // Compare first image to all others and check headers are compatible
@@ -157,3 +157,4 @@ int main(int argc, char **argv) {
 	
 	return EXIT_SUCCESS;
 }
+
