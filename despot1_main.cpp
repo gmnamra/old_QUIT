@@ -16,7 +16,7 @@
 #include <atomic>
 #include <Eigen/Dense>
 
-#include "NiftiImage.h"
+#include "Nifti.h"
 #include "DESPOT.h"
 
 #ifdef HAVE_NRECON
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	double spgrTR = 0.;
 	int nSPGR;
 	vector<double> B1Data, maskData;
-	NiftiImage spgrFile, B1File, maskFile;
+	Nifti::File spgrFile, B1File, maskFile;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "m:o:vd", long_options, &indexptr)) != -1) {
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	if (!spgrFile.open(argv[optind], 'r')) {
-		exit(EXIT_FAILURE); //NiftiImage will print an error message
+		exit(EXIT_FAILURE); //Nifti will print an error message
 	}
 	if ((maskFile.isValid() && !maskFile.matchesSpace(spgrFile)) ||
 	    (B1File.isValid() && !B1File.matchesSpace(spgrFile))) {
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 		}
 	}
 	const string names[NR] = { "D1_PD", "D1_T1", "D1_Residual" };
-	NiftiImage outFile(spgrFile);
+	Nifti::File outFile(spgrFile);
 	outFile.setDim(4, 1);
 	outFile.setDatatype(DT_FLOAT32);
 	for (int r = 0; r < NR; r++) {

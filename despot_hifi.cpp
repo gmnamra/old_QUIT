@@ -18,7 +18,7 @@
 #include <atomic>
 #include <Eigen/Dense>
 
-#include "NiftiImage.h"
+#include "Nifti.h"
 #include "DESPOT.h"
 
 #ifdef HAVE_NRECON
@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	cout << credit << endl;
 	int nSPGR = 0, nIR = 0;
-	NiftiImage maskFile, spgrFile, irFile;
+	Nifti::File maskFile, spgrFile, irFile;
 	vector<double> maskData;
 	
 	int indexptr = 0, c;
@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	#pragma mark Write out data
 	//**************************************************************************
-	NiftiImage outFile(spgrFile);
+	Nifti::File outFile(spgrFile);
 	outFile.setDim(4, 1);
 	outFile.setDatatype(DT_FLOAT32);
 	for (int r = 0; r < NR; r++) {

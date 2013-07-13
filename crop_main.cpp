@@ -13,7 +13,7 @@
  */
 
 #include <iostream>
-#include "NiftiImage.h"
+#include "Nifti.h"
 
 const char *usage = "Usage is: crop input_file\n\
 \n\
@@ -30,8 +30,8 @@ int main(int argc, const char * argv[])
 	}
 	
 	
-	NiftiImage image;
-	image.open(argv[1], NiftiImage::READ);
+	Nifti image;
+	image.open(argv[1], Nifti::READ);
 	
 	float *data = image.readVolume<float>(0);
 	float thresh = 0.;

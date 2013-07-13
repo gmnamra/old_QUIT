@@ -16,7 +16,7 @@
 #include <stdbool.h>
 #include <getopt.h>
 
-#include "NiftiImage.h"
+#include "Nifti.h"
 #include "procpar.h"
 
 using namespace std;
@@ -47,14 +47,14 @@ int main(int argc, char **argv)
 	string procPath, outPrefix;
 	double n, nomFlip;
 	vector<double> tr1, tr2, flip, B1, mask;
-	NiftiImage maskFile, inFile;
+	Nifti::File maskFile, inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1)
 	{
 		switch (c)
 		{
 			case 'm':
 				cout << "Reading mask." << endl;
-				if (!maskFile.open(optarg, NiftiImage::READ)) {
+				if (!maskFile.open(optarg, Nifti::READ)) {
 					exit(EXIT_FAILURE);
 				}
 				mask = maskFile.readVolume<double>(0);
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	cout << "Opening input file " << argv[optind] << endl;
-	if (!inFile.open(argv[optind], NiftiImage::READ)) {
+	if (!inFile.open(argv[optind], Nifti::READ)) {
 		exit(EXIT_FAILURE);
 	}
 	if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
@@ -112,18 +112,18 @@ int main(int argc, char **argv)
 		else
 			B1[vox] = 1.; // So smoothing doesn't get messed up
 	}
-	NiftiImage outFile(inFile);
+	Nifti::File outFile(inFile);
 	inFile.setDim(4,1);
 	inFile.setDatatype(DT_FLOAT32);
 	string outPath = outPrefix + "_flip.nii.gz";
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
-	outFile.open(outPath, NiftiImage::WRITE);
+	outFile.open(outPath, Nifti::WRITE);
 	outFile.writeVolume(0, flip);
 	outFile.close();
 	
 	outPath = outPrefix + "_B1.nii.gz";
 	cout << "Writing B1 ratio to " << outPath << "..." << endl;
-	outFile.open(outPath, NiftiImage::WRITE);
+	outFile.open(outPath, Nifti::WRITE);
 	outFile.writeVolume(0, B1);
 	outFile.close();
 	

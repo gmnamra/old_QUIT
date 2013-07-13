@@ -13,7 +13,7 @@
 
 #include "RegionContraction.h"
 //#include "DESPOT_Functors.h"
-#include "NiftiImage.h"
+#include "Nifti.h"
 #include "procpar.h"
 
 static int components = 1, tesla = 7;
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
 	alphaSPGR *= 180. / M_PI;
 	alphaSSFP *= 180. / M_PI;
 	phases *= 180. / M_PI;
-	NiftiImage outFile(nx, ny, nz, alphaSPGR.size(),
+	Nifti::File outFile(nx, ny, nz, alphaSPGR.size(),
 					   volSize / nx, volSize / ny, volSize / nz, spgrTR,
 					   NIFTI_TYPE_FLOAT32);
 	std::string outName;

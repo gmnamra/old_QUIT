@@ -16,7 +16,7 @@
 #include <atomic>
 #include <Eigen/Dense>
 
-#include "NiftiImage.h"
+#include "Nifti.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 	Eigen::initParallel();
-	NiftiImage maskFile, B0File, B1File, inFile, savedHeader;
+	Nifti::File maskFile, B0File, B1File, inFile, savedHeader;
 	vector<double> maskData, B0Data, B1Data, T1Data;
 	string procPath;
 	
@@ -355,23 +355,23 @@ int main(int argc, char **argv)
 	if (tesla == 0) {
 		const vector<string> classic_names { "D2_PD", "D2_T2" };
 		for (int p = 0; p < 2; p++) {
-			savedHeader.open(outPrefix + classic_names[p] + ".nii.gz", NiftiImage::WRITE);
+			savedHeader.open(outPrefix + classic_names[p] + ".nii.gz", Nifti::WRITE);
 			savedHeader.writeVolume(0, paramsData[p]);
 			savedHeader.close();
 		}
 		savedHeader.setDim(4, nResiduals);
-		savedHeader.open(outPrefix + "D2_Residual.nii.gz", NiftiImage::WRITE);
+		savedHeader.open(outPrefix + "D2_Residual.nii.gz", Nifti::WRITE);
 		for (int i = 0; i < nResiduals; i++)
 			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 		savedHeader.close();
 	} else {
 		for (int p = 0; p < nP; p++) {
-			savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", NiftiImage::WRITE);
+			savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", Nifti::WRITE);
 			savedHeader.writeVolume(0, paramsData[p]);
 			savedHeader.close();
 		}
 		savedHeader.setDim(4, nResiduals);
-		savedHeader.open(outPrefix + "FM_Residual.nii.gz", NiftiImage::WRITE);
+		savedHeader.open(outPrefix + "FM_Residual.nii.gz", Nifti::WRITE);
 		for (int i = 0; i < nResiduals; i++)
 			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 		savedHeader.close();

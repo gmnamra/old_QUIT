@@ -13,7 +13,7 @@
 #include <string>
 #include <getopt.h>
 
-#include "NiftiImage.h"
+#include "Nifti.h"
 #include "procpar.h"
 
 using namespace std;
@@ -50,12 +50,12 @@ int main(int argc, char** argv)
 	int indexptr = 0, c;
 	double TE1, TE2, deltaTE, phasetime = 0.;
 	vector<double> data1, data2, B0, mask;
-	NiftiImage maskFile, inFile;
+	Nifti::File maskFile, inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
 				cout << "Reading mask from " << optarg << endl;
-				maskFile.open(optarg, NiftiImage::READ);
+				maskFile.open(optarg, Nifti::READ);
 				mask = maskFile.readVolume<double>(0);
 				maskFile.close();
 				break;
@@ -66,7 +66,7 @@ int main(int argc, char** argv)
 	}
 	if ((argc - optind) == 2) {
 		cout << "Opening input file " << argv[optind] << "." << endl;
-		inFile.open(argv[optind], NiftiImage::READ);
+		inFile.open(argv[optind], Nifti::READ);
 		if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 		inFile.close();
 	} else if ((argc - optind) == 3) {
 		cout << "Opening input file 1" << argv[optind] << "." << endl;
-		inFile.open(argv[optind], NiftiImage::READ);
+		inFile.open(argv[optind], Nifti::READ);
 		if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
 		data1 = inFile.readVolume<double>(0);
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
-		inFile.open(argv[optind], NiftiImage::READ);
+		inFile.open(argv[optind], Nifti::READ);
 		if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
@@ -152,10 +152,10 @@ int main(int argc, char** argv)
 	cout << "Writing B0 map." << endl;
 	string outPath = outPrefix + "_B0.nii.gz";
 	
-	NiftiImage outFile(inFile);
+	Nifti::File outFile(inFile);
 	outFile.setDim(4, 1);
 	outFile.setDatatype(DT_FLOAT32);
-	outFile.open(outPath, NiftiImage::WRITE);
+	outFile.open(outPath, Nifti::WRITE);
 	outFile.writeVolume(0, B0);
 	outFile.close();
 	cout << "Finished." << endl;
