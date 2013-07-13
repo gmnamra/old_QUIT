@@ -1,4 +1,4 @@
-#include "NiftiImage.h"
+#include "Nifti.h"
 
 namespace Nifti {
 //******************************

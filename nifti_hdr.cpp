@@ -11,7 +11,7 @@
 #include <iostream>
 #include <getopt.h>
 
-#include "NiftiImage.h"
+#include "Nifti.h"
 
 using namespace std;
 using namespace Nifti;

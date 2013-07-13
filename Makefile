@@ -40,7 +40,7 @@ $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp
 # Variables to specify source files
 #
 
-NIFTI_FILES = NiftiImage.cpp
+NIFTI_FILES = Nifti.cpp
 NIFTI_DEPS  = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(NIFTI_FILES))
 HDR_FILES   = nifti_hdr.cpp
 HDR_DEPS  = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(HDR_FILES))
@@ -49,17 +49,17 @@ HDR_DEPS  = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(HDR_FILES))
 # Targets
 #
 
-NiftiImage : $(NIFTI_DEPS)
-	$(AR) $(LIB_OPTIONS) $(BUILD_DIR)/libNiftiImage.a $(NIFTI_DEPS)
+Nifti : $(NIFTI_DEPS)
+	$(AR) $(LIB_OPTIONS) $(BUILD_DIR)/libNifti.a $(NIFTI_DEPS)
 
-nifti_hdr : $(HDR_DEPS) NiftiImage
+nifti_hdr : $(HDR_DEPS) Nifti
 	$(CXX) $(CXX_FLAGS) $(HDR_DEPS) -o $(BUILD_DIR)/nifti_hdr $(LD_FLAGS) -lNiftiImage -lz
 
-all     : NiftiImage nifti_hdr
+all     : Nifti nifti_hdr
 
 install : all $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB)
 	cp $(SRC_DIR)/*.h $(INSTALL_INC)/
-	cp $(BUILD_DIR)/libNiftiImage.a $(INSTALL_LIB)/
+	cp $(BUILD_DIR)/libNifti.a $(INSTALL_LIB)/
 	cp $(BUILD_DIR)/nifti_hdr $(INSTALL_BIN)/
 
 clean : 
