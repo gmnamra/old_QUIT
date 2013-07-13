@@ -986,7 +986,7 @@ bool File::writeExtensions() {
 			}
 		}
 	}
-	if ((_file.tell() - totalExtensionSize()) != sizeof(nifti_1_header)) {
+	if ((_file.tell() - totalExtensionSize() - 4) != sizeof(nifti_1_header)) {
 		NIFTI_ERROR("Wrote wrong number of bytes for extensions.");
 		return false;
 	}
@@ -1110,25 +1110,34 @@ bool File::open(const string &path, const char &mode) {
 		_mode = mode;
 		_valid = true;
 		if ((_mode == READ) || (_mode == READ_HEADER) || (_mode == READ_SKIP_EXT)) {
-			if(!_file.open(headerPath().c_str(), "rb", _gz))
+			if(!_file.open(headerPath().c_str(), "rb", _gz)) {
 				_valid = false;
-			if (!readHeader())
+				return _valid;
+			}
+			if (!readHeader()) {
 				_valid = false;
-			if ((_mode == READ) && (!readExtensions()))
+				return _valid;
+			}
+			if ((_mode == READ) && (!readExtensions())) {
 				_valid = false;
+				return _valid;
+			}
 		} else if (_mode == WRITE) {
-			if(!_file.open(headerPath().c_str(), "wb", _gz))
+			if(!_file.open(headerPath().c_str(), "wb", _gz)) {
 				_valid = false;
-			if (!writeHeader())
+				return _valid;
+			}
+			if (!writeHeader()) {
 				_valid = false;
-			if ((_mode == WRITE) && (!writeExtensions()))
+				return _valid;
+			}
+			if ((_mode == WRITE) && (!writeExtensions())) {
 				_valid = false;
+				return _valid;
+			}
 		} else {
 			NIFTI_FAIL(string("Invalid NiftImage mode '") + mode + "'.");
 			_valid = false;
-		}
-		if (!_valid) {
-			NIFTI_ERROR("Error while opening header.");
 			return _valid;
 		}
 		

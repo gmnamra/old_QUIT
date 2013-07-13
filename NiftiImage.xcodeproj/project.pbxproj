@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F67F75911792191A00A278B6 /* Nifti.h in Headers */ = {isa = PBXBuildFile; fileRef = F6C4AF17160B156C00254B6C /* Nifti.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F6BADCE6178B75DD00DCD475 /* nifti_hdr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F64D55DB178B0C3B005BF1A8 /* nifti_hdr.cpp */; };
 		F6BADCE8178B75E800DCD475 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F64D55E5178B16DC005BF1A8 /* libz.dylib */; };
 		F6F2E6F31792165900A4AC8F /* Nifti.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6C4AF16160B156C00254B6C /* Nifti.cpp */; };
@@ -87,6 +88,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F67F75911792191A00A278B6 /* Nifti.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
