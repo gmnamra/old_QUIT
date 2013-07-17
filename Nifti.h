@@ -80,7 +80,7 @@ class ZipFile {
 		size_t read(void *buff, unsigned size);   //!< Attempts to reads size bytes from the image file to buff. Returns actual number read.
 		size_t write(const void *buff, int size); //!< Attempts to write size bytes from buff to the image file. Returns actual number written.
 		bool seek(long offset, int whence);       //!< Seeks to the specified position in the file. Returns true if successful.
-		long tell();                              //!< Returns the current position in the file
+		long tell() const;                        //!< Returns the current position in the file
 		void flush();                             //!< Flushes unwritten buffer contents
 };
 
@@ -290,14 +290,15 @@ class File {
 		~File();
 		File();
 		File(const File &other);
-		File(File &&other); //!< Move constructor
+		File &operator=(const File &other);
+		File(File &&other) noexcept; //!< Move constructor
+		
 		File(const int nx, const int ny, const int nz, const int nt,
 		           const float dx, const float dy, const float dz, const float dt,
 				   const int datatype);
 		File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
                    const Matrix4f &qform = Matrix4f::Identity(), const Matrix4f &sform = Matrix4f::Identity());
 		File(const string &filename, const char &mode);
-		File &operator=(const File &other);
 		
 		bool isValid(); //!< Reports if this header is valid, i.e. has successfully opened a file at some point, and nothing has gone wrong with reading or writing
 		bool open(const string &filename, const char &mode); //!< Attempts to open a NIfTI file. Returns true on success, false on failure.

@@ -112,7 +112,7 @@ bool ZipFile::seek(long offset, int whence) {
 		return (fseek(_unzipped, offset, whence) == 0);
 }
 
-long ZipFile::tell() {
+long ZipFile::tell() const {
 	if (_zip)
 		return gztell(_zipped);
 	else
@@ -497,6 +497,7 @@ File::~File()
 File::File() :
 	_mode(CLOSED), _gz(false), _nii(false), _valid(false), _swap(false), _voxoffset(0),
 	_dim(Matrix<int, 7, 1>::Ones()), _voxdim(Matrix<float, 7, 1>::Ones()),
+	_basepath(""),
 	scaling_slope(1.), scaling_inter(0.), calibration_min(0.), calibration_max(0.),
 	freq_dim(0), phase_dim(0), slice_dim(0),
 	slice_code(0), slice_start(0), slice_end(0), slice_duration(0),
@@ -510,11 +511,11 @@ File::File() :
 }
 
 File::File(const File &other) :
-	_mode(CLOSED), _gz(other._gz), _nii(other._nii),
-	_valid(false), _swap(other._swap), _voxoffset(other._voxoffset),
+	_mode(other._mode), _gz(other._gz), _nii(other._nii),
+	_valid(other._valid), _swap(other._swap), _voxoffset(other._voxoffset),
 	_dim(other._dim), _voxdim(other._voxdim),
 	_sform(other._sform), _qform(other._qform), _datatype(other._datatype),
-	_file(),
+	_file(), _basepath(other._basepath),
 	scaling_slope(other.scaling_slope), scaling_inter(other.scaling_inter),
 	calibration_min(other.calibration_min), calibration_max(other.calibration_max),
 	freq_dim(other.freq_dim), phase_dim(other.phase_dim), slice_dim(other.slice_dim),
@@ -525,15 +526,21 @@ File::File(const File &other) :
 	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file),
 	qform_code(other.qform_code), sform_code(other.sform_code)
 {
-
+	if (_valid && ((_mode == READ) || (_mode == READ_SKIP_EXT))) {
+		_file.open(imagePath(), "rb", _gz);
+		_file.seek(other._file.tell(), SEEK_SET);
+	} else if (_valid && ((_mode == WRITE) || (_mode == WRITE_SKIP_EXT))) {
+		_file.open(imagePath(), "wb", _gz);
+		_file.seek(other._file.tell(), SEEK_SET);
+	}
 }
 
-File::File(File &&other) :
+File::File(File &&other) noexcept :
 	_mode(other._mode), _gz(other._gz), _nii(other._nii),
 	_valid(other._valid), _swap(other._swap), _voxoffset(other._voxoffset),
 	_dim(other._dim), _voxdim(other._voxdim),
 	_sform(other._sform), _qform(other._qform), _datatype(other._datatype),
-	_file(other._file),
+	_file(other._file), _basepath(other._basepath),
 	scaling_slope(other.scaling_slope), scaling_inter(other.scaling_inter),
 	calibration_min(other.calibration_min), calibration_max(other.calibration_max),
 	freq_dim(other.freq_dim), phase_dim(other.phase_dim), slice_dim(other.slice_dim),
