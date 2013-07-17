@@ -88,9 +88,7 @@ int main(int argc, char **argv) {
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
-				if (!maskFile.open(optarg, 'r')) {
-					exit(EXIT_FAILURE);
-				}
+				maskFile.open(optarg, 'r');
 				maskData = maskFile.readVolume<double>(0);
 				maskFile.close();
 				break;
@@ -112,10 +110,8 @@ int main(int argc, char **argv) {
 	#pragma mark Gather SPGR data
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
-	if (!spgrFile.open(argv[optind], 'r')) {
-		exit(EXIT_FAILURE);
-	}
-	if (maskFile.isValid() && !maskFile.matchesSpace(spgrFile)) {
+	spgrFile.open(argv[optind], 'r');
+	if (maskFile.isOpen() && !maskFile.matchesSpace(spgrFile)) {
 		cerr << "SPGR file dimensions or transform do not match mask." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -141,9 +137,7 @@ int main(int argc, char **argv) {
 	#pragma mark Gather IR-SPGR data
 	//**************************************************************************	
 	cout << "Opening IR-SPGR file: " << argv[++optind] << endl;
-	if (!irFile.open(argv[optind], 'r')) {
-		exit(EXIT_FAILURE);
-	}
+	irFile.open(argv[optind], 'r');
 	if (!irFile.matchesSpace(spgrFile)) {
 		cerr << "Header of " << spgrFile.imagePath() << " does not match " << irFile.imagePath() << endl;
 		exit(EXIT_FAILURE);
@@ -238,7 +232,7 @@ int main(int argc, char **argv) {
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Assume B1 field is uniform for classic DESPOT
-			if (!maskFile.isValid() || (maskData[sliceOffset + vox] > 0.))
+			if (!maskFile.isOpen() || (maskData[sliceOffset + vox] > 0.))
 			{
 				voxCount++;
 				ArrayXd spgrs(nSPGR), irs(nIR);

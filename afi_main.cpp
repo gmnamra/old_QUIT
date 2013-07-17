@@ -54,9 +54,7 @@ int main(int argc, char **argv)
 		{
 			case 'm':
 				cout << "Reading mask." << endl;
-				if (!maskFile.open(optarg, Nifti::READ)) {
-					exit(EXIT_FAILURE);
-				}
+				maskFile.open(optarg, Nifti::READ);
 				mask = maskFile.readVolume<double>(0);
 				maskFile.close();
 				break;
@@ -67,10 +65,8 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	cout << "Opening input file " << argv[optind] << endl;
-	if (!inFile.open(argv[optind], Nifti::READ)) {
-		exit(EXIT_FAILURE);
-	}
-	if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
+	inFile.open(argv[optind], Nifti::READ);
+	if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
 		cerr << "Mask dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -98,7 +94,7 @@ int main(int argc, char **argv)
 	cout << "Allocated output memory." << endl;
 	cout << "Processing..." << endl;
 	for (int vox = 0; vox < inFile.voxelsPerVolume(); vox++) {
-		if (!maskFile.isValid() || mask[vox] > 0.) {
+		if (!maskFile.isOpen() || mask[vox] > 0.) {
 			double r = tr2[vox] / tr1[vox];
 			double temp = (r*n - 1.) / (n - r);
 			if (temp > 1.)

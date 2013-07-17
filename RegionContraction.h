@@ -16,6 +16,7 @@
 #include <vector>
 #include <random>
 #include <iostream>
+#include <atomic>
 
 #include <Eigen/Dense>
 
@@ -50,8 +51,8 @@ ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 	eigen_assert(params.size() == loStart.size());
 	eigen_assert(loStart.size() == hiStart.size());
 	
-	static bool finiteWarning = false;
-	static bool constraintWarning = false;
+	static atomic<bool> finiteWarning(false);
+	static atomic<bool> constraintWarning(false);
 	int nP = static_cast<int>(params.size());
 	ArrayXXd samples(nP, nS);
 	ArrayXXd retained(nP, nR);

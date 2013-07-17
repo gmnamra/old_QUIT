@@ -98,25 +98,19 @@ int main(int argc, char **argv)
 				break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
-				if (!maskFile.open(optarg, 'r')) {
-					exit(EXIT_FAILURE);
-				}
+				maskFile.open(optarg, 'r');
 				maskData = maskFile.readVolume<double>(0);
 				maskFile.close();
 				break;
 			case '0':
 				cout << "Reading B0 file: " << optarg << endl;
-				if (!B0File.open(optarg, 'r')) {
-					exit(EXIT_FAILURE);
-				}
+				B0File.open(optarg, 'r');
 				B0Data = B0File.readVolume<double>(0);
 				B0File.close();
 				break;
 			case '1':
 				cout << "Reading B1 file: " << optarg << endl;
-				if (!B1File.open(optarg, 'r')) {
-					exit(EXIT_FAILURE);
-				}
+				B1File.open(optarg, 'r');
 				B1Data = B1File.readVolume<double>(0);
 				B1File.close();
 				break;
@@ -150,7 +144,7 @@ int main(int argc, char **argv)
 				return EXIT_FAILURE;
 		}
 	}
-	if ((tesla != 0) && !B0File.isValid())
+	if ((tesla != 0) && !B0File.isOpen())
 		fitB0 = true;
 	if ((argc - optind) < 2) {
 		cout << "Wrong number of arguments. Need at least a T1 map and 1 SSFP file." << endl;
@@ -160,9 +154,9 @@ int main(int argc, char **argv)
 	savedHeader.open(argv[optind++], 'r');
 	T1Data = savedHeader.readVolume<double>(0);
 	savedHeader.close();
-	if ((maskFile.isValid() && !savedHeader.matchesSpace(maskFile)) ||
-	    (B0File.isValid() && !savedHeader.matchesSpace(B0File)) ||
-		(B1File.isValid() && !savedHeader.matchesSpace(B1File))){
+	if ((maskFile.isOpen() && !savedHeader.matchesSpace(maskFile)) ||
+	    (B0File.isOpen() && !savedHeader.matchesSpace(B0File)) ||
+		(B1File.isOpen() && !savedHeader.matchesSpace(B1File))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -177,9 +171,7 @@ int main(int argc, char **argv)
 	vector<vector<double>> ssfpData(nPhases);
 	for (size_t p = 0; p < nPhases; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
-		if (!inFile.open(argv[optind], 'r')) {
-			exit(EXIT_FAILURE);
-		}
+		inFile.open(argv[optind], 'r');
 		if (!inFile.matchesSpace(savedHeader)) {
 			cerr << "Input file dimensions and/or transforms do not match." << endl;
 			exit(EXIT_FAILURE);
@@ -293,15 +285,15 @@ int main(int argc, char **argv)
 			double T1 = 0.;
 			ArrayXd params(nP); params.setZero();
 			ArrayXd resid(nResiduals); resid.setZero();
-			if (!maskFile.isValid() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
+			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				voxCount++;
 				T1 = T1Data[sliceOffset + vox];
 				// Gather signals.
 				vector<VectorXd> signals;
 				for (int p = 0; p < nPhases; p++) {
-					consts[p].B0 = B0File.isValid() ? B0Data[sliceOffset + vox] : 0.;
-					consts[p].B1 = B1File.isValid() ? B1Data[sliceOffset + vox] : 1.;
+					consts[p].B0 = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
+					consts[p].B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 					VectorXd temp(nFlip);
 					for (int i = 0; i < nFlip; i++)
 						temp(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];

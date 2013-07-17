@@ -75,17 +75,13 @@ int main(int argc, char **argv)
 		switch (c) {
 			case '1':
 				cout << "Opening B1 file: " << optarg << endl;
-				 if (!B1File.open(optarg, 'r')) {
-				 	exit(EXIT_FAILURE);
-				}
+				B1File.open(optarg, 'r');
 				B1Data = B1File.readVolume<double>(0);
 				B1File.close();
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
-				if (!maskFile.open(optarg, 'r')) {
-					exit(EXIT_FAILURE);
-				}
+				maskFile.open(optarg, 'r');
 				maskData = maskFile.readVolume<double>(0);
 				maskFile.close();
 				break;
@@ -108,11 +104,9 @@ int main(int argc, char **argv)
 	#pragma mark Gather SPGR data
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
-	if (!spgrFile.open(argv[optind], 'r')) {
-		exit(EXIT_FAILURE); //Nifti will print an error message
-	}
-	if ((maskFile.isValid() && !maskFile.matchesSpace(spgrFile)) ||
-	    (B1File.isValid() && !B1File.matchesSpace(spgrFile))) {
+	spgrFile.open(argv[optind], 'r');
+	if ((maskFile.isOpen() && !maskFile.matchesSpace(spgrFile)) ||
+	    (B1File.isOpen() && !B1File.matchesSpace(spgrFile))) {
 		cerr << "Mask or B1 dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -183,10 +177,10 @@ int main(int argc, char **argv)
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
-			if (!maskFile.isValid() || (maskData[sliceOffset + vox] > 0.))
+			if (!maskFile.isOpen() || (maskData[sliceOffset + vox] > 0.))
 			{
 				voxCount++;
-				if (B1File.isValid())
+				if (B1File.isOpen())
 					B1 = B1Data[sliceOffset + vox];
 				ArrayXd spgrs(nSPGR);
 				int vol = 0;

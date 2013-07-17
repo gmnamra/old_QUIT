@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 	if ((argc - optind) == 2) {
 		cout << "Opening input file " << argv[optind] << "." << endl;
 		inFile.open(argv[optind], Nifti::READ);
-		if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
+		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
@@ -88,7 +88,7 @@ int main(int argc, char** argv)
 	} else if ((argc - optind) == 3) {
 		cout << "Opening input file 1" << argv[optind] << "." << endl;
 		inFile.open(argv[optind], Nifti::READ);
-		if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
+		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
 		inFile.open(argv[optind], Nifti::READ);
-		if (maskFile.isValid() && !maskFile.matchesSpace(inFile)) {
+		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
@@ -138,7 +138,7 @@ int main(int argc, char** argv)
 	B0.resize(inFile.voxelsPerVolume());
 	cout << "Processing..." << endl;
 	for (size_t vox = 0; vox < inFile.voxelsPerVolume(); vox++) {
-		if (!maskFile.isValid() || mask[vox] > 0.) {
+		if (!maskFile.isOpen() || mask[vox] > 0.) {
 			double deltaPhase = data2[vox] - data1[vox];
 			B0[vox] = deltaPhase / (2 * M_PI * deltaTE);
 			if (phasetime > 0.) {
