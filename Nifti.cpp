@@ -16,7 +16,6 @@ bool ZipFile::open(const string &path, const string &mode, const bool zip) {
 		_unzipped = fopen(path.c_str(), mode.c_str());
 	}
 	if (!(_zipped || _unzipped)) {
-		NIFTI_ERROR("Failed to open file: " + path);
 		return false;
 	}
 	return true;
@@ -44,13 +43,10 @@ size_t ZipFile::read(void *buff, unsigned size) {
 			unsigned chunkSize = (remaining < numeric_limits<int>::max()) ? remaining : numeric_limits<int>::max();
 			int nread = gzread(_zipped, cbuff, static_cast<unsigned int>(chunkSize));
 			if (nread <= 0) {
-				int dummy;
-				NIFTI_ERROR(gzerror(_zipped, &dummy));
 				return 0;
 			}
 			remaining -= nread;
 			if (nread < chunkSize) {
-				NIFTI_ERROR("Zipped read short by " << remaining << " bytes.");
 				return totalRead;
 			}
 			cbuff += nread;
@@ -60,8 +56,6 @@ size_t ZipFile::read(void *buff, unsigned size) {
 	} else {
 		size_t nread = fread(buff, size, 1, _unzipped) * size;
 		if (ferror(_unzipped)) {
-			NIFTI_ERROR("Read failed. Error message was:");
-			perror("");
 			return 0;
 		}
 		return nread;
@@ -71,7 +65,7 @@ size_t ZipFile::read(void *buff, unsigned size) {
 size_t ZipFile::write(const void *buff, int size)
 {
 	if (buff == NULL) {
-		NIFTI_FAIL("Attempted to write data from null pointer.");
+		throw(invalid_argument("Attempted to write data from null pointer."));
 	}
 	if (_zip) {
 		unsigned remaining = size, totalWritten = 0;
@@ -80,13 +74,10 @@ size_t ZipFile::write(const void *buff, int size)
 			unsigned chunkSize = (remaining < numeric_limits<int>::max()) ? remaining : numeric_limits<int>::max();
 			int nwritten = gzwrite(_zipped, chunk, chunkSize);
 			if (nwritten == 0) {
-				int dummy;
-				NIFTI_ERROR(gzerror(_zipped, &dummy));
 				return 0;
 			}
 			remaining -= nwritten;
 			if (nwritten < chunkSize) {
-				NIFTI_ERROR("Zipped write short by " << (chunkSize - nwritten) << " bytes.");
 				return totalWritten;
 			}
 			chunk += nwritten;
@@ -96,8 +87,6 @@ size_t ZipFile::write(const void *buff, int size)
 	} else {
 		size_t nwritten = fwrite(buff, size, 1, _unzipped) * size;
 		if (ferror(_unzipped)) {
-			NIFTI_ERROR("Write failed. Error message was:");
-			perror("");
 			return 0;
 		}
 		return nwritten;
@@ -186,7 +175,7 @@ void Extension::setCode(int code) {
 	if ((code > NIFTI_ECODE_IGNORE) && (code < NIFTI_MAX_ECODE) && !(code & 1 ))
 		_code = code;
 	else
-		NIFTI_ERROR("Invalid extension code.");
+		throw(invalid_argument("Invalid extension code."));
 }
 
 const vector<char> &Extension::data() const { return _data; };
@@ -495,7 +484,7 @@ File::~File()
 }
 
 File::File() :
-	_mode(CLOSED), _gz(false), _nii(false), _valid(false), _swap(false), _voxoffset(0),
+	_mode(CLOSED), _gz(false), _nii(false), _swap(false), _voxoffset(0),
 	_dim(Matrix<int, 7, 1>::Ones()), _voxdim(Matrix<float, 7, 1>::Ones()),
 	_basepath(""),
 	scaling_slope(1.), scaling_inter(0.), calibration_min(0.), calibration_max(0.),
@@ -512,7 +501,7 @@ File::File() :
 
 File::File(const File &other) :
 	_mode(other._mode), _gz(other._gz), _nii(other._nii),
-	_valid(other._valid), _swap(other._swap), _voxoffset(other._voxoffset),
+	_swap(other._swap), _voxoffset(other._voxoffset),
 	_dim(other._dim), _voxdim(other._voxdim),
 	_sform(other._sform), _qform(other._qform), _datatype(other._datatype),
 	_file(), _basepath(other._basepath),
@@ -526,10 +515,10 @@ File::File(const File &other) :
 	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file),
 	qform_code(other.qform_code), sform_code(other.sform_code)
 {
-	if (_valid && ((_mode == READ) || (_mode == READ_SKIP_EXT))) {
+	if ((_mode == READ) || (_mode == READ_SKIP_EXT)) {
 		_file.open(imagePath(), "rb", _gz);
 		_file.seek(other._file.tell(), SEEK_SET);
-	} else if (_valid && ((_mode == WRITE) || (_mode == WRITE_SKIP_EXT))) {
+	} else if ((_mode == WRITE) || (_mode == WRITE_SKIP_EXT)) {
 		_file.open(imagePath(), "wb", _gz);
 		_file.seek(other._file.tell(), SEEK_SET);
 	}
@@ -537,7 +526,7 @@ File::File(const File &other) :
 
 File::File(File &&other) noexcept :
 	_mode(other._mode), _gz(other._gz), _nii(other._nii),
-	_valid(other._valid), _swap(other._swap), _voxoffset(other._voxoffset),
+	_swap(other._swap), _voxoffset(other._voxoffset),
 	_dim(other._dim), _voxdim(other._voxdim),
 	_sform(other._sform), _qform(other._qform), _datatype(other._datatype),
 	_file(other._file), _basepath(other._basepath),
@@ -551,19 +540,13 @@ File::File(File &&other) noexcept :
 	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file),
 	qform_code(other.qform_code), sform_code(other.sform_code)
 {
-	other._valid = false;
 	other._mode = CLOSED;
 }
 
 File::File(const string &filename, const char &mode) :
 	File()
 {
-	if (!open(filename, mode)) {
-		NIFTI_FAIL("Could not open file in constructor.");
-		_valid = false;
-	} else {
-		_valid = true;
-	}
+	open(filename, mode);
 }
 
 File::File(const int nx, const int ny, const int nz, const int nt,
@@ -578,7 +561,6 @@ File::File(const int nx, const int ny, const int nz, const int nt,
 	_dim[2] = nz < 1 ? 1 : nz;
 	_dim[3] = nt < 1 ? 1 : nt;
 	_voxdim[0] = dx; _voxdim[1] = ny; _voxdim[2] = dz; _voxdim[3] = dt;
-	_valid = true;
 }
 
 File::File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
@@ -593,7 +575,6 @@ File::File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
 	_qform = qform;
 	_sform = sform;
 	_datatype = DataTypes().find(datatype)->second;
-	_valid = true;
 }
 
 File &File::operator=(const File &other)
@@ -611,7 +592,6 @@ File &File::operator=(const File &other)
 	_gz = other._gz;
 	_nii = other._nii;
 	_mode = CLOSED;
-	_valid = other._valid;
 	_voxoffset = 0;
 	_datatype = other._datatype;
 	scaling_slope = other.scaling_slope;
@@ -678,12 +658,11 @@ inline float File::fixFloat(const float f)
 		return 0.;
 }
 
-bool File::readHeader() {
+void File::readHeader() {
 	struct nifti_1_header nhdr;
 	
 	if (_file.read(&nhdr, sizeof(nhdr)) < sizeof(nhdr)) {
-		NIFTI_ERROR("Could not read header structure from " + headerPath());
-		return false;
+		throw(runtime_error("Could not read header structure from " + headerPath()));
 	}
 	
 	// Check if disk and CPU byte order match.
@@ -692,8 +671,7 @@ bool File::readHeader() {
 	if (nhdr.sizeof_hdr != sizeof(nhdr)) {
 		SwapBytes(1, 4, &nhdr.sizeof_hdr);
 		if (nhdr.sizeof_hdr != sizeof(nhdr)) {
-			NIFTI_ERROR("Could not determine byte order of header " + headerPath());
-			return false;
+			throw(runtime_error("Could not determine byte order of header " + headerPath()));
 		}
 		// If we didn't fail, then we need to swap the header (first swap sizeof back)
 		_swap = true;
@@ -712,14 +690,12 @@ bool File::readHeader() {
 		SwapAnalyzeHeader((nifti_analyze75 *)&nhdr);
 	
 	if(nhdr.datatype == DT_BINARY || nhdr.datatype == DT_UNKNOWN  ) {
-		NIFTI_ERROR("Bad datatype in header " << headerPath());
-		return false;
+		throw(runtime_error("Bad datatype in header: " + headerPath()));
 	}
 	_datatype = DataTypes().find(nhdr.datatype)->second;
 	
 	if(nhdr.dim[1] <= 0) {
-		NIFTI_ERROR("Bad first dimension in header " << headerPath());
-		return false;
+		throw(runtime_error("Bad first dimension in header: " + headerPath()));
 	}
 	for (int i = 0; i < nhdr.dim[0]; i++) {
 		_dim[i] = nhdr.dim[i + 1];
@@ -801,11 +777,9 @@ bool File::readHeader() {
 	} else {
 		_voxoffset = (int)nhdr.vox_offset ;
 	}
-		
-	return true;
 }
 
-bool File::readExtensions()
+void File::readExtensions()
 {
 	long target = _voxoffset;
 	if (!_nii) {
@@ -815,24 +789,21 @@ bool File::readExtensions()
 	_file.seek(sizeof(nifti_1_header), SEEK_SET);
 	char extender[4];
 	if (_file.read(extender, 4) != 4) {
-		NIFTI_ERROR("Hit end of file while checking for extensions.");
-		return false;
+		throw(runtime_error("While checking for extensions hit end of file: " + headerPath()));
 	}
-	if (extender[0] != 1) // There are no more extensions
-		return true;
+	if (extender[0] != 1) // There are no extensions
+		return;
 	
 	while (_file.tell() < target) {		
 		if(_file.tell() > target - 16 ){
-			NIFTI_ERROR("Insufficient space for remaining extensions.");
-			return 0;
+			throw(runtime_error("Insufficient space for remaining extensions in file: " + headerPath()));
 		}
 		
 		int size, code;
 		long bytesRead = _file.read(&size, 4);
 		bytesRead += _file.read(&code, 4);
 		if (bytesRead != 8) {
-			NIFTI_ERROR("Error while reading extension size and code.");
-			return false;
+			throw(runtime_error("Error while reading extension size and code in file: " + headerPath()));
 		}
 		
 		if (_swap) {
@@ -842,21 +813,18 @@ bool File::readExtensions()
 		
 		vector<char> dataBytes(size - 8);
 		if (_file.read(dataBytes.data(), size - 8) < (size - 8)) {
-			NIFTI_ERROR("Could not read extension.");
-			return false;
+			throw(runtime_error("Could not read extension in file: " + headerPath()));
 		}
 		_extensions.emplace_back(Extension(code, dataBytes));
 
 		if (_nii && (_file.tell() > _voxoffset)) {
-			NIFTI_ERROR("Went past start of voxel data while reading extensions.");
-			return false;
+			throw(runtime_error("Went past start of voxel data while reading extensions in file: " + headerPath()));
 		}
 	}
-	return true;
 }
 
 
-bool File::writeHeader() {
+void File::writeHeader() {
 	struct nifti_1_header nhdr;
 	memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
 	/**- load the ANALYZE-7.5 generic parts of the header struct */
@@ -947,10 +915,8 @@ bool File::writeHeader() {
 	nhdr.slice_duration = slice_duration;
 	
 	if(_file.write(&nhdr, sizeof(nhdr)) < sizeof(nhdr)) {
-		NIFTI_ERROR("Could not write header to file " + headerPath() + ".");
-		return false;
+		throw(runtime_error("Could not write header to file: " + headerPath()));
 	}
-	return true;
 }
 
 int File::totalExtensionSize() {
@@ -961,14 +927,13 @@ int File::totalExtensionSize() {
 	return total;
 }
 
-bool File::writeExtensions() {
+void File::writeExtensions() {
 	_file.seek(sizeof(nifti_1_header), SEEK_SET);
 	char extender[4] = {0, 0, 0, 0};
 	if (_extensions.size() > 0)
 		extender[0] = 1;
 	if (_file.write(extender, 4) < 4) {
-		NIFTI_ERROR("Could not write extender block.");
-		return false;
+		throw(runtime_error("Could not write extender block to file: " + headerPath()));
 	}
 	
 	for (auto ext : _extensions) {
@@ -978,26 +943,21 @@ bool File::writeExtensions() {
 		int code = ext.code();
 		bytesWritten += _file.write(&code, 4);
 		if (bytesWritten != 16) {
-			NIFTI_ERROR("Could not write extension size and code.");
-			return false;
+			throw(runtime_error("Could not write extension size and code to file: " + headerPath()));
 		}
 		if (_file.write(ext.data().data(), size - 8) != (size - 8)) {
-			NIFTI_ERROR("Could not write extension data.");
-			return false;
+			throw(runtime_error("Could not write extension data to file: " + headerPath()));
 		}
 		if (padding) {
 			vector<char> pad(padding, 0);
 			if (_file.write(pad.data(), padding) != padding) {
-				NIFTI_ERROR("Could not write extension padding.");
-				return false;
+				throw(runtime_error("Could not write extension padding to file: " + headerPath()));
 			}
 		}
 	}
 	if ((_file.tell() - totalExtensionSize() - 4) != sizeof(nifti_1_header)) {
-		NIFTI_ERROR("Wrote wrong number of bytes for extensions.");
-		return false;
+		throw(runtime_error("Wrote wrong number of bytes for extensions to file: " + headerPath()));
 	}
-	return true;
 }
 
 /**
@@ -1011,43 +971,25 @@ bool File::writeExtensions() {
   *   @return On success a pointer to the read bytes (if buffer was specified
   *           then will be the same). NULL on fail.
   */
-char *File::readBytes(size_t start, size_t length, char *buffer)
-{
-	if (!_valid) {
-		NIFTI_ERROR("Cannot read from a file marked as invalid.");
-		return NULL;
-	}
+char *File::readBytes(size_t start, size_t length, char *buffer) {
 	if (_mode == CLOSED) {
-		NIFTI_ERROR("Cannot read from a closed file.");
-		_valid = false;
-		return NULL;
+		throw(logic_error("Cannot read from closed file: " + imagePath()));
 	}
 	if (_mode == WRITE) {
-		NIFTI_ERROR("Cannot read from a file opened for writing.");
-		_valid = false;
-		return NULL;
+		throw(logic_error("Cannot read from a file opened for reading: " + imagePath()));
 	}
 	if (length == 0) {
-		NIFTI_ERROR("Asked to read a buffer of 0 bytes.");
-		_valid = false;
-		return NULL;
+		throw(invalid_argument("Asked to read 0 bytes from file: " + imagePath()));
 	}
 	if (!buffer) {
 		buffer = new char[length];
 	}
 	if (!_file.seek(_voxoffset + start, SEEK_SET)) {
-		cout << voxelsPerVolume() << ", " << bytesPerVoxel() << ", " << start << endl;
-		cout << _mode << ", " << _valid << endl;
-		NIFTI_ERROR("Could not seek to start voxel.");
-		_valid = false;
-		return NULL;
+		throw(runtime_error("Failed seek in file: " + imagePath()));
 	}
 	if (_file.read(buffer, static_cast<unsigned int>(length)) != length) {
-		NIFTI_ERROR("Read buffer returned wrong number of bytes.");
-		_valid = false;
-		return NULL;
+		throw(runtime_error("Read wrong number of bytes from file: " + imagePath()));
 	}
-	
 	if (_datatype.swapsize > 1 && _swap)
 		SwapBytes(length / _datatype.swapsize, _datatype.swapsize, buffer);
 	return buffer;
@@ -1061,37 +1003,25 @@ char *File::readBytes(size_t start, size_t length, char *buffer)
   *   @param start Location in file to start the write
   *   @param length Number of bytes to write
   */
-void File::writeBytes(size_t start, size_t length, char *buffer)
-{
-	if (!_valid) {
-		NIFTI_ERROR("Cannot write to a file marked as invalid.");
-	}
+void File::writeBytes(size_t start, size_t length, char *buffer) {
 	if (_mode == CLOSED) {
-		NIFTI_ERROR("Cannot write to a closed file.");
-		_valid = false;
-		return;
+		throw(logic_error("Cannot write to closed file: " + imagePath()));
 	}
 	if (_mode == READ) {
-		NIFTI_ERROR("Cannot write to a file opened for writing.");
-		_valid = false;
-		return;
+		throw(logic_error("Cannot write to file opened for writing: " + imagePath()));
 	}
-	if (length < 1) {
-		NIFTI_ERROR("Invalid write of length " << length << " bytes attempted. None written.");
-		_valid = false;
-		return;
+	if (length == 0) {
+		throw(invalid_argument("Asked to write 0 bytes to file: " + imagePath()));
 	}
 	if (!_file.seek(_voxoffset + start, SEEK_SET)) {
-		NIFTI_ERROR("Could not seek to start location.");
-		_valid = false;
+		throw(runtime_error("Failed seek in file: " + imagePath()));
 	}
 	if (_file.write(buffer, static_cast<unsigned int>(length)) != length) {
-		NIFTI_ERROR("Write buffer failed.");
-		_valid = false;
+		throw(runtime_error("Wrote wrong number of bytes to file: " + imagePath()));
 	}
 }
 
-bool File::open(const string &path, const char &mode) {
+void File::open(const string &path, const char &mode) {
 	_basepath = path.substr(0, path.find_first_of("."));
 	if (path.substr(path.find_last_of(".") + 1) == "gz") {
 		_gz = true;
@@ -1104,48 +1034,32 @@ bool File::open(const string &path, const char &mode) {
 	} else if (ext == "nii") {
 		_nii = true;
 	} else {
-		NIFTI_ERROR("Invalid NIfTI extension: " + ext);
-		_valid = false;
-		return _valid;
+		throw(invalid_argument("Invalid NIfTI extension for file: " + path));
 	}
 	
 	if (_mode != CLOSED) {
-		NIFTI_ERROR("Attempted to open file " << path <<
-		           " using File that is already open with file " + imagePath());
-		_valid = false;
+		throw(logic_error("Attempted to open file: " + path +
+		           " when file: " + imagePath() + " is already open."));
 	} else {
 		_mode = mode;
-		_valid = true;
 		if ((_mode == READ) || (_mode == READ_HEADER) || (_mode == READ_SKIP_EXT)) {
 			if(!_file.open(headerPath().c_str(), "rb", _gz)) {
-				_valid = false;
-				return _valid;
+				throw(runtime_error("Failed to open file: " + headerPath()));
 			}
-			if (!readHeader()) {
-				_valid = false;
-				return _valid;
-			}
-			if ((_mode == READ) && (!readExtensions())) {
-				_valid = false;
-				return _valid;
+			readHeader();
+			if (_mode == READ) {
+				readExtensions();
 			}
 		} else if (_mode == WRITE) {
 			if(!_file.open(headerPath().c_str(), "wb", _gz)) {
-				_valid = false;
-				return _valid;
+				throw(runtime_error("Failed to open file: " + headerPath()));
 			}
-			if (!writeHeader()) {
-				_valid = false;
-				return _valid;
-			}
-			if ((_mode == WRITE) && (!writeExtensions())) {
-				_valid = false;
-				return _valid;
+			writeHeader();
+			if (_mode == WRITE) {
+				writeExtensions();
 			}
 		} else {
-			NIFTI_FAIL(string("Invalid NiftImage mode '") + mode + "'.");
-			_valid = false;
-			return _valid;
+			throw(invalid_argument("Invalid opening mode for file: " + path));
 		}
 		
 		if (_mode == READ_HEADER) {
@@ -1160,25 +1074,26 @@ bool File::open(const string &path, const char &mode) {
 				else
 					result = _file.open(imagePath().c_str(), "wb", _gz);
 				if (!result) {
-					NIFTI_ERROR("Could not open image file: " << imagePath());
-					_valid = false;
+					throw(runtime_error("Could not open image file: " + imagePath()));
 				}
 			}
 			if (!_file.seek(_voxoffset, SEEK_SET)) {
-				cout << _file.tell() << endl;
-				NIFTI_ERROR("Could not seek to voxel offset.");
-				_valid = false;
+				throw(runtime_error("Could not seek to voxel offset in file: " + imagePath()));
 			}
 		}
 	}
-	return _valid;
 }
 
-bool File::isValid() { return _valid; }
+bool File::isOpen() {
+	if (_mode == CLOSED)
+		return false;
+	else
+		return true;
+}
 void File::close()
 {
 	if (_mode == CLOSED) {
-		NIFTI_ERROR("File is already closed: " << imagePath());
+		throw(logic_error("Cannot close already closed file: " + imagePath()));
 	} else if ((_mode == READ) || (_mode == READ_HEADER)) {
 		_file.close();
 		_mode = CLOSED;
@@ -1201,7 +1116,7 @@ void File::close()
 }
 
 int File::dimensions() const {
-	for (int d = 7; d > 0; d--) {
+	for (int d = static_cast<int>(_voxdim.rows()); d > 0; d--) {
 		if (_dim[d - 1] > 1) {
 			return d;
 		}
@@ -1209,10 +1124,8 @@ int File::dimensions() const {
 	return 1;
 }
 void File::setDimensions(const ArrayXi &dims, const ArrayXf &voxDims) {
-	if (dims.rows() != voxDims.rows())
-		NIFTI_FAIL("Length of dimension and voxel size arrays did not match.");
-	if ((dims.rows() < 1) || (dims.rows() > 7))
-		NIFTI_FAIL("Tried to set an invalid number of dimensions (" << dims.rows() << "). Valid numbers are 1 to 7.");
+	assert(dims.rows() == voxDims.rows());
+	assert((dims.rows() > 0) || (dims.rows() <= _voxdim.rows()));
 	_dim.head(dims.rows()) = dims;
 	_voxdim.head(voxDims.rows()) = voxDims;
 	for (int i = 0; i < _dim.rows(); i++) {
@@ -1222,33 +1135,24 @@ void File::setDimensions(const ArrayXi &dims, const ArrayXf &voxDims) {
 }
 	
 int File::dim(const int d) const {
-	if ((d > 0) && (d <= _dim.rows())) {
-		return _dim[d - 1];
-	} else {
-		NIFTI_ERROR("Tried to read invalid dimension: " << d << " from file: " << imagePath());
-		return -1;
-	}
+	assert((d > 0) && (d <= _voxdim.rows()));
+	return _dim[d - 1];
 }
 void File::setDim(const int d, const int n) {
 	if (_mode == CLOSED) {
-		if ((d > 0) && (d < 8)) {
-			_dim[d - 1] = n;
-		} else {
-			NIFTI_ERROR("Tried to write invalid dimension: " << d << " for file: " << imagePath());
-		}
+		assert((d > 0) && (d < 8));
+		_dim[d - 1] = n;
 	} else {
-		NIFTI_FAIL("Cannot change image dimensions for open file: " << imagePath());
+		throw(logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
 }
 const ArrayXi File::dims() const { return _dim.head(dimensions()); }
 void File::setDims(const ArrayXi &n) {
 	if (_mode == CLOSED) {
-		if (n.rows() <= _dim.rows())
-			_dim.head(n.rows()) = n;
-		else
-			NIFTI_ERROR("Tried to set an invalid number of dimensions for file: " << imagePath());
+		assert(n.rows() <= _voxdim.rows());
+		_dim.head(n.rows()) = n;
 	} else {
-		NIFTI_FAIL("Cannot change image dimensions for open file: " << imagePath());
+		throw(logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
 }
 
@@ -1257,29 +1161,23 @@ int File::voxelsPerVolume() const { return _dim[0]*_dim[1]*_dim[2]; };
 int File::voxelsTotal() const     { return _dim.prod(); }
 
 float File::voxDim(const int d) const {
-	if ((d > 0) && (d <= _voxdim.rows()))
-		return _voxdim[d - 1];
-	else
-		NIFTI_FAIL("Tried to read voxel size for invalid dimension: " << d << " from file: " << imagePath());
+	assert((d > 0) && (d <= _voxdim.rows()));
+	return _voxdim[d - 1];
 }
 void File::setVoxDim(const int d, const float f) {
 	if (_mode == CLOSED) {
-		if ((d > 0) && (d <= _voxdim.rows()))
-			_voxdim[d] = f;
-		else
-			NIFTI_FAIL("Tried to write voxel szie for invalid dimension: " << d << "from file: " << imagePath());
+		assert((d > 0) && (d <= _voxdim.rows()));
+		_voxdim[d] = f;
 	} else
-		NIFTI_FAIL("Cannot change voxel sizes for open file.");
+		throw(logic_error("Cannot change voxel sizes for open file: " + imagePath()));
 }
 const ArrayXf File::voxDims() const { return _voxdim; }
 void File::setVoxDims(const ArrayXf &n) {
 	if (_mode == CLOSED) {
-		if (n.rows() <= _voxdim.rows())
-			_voxdim.head(n.rows()) = n;
-		else
-			NIFTI_FAIL("Tried to set an invalid number of voxel sizes for file: " << imagePath());
+		assert(n.rows() <= _voxdim.rows());
+		_voxdim.head(n.rows()) = n;
 	} else
-		NIFTI_FAIL("Cannot change voxel sizes for open file: " << imagePath());
+		throw(logic_error("Cannot change voxel sizes for open file: " + imagePath()));
 }
 
 const int &File::datatype() const { return _datatype.code; }
@@ -1288,12 +1186,12 @@ const int &File::bytesPerVoxel() const { return _datatype.size; }
 void File::setDatatype(const int dt)
 {
 	if (_mode != CLOSED) {
-		NIFTI_ERROR("Cannot set the datatype of open file: " << imagePath());
+		throw(logic_error("Cannot set the datatype of open file: " + imagePath()));
 		return;
 	}
     DTMap::const_iterator it = DataTypes().find(dt);
 	if (it == DataTypes().end())
-		NIFTI_ERROR("Attempted to set invalid datatype.");
+		throw(invalid_argument("Attempted to set invalid datatype for file: " + imagePath()));
 	else
 		_datatype = it->second;
 }

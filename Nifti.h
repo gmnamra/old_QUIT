@@ -17,6 +17,7 @@
 #include <vector>
 #include <map>
 #include <limits>
+#include <exception>
 
 #include "Eigen/Geometry"
 
@@ -28,12 +29,6 @@ using namespace Eigen;
 
 #pragma mark Start namespace Nifti
 namespace Nifti {
-
-#pragma mark Error macros
-// Convenience macros for printing errors. Note that err is NOT encased in ()
-// so that NIFTI_ERROR( "string" << number ); works
-#define NIFTI_ERROR( err ) do { cerr << __PRETTY_FUNCTION__ << ": " << err << endl; } while(0)
-#define NIFTI_FAIL( err ) do { NIFTI_ERROR( err ); exit(EXIT_FAILURE); } while(0)
 
 #pragma mark Enums, structs and typedefs
 struct DataType {
@@ -138,7 +133,7 @@ class File {
 		Affine3f _qform, _sform;   //!< Tranformation matrices from voxel indices to physical co-ords
 		
 		string _basepath;          //!< Path to file without extension
-		bool _nii, _gz, _valid;
+		bool _nii, _gz;
 		char _mode;                //!< Whether the file is closed or open for reading/writing
 		ZipFile _file;
 		DataType _datatype;        //!< Datatype on disk
@@ -154,10 +149,10 @@ class File {
 		static void SwapNiftiHeader(struct nifti_1_header *h);
 		static void SwapAnalyzeHeader(nifti_analyze75 *h);
 		
-		bool readHeader();      //!< Attempts to read a header structure from the currently open file. Returns true on success, false on failure.
-		bool readExtensions();  //!< Attempts to read any extensions
-		bool writeHeader();     //!< Attempts to write a header structure to the currently open file. Returns true on success, false on failure.
-		bool writeExtensions(); //!< Attempts to write extensions
+		void readHeader();      //!< Attempts to read a header structure from the currently open file.
+		void readExtensions();  //!< Attempts to read any extensions
+		void writeHeader();     //!< Attempts to write a header structure to the currently open file.
+		void writeExtensions(); //!< Attempts to write extensions
 		int totalExtensionSize(); //!< Counts the total number of bytes for all extensions.
 		char *readBytes(size_t start, size_t length, char *buffer);
 		void writeBytes(size_t start, size_t length, char *buffer);
@@ -196,8 +191,7 @@ class File {
 					case NIFTI_TYPE_COMPLEX128: data[i] = static_cast<T>(abs(reinterpret_cast<const complex<double> *>(bytes.data())[i])); break;
 					case NIFTI_TYPE_COMPLEX256: data[i] = static_cast<T>(abs(reinterpret_cast<const complex<long double> *>(bytes.data())[i])); break;
 					case NIFTI_TYPE_RGB24: case NIFTI_TYPE_RGBA32:
-						NIFTI_FAIL("RGB/RGBA datatypes not supported.");
-						break;
+						throw(runtime_error("RGB/RGBA datatypes not supported.")); break;
 				}
 			}
 		}
@@ -222,8 +216,7 @@ class File {
 					case NIFTI_TYPE_COMPLEX128: data[i] = static_cast<complex<T> >(reinterpret_cast<const complex<double> *>(bytes.data())[i]); break;
 					case NIFTI_TYPE_COMPLEX256: data[i] = static_cast<complex<T> >(reinterpret_cast<const complex<long double> *>(bytes.data())[i]); break;
 					case NIFTI_TYPE_RGB24: case NIFTI_TYPE_RGBA32:
-						NIFTI_FAIL("RGB/RGBA datatypes not supported.");
-						break;
+						throw(runtime_error("RGB/RGBA datatypes not supported.")); break;
 				}
 			}
 		}
@@ -255,8 +248,7 @@ class File {
 					case NIFTI_TYPE_COMPLEX128: reinterpret_cast<complex<double> *>(bytes.data())[i] = complex<T>(static_cast<double>(data[i])); break;
 					case NIFTI_TYPE_COMPLEX256: reinterpret_cast<complex<long double> *>(bytes.data())[i] = complex<T>(static_cast<long double>(data[i])); break;
 					case NIFTI_TYPE_RGB24: case NIFTI_TYPE_RGBA32:
-						NIFTI_FAIL("RGB/RGBA datatypes not supported."); break;
-				}
+						throw(runtime_error("RGB/RGBA datatypes not supported.")); break;				}
 			}
 			return bytes;
 		}
@@ -280,7 +272,7 @@ class File {
 					case NIFTI_TYPE_COMPLEX128: reinterpret_cast<complex<double> *>(bytes.data())[i] = static_cast<complex<double> >(data[i]); break;
 					case NIFTI_TYPE_COMPLEX256: reinterpret_cast<complex<long double> *>(bytes.data())[i] = static_cast<complex<long double> >(data[i]); break;
 					case NIFTI_TYPE_RGB24: case NIFTI_TYPE_RGBA32:
-						NIFTI_FAIL("RGB/RGBA datatypes not supported."); break;
+						throw(runtime_error("RGB/RGBA datatypes not supported.")); break;
 				}
 			}
 			return bytes;
@@ -300,9 +292,10 @@ class File {
                    const Matrix4f &qform = Matrix4f::Identity(), const Matrix4f &sform = Matrix4f::Identity());
 		File(const string &filename, const char &mode);
 		
-		bool isValid(); //!< Reports if this header is valid, i.e. has successfully opened a file at some point, and nothing has gone wrong with reading or writing
-		bool open(const string &filename, const char &mode); //!< Attempts to open a NIfTI file. Returns true on success, false on failure.
+		void open(const string &filename, const char &mode); //!< Attempts to open a NIfTI file. Throws runtime_error on failure or invalid_argument on failure.
 		void close();
+		bool isOpen(); //!< Returns true if file is currently open for reading or writing.
+		
 		const string basePath() const;
 		const string imagePath() const;
 		const string headerPath() const;
@@ -408,9 +401,7 @@ class File {
 			total = lx * ly * lz * lt;
 			
 			if (lx < 1 || ly < 1 || lz < 1 || lt < 1) { // There is nothing to write
-				NIFTI_ERROR("Invalid subvolume read of dimensions " <<
-							lx << "," << ly << "," << lz << "," << lt << " requested. Nothing read.");
-				return;
+				throw(out_of_range("Invalid subvolume read dimensions: " + imagePath()));
 			}
 			
 			// Collapse successive full dimensions into a single compressed read
@@ -439,8 +430,6 @@ class File {
 						size_t yOff = y * dim(1);
 						if (readBytes((tOff + zOff + yOff) * bytesPerVoxel(), toRead, nextRead))
 							nextRead += toRead;
-						else
-							NIFTI_FAIL("failed to read subvolume from file.");
 					}
 				}
 			}
@@ -456,7 +445,7 @@ class File {
 		
 		template<typename T> void writeVolume(const int vol, const vector<T> &data) {
 			if (data.size() != voxelsPerVolume()) {
-				NIFTI_FAIL("Insufficient data to write volume for file: " << imagePath());
+				throw(invalid_argument("Insufficient data to write volume for file: " + imagePath()));
 			}
 			vector<char> converted = convertToBytes(data);
 			writeBytes(vol * voxelsPerVolume() * bytesPerVoxel(), converted.size(), converted.data());
@@ -464,7 +453,7 @@ class File {
 		
 		template<typename T> void writeAllVolumes(const vector<T> &data) {
 			if (data.size() != voxelsTotal()) {
-				NIFTI_FAIL("Insufficient data to write all volumes for file: " << imagePath());
+				throw(invalid_argument("Insufficient data to write all volumes for file: " + imagePath()));
 			}
 			vector<char> converted = convertToBytes(data);
 			writeBytes(0, converted.size(), converted.data());
@@ -481,9 +470,7 @@ class File {
 			total = lx * ly * lz * lt;
 			
 			if (lx < 1 || ly < 1 || lz < 1 || lt < 1) { // There is nothing to write
-				NIFTI_ERROR("Invalid subvolume write of dimensions " <<
-							lx << "," << ly << "," << lz << "," << lt << " requested. Nothing written.");
-				return;
+				throw(out_of_range("Invalid subvolume read dimensions: " + imagePath()));
 			}
 			
 			// Collapse successive full dimensions into a single write
@@ -502,7 +489,7 @@ class File {
 				ly = 1;
 			}
 			if (toWrite != data.size()) {
-				NIFTI_FAIL("Insufficient data to write subvolume for file:" << imagePath());
+				throw(invalid_argument("Insufficient data to write subvolume for file: " + imagePath()));
 			}
 			toWrite *= bytesPerVoxel();
 			
