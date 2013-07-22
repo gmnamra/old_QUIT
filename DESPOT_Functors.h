@@ -289,7 +289,7 @@ MagVector Three_SPGR(const VectorXd &flipAngles, const DESPOTConstants &c, const
 	p_1c(0) = p(0) * p(9); p_1c(1) = p(5); p_1c(2) = p(6);
 	p_2c(0) = p(0) * (1. - p(9));
 	p_2c.segment(1, 4) = p.segment(1, 4);
-	p_2c(5) = p(7); p_2c(6) = p(8);
+	p_2c(5) = p(7); p_2c(6) = p(8) / (1. - p(9)); // Adjust f_a so f_a + f_b = 1 for the 2c calculation
 	
 	MagVector m_ab = Two_SPGR(flipAngles, c, p_2c);
 	MagVector m_c  = One_SPGR(flipAngles, c, p_1c);
@@ -304,7 +304,7 @@ MagVector Three_SSFP(const VectorXd &flipAngles, const DESPOTConstants &c, const
 	p_1c(0) = p(0) * p(9); p_1c(1) = p(5); p_1c(2) = p(6);
 	p_2c(0) = p(0) * (1. - p(9));
 	p_2c.segment(1, 4) = p.segment(1, 4);
-	p_2c(5) = p(7); p_2c(6) = p(8);
+	p_2c(5) = p(7); p_2c(6) = p(8) / (1. - p(9)); // Adjust f_a so f_a + f_b = 1 for the 2c calculation
 	
 	MagVector m_ab = Two_SSFP(flipAngles, c, p_2c);
 	MagVector m_c  = One_SSFP(flipAngles, c, p_1c);
@@ -319,7 +319,7 @@ MagVector Three_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c
 	p_1c(0) = p(0) * p(9); p_1c(1) = p(5); p_1c(2) = p(6);
 	p_2c(0) = p(0) * (1. - p(9));
 	p_2c.segment(1, 4) = p.segment(1, 4);
-	p_2c(5) = p(7); p_2c(6) = p(8);
+	p_2c(5) = p(7); p_2c(6) = p(8) / (1. - p(9)); // Adjust f_a so f_a + f_b = 1 for the 2c calculation
 	
 	MagVector m_ab = Two_SSFP_Finite(flipAngles, c, p_2c);
 	MagVector m_c  = One_SSFP_Finite(flipAngles, c, p_1c);
