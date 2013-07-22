@@ -12,7 +12,7 @@
 #include <string>
 
 #include "RegionContraction.h"
-//#include "DESPOT_Functors.h"
+#include "DESPOT_Functors.h"
 #include "Nifti.h"
 #include "procpar.h"
 
@@ -32,18 +32,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-	ArrayXd data(5000); data.setRandom();
-	
-	cout << "First 10: " << data.head(10).transpose() << endl;
-	
-	vector<size_t> indices = index_partial_sort(data, 10);
-	
-	cout << "Indices: ";
-	for (auto i: indices)
-		cout << i << ": " << data(i) << " ";
-	cout << endl;
-	
-	/*int indexptr = 0, c;
+	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "c:sf", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'c':
@@ -63,8 +52,9 @@ int main(int argc, char **argv)
 	}
 		
 	// Set up all the parameters
-	double spgrTR = 0.0012;
+	double spgrTR = 0.012;
 	double ssfpTR = 0.006;
+	double Trf = 0.0008;
 	
 	ArrayXd alphaSPGR(6); alphaSPGR << 2, 4, 8, 16, 24, 32;
 	ArrayXd alphaSSFP(6); alphaSSFP << 2, 4, 8, 16, 32, 64;
@@ -75,28 +65,49 @@ int main(int argc, char **argv)
 	
 	vector<mcDESPOT::SignalType> types;
 	types.push_back(mcDESPOT::SignalSPGR);
-	types.push_back(mcDESPOT::SignalSSFP);
-	types.push_back(mcDESPOT::SignalSSFP);
+	//types.push_back(mcDESPOT::SignalSSFP);
+	//types.push_back(mcDESPOT::SignalSSFP);
 	vector<VectorXd> signals, angles;
 	vector<double> TR, phases, B0, B1;
 	vector<DESPOTConstants> consts;
-	angles.push_back(alphaSPGR); signals.push_back(sSPGR); consts.push_back( { spgrTR, 0., 0., 1. } );
-	angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, 0., 0., 1. } );
-	angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, M_PI, 0., 1. } );
+	angles.push_back(alphaSPGR); signals.push_back(sSPGR); consts.push_back( { spgrTR, Trf, 0.003, 0., 0., 1., true } );
+	//angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, Trf, 0., 0., 0., 1., false } );
+	//angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, Trf, 0., M_PI, 0., 1., false } );
 	
 	long loops = 10000;
 	if (testSpeed) {
+		cout << "Alpha SPGR: " << alphaSPGR.transpose() << endl;
+		cout << "Alpha SSFP: " << alphaSSFP.transpose() << endl;
+		cout << "SPGR TR: " << spgrTR << " SSFP TR: " << ssfpTR << " Trf: " << Trf << endl;
 		for (int c = 1; c < 4; c++) {
-			ArrayXd p = (mcDESPOT::defaultLo(c, tesla) + mcDESPOT::defaultHi(c, tesla)) / 2.;
-			mcDESPOT mcd(c, types, angles, signals, consts, true, false);
+			ArrayXd p(mcDESPOT::nP(c) + mcDESPOT::nB0(mcDESPOT::B0_Single, signals.size()));
+			p.head(mcDESPOT::nP(c)) = (mcDESPOT::defaultLo(c, tesla) + mcDESPOT::defaultHi(c, tesla)) / 2.;
+			p.tail(mcDESPOT::nB0(mcDESPOT::B0_Single, signals.size())).setConstant(0.);
+			mcDESPOT mcd(c, types, angles, signals, consts, mcDESPOT::B0_Single, false, false);
 			VectorXd signal;
 			clock_t start = clock();
 			for (int l = 0; l < loops; l++)
 				signal = mcd.theory(p);
 			clock_t end = clock();
-			cout << c << "-component model average time " << ((end - start) / ((float)loops * CLOCKS_PER_SEC)) * 1000 << " ms" << endl;
+			cout << c << "-component instant model average time " << ((end - start) / ((float)loops * CLOCKS_PER_SEC)) * 1000 << " ms" << endl;
+			cout << "Params: " << p.transpose() << endl;
+			cout << "Signal: " << signal.transpose() << endl;
 		}
-	}*/
+		for (int c = 1; c < 4; c++) {
+			ArrayXd p(mcDESPOT::nP(c) + mcDESPOT::nB0(mcDESPOT::B0_Single, signals.size()));
+			p.head(mcDESPOT::nP(c)) = (mcDESPOT::defaultLo(c, tesla) + mcDESPOT::defaultHi(c, tesla)) / 2.;
+			p.tail(mcDESPOT::nB0(mcDESPOT::B0_Single, signals.size())).setConstant(0.);
+			mcFinite mcd(c, types, angles, signals, consts, mcDESPOT::B0_Single, false, false);
+			VectorXd signal;
+			clock_t start = clock();
+			for (int l = 0; l < loops; l++)
+				signal = mcd.theory(p);
+			clock_t end = clock();
+			cout << c << "-component finite model average time " << ((end - start) / ((float)loops * CLOCKS_PER_SEC)) * 1000 << " ms" << endl;
+			cout << "Params: " << p.transpose() << endl;
+			cout << "Signal: " << signal.transpose() << endl;
+		}
+	}
 	
 	/*
 	// Now create our images
