@@ -1,4 +1,4 @@
-###################################################
+v###################################################
 #
 # Makefile for NiftiImage
 # Tobias Wood December 2012
@@ -53,7 +53,7 @@ Nifti : $(NIFTI_DEPS)
 	$(AR) $(LIB_OPTIONS) $(BUILD_DIR)/libNifti.a $(NIFTI_DEPS)
 
 nifti_hdr : $(HDR_DEPS) Nifti
-	$(CXX) $(CXX_FLAGS) $(HDR_DEPS) -o $(BUILD_DIR)/nifti_hdr $(LD_FLAGS) -lNiftiImage -lz
+	$(CXX) $(CXX_FLAGS) $(HDR_DEPS) -o $(BUILD_DIR)/nifti_hdr $(LD_FLAGS) -lNifti -lz
 
 all     : Nifti nifti_hdr
 
