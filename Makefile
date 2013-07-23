@@ -29,7 +29,7 @@ LD_FLAGS = -std=c++11 -lstdc++ -O3 -pthread -L$(INSTALL_LIB)
 DEBUG_FLAGS = -g
 RELEASE_FLAGS = -O3
 INCLUDE = -I$(SRC_DIR) -I$(INSTALL_INC) -I$(EIGEN)
-LD_LIBS  = -lrecon -lNiftiImage -lz
+LD_LIBS  = -lrecon -lNifti -lz
 
 #
 # Pattern to build a .c in SRC_DIR/subdir to BUILD_DIR/subdir
@@ -73,8 +73,6 @@ phasemap : $(PHASEMAP_DEPS)
 	$(CXX) $(PHASEMAP_DEPS) -o $(BUILD_DIR)/phasemap $(LD_FLAGS) $(LD_LIBS)
 afi : $(AFI_DEPS)
 	$(CXX) $(AFI_DEPS) -o $(BUILD_DIR)/afi $(LD_FLAGS) $(LD_LIBS)
-niicrop : $(CROP_DEPS)
-	$(CXX) $(CROP_DEPS) -o $(BUILD_DIR)/niicrop $(LD_FLAGS) $(LD_LIBS)
 
 .PHONY : build release debug install clean
 
@@ -84,7 +82,7 @@ release : build
 debug   : CXX_FLAGS+=$(DEBUG_FLAGS)
 debug   : build
 
-build : despot1 despot2 despot-hifi mcdespot phasemap afi niicrop
+build : despot1 despot2 despot-hifi mcdespot phasemap afi
 
 install : $(INSTALL_BIN)
 	cp $(BUILD_DIR)/despot1 $(INSTALL_BIN)/
