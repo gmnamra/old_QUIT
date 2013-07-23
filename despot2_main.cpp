@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 			voxelsPerSlice = inFile.voxelsPerSlice();
 			voxelsPerVolume = inFile.voxelsPerVolume();
 			data[p].flip.resize(nFlip, 1);
-			
+			data[p].signal.resize(nFlip, 1);
 			#ifdef HAVE_NRECON
 			ParameterList pars;
 			if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
@@ -309,7 +309,7 @@ int main(int argc, char **argv)
 							index = p;
 						}
 					}
-					resid[0] = classicDESPOT2(data[index].flip, data[index].signal, data[index].TR, T1, data[index].B1, params[0], params[1]);
+					resid[0] = classicDESPOT2(localData[index].flip, localData[index].signal, localData[index].TR, T1, localData[index].B1, params[0], params[1]);
 				} else {
 					// DESPOT2-FM
 					ArrayXd weights(nResiduals);
