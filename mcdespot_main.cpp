@@ -214,9 +214,9 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 		if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
 		getline(cin, path);
 		if ((path != "NONE") && (path != "")) {
-			B1_files.emplace_back(openAndCheck(path, savedHeader, "B1"));
+			B1_files.push_back(openAndCheck(path, savedHeader, "B1"));
 		} else {
-			B1_files.emplace_back(Nifti::File());
+			B1_files.push_back(Nifti::File());
 		}
 		
 		if ((!spoil) && ((B0Mode == mcDESPOT::B0_Map) || (B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
@@ -225,17 +225,17 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 			else if (prompt)
 				cout << "Enter path to low B0 bound map: " << flush;
 			getline(cin, path);
-			B0_loFiles.emplace_back(openAndCheck(path, savedHeader, "B0"));
+			B0_loFiles.push_back(openAndCheck(path, savedHeader, "B0"));
 		} else {
-			B0_loFiles.emplace_back(Nifti::File());
+			B0_loFiles.push_back(Nifti::File());
 		}
 		
 		if ((!spoil) && ((B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
 			if (prompt) cout << "Enter path to high B0 bound map: " << flush;
 			getline(cin, path);
-			B0_hiFiles.emplace_back(openAndCheck(path, savedHeader, "B0"));
+			B0_hiFiles.push_back(openAndCheck(path, savedHeader, "B0"));
 		} else {
-			B0_hiFiles.emplace_back(Nifti::File());
+			B0_hiFiles.push_back(Nifti::File());
 		}
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
