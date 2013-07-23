@@ -268,13 +268,11 @@ int main(int argc, char **argv)
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::READ);
 				maskData = maskFile.readVolume<double>(0);
-				maskFile.close();
 				break;
 			case 'M':
 				cout << "Reading PD file " << optarg << endl;
 				PDFile.open(optarg, Nifti::READ);
 				PDData = PDFile.readVolume<double>(0);
-				PDFile.close();
 				break;
 			case 'o':
 				outPrefix = optarg;
