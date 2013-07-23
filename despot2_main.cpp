@@ -165,8 +165,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	int nFlip, nPhases, nResiduals = 0;
 	nPhases = argc - optind;
-	vector<DESPOTConstants> consts(nPhases);
-	VectorXd ssfpAngles;
+	vector<DESPOTData> data(nPhases);
 	int voxelsPerSlice, voxelsPerVolume;
 	vector<vector<double>> ssfpData(nPhases);
 	for (size_t p = 0; p < nPhases; p++) {
@@ -180,45 +179,46 @@ int main(int argc, char **argv)
 			nFlip = inFile.dim(4);
 			voxelsPerSlice = inFile.voxelsPerSlice();
 			voxelsPerVolume = inFile.voxelsPerVolume();
-			ssfpAngles.resize(nFlip, 1);
+			data[p].flip.resize(nFlip, 1);
 			
 			#ifdef HAVE_NRECON
 			ParameterList pars;
 			if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
-				consts[0].TR = RealValue(pars, "tr");
+				data[0].TR = RealValue(pars, "tr");
 				for (int i = 0; i < nFlip; i++)
-					ssfpAngles[i] = RealValue(pars, "flip1", i);
+					data[p].flip[i] = RealValue(pars, "flip1", i);
 			} else
 			#endif
 			{
 				cout << "Enter SSFP TR (seconds): " << flush;
-				cin >> consts[0].TR;
+				cin >> data[0].TR;
 				cout << "Enter " << nFlip << " flip angles (degrees): " << flush;
-				for (int i = 0; i < ssfpAngles.size(); i++)
-					cin >> ssfpAngles[i];
+				for (int i = 0; i < data[p].flip.size(); i++)
+					cin >> data[p].flip[i];
 			}
+			data[p].flip *= M_PI / 180.;
 		} else {
-			consts[p].TR = consts[0].TR;
+			data[p].TR = data[0].TR;
+			data[p].flip = data[0].flip;
 		}
 		#ifdef HAVE_NRECON
 		ParameterList pars;
 		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
-			consts[p].phase = RealValue(pars, "rfphase") * M_PI / 180.;
+			data[p].phase = RealValue(pars, "rfphase") * M_PI / 180.;
 		} else
 		#endif
 		{
 			cout << "Enter phase-cycling (degrees): " << flush;
-			cin >> consts[p].phase; consts[p].phase *= M_PI / 180.;
+			cin >> data[p].phase; data[p].phase *= M_PI / 180.;
 		}
 		cout << "Reading SSFP data..." << endl;
 		ssfpData[p] = inFile.readAllVolumes<double>();
 		// Don't close the first header because we've saved it to write the
 		// results, and FSLIO gets fussy about cloning closed headers
 		inFile.close();
-		nResiduals += ssfpAngles.size();
+		nResiduals += data[p].flip.size();
 		optind++;
 	}
-	ssfpAngles *= M_PI / 180.;
 	
 	if (optind != argc) {
 		cerr << "Unprocessed arguments supplied.\n" << usage;
@@ -241,14 +241,14 @@ int main(int argc, char **argv)
 		}
 		// If fitting, give a suitable range and allocate results memory
 		if (fitB0) {
-			loBounds[2] =  0.0 / consts[0].TR;
-			hiBounds[2] =  0.5 / consts[0].TR;
+			loBounds[2] =  0.0 / data[0].TR;
+			hiBounds[2] =  0.5 / data[0].TR;
 			B0Data.resize(voxelsPerVolume);
 		}
 	}
 	
 	if (verbose) {
-		cout << "SSFP Angles (deg): " << ssfpAngles.transpose() * 180 / M_PI << endl;
+		cout << "SSFP Angles (deg): " << data[0].flip.transpose() * 180 / M_PI << endl;
 		if (tesla != 0)
 			cout << "Low bounds: " << loBounds.transpose() << endl
 				 << "Hi bounds:  " << hiBounds.transpose() << endl;
@@ -290,14 +290,12 @@ int main(int argc, char **argv)
 				voxCount++;
 				T1 = T1Data[sliceOffset + vox];
 				// Gather signals.
-				vector<VectorXd> signals;
+				vector<DESPOTData> localData = data;
 				for (int p = 0; p < nPhases; p++) {
-					consts[p].B0 = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
-					consts[p].B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
-					VectorXd temp(nFlip);
+					localData[p].B0 = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
+					localData[p].B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 					for (int i = 0; i < nFlip; i++)
-						temp(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
-					signals.push_back(temp);
+						localData[p].signal(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
 				}
 				
 				if (tesla == 0) {
@@ -305,18 +303,18 @@ int main(int argc, char **argv)
 					int index = 0;
 					double bestPhase = DBL_MAX;
 					for (int p = 0; p < nPhases; p++) {
-						double thisPhase = (consts[p].B0 * consts[p].TR * 2 * M_PI) + consts[p].phase;
+						double thisPhase = (data[p].B0 * data[p].TR * 2 * M_PI) + data[p].phase;
 						if (fabs(fmod(thisPhase - M_PI, 2 * M_PI)) < bestPhase) {
 							bestPhase = fabs(fmod(thisPhase - M_PI, 2 * M_PI));
 							index = p;
 						}
 					}
-					resid[0] = classicDESPOT2(ssfpAngles, signals[index], consts[index].TR, T1, consts[index].B1, params[0], params[1]);
+					resid[0] = classicDESPOT2(data[index].flip, data[index].signal, data[index].TR, T1, data[index].B1, params[0], params[1]);
 				} else {
 					// DESPOT2-FM
 					ArrayXd weights(nResiduals);
 					weights.setConstant(1.0);
-					DESPOT2FM tc(ssfpAngles, signals, consts, T1, false, fitB0);
+					DESPOT2FM tc(data, T1, false, fitB0);
 					resid = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds, weights);
 				}
 			}

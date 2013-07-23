@@ -143,15 +143,13 @@ Nifti::File openAndCheck(const string &path, const Nifti::File &saved, const str
 	return in;
 }
 
-Nifti::File parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
-                       vector<DESPOTConstants> &consts,
+Nifti::File parseInput(vector<DESPOTData> &data,
 				       vector<Nifti::File > &signalFiles,
 				       vector<Nifti::File > &B1_files,
 				       vector<Nifti::File > &B0_loFiles,
 					   vector<Nifti::File > &B0_hiFiles,
 					   const int &B0Mode, const bool &finiteRF);
-Nifti::File parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorXd> &angles,
-                       vector<DESPOTConstants> &consts,
+Nifti::File parseInput(vector<DESPOTData> &data,
 				       vector<Nifti::File > &signalFiles,
 				       vector<Nifti::File > &B1_files,
 				       vector<Nifti::File > &B0_loFiles,
@@ -161,20 +159,17 @@ Nifti::File parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
-		if (type == "SPGR")
-			signalTypes.push_back(mcDESPOT::SignalSPGR);
-		else if (type == "SSFP")
-			signalTypes.push_back(mcDESPOT::SignalSSFP);
-		else {
+		if (type != "SPGR" && type != "SSFP") {
 			cerr << "Unknown signal type: " << type << endl;
 			exit(EXIT_FAILURE);
 		}
+		bool spoil = (type == "SPGR");
 		if (prompt) cout << "Enter image path: " << flush;
 		getline(cin, path);
 		if (signalFiles.size() == 0) {
 			savedHeader.open(path, Nifti::READ_HEADER);
 		}
-		signalFiles.emplace_back(openAndCheck(path, savedHeader, type));
+		signalFiles.push_back(openAndCheck(path, savedHeader, type));
 		double inTR = 0., inTrf = 0., inPhase = 0., inTE = 0.;
 		VectorXd inAngles(signalFiles.back().dim(4));
 		#ifdef HAVE_NRECON
@@ -183,12 +178,12 @@ Nifti::File parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 			inTR = RealValue(pars, "tr");
 			for (int i = 0; i < inAngles.size(); i++)
 				inAngles[i] = RealValue(pars, "flip1", i);
-			if (signalTypes.back() == mcDESPOT::SignalSSFP) {
+			if (!spoil)
 				inPhase = RealValue(pars, "rfphase");
-			}
 			if (finiteRF) {
+				if (spoil)
+					inTE = RealValue(pars, "te");
 				inTrf = RealValue(pars, "p1") / 1e6; // p1 is in microseconds
-				inTE = RealValue(pars, "te");
 			}
 		} else
 		#endif
@@ -199,20 +194,22 @@ Nifti::File parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 			for (int i = 0; i < inAngles.size(); i++)
 				cin >> inAngles[i];
 			getline(cin, path); // Just to eat the newline
-			if (signalTypes.back() == mcDESPOT::SignalSSFP) {
+			if (!spoil) {
 				if (prompt) cout << "Enter SSFP Phase-Cycling (degrees): " << flush;
 				cin >> inPhase;
 			}
 			if (finiteRF) {
-				cout << "Enter RF Pulse Length (seconds): " << flush;
+				if (spoil) {
+					if (prompt) cout << "Enter TE (seconds): " << flush;
+					cin >> inTE;
+				}
+				if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush;
 				cin >> inTrf;
-				cout << "Enter TE (seconds): " << flush;
-				cin >> inTE;
+
 			}
 			getline(cin, path); // Just to eat the newline
 		}
-		consts.push_back( { inTR, inTrf, inPhase * M_PI / 180., 0., 0. } );
-		angles.push_back(inAngles * M_PI / 180.);
+		data.emplace_back(inAngles * M_PI / 180., spoil, inTR, inTrf, inTE, inPhase * M_PI / 180.);
 		
 		if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
 		getline(cin, path);
@@ -222,20 +219,18 @@ Nifti::File parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 			B1_files.emplace_back(Nifti::File());
 		}
 		
-		if ((signalTypes.back() == mcDESPOT::SignalSSFP) &&
-		    ((B0Mode == mcDESPOT::B0_Map) || (B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
-			if (prompt && (B0Mode == mcDESPOT::B0_Map)) cout << "Enter path to B0 map: " << flush;
-			else if (prompt) cout << "Enter path to low B0 bound map: " << flush;
-			cout << endl << "SSFP " << path << endl;
+		if ((!spoil) && ((B0Mode == mcDESPOT::B0_Map) || (B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
+			if (prompt && (B0Mode == mcDESPOT::B0_Map))
+				cout << "Enter path to B0 map: " << flush;
+			else if (prompt)
+				cout << "Enter path to low B0 bound map: " << flush;
 			getline(cin, path);
-			cout << path << endl;
 			B0_loFiles.emplace_back(openAndCheck(path, savedHeader, "B0"));
 		} else {
 			B0_loFiles.emplace_back(Nifti::File());
 		}
 		
-		if ((signalTypes.back() == mcDESPOT::SignalSSFP) &&
-		    ((B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
+		if ((!spoil) && ((B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
 			if (prompt) cout << "Enter path to high B0 bound map: " << flush;
 			getline(cin, path);
 			B0_hiFiles.emplace_back(openAndCheck(path, savedHeader, "B0"));
@@ -245,7 +240,7 @@ Nifti::File parseInput(vector<mcDESPOT::SignalType> &signalTypes, vector<VectorX
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
-	if (signalTypes.size() == 0) {
+	if (data.size() == 0) {
 		cerr << "No input images specified." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -338,11 +333,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	vector<mcDESPOT::SignalType> signalTypes;
-	vector<DESPOTConstants> consts;
-	vector<VectorXd> angles;
+	vector<DESPOTData> data;
 	vector<Nifti::File > signalFiles, B1_files, B0_loFiles, B0_hiFiles;
-	savedHeader = parseInput(signalTypes, angles, consts, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0Mode, finiteRF);
+	savedHeader = parseInput(data, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0Mode, finiteRF);
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	// Use NULL to indicate that default values should be used -
@@ -356,7 +349,7 @@ int main(int argc, char **argv)
 				     B0LoVolumes(signalFiles.size()),
 					 B0HiVolumes(signalFiles.size());
 	for (int i = 0; i < signalFiles.size(); i++) {
-		signalVolumes[i].resize(voxelsPerSlice * angles[i].size());
+		signalVolumes[i].resize(voxelsPerSlice * data[i].flip.size());
 		if (B1_files[i].isOpen()) B1Volumes[i].resize(voxelsPerSlice);
 		if (B0_loFiles[i].isOpen()) B0LoVolumes[i].resize(voxelsPerSlice);
 		if (B0_hiFiles[i].isOpen()) B0HiVolumes[i].resize(voxelsPerSlice);
@@ -368,16 +361,16 @@ int main(int argc, char **argv)
 	const vector<string> names = mcDESPOT::names(components);
 	
 	int totalSignals = 0;
-	for (int i = 0; i < angles.size(); i++)
-		totalSignals += angles[i].size();
+	for (int i = 0; i < data.size(); i++)
+		totalSignals += data[i].flip.size();
 	ArrayXd weights(totalSignals);
 	size_t index = 0;
-	for (int i = 0; i < signalTypes.size(); i++) {
-		if (signalTypes[i] == mcDESPOT::SignalSPGR)
-			weights.segment(index, angles[i].size()).setConstant(weighting);
+	for (int i = 0; i < data.size(); i++) {
+		if (data[i].spoil)
+			weights.segment(index, data[i].flip.size()).setConstant(weighting);
 		else
-			weights.segment(index, angles[i].size()).setConstant(1.0);
-		index += angles[i].size();
+			weights.segment(index, data[i].flip.size()).setConstant(1.0);
+		index += data[i].flip.size();
 	}
 	
 	residualData.resize(totalSignals);
@@ -410,8 +403,8 @@ int main(int argc, char **argv)
 	}
 	
 	for (int i = 0; i < nB0; i++) {
-		loBounds[nP + i] = -0.5 / consts[i].TR;
-		hiBounds[nP + i] =  0.5 / consts[i].TR;
+		loBounds[nP + i] = -0.5 / data[i].TR;
+		hiBounds[nP + i] =  0.5 / data[i].TR;
 		paramsData[nP + i] .resize(voxelsPerSlice);
 		paramsHdrs[nP + i].open(outPrefix + "MCD_" + to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", Nifti::WRITE);
 	}
@@ -464,19 +457,17 @@ int main(int argc, char **argv)
 				// Need local copy because B1 changes per voxel. If you assign
 				// to the global 'consts' nothing happens but Clang doesn't give
 				// an error
-				vector<DESPOTConstants> localConsts = consts;
+				vector<DESPOTData> localData = data;
 				for (size_t i = 0; i < signalFiles.size(); i++) {
-					VectorXd temp(angles[i].size());
-					for (size_t j = 0; j < angles[i].size(); j++) {
-						temp[j] = signalVolumes[i][voxelsPerSlice*j + vox];
+					for (size_t j = 0; j < localData[i].signal.size(); j++) {
+						localData[i].signal(j) = signalVolumes[i][voxelsPerSlice*j + vox];
 					}
 					if (normalise)
-						temp /= temp.mean();
-					signals[i] = temp;
+						localData[i].signal /= localData[i].signal.mean();
 					if (B0Mode == mcDESPOT::B0_Map) {
-						localConsts[i].B0 = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
+						localData[i].B0 = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
 					}
-					localConsts[i].B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
+					localData[i].B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
@@ -493,11 +484,11 @@ int main(int argc, char **argv)
 				}
 				
 				if (!finiteRF) {
-					mcDESPOT mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise, (voxI > -1));
+					mcDESPOT mcd(components, localData, B0Mode, normalise, (voxI > -1));
 					residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi, weights,
 															samples, retain, contract, 0.05, expand, rSeed);
 				} else {
-					mcFinite mcd(components, signalTypes, angles, signals, localConsts, B0Mode, normalise, (voxI > -1));
+					mcFinite mcd(components, localData, B0Mode, normalise, (voxI > -1));
 					residuals = regionContraction<mcFinite>(params, mcd, localLo, localHi, weights,
 															samples, retain, contract, 0.05, expand, rSeed);
 				}

@@ -63,18 +63,14 @@ int main(int argc, char **argv)
 	ArrayXd sSPGR(alphaSPGR.size()); sSPGR.setZero();
 	ArrayXd sSSFP(alphaSSFP.size()); sSSFP.setZero();
 	
-	vector<mcDESPOT::SignalType> types;
-	types.push_back(mcDESPOT::SignalSPGR);
-	//types.push_back(mcDESPOT::SignalSSFP);
-	//types.push_back(mcDESPOT::SignalSSFP);
 	vector<VectorXd> signals, angles;
 	vector<double> TR, phases, B0, B1;
-	vector<DESPOTConstants> consts;
-	angles.push_back(alphaSPGR); signals.push_back(sSPGR); consts.push_back( { spgrTR, Trf, 0.003, 0., 0., 1., true } );
-	//angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, Trf, 0., 0., 0., 1., false } );
-	//angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.push_back( { ssfpTR, Trf, 0., M_PI, 0., 1., false } );
+	vector<DESPOTData> data;
+	data.emplace_back(alphaSPGR, true, spgrTR, Trf, 0.003, 0., 0., 1.);
+	data.emplace_back(alphaSSFP, false, ssfpTR, Trf, 0., 0., 0., 1.);
+	//angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.emplace_back(false, ssfpTR, Trf, 0., M_PI);
 	
-	long loops = 10000;
+	long loops = 1;
 	if (testSpeed) {
 		cout << "Alpha SPGR: " << alphaSPGR.transpose() << endl;
 		cout << "Alpha SSFP: " << alphaSSFP.transpose() << endl;
@@ -83,7 +79,7 @@ int main(int argc, char **argv)
 			ArrayXd p(mcDESPOT::nP(c) + mcDESPOT::nB0(mcDESPOT::B0_Single, signals.size()));
 			p.head(mcDESPOT::nP(c)) = (mcDESPOT::defaultLo(c, tesla) + mcDESPOT::defaultHi(c, tesla)) / 2.;
 			p.tail(mcDESPOT::nB0(mcDESPOT::B0_Single, signals.size())).setConstant(0.);
-			mcDESPOT mcd(c, types, angles, signals, consts, mcDESPOT::B0_Single, false, false);
+			mcDESPOT mcd(c, data, mcDESPOT::B0_Single, false, false);
 			VectorXd signal;
 			clock_t start = clock();
 			for (int l = 0; l < loops; l++)
@@ -97,7 +93,7 @@ int main(int argc, char **argv)
 			ArrayXd p(mcDESPOT::nP(c) + mcDESPOT::nB0(mcDESPOT::B0_Single, signals.size()));
 			p.head(mcDESPOT::nP(c)) = (mcDESPOT::defaultLo(c, tesla) + mcDESPOT::defaultHi(c, tesla)) / 2.;
 			p.tail(mcDESPOT::nB0(mcDESPOT::B0_Single, signals.size())).setConstant(0.);
-			mcFinite mcd(c, types, angles, signals, consts, mcDESPOT::B0_Single, false, false);
+			mcFinite mcd(c, data, mcDESPOT::B0_Single, false, false);
 			VectorXd signal;
 			clock_t start = clock();
 			for (int l = 0; l < loops; l++)

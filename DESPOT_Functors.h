@@ -29,9 +29,16 @@ typedef Matrix<double, 6, 1> Vector6d;
 typedef Matrix<double, 9, 9> Matrix9d;
 typedef Matrix<double, 9, 1> Vector9d;
 
-struct DESPOTConstants {
-	double TR, Trf, TE, phase, B0, B1;
-	bool spoil;
+class DESPOTData {
+	public:
+		double TR, Trf, TE, phase, B0, B1;
+		bool spoil;
+		VectorXd flip, signal;
+	
+		DESPOTData() : TR(0.), Trf(0.), TE(0.), phase(0.), B0(0.), B1(0.), spoil(false), flip(), signal() {};
+		DESPOTData(const VectorXd& inFlip, bool inSpoil, double inTR, double inTrf, double inTE = 0., double inPhase = M_PI, double inB0 = 0., double inB1 = 1.) :
+			flip(inFlip), signal(flip.size()), TR(inTR), Trf(inTrf), TE(inTE), phase(inPhase), B0(inB0), B1(inB1), spoil(inSpoil) {};
+		DESPOTData(const VectorXd &inFlip, double inSpoil, double inTR, double inTrf, double inTE, double inPhase, double inB0, double inB1) = delete;
 };
 
 // A 3x3 matrix rotation of alpha about X and beta around Z
@@ -127,58 +134,55 @@ const VectorXd SigMag(const MagVector &M_in) {
 #pragma mark One Component Signals
 // Parameters are { PD, T1, T2 }
 //******************************************************************************
-MagVector One_SPGR(const VectorXd &flipAngles,
-                  const DESPOTConstants& c, const VectorXd &p)
+MagVector One_SPGR(const DESPOTData &d, const VectorXd &p)
 {
-	MagVector M(3, flipAngles.size()); M.setZero();
-	ArrayXd sa = (flipAngles.array() * c.B1).sin();
-	ArrayXd ca = (flipAngles.array() * c.B1).cos();
-	double expT1 = exp(-c.TR / p[1]);
+	MagVector M(3, d.flip.size()); M.setZero();
+	ArrayXd sa = (d.flip.array() * d.B1).sin();
+	ArrayXd ca = (d.flip.array() * d.B1).cos();
+	double expT1 = exp(-d.TR / p[1]);
 	M.row(1) = (p[0]*(1. - expT1) * sa) / (1. - expT1*ca);
 	return M;
 }
 
-MagVector One_SSFP(const VectorXd &flipAngles,
-                   const DESPOTConstants& c, const VectorXd &p)
+MagVector One_SSFP(const DESPOTData &d, const VectorXd &p)
 {
 	Vector3d M0 = Vector3d::Zero(), Mobs;
 	M0[2] = p[0]; // PD
-	Matrix3d L = (-(Relax(p[1], p[2]) + OffResonance(c.B0))*c.TR).exp();
+	Matrix3d L = (-(Relax(p[1], p[2]) + OffResonance(d.B0))*d.TR).exp();
 	const Vector3d RHS = (Matrix3d::Identity() - L) * M0;
-	MagVector theory(3, flipAngles.size());
+	MagVector theory(3, d.flip.size());
 	Matrix3d R_rf;
-	for (int i = 0; i < flipAngles.size(); i++) {
-		const Matrix3d R_rf = RF(c.B1 * flipAngles[i], c.phase);
+	for (int i = 0; i < d.flip.size(); i++) {
+		const Matrix3d R_rf = RF(d.B1 * d.flip[i], d.phase);
 		theory.col(i) = (Matrix3d::Identity() - (L * R_rf)).partialPivLu().solve(RHS);
 	}
 	return theory;
 }
 
-MagVector One_SSFP_Finite(const VectorXd &flipAngles,
-                          const DESPOTConstants& c, const VectorXd &p)
+MagVector One_SSFP_Finite(const DESPOTData &d, const VectorXd &p)
 {
 	const Matrix3d I = Matrix3d::Identity();
 	const Matrix3d R = Relax(p[1], p[2]);
-	const Matrix3d O = OffResonance(c.B0);
+	const Matrix3d O = OffResonance(d.B0);
 	Matrix3d C;
 	double TE;
-	if (c.spoil) {
+	if (d.spoil) {
 		C = Spoiling();
-		TE = c.TE;
+		TE = d.TE;
 	} else {
-		C = AngleAxisd(c.phase, Vector3d::UnitZ());
-		TE = (c.TR - c.Trf) / 2; // Time AFTER the RF Pulse ends that echo is formed
+		C = AngleAxisd(d.phase, Vector3d::UnitZ());
+		TE = (d.TR - d.Trf) / 2; // Time AFTER the RF Pulse ends that echo is formed
 	}
 	
 	Matrix3d l1, l2, le;
 	le = (-(R + O) * TE).exp();
-	l2 = (-(R + O) * (c.TR - c.Trf)).exp();
+	l2 = (-(R + O) * (d.TR - d.Trf)).exp();
 	Vector3d m0; m0 << 0, 0, p[0];
 	Vector3d m2 = (R + O).partialPivLu().solve(R * m0);
-	MagVector theory(3, flipAngles.size());
-	for (int i = 0; i < flipAngles.size(); i++) {
-		const Matrix3d A = InfinitesimalRF(c.B1 * flipAngles[i] / c.Trf);
-		l1 = (-(R + O + A)*(c.Trf)).exp();
+	MagVector theory(3, d.flip.size());
+	for (int i = 0; i < d.flip.size(); i++) {
+		const Matrix3d A = InfinitesimalRF(d.B1 * d.flip[i] / d.Trf);
+		l1 = (-(R + O + A)*(d.Trf)).exp();
 		Vector3d m1 = (R + O + A).partialPivLu().solve(R * m0);
 		Vector3d mp = C*m2 + (I - l1*C*l2).partialPivLu().solve((I - l1)*(m1 - C*m2));
 		Vector3d me = le*(mp - m2) + m2;
@@ -191,43 +195,42 @@ MagVector One_SSFP_Finite(const VectorXd &flipAngles,
 #pragma mark Two Component Signals
 // Parameters are { PD, T1_a, T2_a, T1_b, T2_b, tau_a, f_a }
 //******************************************************************************
-MagVector Two_SPGR(const VectorXd &flipAngles,
-                   const DESPOTConstants &c, const VectorXd &p)
+MagVector Two_SPGR(const DESPOTData &d, const VectorXd &p)
 {
 	Matrix2d A, eATR;
 	Vector2d M0, Mobs;
-	MagVector signal(3, flipAngles.size()); signal.setZero();
+	MagVector signal(3, d.flip.size()); signal.setZero();
 	double k_ab, k_ba, f_a = p[6], f_b = 1. - f_a;
 	CalcExchange(p[5], f_a, f_b, k_ab, k_ba);
 	M0 << p[0] * f_a, p[0] * f_b;
 	A << -((1./p[1]) + k_ab),                    k_ba,
 				        k_ab,      -((1./p[3]) + k_ba);
-	eATR = (A*c.TR).exp();
+	eATR = (A*d.TR).exp();
 	const Vector2d RHS = (Matrix2d::Identity() - eATR) * M0;
-	for (int i = 0; i < flipAngles.size(); i++) {
-		double a = flipAngles[i];
-		Mobs = (Matrix2d::Identity() - eATR*cos(c.B1 * a)).partialPivLu().solve(RHS * sin(c.B1 * a));
+	for (int i = 0; i < d.flip.size(); i++) {
+		double a = d.flip[i];
+		Mobs = (Matrix2d::Identity() - eATR*cos(d.B1 * a)).partialPivLu().solve(RHS * sin(d.B1 * a));
 		signal(1, i) = Mobs.sum();
 	}
 	return signal;
 }
 
-MagVector Two_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const VectorXd &p)
+MagVector Two_SSFP(const DESPOTData &d, const VectorXd &p)
 {
-	MagVector signal(3, flipAngles.size());
+	MagVector signal(3, d.flip.size());
 	Vector6d M0; M0 << 0., 0., p[0] * p[6], 0., 0., p[0] * (1. - p[6]);
 	Matrix6d R = Matrix6d::Zero();
 	R.block(0,0,3,3) = Relax(p[1], p[2]);
 	R.block(3,3,3,3) = Relax(p[3], p[4]);
-	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(c.B0);
+	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(d.B0);
 	double k_ab, k_ba;
 	CalcExchange(p[5], p[6], (1 - p[6]), k_ab, k_ba);
 	Matrix6d K = Exchange(k_ab, k_ba);
-	Matrix6d L = (-(R+O+K)*c.TR).exp();
+	Matrix6d L = (-(R+O+K)*d.TR).exp();
 	const Vector6d eyemaM0 = (Matrix6d::Identity() - L) * M0;
 	Matrix6d A = Matrix6d::Zero();
-	for (int i = 0; i < flipAngles.size(); i++) {
-		const Matrix3d Ab = RF(c.B1 * flipAngles[i], c.phase);
+	for (int i = 0; i < d.flip.size(); i++) {
+		const Matrix3d Ab = RF(d.B1 * d.flip[i], d.phase);
 		A.block(0, 0, 3, 3) = Ab;
 		A.block(3, 3, 3, 3) = Ab;
 		Vector6d MTR = (Matrix6d::Identity() - L * A).partialPivLu().solve(eyemaM0);
@@ -236,21 +239,21 @@ MagVector Two_SSFP(const VectorXd&flipAngles, const DESPOTConstants &c, const Ve
 	return signal;
 }
 
-MagVector Two_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, const VectorXd &p)
+MagVector Two_SSFP_Finite(const DESPOTData &d, const VectorXd &p)
 {
 	const Matrix6d I = Matrix6d::Identity();
 	Matrix6d R = Matrix6d::Zero();
 	R.block(0,0,3,3) = Relax(p[1], p[2]);
 	R.block(3,3,3,3) = Relax(p[3], p[4]);
-	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(c.B0);
+	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(d.B0);
 	Matrix3d C3;
 	double TE;
-	if (c.spoil) {
+	if (d.spoil) {
 		C3 = Spoiling();
-		TE = c.TE;
+		TE = d.TE;
 	} else {
-		C3 = AngleAxisd(c.phase, Vector3d::UnitZ());
-		TE = (c.TR-c.Trf) / 2.;
+		C3 = AngleAxisd(d.phase, Vector3d::UnitZ());
+		TE = (d.TR-d.Trf) / 2.;
 	}
 	Matrix6d C = Matrix6d::Zero(); C.block(0,0,3,3) = C.block(3,3,3,3) = C3;
 	Matrix6d RpO = R + O;
@@ -260,7 +263,7 @@ MagVector Two_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, 
 	Matrix6d RpOpK = RpO + K;
 	Matrix6d l1, temp;
 	const Matrix6d le = (-(RpOpK)*TE).exp();
-	const Matrix6d l2 = (-(RpOpK)*(c.TR-c.Trf)).exp();
+	const Matrix6d l2 = (-(RpOpK)*(d.TR-d.Trf)).exp();
 	
 	Vector6d m0, mp, me;
 	m0 << 0, 0, p[0] * p[6], 0, 0, p[0] * (1-p[6]);
@@ -268,13 +271,13 @@ MagVector Two_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, 
 	const Vector6d m2 = (RpO).partialPivLu().solve(Rm0);
 	const Vector6d Cm2 = C * m2;
 	
-	MagVector theory(3, flipAngles.size());
+	MagVector theory(3, d.flip.size());
 	Matrix6d A = Matrix6d::Zero();
 	
-	for (int i = 0; i < flipAngles.size(); i++) {
-		A.block(0,0,3,3) = A.block(3,3,3,3) = InfinitesimalRF(c.B1 * flipAngles[i] / c.Trf);
-		l1 = (-(RpOpK+A)*c.Trf).exp();
-		temp.noalias() = -(RpOpK + A)*(c.Trf);
+	for (int i = 0; i < d.flip.size(); i++) {
+		A.block(0,0,3,3) = A.block(3,3,3,3) = InfinitesimalRF(d.B1 * d.flip[i] / d.Trf);
+		l1 = (-(RpOpK+A)*d.Trf).exp();
+		temp.noalias() = -(RpOpK + A)*(d.Trf);
 		Vector6d m1 = (RpO + A).partialPivLu().solve(Rm0);
 		mp.noalias() = Cm2 + (I - l1*C*l2).partialPivLu().solve((I - l1)*(m1 - Cm2));
 		me.noalias() = le*(mp - m2) + m2;				
@@ -287,7 +290,7 @@ MagVector Two_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, 
 #pragma mark Three Component
 // Parameters are { PD, T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
 //******************************************************************************
-MagVector Three_SPGR(const VectorXd &flipAngles, const DESPOTConstants &c, const VectorXd &p)
+MagVector Three_SPGR(const DESPOTData &d, const VectorXd &p)
 {
 	// Parameters are { PD, T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
 	VectorXd p_1c(3), p_2c(7);
@@ -296,13 +299,13 @@ MagVector Three_SPGR(const VectorXd &flipAngles, const DESPOTConstants &c, const
 	p_2c.segment(1, 4) = p.segment(1, 4);
 	p_2c(5) = p(7); p_2c(6) = p(8) / (1. - p(9)); // Adjust f_a so f_a + f_b = 1 for the 2c calculation
 	
-	MagVector m_ab = Two_SPGR(flipAngles, c, p_2c);
-	MagVector m_c  = One_SPGR(flipAngles, c, p_1c);
+	MagVector m_ab = Two_SPGR(d, p_2c);
+	MagVector m_c  = One_SPGR(d, p_1c);
 	MagVector r = m_ab + m_c;
 	return r;
 }
 
-MagVector Three_SSFP(const VectorXd &flipAngles, const DESPOTConstants &c, const VectorXd &p)
+MagVector Three_SSFP(const DESPOTData &d, const VectorXd &p)
 {
 	// Parameters are { PD, T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
 	VectorXd p_1c(3), p_2c(7);
@@ -311,13 +314,13 @@ MagVector Three_SSFP(const VectorXd &flipAngles, const DESPOTConstants &c, const
 	p_2c.segment(1, 4) = p.segment(1, 4);
 	p_2c(5) = p(7); p_2c(6) = p(8) / (1. - p(9)); // Adjust f_a so f_a + f_b = 1 for the 2c calculation
 	
-	MagVector m_ab = Two_SSFP(flipAngles, c, p_2c);
-	MagVector m_c  = One_SSFP(flipAngles, c, p_1c);
+	MagVector m_ab = Two_SSFP(d, p_2c);
+	MagVector m_c  = One_SSFP(d, p_1c);
 	MagVector r = m_ab + m_c;
 	return r;
 }
 
-MagVector Three_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c, const VectorXd &p)
+MagVector Three_SSFP_Finite(const DESPOTData &d, const VectorXd &p)
 {
 	// Parameters are { PD, T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
 	VectorXd p_1c(3), p_2c(7);
@@ -326,8 +329,8 @@ MagVector Three_SSFP_Finite(const VectorXd &flipAngles, const DESPOTConstants& c
 	p_2c.segment(1, 4) = p.segment(1, 4);
 	p_2c(5) = p(7); p_2c(6) = p(8) / (1. - p(9)); // Adjust f_a so f_a + f_b = 1 for the 2c calculation
 	
-	MagVector m_ab = Two_SSFP_Finite(flipAngles, c, p_2c);
-	MagVector m_c  = One_SSFP_Finite(flipAngles, c, p_1c);
+	MagVector m_ab = Two_SSFP_Finite(d, p_2c);
+	MagVector m_c  = One_SSFP_Finite(d, p_1c);
 	MagVector r = m_ab + m_c;
 	return r;
 }
@@ -371,11 +374,6 @@ class Functor
 //******************************************************************************
 class mcDESPOT : public Functor<double> {
 	public:
-		enum SignalType {
-			SignalSPGR = 0,
-			SignalSSFP
-		};
-		
 		enum B0Mode {
 			B0_Map = 0,
 			B0_Single,
@@ -478,30 +476,25 @@ class mcDESPOT : public Functor<double> {
 	protected:
 		const int _components, _B0Mode;
 		long _nP, _nV, _nB0;
-		const vector<SignalType> &_types;
-		const vector<VectorXd> &_angles, &_signals;
-		vector<DESPOTConstants> &_consts;
+		vector<DESPOTData> &_data;
 		const bool _normalise, _debug;
 	
 	public:
-		mcDESPOT(const int components, const vector<SignalType> &types,
-				 const vector<VectorXd> &angles, const vector<VectorXd> &signals,
-				 vector<DESPOTConstants> &constants,
+		mcDESPOT(const int components, vector<DESPOTData> &data,
 				 const int &B0Mode, const bool &normalise = false, const bool &debug = false) :
-			_components(components), _types(types),
-			_angles(angles), _signals(signals), _consts(constants),
+			_components(components), _data(data),
 			_normalise(normalise), _B0Mode(B0Mode), _debug(debug)
 		{
 			_nP = nP(components);
-			_nB0 = nB0(B0Mode, signals.size());
+			_nB0 = nB0(B0Mode, _data.size());
 			_nV = 0;
-			for (int i = 0; i < angles.size(); i++) {
-				if (angles[i].size() != signals[i].size()) {
+			for (int i = 0; i < data.size(); i++) {
+				if (data[i].flip.size() != data[i].signal.size()) {
 					cerr << "Angles and signals size mis-match for signal " << i << endl;
-					cerr << "Angles = " << angles[i].size() << " signal = " << signals[i].size() << endl;
+					cerr << "Angles = " << data[i].flip.size() << " signal = " << data[i].signal.size() << endl;
 					exit(EXIT_FAILURE);
 				}
-				_nV += angles[i].size();
+				_nV += _data[i].flip.size();
 			}
 		}
 		
@@ -540,10 +533,10 @@ class mcDESPOT : public Functor<double> {
 		const ArrayXd signals() const {
 			ArrayXd v(values());
 			int index = 0;
-			for (int i = 0; i < _signals.size(); i++) {
-				v.segment(index, _signals[i].size()) = _signals[i];
+			for (int i = 0; i < _data.size(); i++) {
+				v.segment(index, _data[i].signal.size()) = _data[i].signal;
 				//cout << "s:  " << _signals[i].transpose() << endl;
-				index += _signals[i].size();
+				index += _data[i].signal.size();
 			}
 			return v;
 		}
@@ -552,29 +545,29 @@ class mcDESPOT : public Functor<double> {
 			ArrayXd t(values());
 			int index = 0;
 			if (_debug) cout << endl << "Params: " << params.transpose() << endl;
-			for (int i = 0; i < _signals.size(); i++) {
-				MagVector M(3, _signals[i].size());
+			for (int i = 0; i < _data.size(); i++) {
+				MagVector M(3, _data[i].flip.size());
 				if ((_B0Mode == B0_Single) || (_B0Mode == B0_Bounded))
-					_consts[i].B0 = params[_nP];
+					_data[i].B0 = params[_nP];
 				else if ((_B0Mode == B0_Multi) || (_B0Mode == B0_MultiBounded))
-					_consts[i].B0 = params[_nP + i];
-				if (_types[i] == SignalSPGR) {
+					_data[i].B0 = params[_nP + i];
+				if (_data[i].spoil == true) {
 					switch (_components) {
-						case 1: M = One_SPGR(_angles[i], _consts[i], params.head(_nP)); break;
-						case 2: M = Two_SPGR(_angles[i], _consts[i], params.head(_nP)); break;
-						case 3: M = Three_SPGR(_angles[i], _consts[i], params.head(_nP)); break;
+						case 1: M = One_SPGR(_data[i], params.head(_nP)); break;
+						case 2: M = Two_SPGR(_data[i], params.head(_nP)); break;
+						case 3: M = Three_SPGR(_data[i], params.head(_nP)); break;
 					}
-				} else if (_types[i] == SignalSSFP) {
+				} else {
 					switch (_components) {
-						case 1: M = One_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
-						case 2: M = Two_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
-						case 3: M = Three_SSFP(_angles[i], _consts[i], params.head(_nP)); break;
+						case 1: M = One_SSFP(_data[i], params.head(_nP)); break;
+						case 2: M = Two_SSFP(_data[i], params.head(_nP)); break;
+						case 3: M = Three_SSFP(_data[i], params.head(_nP)); break;
 					}
 				}
 				ArrayXd theory = SigMag(M);
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
-				t.segment(index, _signals[i].size()) = theory;
-				index += _signals[i].size();
+				t.segment(index, _data[i].signal.size()) = theory;
+				index += _data[i].signal.size();
 			}
 			return t;
 		}
@@ -596,11 +589,9 @@ class mcDESPOT : public Functor<double> {
 class mcFinite : public mcDESPOT {
 
 	public:
-		mcFinite(const int components, const vector<SignalType> &types,
-				 const vector<VectorXd> &angles, const vector<VectorXd> &signals,
-				 vector<DESPOTConstants> &constants,
+		mcFinite(const int components, vector<DESPOTData> &data,
 				 const int &B0Mode, const bool &normalise = false, const bool &debug = false) :
-				mcDESPOT(components, types, angles, signals, constants, B0Mode, normalise, debug)
+				mcDESPOT(components, data, B0Mode, normalise, debug)
 		{
 		}
 		
@@ -608,22 +599,22 @@ class mcFinite : public mcDESPOT {
 			ArrayXd t(values());
 			int index = 0;
 			if (_debug) cout << endl << "Params: " << params.transpose() << endl;
-			for (int i = 0; i < _signals.size(); i++) {
-				MagVector M(3, _signals[i].size());
-				ArrayXd temp(_signals[i].size());
+			for (int i = 0; i < _data.size(); i++) {
+				MagVector M(3, _data[i].signal.size());
+				ArrayXd temp(_data[i].signal.size());
 				if ((_B0Mode == B0_Single) || (_B0Mode == B0_Bounded))
-					_consts[i].B0 = params[_nP];
+					_data[i].B0 = params[_nP];
 				else if ((_B0Mode == B0_Multi) || (_B0Mode == B0_MultiBounded))
-					_consts[i].B0 = params[_nP + i];
+					_data[i].B0 = params[_nP + i];
 				switch (_components) {
-					case 1: M = One_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
-					case 2: M = Two_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
-					case 3: M = Three_SSFP_Finite(_angles[i], _consts[i], params.head(_nP)); break;
+					case 1: M = One_SSFP_Finite(_data[i], params.head(_nP)); break;
+					case 2: M = Two_SSFP_Finite(_data[i], params.head(_nP)); break;
+					case 3: M = Three_SSFP_Finite(_data[i], params.head(_nP)); break;
 				}
 				ArrayXd theory = SigMag(M);
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
-				t.segment(index, _signals[i].size()) = theory;
-				index += _signals[i].size();
+				t.segment(index, _data[i].flip.size()) = theory;
+				index += _data[i].flip.size();
 			}
 			return t;
 		}
@@ -635,9 +626,7 @@ class mcFinite : public mcDESPOT {
 class DESPOT2FM : public Functor<double> {
 	private:
 		long _nV;
-		const VectorXd &_angles;
-		const vector<VectorXd> &_signals;
-		vector<DESPOTConstants> &_consts;
+		vector<DESPOTData> &_data;
 		const double _T1;
 		const bool &_normalise, &_fitB0;
 	
@@ -683,31 +672,27 @@ class DESPOT2FM : public Functor<double> {
 		const long inputs() { return _fitB0? 3 : 2; }
 		const long values() const { return _nV; }
 		
-		DESPOT2FM(VectorXd &angles, const vector<VectorXd> &signals,
-		          vector<DESPOTConstants> &consts,
-				  const double T1, const bool &normalise = false, const bool &fitB0 = true) :
-			_angles(angles), _signals(signals),
-			_consts(consts),
-			_T1(T1), _normalise(normalise), _fitB0(fitB0)
+		DESPOT2FM(vector<DESPOTData> &data, const double T1, const bool &normalise = false, const bool &fitB0 = true) :
+			_data(data), _T1(T1), _normalise(normalise), _fitB0(fitB0)
 		{
 			_nV = 0;
 			
-			for (int i = 0; i < signals.size(); i++) {
-				if (angles.size() != signals[i].size()) {
-					std::cerr << "Angles and signals size mis-match for signal " << i << std::endl;
-					std::cerr << "Angles = " << angles.size() << " signal = " << signals[i].size() << std::endl;
+			for (int i = 0; i < _data.size(); i++) {
+				if (_data[i].flip.size() != _data[i].signal.size()) {
+					cerr << "Angles and signals size mis-match for signal " << i << endl;
+					cerr << "Angles = " << _data[i].flip.size() << " signal = " << _data[i].signal.size() << endl;
 					exit(EXIT_FAILURE);
 				}
-				_nV += signals[i].size();
+				_nV += _data[i].flip.size();
 			}
 		}
 		
 		const ArrayXd signals() const {
 			ArrayXd v(values());
 			int index = 0;
-			for (int i = 0; i < _signals.size(); i++) {
-				v.segment(index, _signals[i].size()) = _signals[i];
-				index += _signals[i].size();
+			for (int i = 0; i < _data.size(); i++) {
+				v.segment(index, _data[i].signal.size()) = _data[i].signal;
+				index += _data[i].signal.size();
 			}
 			return v;
 		}
@@ -719,13 +704,13 @@ class DESPOT2FM : public Functor<double> {
 			
 			ArrayXd t(values());
 			int index = 0;
-			for (int i = 0; i < _signals.size(); i++) {
+			for (int i = 0; i < _data.size(); i++) {
 				if (_fitB0)
-					_consts[i].B0 = params[2];
-				ArrayXd theory = One_SSFP(_angles, _consts[i], withT1);
+					_data[i].B0 = params[2];
+				ArrayXd theory = One_SSFP(_data[i], withT1);
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
-				t.segment(index, _signals[i].size()) = theory;
-				index += _signals[i].size();
+				t.segment(index, _data[i].flip.size()) = theory;
+				index += _data[i].flip.size();
 			}
 			return t;
 		}
