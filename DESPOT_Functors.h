@@ -168,7 +168,7 @@ MagVector One_SSFP_Finite(const DESPOTData &d, const VectorXd &p)
 	double TE;
 	if (d.spoil) {
 		C = Spoiling();
-		TE = d.TE;
+		TE = d.TE - d.Trf;
 	} else {
 		C = AngleAxisd(d.phase, Vector3d::UnitZ());
 		TE = (d.TR - d.Trf) / 2; // Time AFTER the RF Pulse ends that echo is formed
@@ -250,7 +250,7 @@ MagVector Two_SSFP_Finite(const DESPOTData &d, const VectorXd &p)
 	double TE;
 	if (d.spoil) {
 		C3 = Spoiling();
-		TE = d.TE;
+		TE = d.TE - d.Trf;
 	} else {
 		C3 = AngleAxisd(d.phase, Vector3d::UnitZ());
 		TE = (d.TR-d.Trf) / 2.;
