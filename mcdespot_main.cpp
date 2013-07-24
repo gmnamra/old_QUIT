@@ -209,7 +209,8 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 			}
 			getline(cin, path); // Just to eat the newline
 		}
-		data.emplace_back(inAngles * M_PI / 180., spoil, inTR, inTrf, inTE, inPhase * M_PI / 180.);
+		data.emplace_back(inAngles.size(), spoil, inTR, inTrf, inTE, inPhase * M_PI / 180.);
+		data.back().setFlip(inAngles * M_PI / 180.);
 		
 		if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
 		getline(cin, path);
@@ -347,7 +348,7 @@ int main(int argc, char **argv)
 				     B0LoVolumes(signalFiles.size()),
 					 B0HiVolumes(signalFiles.size());
 	for (int i = 0; i < signalFiles.size(); i++) {
-		signalVolumes[i].resize(voxelsPerSlice * data[i].flip.size());
+		signalVolumes[i].resize(voxelsPerSlice * data[i].size());
 		if (B1_files[i].isOpen()) B1Volumes[i].resize(voxelsPerSlice);
 		if (B0_loFiles[i].isOpen()) B0LoVolumes[i].resize(voxelsPerSlice);
 		if (B0_hiFiles[i].isOpen()) B0HiVolumes[i].resize(voxelsPerSlice);
@@ -360,15 +361,15 @@ int main(int argc, char **argv)
 	
 	int totalSignals = 0;
 	for (int i = 0; i < data.size(); i++)
-		totalSignals += data[i].flip.size();
+		totalSignals += data[i].size();
 	ArrayXd weights(totalSignals);
 	size_t index = 0;
 	for (int i = 0; i < data.size(); i++) {
 		if (data[i].spoil)
-			weights.segment(index, data[i].flip.size()).setConstant(weighting);
+			weights.segment(index, data[i].size()).setConstant(weighting);
 		else
-			weights.segment(index, data[i].flip.size()).setConstant(1.0);
-		index += data[i].flip.size();
+			weights.segment(index, data[i].size()).setConstant(1.0);
+		index += data[i].size();
 	}
 	
 	residualData.resize(totalSignals);
@@ -457,11 +458,13 @@ int main(int argc, char **argv)
 				// an error
 				vector<DESPOTData> localData = data;
 				for (size_t i = 0; i < signalFiles.size(); i++) {
-					for (size_t j = 0; j < localData[i].signal.size(); j++) {
-						localData[i].signal(j) = signalVolumes[i][voxelsPerSlice*j + vox];
+					VectorXd sig(localData[i].size());
+					for (size_t j = 0; j < localData[i].size(); j++) {
+						sig(j) = signalVolumes[i][voxelsPerSlice*j + vox];
 					}
 					if (normalise)
-						localData[i].signal /= localData[i].signal.mean();
+						sig /= sig.mean();
+					localData[i].setSignal(sig);
 					if (B0Mode == mcDESPOT::B0_Map) {
 						localData[i].B0 = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
 					}

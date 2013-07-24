@@ -165,6 +165,8 @@ int main(int argc, char **argv)
 	vector<DESPOTData> data(nPhases);
 	int voxelsPerSlice, voxelsPerVolume;
 	vector<vector<double>> ssfpData(nPhases);
+	VectorXd inFlip;
+	double inTR;
 	for (size_t p = 0; p < nPhases; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], 'r');
@@ -174,30 +176,29 @@ int main(int argc, char **argv)
 		}
 		if (p == 0) { // Read nFlip, TR and flip angles from first file
 			nFlip = inFile.dim(4);
+			inFlip.resize(nFlip);
 			voxelsPerSlice = inFile.voxelsPerSlice();
 			voxelsPerVolume = inFile.voxelsPerVolume();
-			data[p].flip.resize(nFlip, 1);
-			data[p].signal.resize(nFlip, 1);
 			#ifdef HAVE_NRECON
 			ParameterList pars;
 			if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
-				data[0].TR = RealValue(pars, "tr");
+				inTR = RealValue(pars, "tr");
 				for (int i = 0; i < nFlip; i++)
-					data[p].flip[i] = RealValue(pars, "flip1", i);
+					inFlip[i] = RealValue(pars, "flip1", i);
 			} else
 			#endif
 			{
 				cout << "Enter SSFP TR (seconds): " << flush;
 				cin >> data[0].TR;
 				cout << "Enter " << nFlip << " flip angles (degrees): " << flush;
-				for (int i = 0; i < data[p].flip.size(); i++)
-					cin >> data[p].flip[i];
+				for (int i = 0; i < nFlip; i++)
+					cin >> inFlip[i];
 			}
-			data[p].flip *= M_PI / 180.;
-		} else {
-			data[p].TR = data[0].TR;
-			data[p].flip = data[0].flip;
+			inFlip *= M_PI / 180.;
 		}
+		data[p].resize(nFlip);
+		data[p].TR = inTR;
+		data[p].setFlip(inFlip);
 		#ifdef HAVE_NRECON
 		ParameterList pars;
 		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
@@ -213,7 +214,7 @@ int main(int argc, char **argv)
 		// Don't close the first header because we've saved it to write the
 		// results, and FSLIO gets fussy about cloning closed headers
 		inFile.close();
-		nResiduals += data[p].flip.size();
+		nResiduals += nFlip;
 		optind++;
 	}
 	
@@ -245,7 +246,7 @@ int main(int argc, char **argv)
 	}
 	
 	if (verbose) {
-		cout << "SSFP Angles (deg): " << data[0].flip.transpose() * 180 / M_PI << endl;
+		cout << "SSFP Angles (deg): " << data[0].flip().transpose() * 180 / M_PI << endl;
 		if (tesla != 0)
 			cout << "Low bounds: " << loBounds.transpose() << endl
 				 << "Hi bounds:  " << hiBounds.transpose() << endl;
@@ -291,8 +292,10 @@ int main(int argc, char **argv)
 				for (int p = 0; p < nPhases; p++) {
 					localData[p].B0 = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
 					localData[p].B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
+					VectorXd sig(nFlip);
 					for (int i = 0; i < nFlip; i++)
-						localData[p].signal(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
+						sig(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
+					localData[p].setSignal(sig);
 				}
 				
 				if (tesla == 0) {
@@ -306,12 +309,12 @@ int main(int argc, char **argv)
 							index = p;
 						}
 					}
-					resid[0] = classicDESPOT2(localData[index].flip, localData[index].signal, localData[index].TR, T1, localData[index].B1, params[0], params[1]);
+					resid[0] = classicDESPOT2(localData[index].flip(), localData[index].signal(), localData[index].TR, T1, localData[index].B1, params[0], params[1]);
 				} else {
 					// DESPOT2-FM
 					ArrayXd weights(nResiduals);
 					weights.setConstant(1.0);
-					DESPOT2FM tc(data, T1, false, fitB0);
+					DESPOT2FM tc(localData, T1, false, fitB0);
 					resid = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds, weights);
 				}
 			}
