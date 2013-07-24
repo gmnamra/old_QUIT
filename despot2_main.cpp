@@ -189,7 +189,7 @@ int main(int argc, char **argv)
 			#endif
 			{
 				cout << "Enter SSFP TR (seconds): " << flush;
-				cin >> data[0].TR;
+				cin >> inTR;
 				cout << "Enter " << nFlip << " flip angles (degrees): " << flush;
 				for (int i = 0; i < nFlip; i++)
 					cin >> inFlip[i];

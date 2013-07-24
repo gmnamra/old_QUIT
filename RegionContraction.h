@@ -94,7 +94,7 @@ ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 				if (!finiteWarning) {
 					finiteWarning = true;
 					cout << "Warning: Non-finite residual found!" << endl
-							  << "Result may be meaningless. This warning will only be printed once." << endl;
+						 << "Result may be meaningless. This warning will only be printed once." << endl;
 					cout << "Parameters were " << tempSample.transpose() << endl;
 					cout << "Signal " << f.signals().transpose() << endl;
 					cout << "Theory " << f.theory(tempSample).transpose() << endl;
