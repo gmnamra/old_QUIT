@@ -77,13 +77,11 @@ int main(int argc, char **argv)
 				cout << "Opening B1 file: " << optarg << endl;
 				B1File.open(optarg, 'r');
 				B1Data = B1File.readVolume<double>(0);
-				B1File.close();
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
 				maskFile.open(optarg, 'r');
 				maskData = maskFile.readVolume<double>(0);
-				maskFile.close();
 				break;
 			case 'o':
 				outPrefix = optarg;

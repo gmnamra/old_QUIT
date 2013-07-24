@@ -100,19 +100,16 @@ int main(int argc, char **argv)
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, 'r');
 				maskData = maskFile.readVolume<double>(0);
-				maskFile.close();
 				break;
 			case '0':
 				cout << "Reading B0 file: " << optarg << endl;
 				B0File.open(optarg, 'r');
 				B0Data = B0File.readVolume<double>(0);
-				B0File.close();
 				break;
 			case '1':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, 'r');
 				B1Data = B1File.readVolume<double>(0);
-				B1File.close();
 				break;
 			case 't':
 				switch (*optarg) {

@@ -56,7 +56,6 @@ int main(int argc, char **argv)
 				cout << "Reading mask." << endl;
 				maskFile.open(optarg, Nifti::READ);
 				mask = maskFile.readVolume<double>(0);
-				maskFile.close();
 				break;
 		}
 	}

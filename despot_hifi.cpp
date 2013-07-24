@@ -90,7 +90,6 @@ int main(int argc, char **argv) {
 				cout << "Opening mask file: " << optarg << endl;
 				maskFile.open(optarg, 'r');
 				maskData = maskFile.readVolume<double>(0);
-				maskFile.close();
 				break;
 			case 'o':
 				outPrefix = optarg;
