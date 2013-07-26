@@ -5,7 +5,7 @@ namespace Nifti {
 #pragma mark Methods for ZipFile
 //******************************
 ZipFile::ZipFile() :
-	_unzipped(NULL), _zipped(NULL), _zip(false)
+	_unzipped(nullptr), _zipped(nullptr), _zip(nullptr)
 {}
 
 bool ZipFile::open(const string &path, const string &mode, const bool zip) {
@@ -64,7 +64,7 @@ size_t ZipFile::read(void *buff, unsigned size) {
 
 size_t ZipFile::write(const void *buff, int size)
 {
-	if (buff == NULL) {
+	if (buff == nullptr) {
 		throw(invalid_argument("Attempted to write data from null pointer."));
 	}
 	if (_zip) {
@@ -479,12 +479,12 @@ void File::SwapAnalyzeHeader(nifti_analyze75 * h)
 
 File::~File()
 {
-	if (_mode != CLOSED)
+	if (_mode != Modes::Closed)
 		close();
 }
 
 File::File() :
-	_mode(CLOSED), _gz(false), _nii(false), _swap(false), _voxoffset(0),
+	_mode(Modes::Closed), _gz(false), _nii(false), _swap(false), _voxoffset(0),
 	_dim(Matrix<int, 7, 1>::Ones()), _voxdim(Matrix<float, 7, 1>::Ones()),
 	_basepath(""),
 	scaling_slope(1.), scaling_inter(0.), calibration_min(0.), calibration_max(0.),
@@ -515,10 +515,10 @@ File::File(const File &other) :
 	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file),
 	qform_code(other.qform_code), sform_code(other.sform_code)
 {
-	if ((_mode == READ) || (_mode == READ_SKIP_EXT)) {
+	if ((_mode == Modes::Read) || (_mode == Modes::ReadSkipExt)) {
 		_file.open(imagePath(), "rb", _gz);
 		_file.seek(other._file.tell(), SEEK_SET);
-	} else if ((_mode == WRITE) || (_mode == WRITE_SKIP_EXT)) {
+	} else if ((_mode == Modes::Write) || (_mode == Modes::WriteSkipExt)) {
 		_file.open(imagePath(), "wb", _gz);
 		_file.seek(other._file.tell(), SEEK_SET);
 	}
@@ -540,10 +540,10 @@ File::File(File &&other) noexcept :
 	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file),
 	qform_code(other.qform_code), sform_code(other.sform_code)
 {
-	other._mode = CLOSED;
+	other._mode = Modes::Closed;
 }
 
-File::File(const string &filename, const char &mode) :
+File::File(const string &filename, const Modes &mode) :
 	File()
 {
 	open(filename, mode);
@@ -581,7 +581,7 @@ File &File::operator=(const File &other)
 {
 	if (this == &other)
 		return *this;
-	else if (_mode != CLOSED)
+	else if (_mode != Modes::Closed)
 		close();
 	
 	_dim = other._dim;
@@ -591,7 +591,7 @@ File &File::operator=(const File &other)
 	_basepath = other._basepath;
 	_gz = other._gz;
 	_nii = other._nii;
-	_mode = CLOSED;
+	_mode = Modes::Closed;
 	_voxoffset = 0;
 	_datatype = other._datatype;
 	scaling_slope = other.scaling_slope;
@@ -868,7 +868,7 @@ void File::writeHeader() {
 	// Check that _voxoffset is sensible
 	if (_nii && (_voxoffset < nhdr.sizeof_hdr))
 		_voxoffset = 352;
-	if (_nii && (_mode != WRITE_SKIP_EXT))
+	if (_nii && (_mode != Modes::WriteSkipExt))
 		_voxoffset += totalExtensionSize();
 	nhdr.vox_offset = _voxoffset ;
 	nhdr.xyzt_units = SPACE_TIME_TO_XYZT(xyz_units, time_units);
@@ -972,10 +972,10 @@ void File::writeExtensions() {
   *           then will be the same). NULL on fail.
   */
 char *File::readBytes(size_t start, size_t length, char *buffer) {
-	if (_mode == CLOSED) {
+	if (_mode == Modes::Closed) {
 		throw(logic_error("Cannot read from closed file: " + imagePath()));
 	}
-	if (_mode == WRITE) {
+	if (_mode == Modes::Write) {
 		throw(logic_error("Cannot read from a file opened for reading: " + imagePath()));
 	}
 	if (length == 0) {
@@ -1004,10 +1004,10 @@ char *File::readBytes(size_t start, size_t length, char *buffer) {
   *   @param length Number of bytes to write
   */
 void File::writeBytes(size_t start, size_t length, char *buffer) {
-	if (_mode == CLOSED) {
+	if (_mode == Modes::Closed) {
 		throw(logic_error("Cannot write to closed file: " + imagePath()));
 	}
-	if (_mode == READ) {
+	if (_mode == Modes::Read) {
 		throw(logic_error("Cannot write to file opened for writing: " + imagePath()));
 	}
 	if (length == 0) {
@@ -1021,7 +1021,7 @@ void File::writeBytes(size_t start, size_t length, char *buffer) {
 	}
 }
 
-void File::open(const string &path, const char &mode) {
+void File::open(const string &path, const Modes &mode) {
 	_basepath = path.substr(0, path.find_first_of("."));
 	if (path.substr(path.find_last_of(".") + 1) == "gz") {
 		_gz = true;
@@ -1037,39 +1037,39 @@ void File::open(const string &path, const char &mode) {
 		throw(invalid_argument("Invalid NIfTI extension for file: " + path));
 	}
 	
-	if (_mode != CLOSED) {
+	if (_mode != Modes::Closed) {
 		throw(logic_error("Attempted to open file: " + path +
 		           " when file: " + imagePath() + " is already open."));
 	} else {
 		_mode = mode;
-		if ((_mode == READ) || (_mode == READ_HEADER) || (_mode == READ_SKIP_EXT)) {
+		if ((_mode == Modes::Read) || (_mode == Modes::ReadHeader) || (_mode == Modes::ReadSkipExt)) {
 			if(!_file.open(headerPath().c_str(), "rb", _gz)) {
 				throw(runtime_error("Failed to open file: " + headerPath()));
 			}
 			readHeader();
-			if (_mode == READ) {
+			if (_mode == Modes::Read) {
 				readExtensions();
 			}
-		} else if (_mode == WRITE) {
+		} else if (_mode == Modes::Write) {
 			if(!_file.open(headerPath().c_str(), "wb", _gz)) {
 				throw(runtime_error("Failed to open file: " + headerPath()));
 			}
 			writeHeader();
-			if (_mode == WRITE) {
+			if (_mode == Modes::Write) {
 				writeExtensions();
 			}
 		} else {
 			throw(invalid_argument("Invalid opening mode for file: " + path));
 		}
 		
-		if (_mode == READ_HEADER) {
+		if (_mode == Modes::ReadHeader) {
 			close();
 		} else {
 			if (!_nii) {
 				// Need to close the header and open the image
 				_file.close();
 				bool result;
-				if (mode == READ)
+				if (mode == Modes::Read)
 					result = _file.open(imagePath().c_str(), "rb", _gz);
 				else
 					result = _file.open(imagePath().c_str(), "wb", _gz);
@@ -1085,19 +1085,19 @@ void File::open(const string &path, const char &mode) {
 }
 
 bool File::isOpen() {
-	if (_mode == CLOSED)
+	if (_mode == Modes::Closed)
 		return false;
 	else
 		return true;
 }
 void File::close()
 {
-	if (_mode == CLOSED) {
+	if (_mode == Modes::Closed) {
 		throw(logic_error("Cannot close already closed file: " + imagePath()));
-	} else if ((_mode == READ) || (_mode == READ_HEADER)) {
+	} else if ((_mode == Modes::Read) || (_mode == Modes::ReadHeader)) {
 		_file.close();
-		_mode = CLOSED;
-	} else if (_mode == WRITE) {
+		_mode = Modes::Closed;
+	} else if (_mode == Modes::Write) {
 		// If we've been writing subvolumes then we may not have written a complete file
 		// Write a single zero-byte at the end to persuade the OS to write a file of the
 		// correct size.
@@ -1111,7 +1111,7 @@ void File::close()
 		}
 		_file.flush();
 		_file.close();
-		_mode = CLOSED;
+		_mode = Modes::Closed;
 	}
 }
 
@@ -1139,7 +1139,7 @@ int File::dim(const int d) const {
 	return _dim[d - 1];
 }
 void File::setDim(const int d, const int n) {
-	if (_mode == CLOSED) {
+	if (_mode == Modes::Closed) {
 		assert((d > 0) && (d < 8));
 		_dim[d - 1] = n;
 	} else {
@@ -1148,7 +1148,7 @@ void File::setDim(const int d, const int n) {
 }
 const ArrayXi File::dims() const { return _dim.head(dimensions()); }
 void File::setDims(const ArrayXi &n) {
-	if (_mode == CLOSED) {
+	if (_mode == Modes::Closed) {
 		assert(n.rows() <= _voxdim.rows());
 		_dim.head(n.rows()) = n;
 	} else {
@@ -1165,7 +1165,7 @@ float File::voxDim(const int d) const {
 	return _voxdim[d - 1];
 }
 void File::setVoxDim(const int d, const float f) {
-	if (_mode == CLOSED) {
+	if (_mode == Modes::Closed) {
 		assert((d > 0) && (d <= _voxdim.rows()));
 		_voxdim[d] = f;
 	} else
@@ -1173,7 +1173,7 @@ void File::setVoxDim(const int d, const float f) {
 }
 const ArrayXf File::voxDims() const { return _voxdim; }
 void File::setVoxDims(const ArrayXf &n) {
-	if (_mode == CLOSED) {
+	if (_mode == Modes::Closed) {
 		assert(n.rows() <= _voxdim.rows());
 		_voxdim.head(n.rows()) = n;
 	} else
@@ -1185,7 +1185,7 @@ const string &File::dtypeName() const { return _datatype.name; }
 const int &File::bytesPerVoxel() const { return _datatype.size; }
 void File::setDatatype(const int dt)
 {
-	if (_mode != CLOSED) {
+	if (_mode != Modes::Closed) {
 		throw(logic_error("Cannot set the datatype of open file: " + imagePath()));
 		return;
 	}

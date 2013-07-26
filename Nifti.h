@@ -46,14 +46,14 @@ typedef map<int, string> StringMap;
  *  will just read the header and then close the file.
  *
  */
-enum IMAGE_MODES
+enum class Modes : char
 {
-	CLOSED = 0,
-	READ = 'r',
-	READ_HEADER = 'h',
-	READ_SKIP_EXT = 's',
-	WRITE = 'w',
-	WRITE_SKIP_EXT = 'x'
+	Closed = 0,
+	Read = 'r',
+	ReadHeader = 'h',
+	ReadSkipExt = 's',
+	Write = 'w',
+	WriteSkipExt = 'x'
 };
 
 
@@ -134,7 +134,7 @@ class File {
 		
 		string _basepath;          //!< Path to file without extension
 		bool _nii, _gz;
-		char _mode;                //!< Whether the file is closed or open for reading/writing
+		Modes _mode;                //!< Whether the file is closed or open for reading/writing
 		ZipFile _file;
 		DataType _datatype;        //!< Datatype on disk
 		int _voxoffset;            //!< Offset to start of voxel data
@@ -290,9 +290,9 @@ class File {
 				   const int datatype);
 		File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
                    const Matrix4f &qform = Matrix4f::Identity(), const Matrix4f &sform = Matrix4f::Identity());
-		File(const string &filename, const char &mode);
+		File(const string &filename, const Modes &mode);
 		
-		void open(const string &filename, const char &mode); //!< Attempts to open a NIfTI file. Throws runtime_error on failure or invalid_argument on failure.
+		void open(const string &filename, const Modes &mode); //!< Attempts to open a NIfTI file. Throws runtime_error on failure or invalid_argument on failure.
 		void close();
 		bool isOpen(); //!< Returns true if file is currently open for reading or writing.
 		
