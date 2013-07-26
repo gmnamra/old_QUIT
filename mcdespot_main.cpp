@@ -70,9 +70,9 @@ Options:\n\
 	            u     : User specified boundaries from stdin.\n"
 };
 
+static mcDESPOT::B0Mode B0fit = mcDESPOT::B0Mode::Single;
 static int verbose = false, prompt = true,
-           normalise = false,
-		   B0Mode = mcDESPOT::B0_Single, finiteRF = false,
+           normalise = false, finiteRF = false,
            start_slice = -1, end_slice = -1, slice = 0,
 		   samples = 5000, retain = 50, contract = 10,
 		   components = 2, tesla = 3,
@@ -134,7 +134,7 @@ void int_handler(int sig)
 //******************************************************************************
 //Utility function
 Nifti::File openAndCheck(const string &path, const Nifti::File &saved, const string &type) {
-	Nifti::File in(path, Nifti::READ);
+	Nifti::File in(path, Nifti::Modes::Read);
 	if (!(in.matchesSpace(saved))) {
 		cerr << "Header for " << in.imagePath() << " does not match " << saved.imagePath() << endl;
 		exit(EXIT_FAILURE);
@@ -148,13 +148,13 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 				       vector<Nifti::File > &B1_files,
 				       vector<Nifti::File > &B0_loFiles,
 					   vector<Nifti::File > &B0_hiFiles,
-					   const int &B0Mode, const bool &finiteRF);
+					   const mcDESPOT::B0Mode &B0fit, const bool &finiteRF);
 Nifti::File parseInput(vector<DESPOTData> &data,
 				       vector<Nifti::File > &signalFiles,
 				       vector<Nifti::File > &B1_files,
 				       vector<Nifti::File > &B0_loFiles,
 					   vector<Nifti::File > &B0_hiFiles,
-					   const int &B0Mode, const bool &finiteRF) {
+					   const mcDESPOT::B0Mode &B0fit, const bool &finiteRF) {
 	Nifti::File savedHeader;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
@@ -167,7 +167,7 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 		if (prompt) cout << "Enter image path: " << flush;
 		getline(cin, path);
 		if (signalFiles.size() == 0) {
-			savedHeader.open(path, Nifti::READ_HEADER);
+			savedHeader.open(path, Nifti::Modes::ReadHeader);
 		}
 		signalFiles.push_back(openAndCheck(path, savedHeader, type));
 		double inTR = 0., inTrf = 0., inPhase = 0., inTE = 0.;
@@ -220,8 +220,8 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 			B1_files.push_back(Nifti::File());
 		}
 		
-		if ((!spoil) && ((B0Mode == mcDESPOT::B0_Map) || (B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
-			if (prompt && (B0Mode == mcDESPOT::B0_Map))
+		if ((!spoil) && ((B0fit == mcDESPOT::B0Mode::Map) || (B0fit == mcDESPOT::B0Mode::Bounded) || (B0fit == mcDESPOT::B0Mode::MultiBounded))) {
+			if (prompt && (B0fit == mcDESPOT::B0Mode::Map))
 				cout << "Enter path to B0 map: " << flush;
 			else if (prompt)
 				cout << "Enter path to low B0 bound map: " << flush;
@@ -231,7 +231,7 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 			B0_loFiles.push_back(Nifti::File());
 		}
 		
-		if ((!spoil) && ((B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded))) {
+		if ((!spoil) && ((B0fit == mcDESPOT::B0Mode::Bounded) || (B0fit == mcDESPOT::B0Mode::MultiBounded))) {
 			if (prompt) cout << "Enter path to high B0 bound map: " << flush;
 			getline(cin, path);
 			B0_hiFiles.push_back(openAndCheck(path, savedHeader, "B0"));
@@ -267,12 +267,12 @@ int main(int argc, char **argv)
 			case 'j': voxJ = atoi(optarg); break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
-				maskFile.open(optarg, Nifti::READ);
+				maskFile.open(optarg, Nifti::Modes::Read);
 				maskData = maskFile.readVolume<double>(0);
 				break;
 			case 'M':
 				cout << "Reading PD file " << optarg << endl;
-				PDFile.open(optarg, Nifti::READ);
+				PDFile.open(optarg, Nifti::Modes::Read);
 				PDData = PDFile.readVolume<double>(0);
 				break;
 			case 'o':
@@ -292,11 +292,11 @@ int main(int argc, char **argv)
 			case 'e': expand   = atof(optarg); break;
 			case 'b':
 				switch (*optarg) {
-					case '0' : B0Mode = mcDESPOT::B0_Map; break;
-					case '1' : B0Mode = mcDESPOT::B0_Single; break;
-					case '2' : B0Mode = mcDESPOT::B0_Multi; break;
-					case '3' : B0Mode = mcDESPOT::B0_Bounded; break;
-					case '4' : B0Mode = mcDESPOT::B0_MultiBounded; break;
+					case '0' : B0fit = mcDESPOT::B0Mode::Map; break;
+					case '1' : B0fit = mcDESPOT::B0Mode::Single; break;
+					case '2' : B0fit = mcDESPOT::B0Mode::Multi; break;
+					case '3' : B0fit = mcDESPOT::B0Mode::Bounded; break;
+					case '4' : B0fit = mcDESPOT::B0Mode::MultiBounded; break;
 					default:
 						cout << "Invalid B0 Mode." << endl;
 						exit(EXIT_FAILURE);
@@ -334,10 +334,10 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	vector<DESPOTData> data;
 	vector<Nifti::File > signalFiles, B1_files, B0_loFiles, B0_hiFiles;
-	savedHeader = parseInput(data, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0Mode, finiteRF);
+	savedHeader = parseInput(data, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0fit, finiteRF);
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
-	// Use NULL to indicate that default values should be used -
+	// Use if files are open to indicate default values should be used -
 	// 0 for B0, 1 for B1
 	//**************************************************************************
 	int voxelsPerSlice = savedHeader.voxelsPerSlice();
@@ -356,7 +356,7 @@ int main(int argc, char **argv)
 	
 	cout << "Using " << components << " component model." << endl;
 	nP = mcDESPOT::nP(components);
-	nB0 = mcDESPOT::nB0(B0Mode, signalFiles.size());
+	nB0 = mcDESPOT::nB0(B0fit, signalFiles.size());
 	const vector<string> names = mcDESPOT::names(components);
 	
 	int totalSignals = 0;
@@ -378,7 +378,7 @@ int main(int argc, char **argv)
 	residualHdr = savedHeader;
 	residualHdr.setDim(4, totalSignals);
 	residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
-	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", Nifti::WRITE);
+	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", Nifti::Modes::Write);
 	
 	paramsData.resize(nP + nB0);
 	savedHeader.setDim(4, 1);
@@ -398,14 +398,14 @@ int main(int argc, char **argv)
 			cin >> loBounds[i] >> hiBounds[i];
 		}
 		paramsData[i].resize(voxelsPerSlice);
-		paramsHdrs[i].open(outPrefix + "MCD_" + to_string(components) + "c_" + names[i] + ".nii.gz", Nifti::WRITE);
+		paramsHdrs[i].open(outPrefix + "MCD_" + to_string(components) + "c_" + names[i] + ".nii.gz", Nifti::Modes::Write);
 	}
 	
 	for (int i = 0; i < nB0; i++) {
 		loBounds[nP + i] = -0.5 / data[i].TR;
 		hiBounds[nP + i] =  0.5 / data[i].TR;
 		paramsData[nP + i] .resize(voxelsPerSlice);
-		paramsHdrs[nP + i].open(outPrefix + "MCD_" + to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", Nifti::WRITE);
+		paramsHdrs[nP + i].open(outPrefix + "MCD_" + to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
 	}
 	// If normalising, don't bother fitting for PD
 	if (normalise) {
@@ -465,7 +465,7 @@ int main(int argc, char **argv)
 					if (normalise)
 						sig /= sig.mean();
 					localData[i].setSignal(sig);
-					if (B0Mode == mcDESPOT::B0_Map) {
+					if (B0fit == mcDESPOT::B0Mode::Map) {
 						localData[i].B0 = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
 					}
 					localData[i].B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
@@ -477,7 +477,7 @@ int main(int argc, char **argv)
 					localLo(0) = (double)PDData[sliceOffset + vox];
 					localHi(0) = (double)PDData[sliceOffset + vox];
 				}
-				if ((B0Mode == mcDESPOT::B0_Bounded) || (B0Mode == mcDESPOT::B0_MultiBounded)) {
+				if ((B0fit == mcDESPOT::B0Mode::Bounded) || (B0fit == mcDESPOT::B0Mode::MultiBounded)) {
 					for (int b = 0; b < nB0; b++) {
 						localLo(nP + b) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
 						localHi(nP + b) = B0_hiFiles[b].isOpen() ? B0HiVolumes[b][vox] : 0.;
@@ -485,11 +485,11 @@ int main(int argc, char **argv)
 				}
 				
 				if (!finiteRF) {
-					mcDESPOT mcd(components, localData, B0Mode, normalise, (voxI > -1));
+					mcDESPOT mcd(components, localData, B0fit, normalise, (voxI > -1));
 					residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi, weights,
 															samples, retain, contract, 0.05, expand, rSeed);
 				} else {
-					mcFinite mcd(components, localData, B0Mode, normalise, (voxI > -1));
+					mcFinite mcd(components, localData, B0fit, normalise, (voxI > -1));
 					residuals = regionContraction<mcFinite>(params, mcd, localLo, localHi, weights,
 															samples, retain, contract, 0.05, expand, rSeed);
 				}

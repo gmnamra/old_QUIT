@@ -396,12 +396,8 @@ class Functor
 //******************************************************************************
 class mcDESPOT : public Functor<double> {
 	public:
-		enum B0Mode {
-			B0_Map = 0,
-			B0_Single,
-			B0_Multi,
-			B0_Bounded,
-			B0_MultiBounded
+		enum class B0Mode {
+			Map = 0, Single, Multi, Bounded, MultiBounded
 		};
 	
 		static const int nP(const int &components) {
@@ -415,13 +411,13 @@ class mcDESPOT : public Functor<double> {
 			}
 		}
 		
-		static const int nB0(const int &B0Mode, const size_t &nSignals) {
-			switch (B0Mode) {
-				case B0_Map: return 0; break;
-				case B0_Single: return 1; break;
-				case B0_Multi: return static_cast<int>(nSignals); break;
-				case B0_Bounded: return 1; break;
-				case B0_MultiBounded: return static_cast<int>(nSignals); break;
+		static const int nB0(const B0Mode &m, const size_t &nSignals) {
+			switch (m) {
+				case B0Mode::Map: return 0; break;
+				case B0Mode::Single: return 1; break;
+				case B0Mode::Multi: return static_cast<int>(nSignals); break;
+				case B0Mode::Bounded: return 1; break;
+				case B0Mode::MultiBounded: return static_cast<int>(nSignals); break;
 				default:
 					cerr << "Invalid B0 mode." << endl;
 					exit(EXIT_FAILURE);
@@ -496,19 +492,20 @@ class mcDESPOT : public Functor<double> {
 		}
 	
 	protected:
-		const int _components, _B0Mode;
-		long _nP, _nV, _nB0;
+		const int _components;
+		const B0Mode _B0Mode;
+		size_t _nP, _nV, _nB0;
 		vector<DESPOTData> &_data;
 		const bool _normalise, _debug;
 	
 	public:
 		mcDESPOT(const int components, vector<DESPOTData> &data,
-				 const int &B0Mode, const bool &normalise = false, const bool &debug = false) :
+				 const B0Mode &B0m, const bool &normalise = false, const bool &debug = false) :
 			_components(components), _data(data),
-			_normalise(normalise), _B0Mode(B0Mode), _debug(debug)
+			_normalise(normalise), _B0Mode(B0m), _debug(debug)
 		{
 			_nP = nP(components);
-			_nB0 = nB0(B0Mode, _data.size());
+			_nB0 = nB0(B0m, _data.size());
 			_nV = 0;
 			for (int i = 0; i < data.size(); i++) {
 				if (data[i].flip().size() != data[i].signal().size()) {
@@ -569,9 +566,9 @@ class mcDESPOT : public Functor<double> {
 			if (_debug) cout << endl << "Params: " << params.transpose() << endl;
 			for (int i = 0; i < _data.size(); i++) {
 				MagVector M(3, _data[i].flip().size());
-				if ((_B0Mode == B0_Single) || (_B0Mode == B0_Bounded))
+				if ((_B0Mode == B0Mode::Single) || (_B0Mode == B0Mode::Bounded))
 					_data[i].B0 = params[_nP];
-				else if ((_B0Mode == B0_Multi) || (_B0Mode == B0_MultiBounded))
+				else if ((_B0Mode == B0Mode::Multi) || (_B0Mode == B0Mode::MultiBounded))
 					_data[i].B0 = params[_nP + i];
 				if (_data[i].spoil == true) {
 					switch (_components) {
@@ -612,8 +609,8 @@ class mcFinite : public mcDESPOT {
 
 	public:
 		mcFinite(const int components, vector<DESPOTData> &data,
-				 const int &B0Mode, const bool &normalise = false, const bool &debug = false) :
-				mcDESPOT(components, data, B0Mode, normalise, debug)
+				 const B0Mode &B0m, const bool &normalise = false, const bool &debug = false) :
+				mcDESPOT(components, data, B0m, normalise, debug)
 		{
 		}
 		
@@ -624,9 +621,9 @@ class mcFinite : public mcDESPOT {
 			for (int i = 0; i < _data.size(); i++) {
 				MagVector M(3, _data[i].signal().size());
 				ArrayXd temp(_data[i].signal().size());
-				if ((_B0Mode == B0_Single) || (_B0Mode == B0_Bounded))
+				if ((_B0Mode == B0Mode::Single) || (_B0Mode == B0Mode::Bounded))
 					_data[i].B0 = params[_nP];
-				else if ((_B0Mode == B0_Multi) || (_B0Mode == B0_MultiBounded))
+				else if ((_B0Mode == B0Mode::Multi) || (_B0Mode == B0Mode::MultiBounded))
 					_data[i].B0 = params[_nP + i];
 				switch (_components) {
 					case 1: M = One_SSFP_Finite(_data[i], params.head(_nP)); break;
