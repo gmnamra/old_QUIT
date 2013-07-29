@@ -53,7 +53,6 @@ Options:\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 2).\n\
-	--M0 file         : M0 Map file.\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
 	--normalise, -n   : Normalise signals to maximum (Ignore M0).\n\
@@ -82,7 +81,6 @@ static double expand = 0., weighting = 1.0;
 static string outPrefix;
 static struct option long_options[] =
 {
-	{"M0", required_argument, 0, 'M'},
 	{"mask", required_argument, 0, 'm'},
 	{"out", required_argument, 0, 'o'},
 	{"verbose", no_argument, 0, 'v'},
@@ -258,8 +256,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	Eigen::initParallel();
-	Nifti::File maskFile, PDFile, savedHeader;
-	vector<double> maskData, PDData;
+	Nifti::File maskFile, savedHeader;
+	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvpt:b:m:o:nfw:s:r:c:e:i:j:", long_options, &indexptr)) != -1) {
@@ -270,11 +268,7 @@ int main(int argc, char **argv)
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Modes::Read);
 				maskData = maskFile.readVolume<double>(0);
-				break;
-			case 'M':
-				cout << "Reading PD file " << optarg << endl;
-				PDFile.open(optarg, Nifti::Modes::Read);
-				PDData = PDFile.readVolume<double>(0);
+				maskFile.close();
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -336,6 +330,10 @@ int main(int argc, char **argv)
 	vector<DESPOTData> data;
 	vector<Nifti::File > signalFiles, B1_files, B0_loFiles, B0_hiFiles;
 	savedHeader = parseInput(data, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0fit, finiteRF);
+	if ((maskData.size() > 0) && !(maskFile.matchesSpace(savedHeader))) {
+		cerr << "Mask file has different dimensions/transform to input data." << endl;
+		exit(EXIT_FAILURE);
+	}
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	// Use if files are open to indicate default values should be used -
@@ -426,7 +424,7 @@ int main(int argc, char **argv)
 	if ((end_slice < 0) || (end_slice > savedHeader.dim(3)))
 		end_slice = savedHeader.dim(3);
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
-
+	
     auto procStart = chrono::system_clock::now();
 	time_t c_time = chrono::system_clock::to_time_t(procStart); // Still have to convert to c to use IO functions
 	cout << "Starting processing at " << put_time(localtime(&c_time), "%F %T") << endl;
@@ -443,15 +441,14 @@ int main(int argc, char **argv)
 			if (B0_loFiles[i].isOpen()) B0_loFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0LoVolumes[i]);
 			if (B0_hiFiles[i].isOpen()) B0_hiFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0HiVolumes[i]);
 		}
-		if (verbose) cout << "processing..." << flush;
+		if (verbose) cout << "processing..." << endl;
 		auto start = chrono::steady_clock::now();
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
 			ArrayXd params(nP + nB0), residuals(totalSignals);
 			params.setZero();
 			residuals.setZero();
-			if ((!maskFile.isOpen() || (maskData[sliceOffset + vox] > 0.)) &&
-			    (!PDFile.isOpen() || (PDData[sliceOffset + vox] > 0.))) {
+			if ((maskData.size() == 0) || (maskData[sliceOffset + vox] > 0.)) {
 				voxCount++;
 				
 				vector<VectorXd> signals(signalFiles.size());
@@ -473,26 +470,15 @@ int main(int argc, char **argv)
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
 				ArrayXd localLo = loBounds, localHi = hiBounds;
-				if (PDData.size()) {
-					localLo(0) = (double)PDData[sliceOffset + vox];
-					localHi(0) = (double)PDData[sliceOffset + vox];
-				}
 				if ((B0fit == mcDESPOT::B0Mode::Bounded) || (B0fit == mcDESPOT::B0Mode::MultiBounded)) {
 					for (int b = 0; b < nB0; b++) {
 						localLo(nP + b) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
 						localHi(nP + b) = B0_hiFiles[b].isOpen() ? B0HiVolumes[b][vox] : 0.;
 					}
 				}
-				
-				if (!finiteRF) {
-					mcDESPOT mcd(components, localData, B0fit, normalise, (voxI > -1));
-					residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi, weights,
-															samples, retain, contract, 0.05, expand, rSeed);
-				} else {
-					mcFinite mcd(components, localData, B0fit, normalise, (voxI > -1));
-					residuals = regionContraction<mcFinite>(params, mcd, localLo, localHi, weights,
-															samples, retain, contract, 0.05, expand, rSeed);
-				}
+				mcDESPOT mcd(components, localData, B0fit, normalise, finiteRF, (voxI > -1));
+				residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi, weights,
+														samples, retain, contract, 0.05, expand, rSeed);
 			}
 			for (int p = 0; p < nP; p++) {
 				paramsData[p][vox] = params[p];

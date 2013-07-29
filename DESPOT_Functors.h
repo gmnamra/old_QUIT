@@ -496,13 +496,13 @@ class mcDESPOT : public Functor<double> {
 		const B0Mode _B0Mode;
 		size_t _nP, _nV, _nB0;
 		vector<DESPOTData> &_data;
-		const bool _normalise, _debug;
+		const bool _normalise, _finite, _debug;
 	
 	public:
 		mcDESPOT(const int components, vector<DESPOTData> &data,
-				 const B0Mode &B0m, const bool &normalise = false, const bool &debug = false) :
+				 const B0Mode &B0m, const bool &normalise = false, const bool &finite = false, const bool &debug = false) :
 			_components(components), _data(data),
-			_normalise(normalise), _B0Mode(B0m), _debug(debug)
+			_normalise(normalise), _finite(finite), _B0Mode(B0m), _debug(debug)
 		{
 			_nP = nP(components);
 			_nB0 = nB0(B0m, _data.size());
@@ -548,7 +548,6 @@ class mcDESPOT : public Functor<double> {
 				
 		const long inputs() const { return _nP + _nB0; }
 		const long values() const { return _nV; }
-		
 		const ArrayXd signals() const {
 			ArrayXd v(values());
 			int index = 0;
@@ -570,17 +569,25 @@ class mcDESPOT : public Functor<double> {
 					_data[i].B0 = params[_nP];
 				else if ((_B0Mode == B0Mode::Multi) || (_B0Mode == B0Mode::MultiBounded))
 					_data[i].B0 = params[_nP + i];
-				if (_data[i].spoil == true) {
+				if (_finite) {
 					switch (_components) {
-						case 1: M = One_SPGR(_data[i], params.head(_nP)); break;
-						case 2: M = Two_SPGR(_data[i], params.head(_nP)); break;
-						case 3: M = Three_SPGR(_data[i], params.head(_nP)); break;
+						case 1: M = One_SSFP_Finite(_data[i], params.head(_nP)); break;
+						case 2: M = Two_SSFP_Finite(_data[i], params.head(_nP)); break;
+						case 3: M = Three_SSFP_Finite(_data[i], params.head(_nP)); break;
 					}
 				} else {
-					switch (_components) {
-						case 1: M = One_SSFP(_data[i], params.head(_nP)); break;
-						case 2: M = Two_SSFP(_data[i], params.head(_nP)); break;
-						case 3: M = Three_SSFP(_data[i], params.head(_nP)); break;
+					if (_data[i].spoil == true) {
+						switch (_components) {
+							case 1: M = One_SPGR(_data[i], params.head(_nP)); break;
+							case 2: M = Two_SPGR(_data[i], params.head(_nP)); break;
+							case 3: M = Three_SPGR(_data[i], params.head(_nP)); break;
+						}
+					} else {
+						switch (_components) {
+							case 1: M = One_SSFP(_data[i], params.head(_nP)); break;
+							case 2: M = Two_SSFP(_data[i], params.head(_nP)); break;
+							case 3: M = Three_SSFP(_data[i], params.head(_nP)); break;
+						}
 					}
 				}
 				ArrayXd theory = SigMag(M);
@@ -601,41 +608,6 @@ class mcDESPOT : public Functor<double> {
 			if (_debug) cout << "Diffs:  " << diffs.transpose() << endl;
 			if (_debug) cout << "Sum:    " << diffs.square().sum() << endl;
 			return 0;
-		}
-};
-
-#pragma mark mcFinite Functor
-class mcFinite : public mcDESPOT {
-
-	public:
-		mcFinite(const int components, vector<DESPOTData> &data,
-				 const B0Mode &B0m, const bool &normalise = false, const bool &debug = false) :
-				mcDESPOT(components, data, B0m, normalise, debug)
-		{
-		}
-		
-		const ArrayXd theory(const VectorXd &params) const {
-			ArrayXd t(values());
-			int index = 0;
-			if (_debug) cout << endl << "Params: " << params.transpose() << endl;
-			for (int i = 0; i < _data.size(); i++) {
-				MagVector M(3, _data[i].signal().size());
-				ArrayXd temp(_data[i].signal().size());
-				if ((_B0Mode == B0Mode::Single) || (_B0Mode == B0Mode::Bounded))
-					_data[i].B0 = params[_nP];
-				else if ((_B0Mode == B0Mode::Multi) || (_B0Mode == B0Mode::MultiBounded))
-					_data[i].B0 = params[_nP + i];
-				switch (_components) {
-					case 1: M = One_SSFP_Finite(_data[i], params.head(_nP)); break;
-					case 2: M = Two_SSFP_Finite(_data[i], params.head(_nP)); break;
-					case 3: M = Three_SSFP_Finite(_data[i], params.head(_nP)); break;
-				}
-				ArrayXd theory = SigMag(M);
-				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
-				t.segment(index, _data[i].flip().size()) = theory;
-				index += _data[i].flip().size();
-			}
-			return t;
 		}
 };
 
