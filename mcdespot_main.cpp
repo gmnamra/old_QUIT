@@ -10,11 +10,12 @@
  *
  */
 
-#include <time.h>
 #include <getopt.h>
 #include <signal.h>
 #include <iostream>
 #include <atomic>
+#include <chrono>
+#include <iomanip>
 #include <Eigen/Dense>
 
 #include "Nifti.h"
@@ -113,7 +114,7 @@ vector<vector<double>> residualData;
 void int_handler(int sig);
 void int_handler(int sig)
 {
-	fprintf(stdout, "Processing terminated. Writing currently processed data.\n");
+	cout << "Processing terminated. Writing currently processed data.\n" << endl;
 	for (int p = 0; p < nP; p++) {
 		paramsHdrs[p].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
 		paramsHdrs[p].close();
@@ -420,14 +421,15 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Do the fitting
 	//**************************************************************************
-    time_t procStart = time(NULL);
 	if ((start_slice < 0) || (start_slice >= savedHeader.dim(3)))
 		start_slice = 0;
 	if ((end_slice < 0) || (end_slice > savedHeader.dim(3)))
 		end_slice = savedHeader.dim(3);
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
-	cout << "Starting processing." << endl;
-	
+
+    auto procStart = chrono::system_clock::now();
+	time_t c_time = chrono::system_clock::to_time_t(procStart); // Still have to convert to c to use IO functions
+	cout << "Starting processing at " << put_time(localtime(&c_time), "%F %T") << endl;
 	for (slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose) cout << "Reading data for slice " << slice << "..." << flush;
@@ -442,7 +444,7 @@ int main(int argc, char **argv)
 			if (B0_hiFiles[i].isOpen()) B0_hiFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0HiVolumes[i]);
 		}
 		if (verbose) cout << "processing..." << flush;
-		clock_t loopStart = clock();
+		auto start = chrono::steady_clock::now();
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
 			ArrayXd params(nP + nB0), residuals(totalSignals);
@@ -453,9 +455,7 @@ int main(int argc, char **argv)
 				voxCount++;
 				
 				vector<VectorXd> signals(signalFiles.size());
-				// Need local copy because B1 changes per voxel. If you assign
-				// to the global 'consts' nothing happens but Clang doesn't give
-				// an error
+				// Need local copy because B1 changes per voxel.
 				vector<DESPOTData> localData = data;
 				for (size_t i = 0; i < signalFiles.size(); i++) {
 					VectorXd sig(localData[i].size());
@@ -513,11 +513,10 @@ int main(int argc, char **argv)
 		}
 		
 		if (verbose) {
-			clock_t loopEnd = clock();
+		    auto end = chrono::steady_clock::now();
 			if (voxCount > 0)
 				cout << voxCount << " unmasked voxels, CPU time per voxel was "
-				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
-			cout << "finished." << endl;
+				     << chrono::duration_cast<chrono::milliseconds>(end-start).count() << " ms." << endl;
 		}
 		
 		for (int p = 0; p < nP; p++)
@@ -525,12 +524,10 @@ int main(int argc, char **argv)
 		for (int b = 0; b < nB0; b++)
 			paramsHdrs[nP + b].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[nP + b]);
 	}
-    time_t procEnd = time(NULL);
-    struct tm *localEnd = localtime(&procEnd);
-	char theTime[512];
-    strftime(theTime, 512, "%H:%M:%S", localEnd);
-	cout << "Finished processing at " << theTime << ". Run-time was " 
-	          << difftime(procEnd, procStart) << " s." << endl;
+    auto procEnd = chrono::system_clock::now();
+	c_time = chrono::system_clock::to_time_t(procEnd);
+	cout << "Finished processing at " << put_time(localtime(&c_time), "%F %T") << ". Run-time was "
+	          << chrono::duration_cast<chrono::minutes>(procEnd - procStart).count() << " minutes." << endl;
 	
 	// Clean up memory and close files (automatically done in destructor)
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
