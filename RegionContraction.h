@@ -132,9 +132,9 @@ ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 	}
 	// Return the best evaluated solution so far
 	params = retained.col(0);
-	// Calculate the residual in %
+	// Calculate the residuals
 	f(params, diffs);
-	diffs /= f.signals();
+	//diffs /= f.signals();
 	return diffs;
 }
 
