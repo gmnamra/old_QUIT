@@ -19,6 +19,7 @@
 		F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F656F2C3163D62D4009DF762 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
+		F66A8FD317A6CB5900E93F5C /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
 		F66F4A6815A48171006C91F1 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F675C8D615CC120100BA95FC /* afi_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F675C8D515CC120100BA95FC /* afi_main.cpp */; };
 		F675C8DC15CC171400BA95FC /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
@@ -189,6 +190,8 @@
 		F61131BA15DD54E80040FE67 /* DESPOT_Functors.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DESPOT_Functors.h; sourceTree = SOURCE_ROOT; };
 		F61642A715CC1BBB0031F999 /* despot_hifi.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = despot_hifi.cpp; sourceTree = SOURCE_ROOT; };
 		F622517B167B49CD00DB3BD9 /* despot-hifi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "despot-hifi"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ThreadPool.cpp; sourceTree = SOURCE_ROOT; };
+		F66A8FD217A6CB5900E93F5C /* ThreadPool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadPool.h; sourceTree = SOURCE_ROOT; };
 		F675C8CB15CC11E000BA95FC /* afi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = afi; sourceTree = BUILT_PRODUCTS_DIR; };
 		F675C8D515CC120100BA95FC /* afi_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = afi_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6A51D9F1732C0D500436441 /* crop_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = crop_main.cpp; sourceTree = SOURCE_ROOT; };
@@ -345,6 +348,8 @@
 				F675C8D515CC120100BA95FC /* afi_main.cpp */,
 				F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */,
 				F6A51D9F1732C0D500436441 /* crop_main.cpp */,
+				F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */,
+				F66A8FD217A6CB5900E93F5C /* ThreadPool.h */,
 			);
 			path = DESPOT;
 			sourceTree = "<group>";
@@ -606,6 +611,7 @@
 			files = (
 				F656F2C3163D62D4009DF762 /* DESPOT.cpp in Sources */,
 				F6E4A29A1590DB6000DA4001 /* mcdespot_main.cpp in Sources */,
+				F66A8FD317A6CB5900E93F5C /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

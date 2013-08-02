@@ -19,8 +19,8 @@
 #include <Eigen/Dense>
 
 #include "Nifti.h"
-#include "DESPOT.h"
 #include "DESPOT_Functors.h"
+#include "ThreadPool.h"
 #include "RegionContraction.h"
 
 #ifdef HAVE_NRECON
@@ -102,30 +102,18 @@ static struct option long_options[] =
 	{0, 0, 0, 0}
 };
 //******************************************************************************
-#pragma mark SIGTERM interrupt handler - for ensuring data is saved on a ctrl-c
+#pragma mark SIGTERM interrupt handler and Threads
 //******************************************************************************
-vector<Nifti::File> paramsHdrs;
-Nifti::File residualHdr;
-vector<vector<double>> paramsData;
-vector<vector<double>> residualData;
-
+ThreadPool threads;
+bool interrupt_received = false;
 void int_handler(int sig);
 void int_handler(int sig)
 {
-	cout << "Processing terminated. Writing currently processed data.\n" << endl;
-	for (int p = 0; p < nP; p++) {
-		paramsHdrs[p].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
-		paramsHdrs[p].close();
-	}
-	for (int b = 0; b < nB0; b++) {
-		paramsHdrs[nP + b].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[nP + b]);
-		paramsHdrs[nP + b].close();
-	}
-	for (int r = 0; r < residualData.size(); r++) {
-		residualHdr.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData[r]);
-	}
-	residualHdr.close();
-	exit(EXIT_FAILURE);
+	cout << endl << "Processing terminated." << endl;
+	threads.stop();
+	cout << "Stopped threads." << endl;
+	interrupt_received = true;
+	cout << "Set interrupt_received" << endl;
 }
 
 //******************************************************************************
@@ -370,19 +358,17 @@ int main(int argc, char **argv)
 			weights.segment(index, data[i].size()).setConstant(1.0);
 		index += data[i].size();
 	}
-	
-	residualData.resize(totalSignals);
-	for (int i = 0; i < residualData.size(); i ++)
-		residualData[i].resize(voxelsPerVolume);
-	residualHdr = savedHeader;
-	residualHdr.setDim(4, totalSignals);
-	residualHdr.setDatatype(NIFTI_TYPE_FLOAT32);
-	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", Nifti::Modes::Write);
-	
-	paramsData.resize(nP + nB0);
 	savedHeader.setDim(4, 1);
 	savedHeader.setDatatype(DT_FLOAT32);
-	paramsHdrs.resize(nP + nB0, savedHeader);
+	vector<Nifti::File> paramsHdrs(nP + nB0, savedHeader);
+	vector<vector<double>> paramsData(nP + nB0);
+	
+	vector<vector<double>> residualData(totalSignals);
+	for (int i = 0; i < residualData.size(); i ++)
+		residualData[i].resize(voxelsPerVolume);
+	Nifti::File residualHdr(savedHeader);
+	residualHdr.setDim(4, totalSignals);
+	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", Nifti::Modes::Write);
 	
 	ArrayXd loBounds(nP + nB0), hiBounds(nP + nB0);
 	if (tesla > 0) {
@@ -491,7 +477,7 @@ int main(int argc, char **argv)
 			}
 		};
 		if (voxI == -1)
-			apply_for(voxelsPerSlice, processVox);
+			threads.for_loop(processVox, voxelsPerSlice);
 		else {
 			int voxInd = savedHeader.dim(1) * voxJ + voxI;
 			processVox(voxInd);
@@ -502,13 +488,16 @@ int main(int argc, char **argv)
 		    auto end = chrono::steady_clock::now();
 			if (voxCount > 0)
 				cout << voxCount << " unmasked voxels, CPU time per voxel was "
-				     << chrono::duration_cast<chrono::milliseconds>(end-start).count() << " ms." << endl;
+				     << chrono::duration_cast<chrono::milliseconds>(end-start).count() / voxCount << " ms." << endl;
 		}
 		
 		for (int p = 0; p < nP; p++)
 			paramsHdrs[p].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
 		for (int b = 0; b < nB0; b++)
 			paramsHdrs[nP + b].writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[nP + b]);
+		
+		if (interrupt_received)
+			break;
 	}
     auto procEnd = chrono::system_clock::now();
 	c_time = chrono::system_clock::to_time_t(procEnd);
