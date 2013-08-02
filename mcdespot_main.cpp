@@ -15,7 +15,6 @@
 #include <iostream>
 #include <atomic>
 #include <chrono>
-#include <iomanip>
 #include <Eigen/Dense>
 
 #include "Nifti.h"
@@ -413,7 +412,9 @@ int main(int argc, char **argv)
 	
     auto procStart = chrono::system_clock::now();
 	time_t c_time = chrono::system_clock::to_time_t(procStart); // Still have to convert to c to use IO functions
-	cout << "Starting processing at " << put_time(localtime(&c_time), "%F %T") << endl;
+	char theTime[512];
+	strftime(theTime, 512, "%H:%M:%S", localtime(&c_time));
+	cout << "Started processing at " << theTime << endl;
 	for (slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose) cout << "Reading data for slice " << slice << "..." << flush;
@@ -501,7 +502,8 @@ int main(int argc, char **argv)
 	}
     auto procEnd = chrono::system_clock::now();
 	c_time = chrono::system_clock::to_time_t(procEnd);
-	cout << "Finished processing at " << put_time(localtime(&c_time), "%F %T") << ". Run-time was "
+	strftime(theTime, 512, "%H:%M:%S", localtime(&c_time));
+	cout << "Finished processing at " << theTime << ". Run-time was "
 	          << chrono::duration_cast<chrono::minutes>(procEnd - procStart).count() << " minutes." << endl;
 	
 	// Clean up memory and close files (automatically done in destructor)
