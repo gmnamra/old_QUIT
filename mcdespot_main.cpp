@@ -70,7 +70,7 @@ Options:\n\
 	            u     : User specified boundaries from stdin.\n"
 };
 
-static mcDESPOT::B0Mode B0fit = mcDESPOT::B0Mode::Single;
+static auto B0fit = mcDESPOT::OffResMode::Single;
 static int verbose = false, prompt = true,
            normalise = false, finiteRF = false,
            start_slice = -1, end_slice = -1, slice = 0,
@@ -135,13 +135,13 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 				       vector<Nifti::File > &B1_files,
 				       vector<Nifti::File > &B0_loFiles,
 					   vector<Nifti::File > &B0_hiFiles,
-					   const mcDESPOT::B0Mode &B0fit, const bool &finiteRF);
+					   const mcDESPOT::OffResMode &B0fit, const bool &finiteRF);
 Nifti::File parseInput(vector<DESPOTData> &data,
 				       vector<Nifti::File > &signalFiles,
 				       vector<Nifti::File > &B1_files,
 				       vector<Nifti::File > &B0_loFiles,
 					   vector<Nifti::File > &B0_hiFiles,
-					   const mcDESPOT::B0Mode &B0fit, const bool &finiteRF) {
+					   const mcDESPOT::OffResMode &B0fit, const bool &finiteRF) {
 	Nifti::File savedHeader;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
@@ -207,8 +207,8 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 			B1_files.push_back(Nifti::File());
 		}
 		
-		if ((!spoil) && ((B0fit == mcDESPOT::B0Mode::Map) || (B0fit == mcDESPOT::B0Mode::Bounded) || (B0fit == mcDESPOT::B0Mode::MultiBounded))) {
-			if (prompt && (B0fit == mcDESPOT::B0Mode::Map))
+		if ((!spoil) && ((B0fit == mcDESPOT::OffResMode::Map) || (B0fit == mcDESPOT::OffResMode::Bounded) || (B0fit == mcDESPOT::OffResMode::MultiBounded))) {
+			if (prompt && (B0fit == mcDESPOT::OffResMode::Map))
 				cout << "Enter path to B0 map: " << flush;
 			else if (prompt)
 				cout << "Enter path to low B0 bound map: " << flush;
@@ -218,7 +218,7 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 			B0_loFiles.push_back(Nifti::File());
 		}
 		
-		if ((!spoil) && ((B0fit == mcDESPOT::B0Mode::Bounded) || (B0fit == mcDESPOT::B0Mode::MultiBounded))) {
+		if ((!spoil) && ((B0fit == mcDESPOT::OffResMode::Bounded) || (B0fit == mcDESPOT::OffResMode::MultiBounded))) {
 			if (prompt) cout << "Enter path to high B0 bound map: " << flush;
 			getline(cin, path);
 			B0_hiFiles.push_back(openAndCheck(path, savedHeader, "B0"));
@@ -275,11 +275,11 @@ int main(int argc, char **argv)
 			case 'e': expand   = atof(optarg); break;
 			case 'b':
 				switch (*optarg) {
-					case '0' : B0fit = mcDESPOT::B0Mode::Map; break;
-					case '1' : B0fit = mcDESPOT::B0Mode::Single; break;
-					case '2' : B0fit = mcDESPOT::B0Mode::Multi; break;
-					case '3' : B0fit = mcDESPOT::B0Mode::Bounded; break;
-					case '4' : B0fit = mcDESPOT::B0Mode::MultiBounded; break;
+					case '0' : B0fit = mcDESPOT::OffResMode::Map; break;
+					case '1' : B0fit = mcDESPOT::OffResMode::Single; break;
+					case '2' : B0fit = mcDESPOT::OffResMode::Multi; break;
+					case '3' : B0fit = mcDESPOT::OffResMode::Bounded; break;
+					case '4' : B0fit = mcDESPOT::OffResMode::MultiBounded; break;
 					default:
 						cout << "Invalid B0 Mode." << endl;
 						exit(EXIT_FAILURE);
@@ -343,7 +343,7 @@ int main(int argc, char **argv)
 	
 	cout << "Using " << components << " component model." << endl;
 	nP = mcDESPOT::nP(components);
-	nB0 = mcDESPOT::nB0(B0fit, signalFiles.size());
+	nB0 = mcDESPOT::nOffRes(B0fit, signalFiles.size());
 	const vector<string> names = mcDESPOT::names(components);
 	
 	int totalSignals = 0;
@@ -448,15 +448,15 @@ int main(int argc, char **argv)
 					if (normalise)
 						sig /= sig.mean();
 					localData[i].setSignal(sig);
-					if (B0fit == mcDESPOT::B0Mode::Map) {
-						localData[i].B0 = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
+					if (B0fit == mcDESPOT::OffResMode::Map) {
+						localData[i].delta_f = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
 					}
 					localData[i].B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
 				ArrayXd localLo = loBounds, localHi = hiBounds;
-				if ((B0fit == mcDESPOT::B0Mode::Bounded) || (B0fit == mcDESPOT::B0Mode::MultiBounded)) {
+				if ((B0fit == mcDESPOT::OffResMode::Bounded) || (B0fit == mcDESPOT::OffResMode::MultiBounded)) {
 					for (int b = 0; b < nB0; b++) {
 						localLo(nP + b) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
 						localHi(nP + b) = B0_hiFiles[b].isOpen() ? B0HiVolumes[b][vox] : 0.;
