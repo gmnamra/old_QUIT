@@ -20,6 +20,7 @@
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
+#include "ThreadPool.h"
 
 #ifdef HAVE_NRECON
 	#include "procpar.h"
@@ -98,17 +99,17 @@ int main(int argc, char **argv)
 				break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
-				maskFile.open(optarg, 'r');
+				maskFile.open(optarg, Nifti::Modes::Read);
 				maskData = maskFile.readVolume<double>(0);
 				break;
 			case '0':
 				cout << "Reading B0 file: " << optarg << endl;
-				B0File.open(optarg, 'r');
+				B0File.open(optarg, Nifti::Modes::Read);
 				B0Data = B0File.readVolume<double>(0);
 				break;
 			case '1':
 				cout << "Reading B1 file: " << optarg << endl;
-				B1File.open(optarg, 'r');
+				B1File.open(optarg, Nifti::Modes::Read);
 				B1Data = B1File.readVolume<double>(0);
 				break;
 			case 't':
@@ -148,7 +149,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
-	savedHeader.open(argv[optind++], 'r');
+	savedHeader.open(argv[optind++], Nifti::Modes::Read);
 	T1Data = savedHeader.readVolume<double>(0);
 	savedHeader.close();
 	if ((maskFile.isOpen() && !savedHeader.matchesSpace(maskFile)) ||
@@ -169,7 +170,7 @@ int main(int argc, char **argv)
 	double inTR;
 	for (size_t p = 0; p < nPhases; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
-		inFile.open(argv[optind], 'r');
+		inFile.open(argv[optind], Nifti::Modes::Read);
 		if (!inFile.matchesSpace(savedHeader)) {
 			cerr << "Input file dimensions and/or transforms do not match." << endl;
 			exit(EXIT_FAILURE);
@@ -270,6 +271,7 @@ int main(int argc, char **argv)
 		start_slice = 0;
 	if ((end_slice < 0) || (end_slice > inFile.dim(3)))
 		end_slice = inFile.dim(3);
+	ThreadPool pool;
 	for (int slice = start_slice; slice < end_slice; slice++) {
 		// Read in data
 		if (verbose)
@@ -290,7 +292,7 @@ int main(int argc, char **argv)
 				// Gather signals.
 				vector<DESPOTData> localData = data;
 				for (int p = 0; p < nPhases; p++) {
-					localData[p].B0 = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
+					localData[p].delta_f = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
 					localData[p].B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 					VectorXd sig(nFlip);
 					for (int i = 0; i < nFlip; i++)
@@ -303,7 +305,7 @@ int main(int argc, char **argv)
 					int index = 0;
 					double bestPhase = DBL_MAX;
 					for (int p = 0; p < nPhases; p++) {
-						double thisPhase = (data[p].B0 * data[p].TR * 2 * M_PI) + data[p].phase;
+						double thisPhase = (data[p].delta_f * data[p].TR * 2 * M_PI) + data[p].phase;
 						if (fabs(fmod(thisPhase - M_PI, 2 * M_PI)) < bestPhase) {
 							bestPhase = fabs(fmod(thisPhase - M_PI, 2 * M_PI));
 							index = p;
@@ -325,7 +327,7 @@ int main(int argc, char **argv)
 				residuals[i][sliceOffset + vox] = resid[i];
 			}
 		};
-		apply_for(voxelsPerSlice, processVox);
+		pool.for_loop(processVox, voxelsPerSlice);
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -345,23 +347,23 @@ int main(int argc, char **argv)
 	if (tesla == 0) {
 		const vector<string> classic_names { "D2_PD", "D2_T2" };
 		for (int p = 0; p < 2; p++) {
-			savedHeader.open(outPrefix + classic_names[p] + ".nii.gz", Nifti::WRITE);
+			savedHeader.open(outPrefix + classic_names[p] + ".nii.gz", Nifti::Modes::Write);
 			savedHeader.writeVolume(0, paramsData[p]);
 			savedHeader.close();
 		}
 		savedHeader.setDim(4, nResiduals);
-		savedHeader.open(outPrefix + "D2_Residual.nii.gz", Nifti::WRITE);
+		savedHeader.open(outPrefix + "D2_Residual.nii.gz", Nifti::Modes::Write);
 		for (int i = 0; i < nResiduals; i++)
 			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 		savedHeader.close();
 	} else {
 		for (int p = 0; p < nP; p++) {
-			savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", Nifti::WRITE);
+			savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", Nifti::Modes::Write);
 			savedHeader.writeVolume(0, paramsData[p]);
 			savedHeader.close();
 		}
 		savedHeader.setDim(4, nResiduals);
-		savedHeader.open(outPrefix + "FM_Residual.nii.gz", Nifti::WRITE);
+		savedHeader.open(outPrefix + "FM_Residual.nii.gz", Nifti::Modes::Write);
 		for (int i = 0; i < nResiduals; i++)
 			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 		savedHeader.close();

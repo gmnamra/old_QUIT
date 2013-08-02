@@ -31,6 +31,9 @@
 		F67F759217921A6800A278B6 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
 		F681257615E239D8007A3362 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F681257915E23F3A007A3362 /* test_despot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */; };
+		F686F26017AC0A5E00028A55 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
+		F686F26517AC0A6300028A55 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
+		F686F26617AC0A6700028A55 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
 		F6E1F9141591FFF200DA918F /* phasemap_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */; };
 		F6E1F9181592000C00DA918F /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
@@ -566,6 +569,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F686F26617AC0A6700028A55 /* ThreadPool.cpp in Sources */,
 				F6225185167B4AA400DB3BD9 /* despot_hifi.cpp in Sources */,
 				F6225186167B4AA400DB3BD9 /* DESPOT.cpp in Sources */,
 			);
@@ -591,6 +595,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F686F26017AC0A5E00028A55 /* ThreadPool.cpp in Sources */,
 				F6E4A2971590DB5300DA4001 /* despot1_main.cpp in Sources */,
 				F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */,
 			);
@@ -600,6 +605,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F686F26517AC0A6300028A55 /* ThreadPool.cpp in Sources */,
 				F6E4A2981590DB5800DA4001 /* despot2_main.cpp in Sources */,
 				F6E4A2991590DB5800DA4001 /* DESPOT.cpp in Sources */,
 			);

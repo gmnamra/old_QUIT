@@ -20,6 +20,7 @@
 
 #include "Nifti.h"
 #include "DESPOT.h"
+#include "ThreadPool.h"
 
 #ifdef HAVE_NRECON
 #include "procpar.h"
@@ -88,7 +89,7 @@ int main(int argc, char **argv) {
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
-				maskFile.open(optarg, 'r');
+				maskFile.open(optarg, Nifti::Modes::Read);
 				maskData = maskFile.readVolume<double>(0);
 				break;
 			case 'o':
@@ -109,7 +110,7 @@ int main(int argc, char **argv) {
 	#pragma mark Gather SPGR data
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
-	spgrFile.open(argv[optind], 'r');
+	spgrFile.open(argv[optind], Nifti::Modes::Read);
 	if (maskFile.isOpen() && !maskFile.matchesSpace(spgrFile)) {
 		cerr << "SPGR file dimensions or transform do not match mask." << endl;
 		exit(EXIT_FAILURE);
@@ -136,7 +137,7 @@ int main(int argc, char **argv) {
 	#pragma mark Gather IR-SPGR data
 	//**************************************************************************	
 	cout << "Opening IR-SPGR file: " << argv[++optind] << endl;
-	irFile.open(argv[optind], 'r');
+	irFile.open(argv[optind], Nifti::Modes::Read);
 	if (!irFile.matchesSpace(spgrFile)) {
 		cerr << "Header of " << spgrFile.imagePath() << " does not match " << irFile.imagePath() << endl;
 		exit(EXIT_FAILURE);
@@ -219,6 +220,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
+	ThreadPool pool;
 	for (int slice = 0; slice < spgrFile.dim(3); slice++)
 	{
 		clock_t loopStart;
@@ -253,7 +255,7 @@ int main(int argc, char **argv) {
 			resultsData[2][sliceOffset + vox] = B1;
 			resultsData[3][sliceOffset + vox] = res;
 		};
-		apply_for(voxelsPerSlice, processVox);
+		pool.for_loop(processVox, voxelsPerSlice);
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -274,7 +276,7 @@ int main(int argc, char **argv) {
 		string outName = outPrefix + names[r] + ".nii.gz";
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
-		outFile.open(outName, 'w');
+		outFile.open(outName, Nifti::Modes::Write);
 		outFile.writeVolume<double>(0, resultsData[r]);
 		outFile.close();
 	}

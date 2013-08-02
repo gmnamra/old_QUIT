@@ -18,6 +18,7 @@
 
 #include "Nifti.h"
 #include "DESPOT.h"
+#include "ThreadPool.h"
 
 #ifdef HAVE_NRECON
 #include "procpar.h"
@@ -75,12 +76,12 @@ int main(int argc, char **argv)
 		switch (c) {
 			case '1':
 				cout << "Opening B1 file: " << optarg << endl;
-				B1File.open(optarg, 'r');
+				B1File.open(optarg, Nifti::Modes::Read);
 				B1Data = B1File.readVolume<double>(0);
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
-				maskFile.open(optarg, 'r');
+				maskFile.open(optarg, Nifti::Modes::Read);
 				maskData = maskFile.readVolume<double>(0);
 				break;
 			case 'o':
@@ -102,7 +103,7 @@ int main(int argc, char **argv)
 	#pragma mark Gather SPGR data
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
-	spgrFile.open(argv[optind], 'r');
+	spgrFile.open(argv[optind], Nifti::Modes::Read);
 	if ((maskFile.isOpen() && !maskFile.matchesSpace(spgrFile)) ||
 	    (B1File.isOpen() && !B1File.matchesSpace(spgrFile))) {
 		cerr << "Mask or B1 dimensions/transform do not match SPGR file." << endl;
@@ -164,6 +165,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
+	ThreadPool pool;
 	for (int slice = 0; slice < spgrFile.dim(3); slice++) {
 		clock_t loopStart;
 		// Read in data
@@ -192,7 +194,7 @@ int main(int argc, char **argv)
 			resultsData[1][sliceOffset + vox] = T1;
 			resultsData[2][sliceOffset + vox] = res;
 		};
-		apply_for(voxelsPerSlice, processVox);
+		pool.for_loop(processVox, voxelsPerSlice);
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -210,7 +212,7 @@ int main(int argc, char **argv)
 		string outName = outPrefix + names[r] + ".nii.gz";
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
-		outFile.open(outName, 'w');
+		outFile.open(outName, Nifti::Modes::Write);
 		outFile.writeVolume<double>(0, resultsData[r]);
 		outFile.close();
 	}
