@@ -41,13 +41,13 @@ $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp
 #
 # Variables to specify source files
 #
-DESPOT1_FILES = despot1_main.cpp DESPOT.cpp
+DESPOT1_FILES = despot1_main.cpp DESPOT.cpp ThreadPool.cpp
 DESPOT1_DEPS  = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(DESPOT1_FILES))
-DESPOT-HIFI_FILES = despot_hifi.cpp DESPOT.cpp
+DESPOT-HIFI_FILES = despot_hifi.cpp DESPOT.cpp ThreadPool.cpp
 DESPOT-HIFI_DEPS = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(DESPOT-HIFI_FILES))
-DESPOT2_FILES = despot2_main.cpp DESPOT.cpp
+DESPOT2_FILES = despot2_main.cpp DESPOT.cpp ThreadPool.cpp
 DESPOT2_DEPS  = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(DESPOT2_FILES))
-MCDESPOT_FILES = mcdespot_main.cpp DESPOT.cpp
+MCDESPOT_FILES = mcdespot_main.cpp DESPOT.cpp ThreadPool.cpp
 MCDESPOT_DEPS  = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(MCDESPOT_FILES))
 THRESHOLD_FILES = threshold_main.cpp
 THRESHOLD_DEPS  = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(THRESHOLD_FILES))
