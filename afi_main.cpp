@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 		{
 			case 'm':
 				cout << "Reading mask." << endl;
-				maskFile.open(optarg, Nifti::READ);
+				maskFile.open(optarg, Nifti::Modes::Read);
 				mask = maskFile.readVolume<double>(0);
 				break;
 		}
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	cout << "Opening input file " << argv[optind] << endl;
-	inFile.open(argv[optind], Nifti::READ);
+	inFile.open(argv[optind], Nifti::Modes::Read);
 	if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
 		cerr << "Mask dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
@@ -112,13 +112,13 @@ int main(int argc, char **argv)
 	inFile.setDatatype(DT_FLOAT32);
 	string outPath = outPrefix + "_flip.nii.gz";
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
-	outFile.open(outPath, Nifti::WRITE);
+	outFile.open(outPath, Nifti::Modes::Write);
 	outFile.writeVolume(0, flip);
 	outFile.close();
 	
 	outPath = outPrefix + "_B1.nii.gz";
 	cout << "Writing B1 ratio to " << outPath << "..." << endl;
-	outFile.open(outPath, Nifti::WRITE);
+	outFile.open(outPath, Nifti::Modes::Write);
 	outFile.writeVolume(0, B1);
 	outFile.close();
 	

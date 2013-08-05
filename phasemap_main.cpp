@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 		switch (c) {
 			case 'm':
 				cout << "Reading mask from " << optarg << endl;
-				maskFile.open(optarg, Nifti::READ);
+				maskFile.open(optarg, Nifti::Modes::Read);
 				mask = maskFile.readVolume<double>(0);
 				break;
 			case 'p':
@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 	}
 	if ((argc - optind) == 2) {
 		cout << "Opening input file " << argv[optind] << "." << endl;
-		inFile.open(argv[optind], Nifti::READ);
+		inFile.open(argv[optind], Nifti::Modes::Read);
 		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
 		inFile.close();
 	} else if ((argc - optind) == 3) {
 		cout << "Opening input file 1" << argv[optind] << "." << endl;
-		inFile.open(argv[optind], Nifti::READ);
+		inFile.open(argv[optind], Nifti::Modes::Read);
 		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 		data1 = inFile.readVolume<double>(0);
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
-		inFile.open(argv[optind], Nifti::READ);
+		inFile.open(argv[optind], Nifti::Modes::Read);
 		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
 	Nifti::File outFile(inFile);
 	outFile.setDim(4, 1);
 	outFile.setDatatype(DT_FLOAT32);
-	outFile.open(outPath, Nifti::WRITE);
+	outFile.open(outPath, Nifti::Modes::Write);
 	outFile.writeVolume(0, B0);
 	outFile.close();
 	cout << "Finished." << endl;
