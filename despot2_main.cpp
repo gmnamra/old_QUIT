@@ -292,7 +292,7 @@ int main(int argc, char **argv)
 				// Gather signals.
 				vector<DESPOTData> localData = data;
 				for (int p = 0; p < nPhases; p++) {
-					localData[p].delta_f = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
+					localData[p].f0_off = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
 					localData[p].B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 					VectorXd sig(nFlip);
 					for (int i = 0; i < nFlip; i++)
@@ -305,7 +305,7 @@ int main(int argc, char **argv)
 					int index = 0;
 					double bestPhase = DBL_MAX;
 					for (int p = 0; p < nPhases; p++) {
-						double thisPhase = (data[p].delta_f * data[p].TR * 2 * M_PI) + data[p].phase;
+						double thisPhase = (data[p].f0_off * data[p].TR * 2 * M_PI) + data[p].phase;
 						if (fabs(fmod(thisPhase - M_PI, 2 * M_PI)) < bestPhase) {
 							bestPhase = fabs(fmod(thisPhase - M_PI, 2 * M_PI));
 							index = p;

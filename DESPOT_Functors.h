@@ -33,18 +33,18 @@ class DESPOTData {
 	private:
 		VectorXd _flip, _signal;
 	public:
-		// B0 is field-strength in T, delta_f is off-resonance in Hz
-		double TR, Trf, TE, phase, delta_f, B1;
+		// B0 is field-strength in T, f0_off is off-resonance in Hz
+		double TR, Trf, TE, phase, f0_off, B1;
 		bool spoil;
 	
-		DESPOTData() : TR(0.), Trf(0.), TE(0.), phase(0.), delta_f(0.), B1(0.), spoil(false), _flip(), _signal() {};
-		DESPOTData(const size_t nData, bool inSpoil, double inTR, double inTrf, double inTE = 0., double inPhase = M_PI, double indelta_f = 0., double inB1 = 1.) :
-			TR(inTR), Trf(inTrf), TE(inTE), phase(inPhase), delta_f(indelta_f), B1(inB1), spoil(inSpoil), _flip(), _signal()
+		DESPOTData() : TR(0.), Trf(0.), TE(0.), phase(0.), f0_off(0.), B1(0.), spoil(false), _flip(), _signal() {};
+		DESPOTData(const size_t nData, bool inSpoil, double inTR, double inTrf, double inTE = 0., double inPhase = M_PI, double inf0_off = 0., double inB1 = 1.) :
+			TR(inTR), Trf(inTrf), TE(inTE), phase(inPhase), f0_off(inf0_off), B1(inB1), spoil(inSpoil), _flip(), _signal()
 		{
 			_flip.resize(nData);
 			_signal.resize(nData);
 		};
-		DESPOTData(const size_t nData, double inSpoil, double inTR, double inTrf, double inTE, double inPhase, double indelta_f, double inB1) = delete;
+		DESPOTData(const size_t nData, double inSpoil, double inTR, double inTrf, double inTE, double inPhase, double inf0_off, double inB1) = delete;
 		
 		const size_t size() const { return _flip.rows(); };
 		void resize(const size_t n) {
@@ -171,7 +171,7 @@ MagVector One_SSFP(const DESPOTData &d, const VectorXd &p)
 {
 	Vector3d M0 = Vector3d::Zero(), Mobs;
 	M0[2] = p[0]; // PD
-	Matrix3d L = (-(Relax(p[1], p[2]) + OffResonance(d.delta_f))*d.TR).exp();
+	Matrix3d L = (-(Relax(p[1], p[2]) + OffResonance(d.f0_off))*d.TR).exp();
 	const Vector3d RHS = (Matrix3d::Identity() - L) * M0;
 	MagVector theory(3, d.flip().size());
 	Matrix3d R_rf;
@@ -185,13 +185,13 @@ MagVector One_SSFP(const DESPOTData &d, const VectorXd &p)
 MagVector One_SSFP_Finite(const DESPOTData &d, const VectorXd &p)
 {
 	const Matrix3d I = Matrix3d::Identity();
-	const Matrix3d O = OffResonance(d.delta_f);
+	const Matrix3d O = OffResonance(d.f0_off);
 	Matrix3d C, R;
 	double TE;
 	if (d.spoil) {
 		C = Spoiling();
 		TE = d.TE - d.Trf;
-		R = Relax(p[1], 1./(1./p[2]+d.delta_f)); // For SPGR use T2*
+		R = Relax(p[1], 1./(1./p[2]+d.f0_off/10.)); // For SPGR use T2*
 	} else {
 		C = AngleAxisd(d.phase, Vector3d::UnitZ());
 		TE = (d.TR - d.Trf) / 2; // Time AFTER the RF Pulse ends that echo is formed
@@ -246,7 +246,7 @@ MagVector Two_SSFP(const DESPOTData &d, const VectorXd &p)
 	Matrix6d R = Matrix6d::Zero();
 	R.block(0,0,3,3) = Relax(p[1], p[2]);
 	R.block(3,3,3,3) = Relax(p[3], p[4]);
-	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(d.delta_f);
+	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(d.f0_off);
 	double k_ab, k_ba;
 	CalcExchange(p[5], p[6], (1 - p[6]), k_ab, k_ba);
 	Matrix6d K = Exchange(k_ab, k_ba);
@@ -267,14 +267,14 @@ MagVector Two_SSFP_Finite(const DESPOTData &d, const VectorXd &p)
 {
 	const Matrix6d I = Matrix6d::Identity();
 	Matrix6d R = Matrix6d::Zero(), C = Matrix6d::Zero();
-	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(d.delta_f);
+	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(d.f0_off);
 	Matrix3d C3;
 	double TE;
 	if (d.spoil) {
 		TE = d.TE - d.Trf;
 		C3 = Spoiling();
-		R.block(0,0,3,3) = Relax(p[1], 1./(1./p[2] + d.delta_f)); // For SPGR use T2*
-		R.block(3,3,3,3) = Relax(p[3], 1./(1./p[4] + d.delta_f));
+		R.block(0,0,3,3) = Relax(p[1], 1./(1./p[2] + d.f0_off/10.)); // For SPGR use T2*
+		R.block(3,3,3,3) = Relax(p[3], 1./(1./p[4] + d.f0_off/10.));
 	} else {
 		TE = (d.TR - d.Trf) / 2; // Time AFTER the RF Pulse ends that echo is formed
 		C3 = AngleAxisd(d.phase, Vector3d::UnitZ());
@@ -570,9 +570,9 @@ class mcDESPOT : public Functor<double> {
 			for (int i = 0; i < m_data.size(); i++) {
 				MagVector M(3, m_data[i].flip().size());
 				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
-					m_data[i].delta_f = params[m_nP];
+					m_data[i].f0_off = params[m_nP];
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
-					m_data[i].delta_f = params[m_nP + i];
+					m_data[i].f0_off = params[m_nP + i];
 				if (m_finite) {
 					switch (m_components) {
 						case 1: M = One_SSFP_Finite(m_data[i], params.head(m_nP)); break;
@@ -701,7 +701,7 @@ class DESPOT2FM : public Functor<double> {
 			int index = 0;
 			for (int i = 0; i < _data.size(); i++) {
 				if (_fitB0)
-					_data[i].delta_f = params[2];
+					_data[i].f0_off = params[2];
 				ArrayXd theory = SigMag(One_SSFP(_data[i], withT1));
 				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
 				t.segment(index, _data[i].flip().size()) = theory;

@@ -450,7 +450,7 @@ int main(int argc, char **argv)
 						sig /= sig.mean();
 					localData[i].setSignal(sig);
 					if (B0fit == mcDESPOT::OffResMode::Map) {
-						localData[i].delta_f = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
+						localData[i].f0_off = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
 					}
 					localData[i].B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
