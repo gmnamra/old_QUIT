@@ -25,8 +25,7 @@ using namespace Eigen;
 
 typedef Array<bool, Dynamic, Dynamic> ArrayXb;
 
-template<typename Derived>
-vector<size_t> index_partial_sort(const ArrayBase<Derived> &x, size_t N)
+vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, size_t N)
 {
 	eigen_assert(x.size() >= N);
     vector<size_t> allIndices(x.size()), indices(N);
@@ -41,15 +40,14 @@ vector<size_t> index_partial_sort(const ArrayBase<Derived> &x, size_t N)
     return indices;
 }
 
-template <typename Functor_t, typename Derived>
-ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
-                          const ArrayBase<Derived> &loStart, const ArrayBase<Derived> &hiStart,
-						  const ArrayBase<Derived> &weights,
+template <typename Functor_t>
+ArrayXd regionContraction(Ref<ArrayXd> params, Functor_t &f,
+                          const Ref<ArrayXXd> &startBounds, const Ref<ArrayXd> &weights,
 					      const int nS = 5000, const int nR = 50, const int maxContractions = 10,
 						  const double thresh = 0.05, const double expand = 0., const int seed = 0)
 {
-	eigen_assert(params.size() == loStart.size());
-	eigen_assert(loStart.size() == hiStart.size());
+	eigen_assert(params.size() == startBounds.rows());
+	eigen_assert(startBounds.cols() == 2);
 	
 	static atomic<bool> finiteWarning(false);
 	static atomic<bool> constraintWarning(false);
@@ -58,9 +56,8 @@ ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 	ArrayXXd retained(nP, nR);
 	ArrayXd sampleRes(nS);
 	vector<size_t> indices(nR);
-	ArrayXd loBounds = loStart;
-	ArrayXd hiBounds = hiStart;
-	ArrayXd regionSize = (hiBounds - loBounds);
+	ArrayXXd bounds = startBounds;
+	ArrayXd regionSize = (bounds.col(1) - bounds.col(0));
 	ArrayXd diffs(f.values()); diffs.setZero();
 	size_t c;
 	
@@ -75,7 +72,7 @@ ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 				for (int p = 0; p < nP; p++)
 					tempSample(p) = uniform(twist);
 				tempSample.array() *= regionSize.array();
-				tempSample += loBounds;
+				tempSample += bounds.col(0);
 				nTries++;
 				if (nTries > 100) {
 					if (!constraintWarning) {
@@ -110,25 +107,18 @@ ArrayXd regionContraction(ArrayBase<Derived> &params, Functor_t &f,
 			retained.col(i) = samples.col(indices[i]);
 		
 		// Find the min and max for each parameter in the top nR samples
-		loBounds = retained.rowwise().minCoeff();
-		hiBounds = retained.rowwise().maxCoeff();
-		regionSize = (hiBounds - loBounds);	
+		bounds.col(0) = retained.rowwise().minCoeff();
+		bounds.col(1) = retained.rowwise().maxCoeff();
+		regionSize = (bounds.col(1) - bounds.col(0));
 		// Terminate if ALL the distances between bounds are under the threshold
-		if (((regionSize.array() / hiBounds.array()).abs() < thresh).all())
+		if (((regionSize.array() / bounds.col(1)).abs() < thresh).all())
 			break;
 		
 		// Expand the boundaries back out in case we just missed a minima,
 		// but don't go past initial boundaries
-		loBounds -= (regionSize * expand);
-		hiBounds += (regionSize * expand);
-		for (int p = 0; p < nP; p++)
-		{
-			if (loBounds[p] < loStart[p])
-				loBounds[p] = loStart[p];
-			if (hiBounds[p] > hiStart[p])
-				hiBounds[p] = hiStart[p];
-		}
-		regionSize = hiBounds - loBounds;
+		bounds.col(0) = (bounds.col(0) - regionSize * expand).max(startBounds.col(0));
+		bounds.col(1) = (bounds.col(1) + regionSize * expand).min(startBounds.col(1));
+		regionSize = bounds.col(1) - bounds.col(0);
 	}
 	// Return the best evaluated solution so far
 	params = retained.col(0);

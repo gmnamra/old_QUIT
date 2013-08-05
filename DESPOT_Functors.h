@@ -451,46 +451,27 @@ class mcDESPOT : public Functor<double> {
 			}
 		}
 		
-		static const ArrayXd &defaultLo(const Components &c, const FieldStrength &tesla) {
-			static ArrayXd lo(nP(c));
+		static const ArrayXXd defaultBounds(const Components &c, const FieldStrength &tesla) {
+			ArrayXXd b(nP(c), 2);
 			switch (tesla) {
 				case FieldStrength::Three:
 					switch (c) {
-						case Components::One: lo << 0., 0.25, 0.01; break;
-						case Components::Two: lo << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001; break;
-						case Components::Three: lo << 0., 0.35, 0.002, 0.700, 0.075, 3.5, 0.175, 0.05, 0.001, 0.001; break;
+						case Components::One: b << 0., 1.e7, 0.25, 3.0, 0.01, 0.25; break;
+						case Components::Two: b << 0., 1.e7, 0.25, 1.0, 0.01, 0.05, 0.75, 1.5, 0.01, 0.05, 0.01, 0.5, 0.001, 0.95; break;
+						case Components::Three: b << 0., 1.e7, 0.35, 0.55, 0.002, 0.016, 0.700, 2.0, 0.075, 0.145, 3.5, 7.5, 0.175, 0.5, 0.05, 0.3, 0.001, 0.3, 0.001, 0.95; break;
 					}
+					break;
 				case FieldStrength::Seven:
 					switch (c) {
-						case Components::One: lo << 0., 0.25, 0.01; break;
-						case Components::Two: lo << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001; break;
-						case Components::Three: lo << 0., 0.25, 0.01, 0.75, 0.02, 4.00, 0.15, 0., 0., 0.; break;
+						case Components::One: b << 0., 1.e7, 0.25, 5.0, 0.01, 0.1; break;
+						case Components::Two: b << 1., 1.e7, 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 0.01, 0.25, 0.001, 1.0; break;
+						case Components::Three: b << 1., 1.e7, 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 3., 4.5, 0.5, 2.0, 0.01, 0.25, 0.001, 0.4, 0.001, 1.0; break;
 					}
-				case FieldStrength::Unknown: lo.setZero(); break;
+					break;
+				case FieldStrength::Unknown:
+					b.setZero(); break;
 			}
-			return lo;
-		}
-		
-		static const ArrayXd &defaultHi(const Components &c, const FieldStrength &tesla) {
-			static ArrayXd hi(nP(c));
-			switch (tesla) {
-				case FieldStrength::Three:
-					switch (c) {
-						case Components::One: hi << 1.e7, 3.0, 0.25; break;
-						case Components::Two: hi << 1.e7, 1.0, 0.05, 1.5, 0.05,  0.5, 0.95; break;
-						case Components::Three: hi << 1.e7, 0.55, 0.016, 2.0, 0.145,  7.5, 0.5, 0.3, 0.3, 0.95; break;
-						default: throw(invalid_argument("Bad number of components."));
-					}
-				case FieldStrength::Seven:
-					switch (c) {
-						case Components::One: hi << 1.e7, 5.0, 0.10; break;
-						case Components::Two: hi << 1.e7, 1.0, 0.02, 2.0, 0.05,  0.5, 0.95; break;
-						case Components::Three: hi << 1.e7, 1.0, 0.02, 2.0, 0.05, 20.0, 0.6, 0.5, 0.95, 0.95; break;
-						default: throw(invalid_argument("Bad number of components."));
-					}
-				case FieldStrength::Unknown: hi.setZero(); break;
-			}
-			return hi;
+			return b;
 		}
 	
 	protected:

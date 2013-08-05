@@ -109,9 +109,8 @@ bool interrupt_received = false;
 void int_handler(int sig);
 void int_handler(int sig)
 {
-	cout << endl << "Processing terminated." << endl;
+	cout << endl << "Stopping processing early." << endl;
 	threads.stop();
-	cout << "Stopped threads." << endl;
 	interrupt_received = true;
 }
 
@@ -372,37 +371,34 @@ int main(int argc, char **argv)
 	residualHdr.setDim(4, totalSignals);
 	residualHdr.open(outPrefix + "MCD_" + mcDESPOT::to_string(components) + "c_" + "Residual.nii.gz", Nifti::Modes::Write);
 	
-	ArrayXd loBounds(nP + nB0), hiBounds(nP + nB0);
-	if (tesla != mcDESPOT::FieldStrength::Unknown) {
-		loBounds.head(nP) = mcDESPOT::defaultLo(components, tesla);
-		hiBounds.head(nP) = mcDESPOT::defaultHi(components, tesla);
-	} else if (prompt) {
+	ArrayXXd bounds = mcDESPOT::defaultBounds(components, tesla);
+	if (prompt && tesla == mcDESPOT::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
 	}
 	for (int i = 0; i < nP; i++) {
-		if (tesla <= mcDESPOT::FieldStrength::Unknown) {
+		if (tesla == mcDESPOT::FieldStrength::Unknown) {
 			if (prompt) cout << names[i] << ": " << flush;
-			cin >> loBounds[i] >> hiBounds[i];
+			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 		paramsData[i].resize(voxelsPerSlice);
 		paramsHdrs[i].open(outPrefix + "MCD_" + mcDESPOT::to_string(components) + "c_" + names[i] + ".nii.gz", Nifti::Modes::Write);
 	}
 	
 	for (int i = 0; i < nB0; i++) {
-		loBounds[nP + i] = -0.5 / data[i].TR;
-		hiBounds[nP + i] =  0.5 / data[i].TR;
+		bounds(nP + i, 0) = -0.5 / data[i].TR;
+		bounds(nP + i, 1) =  0.5 / data[i].TR;
 		paramsData[nP + i] .resize(voxelsPerSlice);
 		paramsHdrs[nP + i].open(outPrefix + "MCD_" + mcDESPOT::to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
 	}
 	// If normalising, don't bother fitting for PD
 	if (normalise) {
-		loBounds[0] = 1.;
-		hiBounds[0] = 1.;
+		bounds(0, 0) = 1.;
+		bounds(0, 1) = 1.;
 	}
 	
 	if (verbose) {
-		cout << "Low bounds: " << loBounds.transpose() << endl;
-		cout << "Hi bounds:  " << hiBounds.transpose() << endl;
+		cout << "Low bounds: " << bounds.col(0).transpose() << endl;
+		cout << "Hi bounds:  " << bounds.col(1).transpose() << endl;
 	}
 	//**************************************************************************
 	#pragma mark Do the fitting
@@ -459,15 +455,15 @@ int main(int argc, char **argv)
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
-				ArrayXd localLo = loBounds, localHi = hiBounds;
+				ArrayXXd localBounds = bounds;
 				if ((B0fit == mcDESPOT::OffResMode::Bounded) || (B0fit == mcDESPOT::OffResMode::MultiBounded)) {
 					for (int b = 0; b < nB0; b++) {
-						localLo(nP + b) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
-						localHi(nP + b) = B0_hiFiles[b].isOpen() ? B0HiVolumes[b][vox] : 0.;
+						localBounds(nP + b, 0) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
+						localBounds(nP + b, 1) = B0_hiFiles[b].isOpen() ? B0HiVolumes[b][vox] : 0.;
 					}
 				}
 				mcDESPOT mcd(components, localData, B0fit, normalise, finiteRF, (voxI > -1));
-				residuals = regionContraction<mcDESPOT>(params, mcd, localLo, localHi, weights,
+				residuals = regionContraction<mcDESPOT>(params, mcd, localBounds, weights,
 														samples, retain, contract, 0.05, expand, rSeed);
 			}
 			for (int p = 0; p < nP; p++) {
