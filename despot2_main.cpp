@@ -226,22 +226,21 @@ int main(int argc, char **argv)
 	
 	// Set up boundaries for DESPOT-FM if needed
 	const long nP = fitB0 ? 3 : 2;
-	ArrayXd loBounds(nP), hiBounds(nP);
+	ArrayXd bounds(nP);
 	if (tesla != 0) {
 		if (tesla > 0) {
-			loBounds.head(2) = DESPOT2FM::defaultLo(tesla);
-			hiBounds.head(2) = DESPOT2FM::defaultHi(tesla);
+			bounds.block(0, 0, 2, 2) = DESPOT2FM::defaultBounds(tesla);
 		} else if (tesla < 0) {
 			cout << "Enter parameter pairs (low then high)" << endl;
 			for (int i = 0; i < nP; i++) {
 				cout << DESPOT2FM::names()[i] << ": " << flush;
-				cin >> loBounds[i] >> hiBounds[i];
+				cin >> bounds(i, 0) >> bounds(i, 1);
 			}
 		}
 		// If fitting, give a suitable range and allocate results memory
 		if (fitB0) {
-			loBounds[2] =  0.0 / data[0].TR;
-			hiBounds[2] =  0.5 / data[0].TR;
+			bounds(2, 0) =  0.0 / data[0].TR;
+			bounds(2, 1) =  0.5 / data[0].TR;
 			B0Data.resize(voxelsPerVolume);
 		}
 	}
@@ -249,8 +248,8 @@ int main(int argc, char **argv)
 	if (verbose) {
 		cout << "SSFP Angles (deg): " << data[0].flip().transpose() * 180 / M_PI << endl;
 		if (tesla != 0)
-			cout << "Low bounds: " << loBounds.transpose() << endl
-				 << "Hi bounds:  " << hiBounds.transpose() << endl;
+			cout << "Low bounds: " << bounds.col(0).transpose() << endl
+				 << "Hi bounds:  " << bounds.col(1).transpose() << endl;
 	}
 	//**************************************************************************
 	// Set up results data
@@ -317,7 +316,7 @@ int main(int argc, char **argv)
 					ArrayXd weights(nResiduals);
 					weights.setConstant(1.0);
 					DESPOT2FM tc(localData, T1, false, fitB0);
-					resid = regionContraction<DESPOT2FM>(params, tc, loBounds, hiBounds, weights);
+					resid = regionContraction<DESPOT2FM>(params, tc, bounds, weights);
 				}
 			}
 			for (int p = 0; p < nP; p++) {

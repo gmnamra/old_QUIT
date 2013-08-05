@@ -738,27 +738,12 @@ class DESPOT2FM : public Functor<double> {
 			return _names;
 		}
 		
-		static const ArrayXd &defaultLo(const int tesla) {
-			static ArrayXd t3(2), t7(2);
-			t3 << 0., 0.010;
-			t7 << 0., 0.005;
+		static const ArrayXd &defaultBounds(const int tesla) {
+			static ArrayXd b;
 			
 			switch (tesla) {
-				case 3: return t3; break;
-				case 7: return t7; break;
-			}
-			std::cerr << "Don't have defaults for " << tesla << "tesla." << std::endl;
-			exit(EXIT_FAILURE);
-		}
-		
-		static const ArrayXd defaultHi(const int tesla) {
-			static ArrayXd t3(2), t7(2);
-			t3 << 1.e7, 0.50;
-			t7 << 1.e7, 0.25;
-			
-			switch (tesla) {
-				case 3: return t3; break;
-				case 7: return t7; break;
+				case 3: b << 0., 1.e7, 0.010, 0.5; return b;
+				case 7: b << 0., 1.e7, 0.005, 0.25; return b;
 			}
 			std::cerr << "Don't have defaults for " << tesla << "tesla." << std::endl;
 			exit(EXIT_FAILURE);
