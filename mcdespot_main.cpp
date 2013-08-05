@@ -112,7 +112,6 @@ void int_handler(int sig)
 	threads.stop();
 	cout << "Stopped threads." << endl;
 	interrupt_received = true;
-	cout << "Set interrupt_received" << endl;
 }
 
 //******************************************************************************

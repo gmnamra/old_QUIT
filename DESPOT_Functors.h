@@ -17,6 +17,7 @@
 #include <array>
 #include <map>
 #include <iostream>
+#include <exception>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <unsupported/Eigen/MatrixFunctions>
@@ -403,15 +404,13 @@ class mcDESPOT : public Functor<double> {
 		enum class OffResMode {
 			Map = 0, Single, Multi, Bounded, MultiBounded
 		};
-	
+		
 		static const int nP(const int &components) {
 			switch (components) {
 				case 1: return 3;
 				case 2: return 7;
 				case 3: return 10;
-				default:
-					cerr << "Cannot create a " << components << "-component mcDESPOT model." << endl;
-					exit(EXIT_FAILURE);
+				default: throw(invalid_argument("Bad number of components."));
 			}
 		}
 		
@@ -422,77 +421,56 @@ class mcDESPOT : public Functor<double> {
 				case OffResMode::Multi: return static_cast<int>(nSignals); break;
 				case OffResMode::Bounded: return 1; break;
 				case OffResMode::MultiBounded: return static_cast<int>(nSignals); break;
-				default:
-					cerr << "Invalid off-resonance mode." << endl;
-					exit(EXIT_FAILURE);
 			}
 		}
 		
 		static const vector<string> names(const int components) {
-			static const map<int, const vector<string> > _namesMap {
-				{1, { "PD", "T1", "T2" } },
-				{2, { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a"  } },
-				{3, { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c" } } };
-			auto it = _namesMap.find(components);
-			if (it == _namesMap.end()) {
-				cerr << "Don't have file names for a " << components << "-component mcDESPOT model." << std::endl;
-				exit(EXIT_FAILURE);
-			} else
-			return it->second;
+			switch (components) {
+				case 1: return { "PD", "T1", "T2" };
+				case 2: return { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a"  };
+				case 3: return { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c" };
+				default: throw(invalid_argument("Bad number of components."));
+			}
 		}
 		
 		static const ArrayXd &defaultLo(const int components, const int tesla) {
-			static ArrayXd c1t3(3), c1t7(3), c2t3(7), c2t7(7), c3t3(10), c3t7(10);
-			c1t3 << 0., 0.25, 0.01;
-			c1t7 << 0., 0.25, 0.01;
-			c2t3 << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001;
-			c2t7 << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001;
-			c3t3 << 0., 0.35, 0.002, 0.700, 0.075, 3.5, 0.175, 0.05, 0.001, 0.001;
-			c3t7 << 0., 0.25, 0.01, 0.75, 0.02, 4.00, 0.15, 0., 0., 0.;
-			
+			static ArrayXd lo(nP(components));
 			switch (tesla) {
 				case 3:
 					switch (components) {
-						case 1: return c1t3;
-						case 2: return c2t3;
-						case 3: return c3t3;
+						case 1: lo << 0., 0.25, 0.01; return lo;
+						case 2: lo << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001; return lo;
+						case 3: lo << 0., 0.35, 0.002, 0.700, 0.075, 3.5, 0.175, 0.05, 0.001, 0.001; return lo;
+						default: throw(invalid_argument("Bad number of components."));
 					}
 				case 7:
 					switch (components) {
-						case 1: return c1t7;
-						case 2: return c2t7;
-						case 3: return c3t7;
+						case 1: lo << 0., 0.25, 0.01; return lo;
+						case 2: lo << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001; return lo;
+						case 3: lo << 0., 0.25, 0.01, 0.75, 0.02, 4.00, 0.15, 0., 0., 0.; return lo;
+						default: throw(invalid_argument("Bad number of components."));
 					}
 			}
-			std::cerr << "Don't have defaults for a " << components << "-component model." << std::endl;
-			exit(EXIT_FAILURE);
 		}
 		
 		static const ArrayXd &defaultHi(const int components, const int tesla) {
-			static ArrayXd c1t3(3), c1t7(3), c2t3(7), c2t7(7), c3t3(10), c3t7(10);
-			c1t3 << 1.e7, 3.0, 0.25;
-			c1t7 << 1.e7, 5.0, 0.10;
-			c2t3 << 1.e7, 1.0, 0.05, 1.5, 0.05,  0.5, 0.95;
-			c2t7 << 1.e7, 1.0, 0.02, 2.0, 0.05,  0.5, 0.95;
-			c3t3 << 1.e7, 0.55, 0.016, 2.0, 0.145,  7.5, 0.5, 0.3, 0.3, 0.95;
-			c3t7 << 1.e7, 1.0, 0.02, 2.0, 0.05, 20.0, 0.6, 0.5, 0.95, 0.95;
-			
+			static ArrayXd lo(nP(components));
 			switch (tesla) {
 				case 3:
 					switch (components) {
-						case 1: return c1t3;
-						case 2: return c2t3;
-						case 3: return c3t3;
+						case 1: lo << 1.e7, 3.0, 0.25; return lo;
+						case 2: lo << 1.e7, 1.0, 0.05, 1.5, 0.05,  0.5, 0.95; return lo;
+						case 3: lo << 1.e7, 0.55, 0.016, 2.0, 0.145,  7.5, 0.5, 0.3, 0.3, 0.95; return lo;
+						default: throw(invalid_argument("Bad number of components."));
 					}
 				case 7:
 					switch (components) {
-						case 1: return c1t7;
-						case 2: return c2t7;
-						case 3: return c3t7;
+						case 1: lo << 1.e7, 5.0, 0.10; return lo;
+						case 2: lo << 1.e7, 1.0, 0.02, 2.0, 0.05,  0.5, 0.95; return lo;
+						case 3: lo << 1.e7, 1.0, 0.02, 2.0, 0.05, 20.0, 0.6, 0.5, 0.95, 0.95; return lo;
+						default: throw(invalid_argument("Bad number of components."));
 					}
 			}
-			cerr << "Don't have defaults for a " << components << "-component model." << std::endl;
-			exit(EXIT_FAILURE);
 		}
 	
 	protected:
