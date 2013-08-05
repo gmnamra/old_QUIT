@@ -401,92 +401,112 @@ class Functor
 //******************************************************************************
 class mcDESPOT : public Functor<double> {
 	public:
+		enum class Components {
+			One, Two, Three
+		};
+		static string to_string(const Components& c) {
+			switch (c) {
+				case Components::One: return "one";
+				case Components::Two: return "two";
+				case Components::Three: return "three";
+			}
+		};
+		enum class FieldStrength {
+			Three, Seven, Unknown
+		};
+		static string to_string(const FieldStrength& f) {
+			switch (f) {
+				case FieldStrength::Three: return "3";
+				case FieldStrength::Seven: return "7";
+				case FieldStrength::Unknown: return "User";
+			}
+		}
 		enum class OffResMode {
 			Map = 0, Single, Multi, Bounded, MultiBounded
 		};
 		
-		static const int nP(const int &components) {
-			switch (components) {
-				case 1: return 3;
-				case 2: return 7;
-				case 3: return 10;
-				default: throw(invalid_argument("Bad number of components."));
+		static const int nP(const Components &c) {
+			switch (c) {
+				case Components::One: return 3;
+				case Components::Two: return 7;
+				case Components::Three: return 10;
 			}
 		}
 		
 		static const int nOffRes(const OffResMode &m, const size_t &nSignals) {
 			switch (m) {
-				case OffResMode::Map: return 0; break;
-				case OffResMode::Single: return 1; break;
-				case OffResMode::Multi: return static_cast<int>(nSignals); break;
-				case OffResMode::Bounded: return 1; break;
-				case OffResMode::MultiBounded: return static_cast<int>(nSignals); break;
+				case OffResMode::Map: return 0;
+				case OffResMode::Single: return 1;
+				case OffResMode::Multi: return static_cast<int>(nSignals);
+				case OffResMode::Bounded: return 1;
+				case OffResMode::MultiBounded: return static_cast<int>(nSignals);
 			}
 		}
 		
-		static const vector<string> names(const int components) {
-			switch (components) {
-				case 1: return { "PD", "T1", "T2" };
-				case 2: return { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a"  };
-				case 3: return { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c" };
-				default: throw(invalid_argument("Bad number of components."));
+		static const vector<string> names(const Components &c) {
+			switch (c) {
+				case Components::One: return { "PD", "T1", "T2" };
+				case Components::Two: return { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a"  };
+				case Components::Three: return { "PD", "T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c" };
 			}
 		}
 		
-		static const ArrayXd &defaultLo(const int components, const int tesla) {
-			static ArrayXd lo(nP(components));
+		static const ArrayXd &defaultLo(const Components &c, const FieldStrength &tesla) {
+			static ArrayXd lo(nP(c));
 			switch (tesla) {
-				case 3:
-					switch (components) {
-						case 1: lo << 0., 0.25, 0.01; return lo;
-						case 2: lo << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001; return lo;
-						case 3: lo << 0., 0.35, 0.002, 0.700, 0.075, 3.5, 0.175, 0.05, 0.001, 0.001; return lo;
-						default: throw(invalid_argument("Bad number of components."));
+				case FieldStrength::Three:
+					switch (c) {
+						case Components::One: lo << 0., 0.25, 0.01; break;
+						case Components::Two: lo << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001; break;
+						case Components::Three: lo << 0., 0.35, 0.002, 0.700, 0.075, 3.5, 0.175, 0.05, 0.001, 0.001; break;
 					}
-				case 7:
-					switch (components) {
-						case 1: lo << 0., 0.25, 0.01; return lo;
-						case 2: lo << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001; return lo;
-						case 3: lo << 0., 0.25, 0.01, 0.75, 0.02, 4.00, 0.15, 0., 0., 0.; return lo;
-						default: throw(invalid_argument("Bad number of components."));
+				case FieldStrength::Seven:
+					switch (c) {
+						case Components::One: lo << 0., 0.25, 0.01; break;
+						case Components::Two: lo << 0., 0.25, 0.01, 0.75, 0.01, 0.01, 0.001; break;
+						case Components::Three: lo << 0., 0.25, 0.01, 0.75, 0.02, 4.00, 0.15, 0., 0., 0.; break;
 					}
+				case FieldStrength::Unknown: lo.setZero(); break;
 			}
+			return lo;
 		}
 		
-		static const ArrayXd &defaultHi(const int components, const int tesla) {
-			static ArrayXd lo(nP(components));
+		static const ArrayXd &defaultHi(const Components &c, const FieldStrength &tesla) {
+			static ArrayXd hi(nP(c));
 			switch (tesla) {
-				case 3:
-					switch (components) {
-						case 1: lo << 1.e7, 3.0, 0.25; return lo;
-						case 2: lo << 1.e7, 1.0, 0.05, 1.5, 0.05,  0.5, 0.95; return lo;
-						case 3: lo << 1.e7, 0.55, 0.016, 2.0, 0.145,  7.5, 0.5, 0.3, 0.3, 0.95; return lo;
+				case FieldStrength::Three:
+					switch (c) {
+						case Components::One: hi << 1.e7, 3.0, 0.25; break;
+						case Components::Two: hi << 1.e7, 1.0, 0.05, 1.5, 0.05,  0.5, 0.95; break;
+						case Components::Three: hi << 1.e7, 0.55, 0.016, 2.0, 0.145,  7.5, 0.5, 0.3, 0.3, 0.95; break;
 						default: throw(invalid_argument("Bad number of components."));
 					}
-				case 7:
-					switch (components) {
-						case 1: lo << 1.e7, 5.0, 0.10; return lo;
-						case 2: lo << 1.e7, 1.0, 0.02, 2.0, 0.05,  0.5, 0.95; return lo;
-						case 3: lo << 1.e7, 1.0, 0.02, 2.0, 0.05, 20.0, 0.6, 0.5, 0.95, 0.95; return lo;
+				case FieldStrength::Seven:
+					switch (c) {
+						case Components::One: hi << 1.e7, 5.0, 0.10; break;
+						case Components::Two: hi << 1.e7, 1.0, 0.02, 2.0, 0.05,  0.5, 0.95; break;
+						case Components::Three: hi << 1.e7, 1.0, 0.02, 2.0, 0.05, 20.0, 0.6, 0.5, 0.95, 0.95; break;
 						default: throw(invalid_argument("Bad number of components."));
 					}
+				case FieldStrength::Unknown: hi.setZero(); break;
 			}
+			return hi;
 		}
 	
 	protected:
-		const int m_components;
+		const Components m_components;
 		const OffResMode m_offRes;
 		size_t m_nP, m_nV, m_nOffRes;
 		vector<DESPOTData> &m_data;
 		const bool m_normalise, m_finite, m_debug;
 	
 	public:
-		mcDESPOT(const int components, vector<DESPOTData> &data,
+		mcDESPOT(const Components &c, vector<DESPOTData> &data,
 				 const OffResMode &offRes, const bool &normalise = false, const bool &finite = false, const bool &debug = false) :
-			m_components(components), m_data(data),
+			m_components(c), m_data(data),
 			m_normalise(normalise), m_finite(finite), m_offRes(offRes), m_debug(debug)
 		{
-			m_nP = nP(components);
+			m_nP = nP(c);
 			m_nOffRes = nOffRes(offRes, m_data.size());
 			m_nV = 0;
 			for (int i = 0; i < data.size(); i++) {
@@ -504,9 +524,9 @@ class mcDESPOT : public Functor<double> {
 			if ((params[0] < 0.) || (params[1] <= 0.) || (params[2] <= 0.))
 				return false;
 			
-			if (m_components == 1) {
+			if (m_components == Components::One) {
 				return true;
-			} else if (m_components == 2) {
+			} else if (m_components == Components::Two) {
 				// Check that T1_a, T2_a < T1_b, T2_b and that f_a makes sense
 				if ((params[1] < params[3]) &&
 					(params[2] < params[4]) &&
@@ -514,7 +534,7 @@ class mcDESPOT : public Functor<double> {
 					return true;
 				else
 					return false;
-			} else if (m_components == 3) {
+			} else if (m_components == Components::Three) {
 				// Check that T1/2_a < T1/2_b < T1/2_c and that f_a + f_c makes sense 
 				if ((params[1] < params[3]) &&
 					(params[2] < params[4]) &&
@@ -553,22 +573,22 @@ class mcDESPOT : public Functor<double> {
 					m_data[i].f0_off = params[m_nP + i];
 				if (m_finite) {
 					switch (m_components) {
-						case 1: M = One_SSFP_Finite(m_data[i], params.head(m_nP)); break;
-						case 2: M = Two_SSFP_Finite(m_data[i], params.head(m_nP)); break;
-						case 3: M = Three_SSFP_Finite(m_data[i], params.head(m_nP)); break;
+						case Components::One: M = One_SSFP_Finite(m_data[i], params.head(m_nP)); break;
+						case Components::Two: M = Two_SSFP_Finite(m_data[i], params.head(m_nP)); break;
+						case Components::Three: M = Three_SSFP_Finite(m_data[i], params.head(m_nP)); break;
 					}
 				} else {
 					if (m_data[i].spoil == true) {
 						switch (m_components) {
-							case 1: M = One_SPGR(m_data[i], params.head(m_nP)); break;
-							case 2: M = Two_SPGR(m_data[i], params.head(m_nP)); break;
-							case 3: M = Three_SPGR(m_data[i], params.head(m_nP)); break;
+							case Components::One: M = One_SPGR(m_data[i], params.head(m_nP)); break;
+							case Components::Two: M = Two_SPGR(m_data[i], params.head(m_nP)); break;
+							case Components::Three: M = Three_SPGR(m_data[i], params.head(m_nP)); break;
 						}
 					} else {
 						switch (m_components) {
-							case 1: M = One_SSFP(m_data[i], params.head(m_nP)); break;
-							case 2: M = Two_SSFP(m_data[i], params.head(m_nP)); break;
-							case 3: M = Three_SSFP(m_data[i], params.head(m_nP)); break;
+							case Components::One: M = One_SSFP(m_data[i], params.head(m_nP)); break;
+							case Components::Two: M = Two_SSFP(m_data[i], params.head(m_nP)); break;
+							case Components::Three: M = Three_SSFP(m_data[i], params.head(m_nP)); break;
 						}
 					}
 				}

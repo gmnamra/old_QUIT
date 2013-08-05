@@ -70,11 +70,12 @@ Options:\n\
 };
 
 static auto B0fit = mcDESPOT::OffResMode::Single;
+static auto components = mcDESPOT::Components::Two;
+static auto tesla = mcDESPOT::FieldStrength::Three;
 static int verbose = false, prompt = true,
            normalise = false, finiteRF = false,
            start_slice = -1, end_slice = -1, slice = 0,
 		   samples = 5000, retain = 50, contract = 10,
-		   components = 2, tesla = 3,
            nP = 0, nB0 = 0, voxI = -1, voxJ = -1;
 static double expand = 0., weighting = 1.0;
 static string outPrefix;
@@ -94,9 +95,9 @@ static struct option long_options[] =
 	{"contract", required_argument, 0, 'c'},
 	{"expand", required_argument, 0, 'e'},
 	{"help", no_argument, 0, 'h'},
-	{"1", no_argument, &components, 1},
-	{"2", no_argument, &components, 2},
-	{"3", no_argument, &components, 3},
+	{"1", no_argument, 0, '1'},
+	{"2", no_argument, 0, '2'},
+	{"3", no_argument, 0, '3'},
 	{"B0", no_argument, 0, 'b'},
 	{0, 0, 0, 0}
 };
@@ -246,8 +247,11 @@ int main(int argc, char **argv)
 	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvpt:b:m:o:nfw:s:r:c:e:i:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "123hvpt:b:m:o:nfw:s:r:c:e:i:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
+			case '1': components = mcDESPOT::Components::One; break;
+			case '2': components = mcDESPOT::Components::Two; break;
+			case '3': components = mcDESPOT::Components::Three; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
 			case 'm':
@@ -286,15 +290,15 @@ int main(int argc, char **argv)
 				break;
 			case 't':
 				switch (*optarg) {
-					case '3': tesla = 3; break;
-					case '7': tesla = 7; break;
-					case 'u': tesla = -1; break;
+					case '3': tesla = mcDESPOT::FieldStrength::Three; break;
+					case '7': tesla = mcDESPOT::FieldStrength::Seven; break;
+					case 'u': tesla = mcDESPOT::FieldStrength::Unknown; break;
 					default:
 						cout << "Unknown boundaries type " << optarg << endl;
 						exit(EXIT_FAILURE);
 						break;
 				}
-				cout << "Using " << tesla << "T boundaries." << endl;
+				cout << "Using " << mcDESPOT::to_string(tesla) << "T boundaries." << endl;
 				break;
 			case 0:
 				// Just a flag
@@ -339,7 +343,7 @@ int main(int argc, char **argv)
 		if (B0_hiFiles[i].isOpen()) B0HiVolumes[i].resize(voxelsPerSlice);
 	}
 	
-	cout << "Using " << components << " component model." << endl;
+	cout << "Using " << mcDESPOT::to_string(components) << " component model." << endl;
 	nP = mcDESPOT::nP(components);
 	nB0 = mcDESPOT::nOffRes(B0fit, signalFiles.size());
 	const vector<string> names = mcDESPOT::names(components);
@@ -366,29 +370,29 @@ int main(int argc, char **argv)
 		residualData[i].resize(voxelsPerVolume);
 	Nifti::File residualHdr(savedHeader);
 	residualHdr.setDim(4, totalSignals);
-	residualHdr.open(outPrefix + "MCD_" + to_string(components) + "c_" + "Residual.nii.gz", Nifti::Modes::Write);
+	residualHdr.open(outPrefix + "MCD_" + mcDESPOT::to_string(components) + "c_" + "Residual.nii.gz", Nifti::Modes::Write);
 	
 	ArrayXd loBounds(nP + nB0), hiBounds(nP + nB0);
-	if (tesla > 0) {
+	if (tesla != mcDESPOT::FieldStrength::Unknown) {
 		loBounds.head(nP) = mcDESPOT::defaultLo(components, tesla);
 		hiBounds.head(nP) = mcDESPOT::defaultHi(components, tesla);
 	} else if (prompt) {
 		cout << "Enter parameter pairs (low then high)" << endl;
 	}
 	for (int i = 0; i < nP; i++) {
-		if (tesla <= 0) {
+		if (tesla <= mcDESPOT::FieldStrength::Unknown) {
 			if (prompt) cout << names[i] << ": " << flush;
 			cin >> loBounds[i] >> hiBounds[i];
 		}
 		paramsData[i].resize(voxelsPerSlice);
-		paramsHdrs[i].open(outPrefix + "MCD_" + to_string(components) + "c_" + names[i] + ".nii.gz", Nifti::Modes::Write);
+		paramsHdrs[i].open(outPrefix + "MCD_" + mcDESPOT::to_string(components) + "c_" + names[i] + ".nii.gz", Nifti::Modes::Write);
 	}
 	
 	for (int i = 0; i < nB0; i++) {
 		loBounds[nP + i] = -0.5 / data[i].TR;
 		hiBounds[nP + i] =  0.5 / data[i].TR;
 		paramsData[nP + i] .resize(voxelsPerSlice);
-		paramsHdrs[nP + i].open(outPrefix + "MCD_" + to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
+		paramsHdrs[nP + i].open(outPrefix + "MCD_" + mcDESPOT::to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
 	}
 	// If normalising, don't bother fitting for PD
 	if (normalise) {
