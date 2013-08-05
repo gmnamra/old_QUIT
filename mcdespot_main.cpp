@@ -27,6 +27,12 @@
 	using namespace Recon;
 #endif
 
+#ifdef USE_MCFINITE
+	#define mcType mcFinite
+#else
+	#define mcType mcDESPOT
+#endif
+
 using namespace std;
 using namespace Eigen;
 
@@ -165,11 +171,11 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 				inAngles[i] = RealValue(pars, "flip1", i);
 			if (!spoil)
 				inPhase = RealValue(pars, "rfphase");
-			if (finiteRF) {
+			#ifdef USE_MCFINITE
 				if (spoil)
 					inTE = RealValue(pars, "te");
 				inTrf = RealValue(pars, "p1") / 1e6; // p1 is in microseconds
-			}
+			#endif
 		} else
 		#endif
 		{
@@ -183,15 +189,14 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 				if (prompt) cout << "Enter SSFP Phase-Cycling (degrees): " << flush;
 				cin >> inPhase;
 			}
-			if (finiteRF) {
+			#ifdef USE_MCFINITE
 				if (spoil) {
 					if (prompt) cout << "Enter TE (seconds): " << flush;
 					cin >> inTE;
 				}
 				if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush;
 				cin >> inTrf;
-
-			}
+			#endif
 			getline(cin, path); // Just to eat the newline
 		}
 		data.emplace_back(inAngles.size(), spoil, inTR, inTrf, inTE, inPhase * M_PI / 180.);
@@ -248,9 +253,9 @@ int main(int argc, char **argv)
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "123hvpt:b:m:o:P:fw:s:r:c:e:i:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
-			case '1': components = mcDESPOT::Components::One; break;
-			case '2': components = mcDESPOT::Components::Two; break;
-			case '3': components = mcDESPOT::Components::Three; break;
+			case '1': components = mcType::Components::One; break;
+			case '2': components = mcType::Components::Two; break;
+			case '3': components = mcType::Components::Three; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
 			case 'm':
@@ -269,9 +274,9 @@ int main(int argc, char **argv)
 			case 'E': end_slice = atoi(optarg); break;
 			case 'P':
 				switch (*optarg) {
-					case 'n' : PD = mcDESPOT::PDMode::Normalise; break;
-					case 'i' : PD = mcDESPOT::PDMode::Individual; break;
-					case 'g' : PD = mcDESPOT::PDMode::Global; break;
+					case 'n' : PD = mcType::PDMode::Normalise; break;
+					case 'i' : PD = mcType::PDMode::Individual; break;
+					case 'g' : PD = mcType::PDMode::Global; break;
 					default:
 						cout << "Invalid PD fitting mode." << endl;
 						exit(EXIT_FAILURE);
@@ -285,11 +290,11 @@ int main(int argc, char **argv)
 			case 'e': expand   = atof(optarg); break;
 			case 'b':
 				switch (*optarg) {
-					case '0' : B0fit = mcDESPOT::OffResMode::Map; break;
-					case '1' : B0fit = mcDESPOT::OffResMode::Single; break;
-					case '2' : B0fit = mcDESPOT::OffResMode::Multi; break;
-					case '3' : B0fit = mcDESPOT::OffResMode::Bounded; break;
-					case '4' : B0fit = mcDESPOT::OffResMode::MultiBounded; break;
+					case '0' : B0fit = mcType::OffResMode::Map; break;
+					case '1' : B0fit = mcType::OffResMode::Single; break;
+					case '2' : B0fit = mcType::OffResMode::Multi; break;
+					case '3' : B0fit = mcType::OffResMode::Bounded; break;
+					case '4' : B0fit = mcType::OffResMode::MultiBounded; break;
 					default:
 						cout << "Invalid B0 Mode." << endl;
 						exit(EXIT_FAILURE);
@@ -297,16 +302,14 @@ int main(int argc, char **argv)
 				} break;
 			case 't':
 				switch (*optarg) {
-					case '3': tesla = mcDESPOT::FieldStrength::Three; break;
-					case '7': tesla = mcDESPOT::FieldStrength::Seven; break;
-					case 'u': tesla = mcDESPOT::FieldStrength::Unknown; break;
+					case '3': tesla = mcType::FieldStrength::Three; break;
+					case '7': tesla = mcType::FieldStrength::Seven; break;
+					case 'u': tesla = mcType::FieldStrength::Unknown; break;
 					default:
 						cout << "Unknown boundaries type " << optarg << endl;
 						exit(EXIT_FAILURE);
 						break;
-				}
-				cout << "Using " << mcDESPOT::to_string(tesla) << "T boundaries." << endl;
-				break;
+				} break;
 			case 0:
 				// Just a flag
 				break;
@@ -350,11 +353,11 @@ int main(int argc, char **argv)
 		if (B0_hiFiles[i].isOpen()) B0HiVolumes[i].resize(voxelsPerSlice);
 	}
 	
-	cout << "Using " << mcDESPOT::to_string(components) << " component model." << endl;
-	size_t nP = mcDESPOT::nP(components);
-	size_t nB0 = mcDESPOT::nOffRes(B0fit, signalFiles.size());
-	size_t nPD = mcDESPOT::nPD(PD, signalFiles.size());
-	const vector<string> names = mcDESPOT::names(components);
+	cout << "Using " << mcType::to_string(components) << " component model." << endl;
+	size_t nP = mcType::nP(components);
+	size_t nB0 = mcType::nOffRes(B0fit, signalFiles.size());
+	size_t nPD = mcType::nPD(PD, signalFiles.size());
+	const vector<string> names = mcType::names(components);
 	
 	int totalSignals = 0;
 	for (int i = 0; i < data.size(); i++)
@@ -378,34 +381,34 @@ int main(int argc, char **argv)
 		residualData[i].resize(voxelsPerVolume);
 	Nifti::File residualHdr(savedHeader);
 	residualHdr.setDim(4, totalSignals);
-	residualHdr.open(outPrefix + "MCD_" + mcDESPOT::to_string(components) + "c_" + "Residual.nii.gz", Nifti::Modes::Write);
+	residualHdr.open(outPrefix + "MCD_" + mcType::to_string(components) + "c_" + "Residual.nii.gz", Nifti::Modes::Write);
 	
 	ArrayXXd bounds(nP + nB0 + nPD, 2);
-	bounds.block(0, 0, nP, 2) = mcDESPOT::defaultBounds(components, tesla);
-	if (prompt && tesla == mcDESPOT::FieldStrength::Unknown) {
+	bounds.block(0, 0, nP, 2) = mcType::defaultBounds(components, tesla);
+	if (prompt && tesla == mcType::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
 	}
 	for (int i = 0; i < nP; i++) {
-		if (tesla == mcDESPOT::FieldStrength::Unknown) {
+		if (tesla == mcType::FieldStrength::Unknown) {
 			if (prompt) cout << names[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 		paramsData.at(i).resize(voxelsPerSlice);
-		paramsHdrs.at(i).open(outPrefix + "MCD_" + mcDESPOT::to_string(components) + "c_" + names[i] + ".nii.gz", Nifti::Modes::Write);
+		paramsHdrs.at(i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_" + names[i] + ".nii.gz", Nifti::Modes::Write);
 	}
 	
 	for (int i = 0; i < nB0; i++) {
 		bounds(nP + i, 0) = -0.5 / data[i].TR;
 		bounds(nP + i, 1) =  0.5 / data[i].TR;
 		paramsData.at(nP + i).resize(voxelsPerSlice);
-		paramsHdrs.at(nP + i).open(outPrefix + "MCD_" + mcDESPOT::to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
+		paramsHdrs.at(nP + i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
 	}
 	// Need a better PD fitting range - 10x image max should do, but that means reading all images in first and scanning for highest value
 	for (int i = 0; i < nPD; i++) {
 		bounds(nP + nB0 + i, 0) = 0.;
 		bounds(nP + nB0 + i, 1) = 1.e7;
 		paramsData.at(nP + nB0 + i).resize(voxelsPerSlice);
-		paramsHdrs.at(nP + nB0 + i).open(outPrefix + "MCD_" + mcDESPOT::to_string(components) + "c_PD_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
+		paramsHdrs.at(nP + nB0 + i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_PD_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
 	}
 	
 	if (verbose) {
@@ -457,10 +460,10 @@ int main(int argc, char **argv)
 					for (size_t j = 0; j < localData[i].size(); j++) {
 						sig(j) = signalVolumes[i][voxelsPerSlice*j + vox];
 					}
-					if (PD == mcDESPOT::PDMode::Normalise)
+					if (PD == mcType::PDMode::Normalise)
 						sig /= sig.mean();
 					localData[i].setSignal(sig);
-					if (B0fit == mcDESPOT::OffResMode::Map) {
+					if (B0fit == mcType::OffResMode::Map) {
 						localData[i].f0_off = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
 					}
 					localData[i].B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
@@ -468,15 +471,15 @@ int main(int argc, char **argv)
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
 				ArrayXXd localBounds = bounds;
-				if ((B0fit == mcDESPOT::OffResMode::Bounded) || (B0fit == mcDESPOT::OffResMode::MultiBounded)) {
+				if ((B0fit == mcType::OffResMode::Bounded) || (B0fit == mcType::OffResMode::MultiBounded)) {
 					for (int b = 0; b < nB0; b++) {
 						localBounds(nP + b, 0) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
 						localBounds(nP + b, 1) = B0_hiFiles[b].isOpen() ? B0HiVolumes[b][vox] : 0.;
 					}
 				}
-				mcDESPOT mcd(components, localData, B0fit, PD, finiteRF, (voxI > -1));
-				residuals = regionContraction<mcDESPOT>(params, mcd, localBounds, weights,
-														samples, retain, contract, 0.05, expand, rSeed);
+				mcType mcd(components, localData, B0fit, PD, (voxI > -1));
+				residuals = regionContraction<mcType>(params, mcd, localBounds, weights,
+													  samples, retain, contract, 0.05, expand, rSeed);
 			}
 			for (int p = 0; p < (nP + nB0 + nPD); p++) {
 				paramsData.at(p).at(vox) = params[p];

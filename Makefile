@@ -69,6 +69,8 @@ despot2 : $(DESPOT2_DEPS)
 	$(CXX) $(DESPOT2_DEPS) -o $(BUILD_DIR)/despot2 $(LD_FLAGS) $(LD_LIBS)
 mcdespot : $(MCDESPOT_DEPS)
 	$(CXX) $(MCDESPOT_DEPS) -o $(BUILD_DIR)/mcdespot $(LD_FLAGS) $(LD_LIBS)
+mcfinite : $(MCDESPOT_DEPS)
+	$(CXX) $(MCDESPOT_DEPS) -o $(BUILD_DIR)/mcfinite $(LD_FLAGS) $(LD_LIBS) -DUSE_MCFINITE
 phasemap : $(PHASEMAP_DEPS)
 	$(CXX) $(PHASEMAP_DEPS) -o $(BUILD_DIR)/phasemap $(LD_FLAGS) $(LD_LIBS)
 afi : $(AFI_DEPS)
@@ -82,13 +84,14 @@ release : build
 debug   : CXX_FLAGS+=$(DEBUG_FLAGS)
 debug   : build
 
-build : despot1 despot2 despot-hifi mcdespot phasemap afi
+build : despot1 despot2 despot-hifi mcdespot mcfinite phasemap afi
 
 install : $(INSTALL_BIN)
 	cp $(BUILD_DIR)/despot1 $(INSTALL_BIN)/
 	cp $(BUILD_DIR)/despot2 $(INSTALL_BIN)/
 	cp $(BUILD_DIR)/despot-hifi $(INSTALL_BIN)/
 	cp $(BUILD_DIR)/mcdespot $(INSTALL_BIN)/
+	cp $(BUILD_DIR)/mcfinite $(INSTALL_BIN)/
 	cp $(BUILD_DIR)/phasemap $(INSTALL_BIN)/
 	cp $(BUILD_DIR)/afi $(INSTALL_BIN)/
 
