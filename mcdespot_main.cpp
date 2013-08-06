@@ -188,6 +188,7 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 			if (!spoil) {
 				if (prompt) cout << "Enter SSFP Phase-Cycling (degrees): " << flush;
 				cin >> inPhase;
+				getline(cin, path); // Just to eat the newline
 			}
 			#ifdef USE_MCFINITE
 				if (spoil) {
@@ -196,8 +197,8 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 				}
 				if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush;
 				cin >> inTrf;
+				getline(cin, path); // Just to eat the newline
 			#endif
-			getline(cin, path); // Just to eat the newline
 		}
 		data.emplace_back(inAngles.size(), spoil, inTR, inTrf, inTE, inPhase * M_PI / 180.);
 		data.back().setFlip(inAngles * M_PI / 180.);
