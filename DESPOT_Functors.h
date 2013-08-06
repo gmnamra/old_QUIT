@@ -588,7 +588,7 @@ class mcDESPOT : public Functor<double> {
 				switch (m_PDMode) {
 					case (PDMode::Normalise): PD = 1.; break;
 					case (PDMode::Global): PD = params[m_nP + m_nOffRes]; break;
-					case (PDMode::Individual): PD = params[m_nP + m_nOffRes]; break;
+					case (PDMode::Individual): PD = params[m_nP + m_nOffRes + i]; break;
 				}
 				if (m_data[i].spoil == true) {
 					switch (m_components) {
