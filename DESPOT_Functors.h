@@ -703,7 +703,7 @@ class mcFinite : public mcDESPOT {
 				switch (m_PDMode) {
 					case (PDMode::Normalise): PD = 1.; break;
 					case (PDMode::Global): PD = params[m_nP + m_nOffRes]; break;
-					case (PDMode::Individual): PD = params[m_nP + m_nOffRes]; break;
+					case (PDMode::Individual): PD = params[m_nP + m_nOffRes + i]; break;
 				}
 				switch (m_components) {
 					case Components::One: M = One_SSFP_Finite(m_data[i], params.head(m_nP), PD); break;
