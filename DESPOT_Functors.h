@@ -570,7 +570,6 @@ class mcDESPOT : public Functor<double> {
 			for (int i = 0; i < m_data.size(); i++) {
 				v.segment(index, m_data[i].signal().size()) = m_data[i].signal();
 				index += m_data[i].signal().size();
-				cout << m_data[i].signal().transpose() << endl;
 			}
 			return v;
 		}
