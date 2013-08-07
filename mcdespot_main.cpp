@@ -404,10 +404,9 @@ int main(int argc, char **argv)
 		paramsData.at(nP + i).resize(voxelsPerSlice);
 		paramsHdrs.at(nP + i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
 	}
-	// Need a better PD fitting range - 10x image max should do, but that means reading all images in first and scanning for highest value
 	for (int i = 0; i < nPD; i++) {
-		bounds(nP + nB0 + i, 0) = 0.;
-		bounds(nP + nB0 + i, 1) = 1.e7;
+		bounds(nP + nB0 + i, 0) = INFINITY; // These will be set properly later in the main loop
+		bounds(nP + nB0 + i, 1) = 0.;
 		paramsData.at(nP + nB0 + i).resize(voxelsPerSlice);
 		paramsHdrs.at(nP + nB0 + i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_PD_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
 	}
@@ -452,17 +451,25 @@ int main(int argc, char **argv)
 			residuals.setZero();
 			if ((maskData.size() == 0) || (maskData[sliceOffset + vox] > 0.)) {
 				voxCount++;
-				
 				vector<VectorXd> signals(signalFiles.size());
-				// Need local copy because B1 changes per voxel.
+				// Need local copies because of per-voxel changes
 				vector<DESPOTData> localData = data;
+				ArrayXXd localBounds = bounds;
 				for (size_t i = 0; i < signalFiles.size(); i++) {
 					VectorXd sig(localData[i].size());
 					for (size_t j = 0; j < localData[i].size(); j++) {
 						sig(j) = signalVolumes[i][voxelsPerSlice*j + vox];
 					}
-					if (PD == mcType::PDMode::Normalise)
-						sig /= sig.mean();
+					switch (PD) {
+						case (mcType::PDMode::Normalise): sig /= sig.mean(); break;
+						case (mcType::PDMode::Global):
+							localBounds(nP + nB0 + i, 0) = min(localBounds(nP + nB0 + i, 0), sig.maxCoeff());
+							localBounds(nP + nB0 + i, 1) = max(localBounds(nP + nB0 + i, 0), 100 * sig.maxCoeff());
+						case (mcType::PDMode::Individual):
+							localBounds(nP + nB0 + i, 0) = sig.maxCoeff();
+							localBounds(nP + nB0 + i, 1) = 100 * sig.maxCoeff();
+							break;
+					}
 					localData[i].setSignal(sig);
 					if (B0fit == mcType::OffResMode::Map) {
 						localData[i].f0_off = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
@@ -471,7 +478,6 @@ int main(int argc, char **argv)
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
-				ArrayXXd localBounds = bounds;
 				if ((B0fit == mcType::OffResMode::Bounded) || (B0fit == mcType::OffResMode::MultiBounded)) {
 					for (int b = 0; b < nB0; b++) {
 						localBounds(nP + b, 0) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
