@@ -365,11 +365,14 @@ int main(int argc, char **argv)
 		totalSignals += data[i].size();
 	ArrayXd weights(totalSignals);
 	size_t index = 0;
+	bool symmetricB0 = true; // If we only have 0/180 phase-cycling then can't differentiate +/- off-res
 	for (int i = 0; i < data.size(); i++) {
 		if (data[i].spoil)
 			weights.segment(index, data[i].size()).setConstant(weighting);
 		else
 			weights.segment(index, data[i].size()).setConstant(1.0);
+		if (fmod(data[i].phase, M_PI) > numeric_limits<double>::epsilon())
+			symmetricB0 = false;
 		index += data[i].size();
 	}
 	savedHeader.setDim(4, 1);
@@ -398,8 +401,12 @@ int main(int argc, char **argv)
 		paramsHdrs.at(i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_" + names[i] + ".nii.gz", Nifti::Modes::Write);
 	}
 	
+	
 	for (int i = 0; i < nB0; i++) {
-		bounds(nP + i, 0) = -0.5 / data[i].TR;
+		if (symmetricB0)
+			bounds(nP + i, 0) = 0.0;
+		else
+			bounds(nP + i, 0) = -0.5 / data[i].TR;
 		bounds(nP + i, 1) =  0.5 / data[i].TR;
 		paramsData.at(nP + i).resize(voxelsPerSlice);
 		paramsHdrs.at(nP + i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
