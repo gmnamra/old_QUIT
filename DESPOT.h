@@ -10,11 +10,12 @@
  *
  */
 
-#ifndef __DESPOT__
-#define __DESPOT__
+#ifndef DESPOT_DESPOT
+#define DESPOT_DESPOT
 
 #include <iostream>
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 
 using namespace std;
 using namespace Eigen;
@@ -40,4 +41,73 @@ ArrayXd SPGR(const ArrayXd &flip, const double &TR, const double &B1, const doub
 ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
                const double &flip, const double &eff,
 			   const double &M0, const double &T1);
+
+//******************************************************************************
+#pragma DESPOTData
+// Class that holds a complete set of information needed to process a mcDESPOT
+// dataset
+//******************************************************************************
+class DESPOTData {
+	private:
+		VectorXd _flip, _signal;
+	public:
+		// B0 is field-strength in T, f0_off is off-resonance in Hz
+		double TR, Trf, TE, phase, f0_off, B1;
+		bool spoil;
+	
+		DESPOTData();
+		DESPOTData(const size_t nData, bool inSpoil, double inTR, double inTrf, double inTE = 0., double inPhase = M_PI, double inf0_off = 0., double inB1 = 1.);
+		DESPOTData(const size_t nData, double inSpoil, double inTR, double inTrf, double inTE, double inPhase, double inf0_off, double inB1) = delete;
+		
+		const size_t size() const;
+		void resize(const size_t n);
+		
+		const VectorXd &flip() const;
+		void setFlip(const VectorXd &inFlip);
+		const VectorXd &signal() const;
+		void setSignal(const VectorXd &inSig);
+};
+
+//******************************************************************************
+#pragma Magnetisation Evolution Matrices, helper functions etc.
+//******************************************************************************
+typedef Matrix<double, 6, 6> Matrix6d;
+typedef Matrix<double, 6, 1> Vector6d;
+typedef Matrix<double, 9, 9> Matrix9d;
+typedef Matrix<double, 9, 1> Vector9d;
+typedef Matrix<double, 3, Dynamic> MagVector;
+
+const VectorXd SigMag(const MagVector &M_in);
+const MagVector SumMC(const MatrixXd &M_in);
+
+const Matrix3d RF(const double &alpha, const double &beta);
+inline const Matrix3d Relax(const double &T1, const double &T2);
+inline const Matrix3d InfinitesimalRF(const double &dalpha);
+inline const Matrix3d OffResonance(const double &inHertz);
+inline const Matrix3d Spoiling();
+inline const Matrix6d Exchange(const double &k_ab, const double &k_ba);
+const void CalcExchange(const double tau_a, const double f_a, const double f_b, double &k_ab, double &k_ba);
+
+//******************************************************************************
+#pragma mark One Component Signals
+// Parameters are { T1, T2 }
+//******************************************************************************
+MagVector One_SPGR(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+MagVector One_SSFP(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+MagVector One_SSFP_Finite(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+//******************************************************************************
+#pragma mark Two Component Signals
+// Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a }
+//******************************************************************************
+MagVector Two_SPGR(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+MagVector Two_SSFP(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+MagVector Two_SSFP_Finite(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+//******************************************************************************
+#pragma mark Three Component
+// Parameters are { T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
+//******************************************************************************
+MagVector Three_SPGR(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+MagVector Three_SSFP(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+MagVector Three_SSFP_Finite(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+
 #endif
