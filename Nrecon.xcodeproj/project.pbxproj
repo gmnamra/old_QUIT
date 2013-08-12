@@ -12,10 +12,10 @@
 		F6465B531677830100444730 /* recon_util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6465B4316777E0300444730 /* recon_util.cpp */; };
 		F6465B541677830100444730 /* procpar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6D581ED1652B415000DA0FF /* procpar.cpp */; };
 		F6465B571677832000444730 /* libRecon.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6465B4D167782F600444730 /* libRecon.a */; };
-		F6687667165D2E15005490D1 /* FIDFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687665165D2E15005490D1 /* FIDFile.cpp */; };
 		F6687677165D2EB1005490D1 /* nrecon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6687676165D2EB1005490D1 /* nrecon.cpp */; };
 		F6C6A64B167799660040FBDD /* libNiftiImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6C6A63C167798CE0040FBDD /* libNiftiImage.a */; };
 		F6C6A64E16779B940040FBDD /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6C6A64D16779B940040FBDD /* libz.dylib */; };
+		F6F2741216DE3F15009B888E /* libRecon.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6465B4D167782F600444730 /* libRecon.a */; };
 		F6FA56C715AC1B8E006A347A /* main_procparse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6FA56C615AC1B8E006A347A /* main_procparse.cpp */; };
 /* End PBXBuildFile section */
 
@@ -40,6 +40,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = F63EBC6D160CA7FF00F4D0BD;
 			remoteInfo = NiftiImage;
+		};
+		F6F2741016DE3EED009B888E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6FA56B015AC1B5B006A347A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F6465B4C167782F600444730;
+			remoteInfo = Recon;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -104,6 +111,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6F2741216DE3F15009B888E /* libRecon.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -224,6 +232,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				F6F2741116DE3EED009B888E /* PBXTargetDependency */,
 			);
 			name = procparse;
 			productName = procparse;
@@ -298,7 +307,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6FA56C715AC1B8E006A347A /* main_procparse.cpp in Sources */,
-				F6687667165D2E15005490D1 /* FIDFile.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -314,6 +322,11 @@
 			isa = PBXTargetDependency;
 			name = NiftiImage;
 			targetProxy = F6C6A649167799620040FBDD /* PBXContainerItemProxy */;
+		};
+		F6F2741116DE3EED009B888E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F6465B4C167782F600444730 /* Recon */;
+			targetProxy = F6F2741016DE3EED009B888E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

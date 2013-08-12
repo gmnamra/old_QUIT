@@ -13,7 +13,7 @@
 #include "unsupported/Eigen/fft"
 
 #include "fid.h"
-#include "NiftiImage.h"
+#include "Nifti.h"
 
 using namespace std;
 using namespace Eigen;
@@ -59,10 +59,10 @@ int main(int argc, const char * argv[])
 		}
 	}
 	
-	NiftiImage output;
+	Nifti::File output;
 	output.setDims(thisFid.nDim0(), thisFid.nDim1(), thisFid.nDim2(), thisFid.nVolumes());
 	output.setDatatype(NIFTI_TYPE_FLOAT32);
-	output.open("output.nii.gz", NiftiImage::NIFTI_WRITE);
+	output.open("output.nii.gz", Nifti::WRITE);
 	output.writeAllVolumes(kSpace);
 	output.close();
 	
