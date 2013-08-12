@@ -1022,13 +1022,18 @@ void File::writeBytes(size_t start, size_t length, char *buffer) {
 }
 
 void File::open(const string &path, const Modes &mode) {
-	_basepath = path.substr(0, path.find_first_of("."));
-	if (path.substr(path.find_last_of(".") + 1) == "gz") {
+	size_t lastDot = path.find_last_of(".");
+	string ext;
+	if (path.substr(lastDot + 1) == "gz") {
 		_gz = true;
+		size_t extDot = path.find_last_of(".", lastDot - 1);
+		ext = path.substr(extDot + 1, lastDot - extDot - 1);
+		_basepath = path.substr(0, extDot);
 	} else {
 		_gz = false;
+		ext = path.substr(lastDot + 1);
+		_basepath = path.substr(0, lastDot);
 	}
-	string ext = path.substr(path.find_first_of(".") + 1, 3);
 	if (ext == "hdr" || ext == "img") {
 		_nii = false;
 	} else if (ext == "nii") {
