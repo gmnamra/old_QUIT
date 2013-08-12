@@ -75,12 +75,12 @@ Options:\n\
 	            u     : User specified boundaries from stdin.\n"
 };
 
-static auto B0fit = mcDESPOT::OffResMode::Single;
-static auto components = mcDESPOT::Components::Two;
-static auto tesla = mcDESPOT::FieldStrength::Three;
-static auto PD = mcDESPOT::PDMode::Normalise;
+static auto B0fit = mcType::OffResMode::Single;
+static auto components = mcType::Components::Two;
+static auto tesla = mcType::FieldStrength::Three;
+static auto PD = mcType::PDMode::Normalise;
 static int verbose = false, prompt = true, finiteRF = false,
-           start_slice = -1, end_slice = -1, slice = 0,
+           start_slice = -1, end_slice = -1,
 		   samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
 static double expand = 0., weighting = 1.0;
@@ -435,7 +435,7 @@ int main(int argc, char **argv)
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
-	for (slice = start_slice; slice < end_slice; slice++)
+	for (size_t slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose) cout << "Reading data for slice " << slice << "..." << flush;
 		atomic<int> voxCount{0};

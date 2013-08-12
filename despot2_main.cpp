@@ -102,15 +102,9 @@ int main(int argc, char **argv)
 				B1File.open(optarg, Nifti::Modes::Read);
 				B1Data = B1File.readVolume<double>(0);
 				break;
-			case 'v':
-				verbose = true;
-				break;
-			case 'S':
-				start_slice = atoi(optarg);
-				break;
-			case 'E':
-				end_slice = atoi(optarg);
-				break;
+			case 'v': verbose = true; break;
+			case 'S': start_slice = atoi(optarg); break;
+			case 'E': end_slice = atoi(optarg); break;
 			case 0:
 				// Just a flag
 				break;

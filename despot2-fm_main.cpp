@@ -50,14 +50,22 @@ Options:\n\
 	--verbose, -v     : Print slice processing times.\n\
 	--start_slice N   : Start processing from slice N.\n\
 	--end_slice   N   : Finish processing at slice N.\n\
-	--tesla, -t 3     : Enables DESPOT-FM with boundaries suitable for 3T\n\
-	            7     : Boundaries suitable for 7T (default)\n\
-	            u     : User specified boundaries from stdin.\n"
-
+	--tesla, -t 3     : Use boundaries suitable for 3T (default)\n\
+	            7     : Boundaries suitable for 7T\n\
+	            u     : User specified boundaries from stdin.\n\
+	--samples, -s n   : Use n samples for region contraction (Default 5000).\n\
+	--retain, -r  n   : Retain n samples for new boundary (Default 50).\n\
+	--contract, -c n  : Contract a maximum of n times (Default 10).\n\
+	--expand, -e n    : Re-expand boundary by percentage n (Default 0).\n"
 };
 
 // tesla == 0 means NO DESPOT-FM
-static int tesla = 0, fitB0 = false, verbose = false, start_slice = -1, end_slice = -1;
+static auto tesla = DESPOT2FM::FieldStrength::Three;
+static auto offRes = DESPOT2FM::OffResMode::Single;
+static int verbose = false, debug = false, start_slice = -1, end_slice = -1,
+		   samples = 5000, retain = 50, contract = 10,
+           voxI = -1, voxJ = -1;
+static double expand = 0., weighting = 1.0;
 static string outPrefix;
 static struct option long_options[] =
 {
@@ -69,6 +77,10 @@ static struct option long_options[] =
 	{"verbose", no_argument, 0, 'v'},
 	{"start_slice", required_argument, 0, 'S'},
 	{"end_slice", required_argument, 0, 'E'},
+	{"samples", required_argument, 0, 's'},
+	{"retain", required_argument, 0, 'r'},
+	{"contract", required_argument, 0, 'c'},
+	{"expand", required_argument, 0, 'e'},
 	{0, 0, 0, 0}
 };
 
@@ -87,7 +99,7 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:vt:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:o:vt:srced", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;
@@ -102,6 +114,7 @@ int main(int argc, char **argv)
 				cout << "Reading B0 file: " << optarg << endl;
 				B0File.open(optarg, Nifti::Modes::Read);
 				B0Data = B0File.readVolume<double>(0);
+				offRes = DESPOT2FM::OffResMode::Map;
 				break;
 			case '1':
 				cout << "Reading B1 file: " << optarg << endl;
@@ -110,25 +123,22 @@ int main(int argc, char **argv)
 				break;
 			case 't':
 				switch (*optarg) {
-					case '3': tesla = 3; break;
-					case '7': tesla = 7; break;
-					case 'u': tesla = -1; break;
+					case '3': tesla = DESPOT2FM::FieldStrength::Three; break;
+					case '7': tesla = DESPOT2FM::FieldStrength::Seven; break;
+					case 'u': tesla = DESPOT2FM::FieldStrength::Unknown; break;
 					default:
 						cout << "Unknown boundaries type " << optarg << endl;
-						abort();
+						exit(EXIT_FAILURE);
 						break;
-				}
-				cout << "Using " << tesla << "T boundaries." << endl;
-				break;
-			case 'v':
-				verbose = true;
-				break;
-			case 'S':
-				start_slice = atoi(optarg);
-				break;
-			case 'E':
-				end_slice = atoi(optarg);
-				break;
+				} break;
+			case 'v': verbose = true; break;
+			case 'd': debug = true; break;
+			case 'S': start_slice = atoi(optarg); break;
+			case 'E': end_slice = atoi(optarg); break;
+			case 's': samples  = atoi(optarg); break;
+			case 'r': retain   = atoi(optarg); break;
+			case 'c': contract = atoi(optarg); break;
+			case 'e': expand   = atof(optarg); break;
 			case 0:
 				// Just a flag
 				break;
@@ -138,8 +148,6 @@ int main(int argc, char **argv)
 				return EXIT_FAILURE;
 		}
 	}
-	if ((tesla != 0) && !B0File.isOpen())
-		fitB0 = true;
 	if ((argc - optind) < 2) {
 		cout << "Wrong number of arguments. Need at least a T1 map and 1 SSFP file." << endl;
 		exit(EXIT_FAILURE);
@@ -218,21 +226,20 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	// Set up boundaries for DESPOT-FM if needed
-	const long nP = fitB0 ? 3 : 2;
-	ArrayXd bounds(nP);
-	if (tesla != 0) {
-		if (tesla > 0) {
-			bounds.block(0, 0, 2, 2) = DESPOT2FM::defaultBounds(tesla);
-		} else if (tesla < 0) {
-			cout << "Enter parameter pairs (low then high)" << endl;
-			for (int i = 0; i < nP; i++) {
-				cout << DESPOT2FM::names()[i] << ": " << flush;
-				cin >> bounds(i, 0) >> bounds(i, 1);
-			}
+	size_t nP = DESPOT2FM::nP();
+	size_t nB0 = DESPOT2FM::nOffRes(offRes, ssfpData.size());
+	size_t nPD = DESPOT2FM::nPD(DESPOT2FM::PDMode::Global, ssfpData.size());
+	ArrayXXd bounds(nP + nB0 + nPD, 2);
+	if (tesla == DESPOT2FM::FieldStrength::Unknown) {
+		cout << "Enter parameter pairs (low then high)" << endl;
+		for (int i = 0; i < nP; i++) {
+			cout << DESPOT2FM::names()[i] << ": " << flush;
+			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
+	} else {
+		bounds.block(0, 0, nP, 2) = DESPOT2FM::defaultBounds(tesla);
 		// If fitting, give a suitable range and allocate results memory
-		if (fitB0) {
+		if (B0File.isOpen()) {
 			bounds(2, 0) =  0.0 / data[0].TR;
 			bounds(2, 1) =  0.5 / data[0].TR;
 			B0Data.resize(voxelsPerVolume);
@@ -241,9 +248,8 @@ int main(int argc, char **argv)
 	
 	if (verbose) {
 		cout << "SSFP Angles (deg): " << data[0].flip().transpose() * 180 / M_PI << endl;
-		if (tesla != 0)
-			cout << "Low bounds: " << bounds.col(0).transpose() << endl
-				 << "Hi bounds:  " << bounds.col(1).transpose() << endl;
+		cout << "Low bounds: " << bounds.col(0).transpose() << endl
+		     << "Hi bounds:  " << bounds.col(1).transpose() << endl;
 	}
 	//**************************************************************************
 	// Set up results data
@@ -251,8 +257,6 @@ int main(int argc, char **argv)
 	vector<vector<double>> paramsData(nP);
 	for (int p = 0; p < nP; p++)
 		paramsData[p].resize(voxelsPerVolume);
-	if (tesla == 0)
-		nResiduals = 1;
 	vector<vector<double>> residuals(nResiduals);
 	for (int i = 0; i < nResiduals; i++)
 		residuals[i].resize(voxelsPerVolume);
@@ -279,7 +283,7 @@ int main(int argc, char **argv)
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			// Set up parameters and constants
 			double T1 = 0.;
-			ArrayXd params(nP); params.setZero();
+			ArrayXd params(nP + nB0 + nPD); params.setZero();
 			ArrayXd resid(nResiduals); resid.setZero();
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
@@ -299,8 +303,9 @@ int main(int argc, char **argv)
 				// DESPOT2-FM
 				ArrayXd weights(nResiduals);
 				weights.setConstant(1.0);
-				DESPOT2FM tc(localData, T1, false, fitB0);
-				RegionContraction<DESPOT2FM> rc(tc, bounds, weights);
+				DESPOT2FM tc(localData, T1, offRes);
+				RegionContraction<DESPOT2FM> rc(tc, bounds, weights,
+				                                samples, retain, contract, 0.05, expand);
 				rc.optimise(params);
 				resid = rc.residuals();
 			}
@@ -326,7 +331,7 @@ int main(int argc, char **argv)
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 	     << difftime(procEnd, procStart) << " s." << endl;
 	
-	if (tesla == 0) {
+	if (!B0File.isOpen()) {
 		const vector<string> classic_names { "D2_PD", "D2_T2" };
 		for (int p = 0; p < 2; p++) {
 			savedHeader.open(outPrefix + classic_names[p] + ".nii.gz", Nifti::Modes::Write);

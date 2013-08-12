@@ -60,20 +60,10 @@ class Functor
 };
 
 //******************************************************************************
-#pragma mark mcDESPOT Functor
+#pragma mark Basic DESPOT Functor
 //******************************************************************************
-class mcDESPOT : public Functor<double> {
+class DESPOTFunctor : public Functor<double> {
 	public:
-		enum class Components {
-			One, Two, Three
-		};
-		static const string to_string(const Components& c) {
-			switch (c) {
-				case Components::One: return "1";
-				case Components::Two: return "2";
-				case Components::Three: return "3";
-			}
-		};
 		enum class FieldStrength {
 			Three, Seven, Unknown
 		};
@@ -98,14 +88,6 @@ class mcDESPOT : public Functor<double> {
 			Map = 0, Single, Multi, Bounded, MultiBounded
 		};
 		
-		static const int nP(const Components &c) {
-			switch (c) {
-				case Components::One: return 2;
-				case Components::Two: return 6;
-				case Components::Three: return 9;
-			}
-		}
-		
 		static const size_t nPD(const PDMode& p, const size_t &nSignals) {
 			switch (p) {
 				case PDMode::Normalise: return 0;
@@ -123,7 +105,72 @@ class mcDESPOT : public Functor<double> {
 				case OffResMode::MultiBounded: return static_cast<size_t>(nSignals);
 			}
 		}
+	
+	protected:
+		const OffResMode m_offRes;
+		const PDMode m_PDMode;
+		size_t m_nP, m_nV, m_nOffRes, m_nPD;
+		vector<DESPOTData> &m_data;
+		const bool m_debug;
+	
+	public:
+		const long inputs() const { return m_nP + m_nOffRes + m_nPD; }
+		const long values() const { return m_nV; }
 		
+		DESPOTFunctor(vector<DESPOTData> &data,
+		              const OffResMode &offRes = OffResMode::Single, const PDMode &PD = PDMode::Normalise,
+		              const bool &debug = false) :
+			m_data(data), m_offRes(offRes), m_PDMode(PD), m_debug(debug)
+		{
+			m_nV = 0;
+			for (int i = 0; i < data.size(); i++) {
+				if (data[i].flip().size() != data[i].signal().size()) {
+					cerr << "Angles and signals size mis-match for signal " << i << endl;
+					cerr << "Angles = " << data[i].flip().size() << " signal = " << data[i].signal().size() << endl;
+					exit(EXIT_FAILURE);
+				}
+				m_nV += m_data[i].flip().size();
+			}
+		}
+		
+		const ArrayXd signals() const {
+			ArrayXd v(values());
+			int index = 0;
+			if (m_debug) cout << __PRETTY_FUNCTION__ << endl;
+			for (int i = 0; i < m_data.size(); i++) {
+				v.segment(index, m_data[i].signal().size()) = m_data[i].signal();
+				index += m_data[i].signal().size();
+			}
+			return v;
+		}
+};
+
+//******************************************************************************
+#pragma mark mcDESPOT Functor
+//******************************************************************************
+class mcDESPOT : public DESPOTFunctor {
+	public:
+		enum class Components {
+			One, Two, Three
+		};
+		static const string to_string(const Components& c) {
+			switch (c) {
+				case Components::One: return "one";
+				case Components::Two: return "two";
+				case Components::Three: return "three";
+			}
+		};
+		static const int nP(const Components &c) {
+			switch (c) {
+				case Components::One: return 2;
+				case Components::Two: return 6;
+				case Components::Three: return 9;
+			}
+		}
+	protected:
+		const Components m_components;
+	
+	public:
 		static const vector<string> names(const Components &c) {
 			switch (c) {
 				case Components::One: return { "T1", "T2" };
@@ -155,33 +202,15 @@ class mcDESPOT : public Functor<double> {
 			return b;
 		}
 	
-	protected:
-		const Components m_components;
-		const OffResMode m_offRes;
-		const PDMode m_PDMode;
-		size_t m_nP, m_nV, m_nOffRes, m_nPD;
-		vector<DESPOTData> &m_data;
-		const bool m_debug;
-	
-	public:
 		mcDESPOT(const Components &c, vector<DESPOTData> &data,
 				 const OffResMode &offRes, const PDMode &PD = PDMode::Normalise,
 				 const bool &debug = false) :
-			m_components(c), m_data(data),
-			m_PDMode(PD), m_offRes(offRes), m_debug(debug)
+			DESPOTFunctor(data, offRes, PD, debug),
+			m_components(c)
 		{
 			m_nP = nP(c);
 			m_nOffRes = nOffRes(offRes, m_data.size());
 			m_nPD = nPD(PD, m_data.size());
-			m_nV = 0;
-			for (int i = 0; i < data.size(); i++) {
-				if (data[i].flip().size() != data[i].signal().size()) {
-					cerr << "Angles and signals size mis-match for signal " << i << endl;
-					cerr << "Angles = " << data[i].flip().size() << " signal = " << data[i].signal().size() << endl;
-					exit(EXIT_FAILURE);
-				}
-				m_nV += m_data[i].flip().size();
-			}
 		}
 		
 		const bool constraint(const VectorXd &params) {
@@ -211,19 +240,6 @@ class mcDESPOT : public Functor<double> {
 					return false;
 			} else
 				return true;
-		}
-				
-		const long inputs() const { return m_nP + m_nOffRes + m_nPD; }
-		const long values() const { return m_nV; }
-		const ArrayXd signals() const {
-			ArrayXd v(values());
-			int index = 0;
-			if (m_debug) cout << __PRETTY_FUNCTION__ << endl;
-			for (int i = 0; i < m_data.size(); i++) {
-				v.segment(index, m_data[i].signal().size()) = m_data[i].signal();
-				index += m_data[i].signal().size();
-			}
-			return v;
 		}
 		
 		const ArrayXd theory(const VectorXd &params) const {
@@ -320,8 +336,7 @@ class mcFinite : public mcDESPOT {
 			}
 			return b;
 		}
-	
-	public:
+		
 		mcFinite(const Components &c, vector<DESPOTData> &data,
 				 const OffResMode &offRes, const PDMode &PD = PDMode::Normalise,
 				 const bool &debug = false) :
@@ -330,15 +345,6 @@ class mcFinite : public mcDESPOT {
 			m_nP = nP(c);
 			m_nOffRes = nOffRes(offRes, m_data.size());
 			m_nPD = nPD(PD, m_data.size());
-			m_nV = 0;
-			for (int i = 0; i < data.size(); i++) {
-				if (data[i].flip().size() != data[i].signal().size()) {
-					cerr << "Angles and signals size mis-match for signal " << i << endl;
-					cerr << "Angles = " << data[i].flip().size() << " signal = " << data[i].signal().size() << endl;
-					exit(EXIT_FAILURE);
-				}
-				m_nV += m_data[i].flip().size();
-			}
 		}
 		
 		const ArrayXd theory(const VectorXd &params) const {
@@ -376,28 +382,26 @@ class mcFinite : public mcDESPOT {
 //******************************************************************************
 #pragma mark DESPOT2FM Functor
 //******************************************************************************
-class DESPOT2FM : public Functor<double> {
-	private:
-		long _nV;
-		vector<DESPOTData> &_data;
-		const double _T1;
-		const bool &_normalise, &_fitB0;
-	
+class DESPOT2FM : public DESPOTFunctor {
+	protected:
+		double m_T1;
 	public:
+		static const int nP() {
+			return 1;
+		}
+		
 		static const vector<string> &names() {
-			static const vector<string> _names = { { "FM_PD", "FM_T2", "FM_B0" } };
+			static const vector<string> _names = { { "FM_T2" } };
 			return _names;
 		}
 		
-		static const ArrayXd &defaultBounds(const int tesla) {
-			static ArrayXd b;
-			
+		static const ArrayXXd defaultBounds(const FieldStrength tesla) {
+			ArrayXXd b(nP(), 2);
 			switch (tesla) {
-				case 3: b << 0., 1.e7, 0.010, 0.5; return b;
-				case 7: b << 0., 1.e7, 0.005, 0.25; return b;
+				case FieldStrength::Three: b << 0.010, 0.5; return b;
+				case FieldStrength::Seven: b << 0.005, 0.25; return b;
+				case FieldStrength::Unknown: b.setZero(); return b;
 			}
-			std::cerr << "Don't have defaults for " << tesla << "tesla." << std::endl;
-			exit(EXIT_FAILURE);
 		}
 		
 		const bool constraint(const VectorXd &params) {
@@ -407,48 +411,42 @@ class DESPOT2FM : public Functor<double> {
 				return true;
 		}
 		
-		const long inputs() { return _fitB0? 3 : 2; }
-		const long values() const { return _nV; }
-		
-		DESPOT2FM(vector<DESPOTData> &data, const double T1, const bool &normalise = false, const bool &fitB0 = true) :
-			_data(data), _T1(T1), _normalise(normalise), _fitB0(fitB0)
+		DESPOT2FM(vector<DESPOTData> &data, const double T1,
+				  const OffResMode &offRes, const PDMode &PD = PDMode::Global,
+				  const bool &debug = false) :
+			DESPOTFunctor(data, offRes, PD, debug), m_T1(T1)
 		{
-			_nV = 0;
-			
-			for (int i = 0; i < _data.size(); i++) {
-				if (_data[i].flip().size() != _data[i].signal().size()) {
-					cerr << "Angles and signals size mis-match for signal " << i << endl;
-					cerr << "Angles = " << _data[i].flip().size() << " signal = " << _data[i].signal().size() << endl;
-					exit(EXIT_FAILURE);
-				}
-				_nV += _data[i].flip().size();
-			}
+			m_nP = nP();
+			m_nOffRes = nOffRes(offRes, m_data.size());
+			m_nPD = nPD(PD, m_data.size());
 		}
+		DESPOT2FM(const DESPOT2FM &) = delete;
 		
-		const ArrayXd signals() const {
-			ArrayXd v(values());
-			int index = 0;
-			for (int i = 0; i < _data.size(); i++) {
-				v.segment(index, _data[i].signal().size()) = _data[i].signal();
-				index += _data[i].signal().size();
-			}
-			return v;
-		}
-		
-		// Params are { PD, T2, B0 }
 		const ArrayXd theory(const VectorXd &params) const {
-			VectorXd withT1(3);
-			withT1 << params[0], _T1, params[1];
+			VectorXd T1T2(2);
+			T1T2 << m_T1, params[0];
 			
 			ArrayXd t(values());
 			int index = 0;
-			for (int i = 0; i < _data.size(); i++) {
-				if (_fitB0)
-					_data[i].f0_off = params[2];
-				ArrayXd theory = SigMag(One_SSFP(_data[i], withT1));
-				if (_normalise && (theory.square().sum() > 0.)) theory /= theory.mean();
-				t.segment(index, _data[i].flip().size()) = theory;
-				index += _data[i].flip().size();
+			for (int i = 0; i < m_data.size(); i++) {
+				MagVector M(3, m_data[i].flip().size());
+				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
+					m_data[i].f0_off = params[m_nP];
+				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
+					m_data[i].f0_off = params[m_nP + i];
+				double PD;
+				switch (m_PDMode) {
+					case (PDMode::Normalise): PD = 1.; break;
+					case (PDMode::Global): PD = params[m_nP + m_nOffRes]; break;
+					case (PDMode::Individual): PD = params[m_nP + m_nOffRes + i]; break;
+				}
+				M = One_SSFP(m_data.at(i), T1T2, PD);
+				ArrayXd theory = SigMag(M);
+				if (m_PDMode == PDMode::Normalise) {
+					theory /= theory.mean();
+				}
+				t.segment(index, m_data[i].flip().size()) = theory;
+				index += m_data[i].flip().size();
 			}
 			return t;
 		}
