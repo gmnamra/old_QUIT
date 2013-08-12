@@ -39,8 +39,8 @@ Acknowledgements greatfully received, grant discussions welcome."
 };
 
 const string usage {
-"Usage is: despot2 [options] T1_map ssfp_files\n\
-\
+"Usage is: despot2 [options] T1_map ssfp_file\n\
+\n\
 Options:\n\
 	--help, -h        : Print this message.\n\
 	--mask, -m file   : Mask input with specified file.\n\
@@ -49,15 +49,10 @@ Options:\n\
 	--B1 file         : B1 Map file.\n\
 	--verbose, -v     : Print slice processing times.\n\
 	--start_slice N   : Start processing from slice N.\n\
-	--end_slice   N   : Finish processing at slice N.\n\
-	--tesla, -t 3     : Enables DESPOT-FM with boundaries suitable for 3T\n\
-	            7     : Boundaries suitable for 7T (default)\n\
-	            u     : User specified boundaries from stdin.\n"
-
+	--end_slice   N   : Finish processing at slice N.\n"
 };
 
-// tesla == 0 means NO DESPOT-FM
-static int tesla = 0, fitB0 = false, verbose = false, start_slice = -1, end_slice = -1;
+static int verbose = false, start_slice = -1, end_slice = -1;
 static string outPrefix;
 static struct option long_options[] =
 {
@@ -65,7 +60,6 @@ static struct option long_options[] =
 	{"B1", required_argument, 0, '1'},
 	{"help", no_argument, 0, 'h'},
 	{"mask", required_argument, 0, 'm'},
-	{"tesla", required_argument, 0, 't'},
 	{"verbose", no_argument, 0, 'v'},
 	{"start_slice", required_argument, 0, 'S'},
 	{"end_slice", required_argument, 0, 'E'},
@@ -81,17 +75,13 @@ int main(int argc, char **argv)
 	// Argument Processing
 	//**************************************************************************
 	cout << credit << endl;
-	if (argc < 4) {
-		cout << usage << endl;
-		return EXIT_FAILURE;
-	}
 	Eigen::initParallel();
 	Nifti::File maskFile, B0File, B1File, inFile, savedHeader;
 	vector<double> maskData, B0Data, B1Data, T1Data;
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:vt:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:o:v:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;
@@ -112,18 +102,6 @@ int main(int argc, char **argv)
 				B1File.open(optarg, Nifti::Modes::Read);
 				B1Data = B1File.readVolume<double>(0);
 				break;
-			case 't':
-				switch (*optarg) {
-					case '3': tesla = 3; break;
-					case '7': tesla = 7; break;
-					case 'u': tesla = -1; break;
-					default:
-						cout << "Unknown boundaries type " << optarg << endl;
-						abort();
-						break;
-				}
-				cout << "Using " << tesla << "T boundaries." << endl;
-				break;
 			case 'v':
 				verbose = true;
 				break;
@@ -139,13 +117,12 @@ int main(int argc, char **argv)
 			case '?': // getopt will print an error message
 			case 'h':
 				cout << usage << endl;				
-				return EXIT_FAILURE;
+				exit(EXIT_SUCCESS);
 		}
 	}
-	if ((tesla != 0) && !B0File.isOpen())
-		fitB0 = true;
-	if ((argc - optind) < 2) {
-		cout << "Wrong number of arguments. Need at least a T1 map and 1 SSFP file." << endl;
+	if ((argc - optind) != 2) {
+		cout << "Wrong number of arguments. Need a least a T1 map and 1 SSFP (180 degree phase cycling) file." << endl;
+		cout << usage << endl;
 		exit(EXIT_FAILURE);
 	}
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
@@ -161,116 +138,56 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	int nFlip, nPhases, nResiduals = 0;
-	nPhases = argc - optind;
-	vector<DESPOTData> data(nPhases);
+	int nFlip, nResiduals = 0;
 	int voxelsPerSlice, voxelsPerVolume;
-	vector<vector<double>> ssfpData(nPhases);
 	VectorXd inFlip;
 	double inTR;
-	for (size_t p = 0; p < nPhases; p++) {
-		cout << "Reading SSFP header from " << argv[optind] << endl;
-		inFile.open(argv[optind], Nifti::Modes::Read);
-		if (!inFile.matchesSpace(savedHeader)) {
-			cerr << "Input file dimensions and/or transforms do not match." << endl;
-			exit(EXIT_FAILURE);
-		}
-		if (p == 0) { // Read nFlip, TR and flip angles from first file
-			nFlip = inFile.dim(4);
-			inFlip.resize(nFlip);
-			voxelsPerSlice = inFile.voxelsPerSlice();
-			voxelsPerVolume = inFile.voxelsPerVolume();
-			#ifdef HAVE_NRECON
-			ParameterList pars;
-			if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
-				inTR = RealValue(pars, "tr");
-				for (int i = 0; i < nFlip; i++)
-					inFlip[i] = RealValue(pars, "flip1", i);
-			} else
-			#endif
-			{
-				cout << "Enter SSFP TR (seconds): " << flush;
-				cin >> inTR;
-				cout << "Enter " << nFlip << " flip angles (degrees): " << flush;
-				for (int i = 0; i < nFlip; i++)
-					cin >> inFlip[i];
-			}
-			inFlip *= M_PI / 180.;
-		}
-		data[p].resize(nFlip);
-		data[p].TR = inTR;
-		data[p].setFlip(inFlip);
-		#ifdef HAVE_NRECON
-		ParameterList pars;
-		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
-			data[p].phase = RealValue(pars, "rfphase") * M_PI / 180.;
-		} else
-		#endif
-		{
-			cout << "Enter phase-cycling (degrees): " << flush;
-			cin >> data[p].phase; data[p].phase *= M_PI / 180.;
-		}
-		cout << "Reading SSFP data..." << endl;
-		ssfpData[p] = inFile.readAllVolumes<double>();
-		// Don't close the first header because we've saved it to write the
-		// results, and FSLIO gets fussy about cloning closed headers
-		inFile.close();
-		nResiduals += nFlip;
-		optind++;
+	cout << "Reading SSFP header from " << argv[optind] << endl;
+	inFile.open(argv[optind], Nifti::Modes::Read);
+	nFlip = inFile.dim(4);
+	inFlip.resize(nFlip);
+	voxelsPerSlice = inFile.voxelsPerSlice();
+	voxelsPerVolume = inFile.voxelsPerVolume();
+	#ifdef HAVE_NRECON
+	ParameterList pars;
+	if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
+		inTR = RealValue(pars, "tr");
+		for (int i = 0; i < nFlip; i++)
+			inFlip[i] = RealValue(pars, "flip1", i);
+	} else
+	#endif
+	{
+		cout << "Enter SSFP TR (seconds): " << flush;
+		cin >> inTR;
+		cout << "Enter " << nFlip << " flip angles (degrees): " << flush;
+		for (int i = 0; i < nFlip; i++)
+			cin >> inFlip[i];
 	}
-	
-	if (optind != argc) {
-		cerr << "Unprocessed arguments supplied.\n" << usage;
-		exit(EXIT_FAILURE);
-	}
-	
-	// Set up boundaries for DESPOT-FM if needed
-	const long nP = fitB0 ? 3 : 2;
-	ArrayXd bounds(nP);
-	if (tesla != 0) {
-		if (tesla > 0) {
-			bounds.block(0, 0, 2, 2) = DESPOT2FM::defaultBounds(tesla);
-		} else if (tesla < 0) {
-			cout << "Enter parameter pairs (low then high)" << endl;
-			for (int i = 0; i < nP; i++) {
-				cout << DESPOT2FM::names()[i] << ": " << flush;
-				cin >> bounds(i, 0) >> bounds(i, 1);
-			}
-		}
-		// If fitting, give a suitable range and allocate results memory
-		if (fitB0) {
-			bounds(2, 0) =  0.0 / data[0].TR;
-			bounds(2, 1) =  0.5 / data[0].TR;
-			B0Data.resize(voxelsPerVolume);
-		}
-	}
-	
+	inFlip *= M_PI / 180.;
+	cout << "Reading SSFP data..." << endl;
+	vector<double> ssfpData = inFile.readAllVolumes<double>();
+	inFile.close();
+	nResiduals += nFlip;
+	optind++;
 	if (verbose) {
-		cout << "SSFP Angles (deg): " << data[0].flip().transpose() * 180 / M_PI << endl;
-		if (tesla != 0)
-			cout << "Low bounds: " << bounds.col(0).transpose() << endl
-				 << "Hi bounds:  " << bounds.col(1).transpose() << endl;
+		cout << "SSFP Angles (deg): " << inFlip.transpose() * 180 / M_PI << endl;
 	}
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
-	vector<vector<double>> paramsData(nP);
-	for (int p = 0; p < nP; p++)
-		paramsData[p].resize(voxelsPerVolume);
-	if (tesla == 0)
-		nResiduals = 1;
-	vector<vector<double>> residuals(nResiduals);
-	for (int i = 0; i < nResiduals; i++)
-		residuals[i].resize(voxelsPerVolume);
+	vector<double> PDData(voxelsPerVolume), T2Data(voxelsPerVolume), residualData(voxelsPerVolume);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-    time_t procStart = time(NULL);
 	if ((start_slice < 0) || (start_slice >= inFile.dim(3)))
 		start_slice = 0;
 	if ((end_slice < 0) || (end_slice > inFile.dim(3)))
 		end_slice = inFile.dim(3);
 	ThreadPool pool;
+    time_t procStart = time(NULL);
+	char theTime[512];
+	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
+	cout << "Started processing at " << theTime << endl;
 	for (int slice = start_slice; slice < end_slice; slice++) {
 		// Read in data
 		if (verbose)
@@ -281,50 +198,22 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			// Set up parameters and constants
-			double T1 = 0.;
-			ArrayXd params(nP); params.setZero();
-			ArrayXd resid(nResiduals); resid.setZero();
+			double PD = 0., T2 = 0., resid = 0.;
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				voxCount++;
-				T1 = T1Data[sliceOffset + vox];
+				double T1 = T1Data[sliceOffset + vox];
 				// Gather signals.
-				vector<DESPOTData> localData = data;
-				for (int p = 0; p < nPhases; p++) {
-					localData[p].f0_off = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
-					localData[p].B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
-					VectorXd sig(nFlip);
-					for (int i = 0; i < nFlip; i++)
-						sig(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
-					localData[p].setSignal(sig);
+				double B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
+				VectorXd sig(nFlip);
+				for (int i = 0; i < nFlip; i++) {
+					sig(i) = ssfpData.at(i*voxelsPerVolume + sliceOffset + vox);
 				}
-				
-				if (tesla == 0) {
-					// Choose phase with accumulated phase closest to 180 and then classic DESPOT2
-					int index = 0;
-					double bestPhase = DBL_MAX;
-					for (int p = 0; p < nPhases; p++) {
-						double thisPhase = (data[p].f0_off * data[p].TR * 2 * M_PI) + data[p].phase;
-						if (fabs(fmod(thisPhase - M_PI, 2 * M_PI)) < bestPhase) {
-							bestPhase = fabs(fmod(thisPhase - M_PI, 2 * M_PI));
-							index = p;
-						}
-					}
-					resid[0] = classicDESPOT2(localData[index].flip(), localData[index].signal(), localData[index].TR, T1, localData[index].B1, params[0], params[1]);
-				} else {
-					// DESPOT2-FM
-					ArrayXd weights(nResiduals);
-					weights.setConstant(1.0);
-					DESPOT2FM tc(localData, T1, false, fitB0);
-					resid = regionContraction<DESPOT2FM>(params, tc, bounds, weights);
-				}
+				resid = classicDESPOT2(inFlip, sig, inTR, T1, B1, PD, T2);
 			}
-			for (int p = 0; p < nP; p++) {
-				paramsData[p][sliceOffset + vox] = params[p];
-			}
-			for (int i = 0; i < nResiduals; i++) {
-				residuals[i][sliceOffset + vox] = resid[i];
-			}
+			PDData.at(sliceOffset + vox) = PD;
+			T2Data.at(sliceOffset + vox) = T2;
+			residualData.at(sliceOffset + vox) = resid;
 		};
 		pool.for_loop(processVox, voxelsPerSlice);
 		
@@ -337,35 +226,20 @@ int main(int argc, char **argv)
 		}
 	}
     time_t procEnd = time(NULL);
-    struct tm *localEnd = localtime(&procEnd);
-	char theTime[512];
-    strftime(theTime, 512, "%H:%M:%S", localEnd);
+    strftime(theTime, 512, "%H:%M:%S", localtime(&procEnd));
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << endl;
 	
-	if (tesla == 0) {
-		const vector<string> classic_names { "D2_PD", "D2_T2" };
-		for (int p = 0; p < 2; p++) {
-			savedHeader.open(outPrefix + classic_names[p] + ".nii.gz", Nifti::Modes::Write);
-			savedHeader.writeVolume(0, paramsData[p]);
-			savedHeader.close();
-		}
-		savedHeader.setDim(4, nResiduals);
-		savedHeader.open(outPrefix + "D2_Residual.nii.gz", Nifti::Modes::Write);
-		for (int i = 0; i < nResiduals; i++)
-			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
-		savedHeader.close();
-	} else {
-		for (int p = 0; p < nP; p++) {
-			savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", Nifti::Modes::Write);
-			savedHeader.writeVolume(0, paramsData[p]);
-			savedHeader.close();
-		}
-		savedHeader.setDim(4, nResiduals);
-		savedHeader.open(outPrefix + "FM_Residual.nii.gz", Nifti::Modes::Write);
-		for (int i = 0; i < nResiduals; i++)
-			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
-		savedHeader.close();
-	}
-	return EXIT_SUCCESS;
+	const vector<string> classic_names { "D2_PD", "D2_T2" };
+	savedHeader.open(outPrefix + "D2_PD.nii.gz", Nifti::Modes::Write);
+	savedHeader.writeVolume(0, PDData);
+	savedHeader.close();
+	savedHeader.open(outPrefix + "D2_T2.nii.gz", Nifti::Modes::Write);
+	savedHeader.writeVolume(0, T2Data);
+	savedHeader.close();
+	savedHeader.open(outPrefix + "D2_Residual.nii.gz", Nifti::Modes::Write);
+	savedHeader.writeVolume(0, residualData);
+	savedHeader.close();
+	cout << "Finished writing data." << endl;
+	exit(EXIT_SUCCESS);
 }

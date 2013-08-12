@@ -45,6 +45,11 @@
 		F6E4A2981590DB5800DA4001 /* despot2_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */; };
 		F6E4A2991590DB5800DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F6E4A29A1590DB6000DA4001 /* mcdespot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */; };
+		F6F5343417B91A8E0059F82C /* despot2-fm_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F5342317B91A4B0059F82C /* despot2-fm_main.cpp */; };
+		F6F5343517B91A8E0059F82C /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
+		F6F5343617B91A930059F82C /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
+		F6F5343717B91A930059F82C /* libRecon.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F622515B167B3F3D00DB3BD9 /* libRecon.a */; };
+		F6F5343817B91A980059F82C /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6A51DA31732CA4600436441 /* libz.dylib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -263,6 +268,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		F6F5342917B91A610059F82C /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -293,6 +307,8 @@
 		F6EA0A7E15DE3C490059E436 /* test_despot */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = test_despot; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6EA0ADC15DE67960059E436 /* RegionContraction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RegionContraction.h; sourceTree = SOURCE_ROOT; };
 		F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = test_despot_main.cpp; sourceTree = SOURCE_ROOT; };
+		F6F5342317B91A4B0059F82C /* despot2-fm_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "despot2-fm_main.cpp"; sourceTree = SOURCE_ROOT; };
+		F6F5342B17B91A610059F82C /* despot2-fm */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "despot2-fm"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -374,6 +390,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F6F5342817B91A610059F82C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6F5343817B91A980059F82C /* libz.dylib in Frameworks */,
+				F6F5343617B91A930059F82C /* libNifti.a in Frameworks */,
+				F6F5343717B91A930059F82C /* libRecon.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -419,6 +445,7 @@
 				F6EA0A7E15DE3C490059E436 /* test_despot */,
 				F622517B167B49CD00DB3BD9 /* despot-hifi */,
 				F666E50417AFFBC800A6BBE2 /* mcfinite */,
+				F6F5342B17B91A610059F82C /* despot2-fm */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -433,6 +460,7 @@
 				F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */,
 				F61642A715CC1BBB0031F999 /* despot-hifi_main.cpp */,
 				F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */,
+				F6F5342317B91A4B0059F82C /* despot2-fm_main.cpp */,
 				F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */,
 				F6E4A2961590DB4D00DA4001 /* threshold_main.cpp */,
 				F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */,
@@ -599,6 +627,23 @@
 			productReference = F6EA0A7E15DE3C490059E436 /* test_despot */;
 			productType = "com.apple.product-type.tool";
 		};
+		F6F5342A17B91A610059F82C /* despot2-fm */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6F5343117B91A610059F82C /* Build configuration list for PBXNativeTarget "despot2-fm" */;
+			buildPhases = (
+				F6F5342717B91A610059F82C /* Sources */,
+				F6F5342817B91A610059F82C /* Frameworks */,
+				F6F5342917B91A610059F82C /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "despot2-fm";
+			productName = "despot2-fm";
+			productReference = F6F5342B17B91A610059F82C /* despot2-fm */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -637,6 +682,7 @@
 				F675C8CA15CC11E000BA95FC /* afi */,
 				F6EA0A7D15DE3C490059E436 /* test_despot */,
 				F622517A167B49CD00DB3BD9 /* despot-hifi */,
+				F6F5342A17B91A610059F82C /* despot2-fm */,
 			);
 		};
 /* End PBXProject section */
@@ -749,6 +795,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				F681257915E23F3A007A3362 /* test_despot_main.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6F5342717B91A610059F82C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6F5343417B91A8E0059F82C /* despot2-fm_main.cpp in Sources */,
+				F6F5343517B91A8E0059F82C /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1056,6 +1111,39 @@
 			};
 			name = Release;
 		};
+		F6F5343217B91A610059F82C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		F6F5343317B91A610059F82C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1139,6 +1227,14 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		F6F5343117B91A610059F82C /* Build configuration list for PBXNativeTarget "despot2-fm" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6F5343217B91A610059F82C /* Debug */,
+				F6F5343317B91A610059F82C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
 		};
 /* End XCConfigurationList section */
 	};
