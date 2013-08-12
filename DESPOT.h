@@ -26,12 +26,18 @@ double clamp(double value, double low, double high);
 
 void linearLeastSquares(const ArrayXd &X, const ArrayXd &Y,
 						double &slope, double &inter, double &res);
+
+
 double classicDESPOT1(const ArrayXd &flipAngles, const ArrayXd &spgrVals,
 				      double TR, double B1, double &M0, double &T1);
 double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
                       double TR, double T1, double B1, double &M0, double &T2);
-double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
-				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
-				const double irTR, const double nReadout, const double eff,
-                double &M0, double &T1, double &B1);
+
+//******************************************************************************
+#pragma mark Basic Signal Equations
+//******************************************************************************
+ArrayXd SPGR(const ArrayXd &flip, const double &TR, const double &B1, const double &M0, const double &T1);
+ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
+               const double &flip, const double &eff,
+			   const double &M0, const double &T1);
 #endif
