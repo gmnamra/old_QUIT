@@ -431,10 +431,9 @@ int main(int argc, char **argv)
 		end_slice = savedHeader.dim(3);
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	
-    auto procStart = chrono::system_clock::now();
-	time_t c_time = chrono::system_clock::to_time_t(procStart); // Still have to convert to c to use IO functions
+    time_t procStart = time(NULL);
 	char theTime[512];
-	strftime(theTime, 512, "%H:%M:%S", localtime(&c_time));
+	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
 	for (slice = start_slice; slice < end_slice; slice++)
 	{
@@ -523,11 +522,10 @@ int main(int argc, char **argv)
 		if (interrupt_received)
 			break;
 	}
-    auto procEnd = chrono::system_clock::now();
-	c_time = chrono::system_clock::to_time_t(procEnd);
-	strftime(theTime, 512, "%H:%M:%S", localtime(&c_time));
-	cout << "Finished processing at " << theTime << ". Run-time was "
-	          << chrono::duration_cast<chrono::minutes>(procEnd - procStart).count() << " minutes." << endl;
+    time_t procEnd = time(NULL);
+    strftime(theTime, 512, "%H:%M:%S", localtime(&procEnd));
+	cout << "Finished processing at " << theTime << ". Run-time was " 
+	          << difftime(procEnd, procStart) << " s." << endl;
 	
 	// Clean up memory and close files (automatically done in destructor)
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
