@@ -507,7 +507,7 @@ class mcDESPOT : public Functor<double> {
 		const Components m_components;
 		const OffResMode m_offRes;
 		const PDMode m_PDMode;
-		size_t m_nP, m_nV, m_nOffRes, m_PD;
+		size_t m_nP, m_nV, m_nOffRes, m_nPD;
 		vector<DESPOTData> &m_data;
 		const bool m_debug;
 	
@@ -520,7 +520,7 @@ class mcDESPOT : public Functor<double> {
 		{
 			m_nP = nP(c);
 			m_nOffRes = nOffRes(offRes, m_data.size());
-			m_PD = nPD(PD, m_data.size());
+			m_nPD = nPD(PD, m_data.size());
 			m_nV = 0;
 			for (int i = 0; i < data.size(); i++) {
 				if (data[i].flip().size() != data[i].signal().size()) {
@@ -561,7 +561,7 @@ class mcDESPOT : public Functor<double> {
 				return true;
 		}
 				
-		const long inputs() const { return m_nP + m_nOffRes; }
+		const long inputs() const { return m_nP + m_nOffRes + m_nPD; }
 		const long values() const { return m_nV; }
 		const ArrayXd signals() const {
 			ArrayXd v(values());
@@ -677,7 +677,7 @@ class mcFinite : public mcDESPOT {
 		{
 			m_nP = nP(c);
 			m_nOffRes = nOffRes(offRes, m_data.size());
-			m_PD = nPD(PD, m_data.size());
+			m_nPD = nPD(PD, m_data.size());
 			m_nV = 0;
 			for (int i = 0; i < data.size(); i++) {
 				if (data[i].flip().size() != data[i].signal().size()) {
