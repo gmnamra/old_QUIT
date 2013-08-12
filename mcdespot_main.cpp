@@ -491,8 +491,10 @@ int main(int argc, char **argv)
 					}
 				}
 				mcType mcd(components, localData, B0fit, PD, (voxI > -1));
-				residuals = regionContraction<mcType>(params, mcd, localBounds, weights,
-													  samples, retain, contract, 0.05, expand, rSeed);
+				RegionContraction<mcType> rc(mcd, localBounds, weights,
+											 samples, retain, contract, 0.05, expand);
+				rc.optimise(params, rSeed);
+				residuals = rc.residuals();
 			}
 			for (int p = 0; p < (nP + nB0 + nPD); p++) {
 				paramsData.at(p).at(vox) = params[p];

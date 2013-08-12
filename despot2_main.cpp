@@ -228,7 +228,7 @@ int main(int argc, char **argv)
     time_t procEnd = time(NULL);
     strftime(theTime, 512, "%H:%M:%S", localtime(&procEnd));
 	cout << "Finished processing at " << theTime << ". Run-time was " 
-	          << difftime(procEnd, procStart) << " s." << endl;
+	     << difftime(procEnd, procStart) << " s." << endl;
 	
 	const vector<string> classic_names { "D2_PD", "D2_T2" };
 	savedHeader.open(outPrefix + "D2_PD.nii.gz", Nifti::Modes::Write);

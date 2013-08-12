@@ -50,6 +50,9 @@
 		F6F5343617B91A930059F82C /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
 		F6F5343717B91A930059F82C /* libRecon.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F622515B167B3F3D00DB3BD9 /* libRecon.a */; };
 		F6F5343817B91A980059F82C /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6A51DA31732CA4600436441 /* libz.dylib */; };
+		F6F5343917B9306C0059F82C /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
+		F6F5343A17B930D40059F82C /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
+		F6F5343B17B930D70059F82C /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -740,6 +743,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6F5343B17B930D70059F82C /* DESPOT.cpp in Sources */,
 				F666E52317AFFC0D00A6BBE2 /* mcdespot_main.cpp in Sources */,
 				F666E52417AFFC0D00A6BBE2 /* ThreadPool.cpp in Sources */,
 			);
@@ -785,6 +789,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6F5343A17B930D40059F82C /* DESPOT.cpp in Sources */,
 				F6E4A29A1590DB6000DA4001 /* mcdespot_main.cpp in Sources */,
 				F66A8FD317A6CB5900E93F5C /* ThreadPool.cpp in Sources */,
 			);
@@ -802,6 +807,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6F5343917B9306C0059F82C /* DESPOT.cpp in Sources */,
 				F6F5343417B91A8E0059F82C /* despot2-fm_main.cpp in Sources */,
 				F6F5343517B91A8E0059F82C /* ThreadPool.cpp in Sources */,
 			);

@@ -81,10 +81,6 @@ int main(int argc, char **argv)
 	// Argument Processing
 	//**************************************************************************
 	cout << credit << endl;
-	if (argc < 4) {
-		cout << usage << endl;
-		return EXIT_FAILURE;
-	}
 	Eigen::initParallel();
 	Nifti::File maskFile, B0File, B1File, inFile, savedHeader;
 	vector<double> maskData, B0Data, B1Data, T1Data;
@@ -263,12 +259,15 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-    time_t procStart = time(NULL);
 	if ((start_slice < 0) || (start_slice >= inFile.dim(3)))
 		start_slice = 0;
 	if ((end_slice < 0) || (end_slice > inFile.dim(3)))
 		end_slice = inFile.dim(3);
 	ThreadPool pool;
+    time_t procStart = time(NULL);
+	char theTime[512];
+	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
+	cout << "Started processing at " << theTime << endl;
 	for (int slice = start_slice; slice < end_slice; slice++) {
 		// Read in data
 		if (verbose)
@@ -297,27 +296,13 @@ int main(int argc, char **argv)
 					localData[p].setSignal(sig);
 				}
 				
-				if (tesla == 0) {
-					// Choose phase with accumulated phase closest to 180 and then classic DESPOT2
-					int index = 0;
-					double bestPhase = DBL_MAX;
-					for (int p = 0; p < nPhases; p++) {
-						double thisPhase = (data[p].f0_off * data[p].TR * 2 * M_PI) + data[p].phase;
-						if (fabs(fmod(thisPhase - M_PI, 2 * M_PI)) < bestPhase) {
-							bestPhase = fabs(fmod(thisPhase - M_PI, 2 * M_PI));
-							index = p;
-						}
-					}
-					resid[0] = classicDESPOT2(localData[index].flip(), localData[index].signal(), localData[index].TR, T1, localData[index].B1, params[0], params[1]);
-				} else {
-					// DESPOT2-FM
-					ArrayXd weights(nResiduals);
-					weights.setConstant(1.0);
-					DESPOT2FM tc(localData, T1, false, fitB0);
-					RegionContraction<DESPOT2FM> rc(tc, bounds, weights);
-					rc.optimise(params);
-					resid = rc.residuals();
-				}
+				// DESPOT2-FM
+				ArrayXd weights(nResiduals);
+				weights.setConstant(1.0);
+				DESPOT2FM tc(localData, T1, false, fitB0);
+				RegionContraction<DESPOT2FM> rc(tc, bounds, weights);
+				rc.optimise(params);
+				resid = rc.residuals();
 			}
 			for (int p = 0; p < nP; p++) {
 				paramsData[p][sliceOffset + vox] = params[p];
@@ -337,11 +322,9 @@ int main(int argc, char **argv)
 		}
 	}
     time_t procEnd = time(NULL);
-    struct tm *localEnd = localtime(&procEnd);
-	char theTime[512];
-    strftime(theTime, 512, "%H:%M:%S", localEnd);
+    strftime(theTime, 512, "%H:%M:%S", localtime(&procEnd));
 	cout << "Finished processing at " << theTime << ". Run-time was " 
-	          << difftime(procEnd, procStart) << " s." << endl;
+	     << difftime(procEnd, procStart) << " s." << endl;
 	
 	if (tesla == 0) {
 		const vector<string> classic_names { "D2_PD", "D2_T2" };

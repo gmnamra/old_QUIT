@@ -41,91 +41,116 @@ vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, size_t N)
 }
 
 template <typename Functor_t>
-ArrayXd regionContraction(Ref<ArrayXd> params, Functor_t &f,
-                          const Ref<ArrayXXd> &startBounds, const Ref<ArrayXd> &weights,
-					      const int nS = 5000, const int nR = 50, const int maxContractions = 10,
-						  const double thresh = 0.05, const double expand = 0., const int seed = 0)
-{
-	eigen_assert(params.size() == startBounds.rows());
-	eigen_assert(startBounds.cols() == 2);
+class RegionContraction {
+	private:
+		Functor_t &m_f;
+		ArrayXXd m_startBounds;
+		ArrayXd m_weights, m_residuals;
+		size_t m_nS, m_nR, m_maxContractions, m_contractions;
+		double m_thresh, m_expand;
 	
-	static atomic<bool> finiteWarning(false);
-	static atomic<bool> constraintWarning(false);
-	int nP = static_cast<int>(params.size());
-	ArrayXXd samples(nP, nS);
-	ArrayXXd retained(nP, nR);
-	ArrayXd sampleRes(nS);
-	vector<size_t> indices(nR);
-	ArrayXXd bounds = startBounds;
-	ArrayXd regionSize = (bounds.col(1) - bounds.col(0));
-	ArrayXd diffs(f.values()); diffs.setZero();
-	size_t c;
-	
-	mt19937 twist(seed);
-	uniform_real_distribution<double> uniform(0., 1.);
-	
-	for (c = 0; c < maxContractions; c++) {
-		for (int s = 0; s < nS; s++) {
-			ArrayXd tempSample(nP);
-			size_t nTries = 0;
-			do {
-				for (int p = 0; p < nP; p++)
-					tempSample(p) = uniform(twist);
-				tempSample.array() *= regionSize.array();
-				tempSample += bounds.col(0);
-				nTries++;
-				if (nTries > 100) {
-					if (!constraintWarning) {
-						constraintWarning = true;
-						cout << "Warning: Cannot fulfill sample constraints after " << to_string(nTries) << " attempts, giving up." << endl;
-						cout << "Last attempt was: " << tempSample.transpose() << endl;
-						cout << "This warning will only be printed once." << endl;
-					}
-					params.setZero();
-					return diffs;
-				}
-			} while (!f.constraint(tempSample));
-			f(tempSample, diffs);
-			sampleRes(s) = (diffs * weights).square().sum();
-			if (!isfinite(diffs.square().sum())) {
-				if (!finiteWarning) {
-					finiteWarning = true;
-					cout << "Warning: Non-finite residual found!" << endl
-						 << "Result may be meaningless. This warning will only be printed once." << endl;
-					cout << "Parameters were " << tempSample.transpose() << endl;
-					cout << "Signal " << f.signals().transpose() << endl;
-					cout << "Theory " << f.theory(tempSample).transpose() << endl;
-				}
-				params = retained.col(0);
-				diffs.setConstant(numeric_limits<double>::infinity());
-				return diffs;
-			}
-			samples.col(s) = tempSample;
+	public:
+		RegionContraction(Functor_t &f, const Ref<ArrayXXd> &startBounds, const Ref<ArrayXd> &weights,
+						  const int nS = 5000, const int nR = 50, const int maxContractions = 10,
+						  const double thresh = 0.05, const double expand = 0.) :
+				m_f(f), m_startBounds(startBounds), m_nS(nS), m_nR(nR), m_maxContractions(maxContractions),
+				m_thresh(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0)
+		{
+			eigen_assert(f.inputs() == startBounds.rows());
+			eigen_assert(startBounds.cols() == 2);
+			eigen_assert(weights.rows() == f.values());
 		}
-		indices = index_partial_sort(sampleRes, nR);
-		for (int i = 0; i < nR; i++)
-			retained.col(i) = samples.col(indices[i]);
 		
-		// Find the min and max for each parameter in the top nR samples
-		bounds.col(0) = retained.rowwise().minCoeff();
-		bounds.col(1) = retained.rowwise().maxCoeff();
-		regionSize = (bounds.col(1) - bounds.col(0));
-		// Terminate if ALL the distances between bounds are under the threshold
-		if (((regionSize.array() / bounds.col(1)).abs() < thresh).all())
-			break;
+		const ArrayXXd &startBounds() const { return m_startBounds; }
+		void setBounds(const Ref<ArrayXXd> &b) {
+			eigen_assert(m_f.inputs() == b.rows());
+			eigen_assert(b.cols() == 2);
+			m_startBounds = b;
+		}
+		const ArrayXd &weights() const { return m_weights; }
+		void setWeights(const Ref<ArrayXd> &w) {
+			eigen_assert(w.rows() == m_f.values());
+			m_weights = w;
+		}
+		const ArrayXd &residuals() const { return m_residuals; }
+		const size_t contractions() const { return m_contractions; }
 		
-		// Expand the boundaries back out in case we just missed a minima,
-		// but don't go past initial boundaries
-		bounds.col(0) = (bounds.col(0) - regionSize * expand).max(startBounds.col(0));
-		bounds.col(1) = (bounds.col(1) + regionSize * expand).min(startBounds.col(1));
-		regionSize = bounds.col(1) - bounds.col(0);
-	}
-	// Return the best evaluated solution so far
-	params = retained.col(0);
-	// Calculate the residuals
-	f(params, diffs);
-	//diffs /= f.signals();
-	return diffs;
-}
-
+		void optimise(Ref<ArrayXd> params, const int seed = 0) {
+			static atomic<bool> finiteWarning(false);
+			static atomic<bool> constraintWarning(false);
+			int nP = static_cast<int>(params.size());
+			ArrayXXd samples(m_f.inputs(), m_nS);
+			ArrayXXd retained(m_f.inputs(), m_nR);
+			ArrayXd sampleRes(m_nS);
+			vector<size_t> indices(m_nR);
+			ArrayXXd bounds = m_startBounds;
+			ArrayXd regionSize = (bounds.col(1) - bounds.col(0));
+			m_residuals.setZero();
+			
+			mt19937 twist(seed);
+			uniform_real_distribution<double> uniform(0., 1.);
+			
+			for (m_contractions = 0; m_contractions < m_maxContractions; m_contractions++) {
+				for (int s = 0; s < m_nS; s++) {
+					ArrayXd tempSample(nP);
+					size_t nTries = 0;
+					do {
+						for (int p = 0; p < nP; p++)
+							tempSample(p) = uniform(twist);
+						tempSample.array() *= regionSize.array();
+						tempSample += bounds.col(0);
+						nTries++;
+						if (nTries > 100) {
+							if (!constraintWarning) {
+								constraintWarning = true;
+								cout << "Warning: Cannot fulfill sample constraints after " << to_string(nTries) << " attempts, giving up." << endl;
+								cout << "Last attempt was: " << tempSample.transpose() << endl;
+								cout << "This warning will only be printed once." << endl;
+							}
+							params.setZero();
+							return;
+						}
+					} while (!m_f.constraint(tempSample));
+					m_f(tempSample, m_residuals);
+					sampleRes(s) = (m_residuals * m_weights).square().sum();
+					if (!isfinite(m_residuals.square().sum())) {
+						if (!finiteWarning) {
+							finiteWarning = true;
+							cout << "Warning: Non-finite residual found!" << endl
+								 << "Result may be meaningless. This warning will only be printed once." << endl;
+							cout << "Parameters were " << tempSample.transpose() << endl;
+							cout << "Signal " << m_f.signals().transpose() << endl;
+							cout << "Theory " << m_f.theory(tempSample).transpose() << endl;
+						}
+						params = retained.col(0);
+						m_residuals.setConstant(numeric_limits<double>::infinity());
+						return;
+					}
+					samples.col(s) = tempSample;
+				}
+				indices = index_partial_sort(sampleRes, m_nR);
+				for (int i = 0; i < m_nR; i++)
+					retained.col(i) = samples.col(indices[i]);
+				
+				// Find the min and max for each parameter in the top nR samples
+				bounds.col(0) = retained.rowwise().minCoeff();
+				bounds.col(1) = retained.rowwise().maxCoeff();
+				regionSize = (bounds.col(1) - bounds.col(0));
+				// Terminate if ALL the distances between bounds are under the threshold
+				if (((regionSize.array() / bounds.col(1)).abs() < m_thresh).all())
+					break;
+				
+				// Expand the boundaries back out in case we just missed a minima,
+				// but don't go past initial boundaries
+				bounds.col(0) = (bounds.col(0) - regionSize * m_expand).max(m_startBounds.col(0));
+				bounds.col(1) = (bounds.col(1) + regionSize * m_expand).min(m_startBounds.col(1));
+				regionSize = bounds.col(1) - bounds.col(0);
+			}
+			// Return the best evaluated solution so far
+			params = retained.col(0);
+			// Calculate the residuals
+			m_f(params, m_residuals);
+			//diffs /= f.signals();
+		}
+};
 #endif
