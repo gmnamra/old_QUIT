@@ -42,19 +42,28 @@ vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, size_t N)
 
 template <typename Functor_t>
 class RegionContraction {
+	public:
+		enum class Status {
+			NotStarted = -1,
+			DidNotConverge, Converged, ErrorConstraints, ErrorInfiniteResidual
+		};
+	
 	private:
 		Functor_t &m_f;
 		ArrayXXd m_startBounds;
 		ArrayXd m_weights, m_residuals;
 		size_t m_nS, m_nR, m_maxContractions, m_contractions;
 		double m_thresh, m_expand;
+		Status m_status;
 	
 	public:
+	
 		RegionContraction(Functor_t &f, const Ref<ArrayXXd> &startBounds, const Ref<ArrayXd> &weights,
 						  const int nS = 5000, const int nR = 50, const int maxContractions = 10,
 						  const double thresh = 0.05, const double expand = 0.) :
 				m_f(f), m_startBounds(startBounds), m_nS(nS), m_nR(nR), m_maxContractions(maxContractions),
-				m_thresh(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0)
+				m_thresh(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0),
+				m_status(Status::NotStarted), m_weights(weights)
 		{
 			eigen_assert(f.inputs() == startBounds.rows());
 			eigen_assert(startBounds.cols() == 2);
@@ -74,10 +83,12 @@ class RegionContraction {
 		}
 		const ArrayXd &residuals() const { return m_residuals; }
 		const size_t contractions() const { return m_contractions; }
+		const Status status() const { return m_status; }
 		
 		void optimise(Ref<ArrayXd> params, const int seed = 0) {
 			static atomic<bool> finiteWarning(false);
 			static atomic<bool> constraintWarning(false);
+			eigen_assert(m_f.inputs() == params.size());
 			int nP = static_cast<int>(params.size());
 			ArrayXXd samples(m_f.inputs(), m_nS);
 			ArrayXXd retained(m_f.inputs(), m_nR);
@@ -90,6 +101,7 @@ class RegionContraction {
 			mt19937 twist(seed);
 			uniform_real_distribution<double> uniform(0., 1.);
 			
+			m_status = Status::DidNotConverge;
 			for (m_contractions = 0; m_contractions < m_maxContractions; m_contractions++) {
 				for (int s = 0; s < m_nS; s++) {
 					ArrayXd tempSample(nP);
@@ -108,6 +120,7 @@ class RegionContraction {
 								cout << "This warning will only be printed once." << endl;
 							}
 							params.setZero();
+							m_status = Status::ErrorConstraints;
 							return;
 						}
 					} while (!m_f.constraint(tempSample));
@@ -124,6 +137,7 @@ class RegionContraction {
 						}
 						params = retained.col(0);
 						m_residuals.setConstant(numeric_limits<double>::infinity());
+						m_status = Status::ErrorInfiniteResidual;
 						return;
 					}
 					samples.col(s) = tempSample;
@@ -137,8 +151,10 @@ class RegionContraction {
 				bounds.col(1) = retained.rowwise().maxCoeff();
 				regionSize = (bounds.col(1) - bounds.col(0));
 				// Terminate if ALL the distances between bounds are under the threshold
-				if (((regionSize.array() / bounds.col(1)).abs() < m_thresh).all())
+				if (((regionSize.array() / bounds.col(1)).abs() < m_thresh).all()) {
+					m_status = Status::Converged;
 					break;
+				}
 				
 				// Expand the boundaries back out in case we just missed a minima,
 				// but don't go past initial boundaries
@@ -151,6 +167,7 @@ class RegionContraction {
 			// Calculate the residuals
 			m_f(params, m_residuals);
 			//diffs /= f.signals();
+			
 		}
 };
 #endif
