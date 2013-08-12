@@ -10,11 +10,11 @@
  *
  */
 
-#include <getopt.h>
-#include <signal.h>
 #include <iostream>
 #include <atomic>
-#include <chrono>
+#include <getopt.h>
+#include <signal.h>
+#include <time.h>
 #include <Eigen/Dense>
 
 #include "Nifti.h"
@@ -450,7 +450,7 @@ int main(int argc, char **argv)
 			if (B0_hiFiles[i].isOpen()) B0_hiFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0HiVolumes[i]);
 		}
 		if (verbose) cout << "processing..." << endl;
-		auto start = chrono::steady_clock::now();
+		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
 			ArrayXd params(nP + nB0 + nPD), residuals(totalSignals);
@@ -511,10 +511,11 @@ int main(int argc, char **argv)
 		}
 		
 		if (verbose) {
-		    auto end = chrono::steady_clock::now();
+			clock_t loopEnd = clock();
 			if (voxCount > 0)
 				cout << voxCount << " unmasked voxels, CPU time per voxel was "
-				     << chrono::duration_cast<chrono::milliseconds>(end-start).count() / voxCount << " ms." << endl;
+				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
+			cout << "finished." << endl;
 		}
 		
 		for (int p = 0; p < (nP + nB0 + nPD); p++)
