@@ -26,7 +26,7 @@ RELEASE_FLAGS = -O3
 
 # Top level build rules
 .PHONY : release debug install clean
-.PRECIOUS: $(BUILD_DIR)/%.o # Stop make removing the object files
+.PRECIOUS: $(OBJ_DIR)/%.o # Stop make removing the object files
 
 TARGETS = despot1 despot2 despot-hifi mcdespot mcfinite phasemap afi
 
@@ -46,8 +46,14 @@ clean :
 %: $(OBJ_DIR)/%_main.o $(OBJ_DIR)/DESPOT.o $(OBJ_DIR)/ThreadPool.o | $(OBJ_DIR)
 	$(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS)
 
-$(OBJ_DIR)/mcfinite_main.o: $(SRC_DIR)/mcdespot_main.cpp | $(OBJ_DIR)
+$(OBJ_DIR)/mcfinite_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -DUSE_MCFINITE -o $@ $<
+
+$(OBJ_DIR)/mcdespot_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
+	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
+
+$(OBJ_DIR)/despot2-fm_main.o: $(SRC_DIR)/despot2-fm_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
+	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
