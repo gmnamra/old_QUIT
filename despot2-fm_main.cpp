@@ -63,9 +63,8 @@ Options:\n\
 static auto tesla = DESPOT2FM::FieldStrength::Three;
 static auto offRes = DESPOT2FM::OffResMode::Single;
 static int verbose = false, debug = false, start_slice = -1, end_slice = -1,
-		   samples = 5000, retain = 50, contract = 10,
-           voxI = -1, voxJ = -1;
-static double expand = 0., weighting = 1.0;
+		   samples = 5000, retain = 50, contract = 10;
+static double expand = 0.;
 static string outPrefix;
 static struct option long_options[] =
 {
@@ -165,8 +164,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	int nFlip, nPhases, nResiduals = 0;
-	nPhases = argc - optind;
+	size_t nPhases = argc - optind;
 	vector<DESPOTData> data(nPhases);
 	int voxelsPerSlice, voxelsPerVolume;
 	vector<vector<double>> ssfpData(nPhases);
@@ -180,28 +178,27 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 		if (p == 0) { // Read nFlip, TR and flip angles from first file
-			nFlip = inFile.dim(4);
-			inFlip.resize(nFlip);
+			inFlip.resize(inFile.dim(4));
 			voxelsPerSlice = inFile.voxelsPerSlice();
 			voxelsPerVolume = inFile.voxelsPerVolume();
 			#ifdef HAVE_NRECON
 			ParameterList pars;
 			if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
 				inTR = RealValue(pars, "tr");
-				for (int i = 0; i < nFlip; i++)
+				for (int i = 0; i < inFlip.size(); i++)
 					inFlip[i] = RealValue(pars, "flip1", i);
 			} else
 			#endif
 			{
 				cout << "Enter SSFP TR (seconds): " << flush;
 				cin >> inTR;
-				cout << "Enter " << nFlip << " flip angles (degrees): " << flush;
-				for (int i = 0; i < nFlip; i++)
+				cout << "Enter " << inFlip.size() << " flip angles (degrees): " << flush;
+				for (int i = 0; i < inFlip.size(); i++)
 					cin >> inFlip[i];
 			}
 			inFlip *= M_PI / 180.;
 		}
-		data[p].resize(nFlip);
+		data[p].resize(inFlip.size());
 		data[p].TR = inTR;
 		data[p].setFlip(inFlip);
 		#ifdef HAVE_NRECON
@@ -217,7 +214,6 @@ int main(int argc, char **argv)
 		cout << "Reading SSFP data..." << endl;
 		ssfpData[p] = inFile.readAllVolumes<double>();
 		inFile.close();
-		nResiduals += nFlip;
 		optind++;
 	}
 	
@@ -226,23 +222,13 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	size_t nP = DESPOT2FM::nP();
-	size_t nB0 = DESPOT2FM::nOffRes(offRes, ssfpData.size());
-	size_t nPD = DESPOT2FM::nPD(DESPOT2FM::PDMode::Global, ssfpData.size());
-	ArrayXXd bounds(nP + nB0 + nPD, 2);
+	DESPOT2FM d2fm(data, 0., tesla, offRes, DESPOT2FM::PDMode::Global);
+	ArrayXXd bounds = d2fm.defaultBounds();
 	if (tesla == DESPOT2FM::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
-		for (int i = 0; i < nP; i++) {
-			cout << DESPOT2FM::names()[i] << ": " << flush;
+		for (int i = 0; i < d2fm.inputs(); i++) {
+			cout << d2fm.names()[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
-		}
-	} else {
-		bounds.block(0, 0, nP, 2) = DESPOT2FM::defaultBounds(tesla);
-		// If fitting, give a suitable range and allocate results memory
-		if (B0File.isOpen()) {
-			bounds(2, 0) =  0.0 / data[0].TR;
-			bounds(2, 1) =  0.5 / data[0].TR;
-			B0Data.resize(voxelsPerVolume);
 		}
 	}
 	
@@ -254,12 +240,15 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
-	vector<vector<double>> paramsData(nP);
-	for (int p = 0; p < nP; p++)
+	vector<vector<double>> paramsData(d2fm.inputs());
+	for (int p = 0; p < d2fm.inputs(); p++)
 		paramsData[p].resize(voxelsPerVolume);
-	vector<vector<double>> residuals(nResiduals);
-	for (int i = 0; i < nResiduals; i++)
+	vector<vector<double>> residuals(d2fm.values());
+	for (int i = 0; i < d2fm.values(); i++)
 		residuals[i].resize(voxelsPerVolume);
+	vector<size_t> contractData;
+	if (debug)
+		contractData.resize(voxelsPerVolume);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -282,39 +271,43 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			// Set up parameters and constants
-			double T1 = 0.;
-			ArrayXd params(nP + nB0 + nPD); params.setZero();
-			ArrayXd resid(nResiduals); resid.setZero();
+			DESPOT2FM locald2(d2fm);
+			ArrayXd params(locald2.inputs()); params.setZero();
+			ArrayXd resid(locald2.values()); resid.setZero();
+			size_t c = 0;
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				voxCount++;
-				T1 = T1Data[sliceOffset + vox];
 				// Gather signals.
 				vector<DESPOTData> localData = data;
 				for (int p = 0; p < nPhases; p++) {
-					localData[p].f0_off = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
-					localData[p].B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
-					VectorXd sig(nFlip);
-					for (int i = 0; i < nFlip; i++)
+					localData.at(p).f0_off = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
+					localData.at(p).B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
+					VectorXd sig(localData.at(p).size());
+					for (int i = 0; i < sig.rows(); i++)
 						sig(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
 					localData[p].setSignal(sig);
 				}
 				
 				// DESPOT2-FM
-				ArrayXd weights(nResiduals);
+				ArrayXd weights(locald2.values());
 				weights.setConstant(1.0);
-				DESPOT2FM tc(localData, T1, offRes);
-				RegionContraction<DESPOT2FM> rc(tc, bounds, weights,
+				locald2.setData(localData);
+				locald2.setT1(T1Data.at(sliceOffset + vox));
+				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights,
 				                                samples, retain, contract, 0.05, expand);
 				rc.optimise(params);
 				resid = rc.residuals();
+				c = rc.contractions();
 			}
-			for (int p = 0; p < nP; p++) {
-				paramsData[p][sliceOffset + vox] = params[p];
+			for (int p = 0; p < params.size(); p++) {
+				paramsData.at(p).at(sliceOffset + vox) = params(p);
 			}
-			for (int i = 0; i < nResiduals; i++) {
-				residuals[i][sliceOffset + vox] = resid[i];
+			for (int i = 0; i < resid.size(); i++) {
+				residuals.at(i).at(sliceOffset + vox) = resid(i);
 			}
+			if (debug)
+				contractData.at(sliceOffset + vox) = c;
 		};
 		pool.for_loop(processVox, voxelsPerSlice);
 		
@@ -331,28 +324,21 @@ int main(int argc, char **argv)
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 	     << difftime(procEnd, procStart) << " s." << endl;
 	
-	if (!B0File.isOpen()) {
-		const vector<string> classic_names { "D2_PD", "D2_T2" };
-		for (int p = 0; p < 2; p++) {
-			savedHeader.open(outPrefix + classic_names[p] + ".nii.gz", Nifti::Modes::Write);
-			savedHeader.writeVolume(0, paramsData[p]);
-			savedHeader.close();
-		}
-		savedHeader.setDim(4, nResiduals);
-		savedHeader.open(outPrefix + "D2_Residual.nii.gz", Nifti::Modes::Write);
-		for (int i = 0; i < nResiduals; i++)
-			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
+	for (int p = 0; p < d2fm.inputs(); p++) {
+		savedHeader.open(outPrefix + d2fm.names().at(p) + ".nii.gz", Nifti::Modes::Write);
+		savedHeader.writeVolume(0, paramsData.at(p));
 		savedHeader.close();
-	} else {
-		for (int p = 0; p < nP; p++) {
-			savedHeader.open(outPrefix + DESPOT2FM::names()[p] + ".nii.gz", Nifti::Modes::Write);
-			savedHeader.writeVolume(0, paramsData[p]);
-			savedHeader.close();
-		}
-		savedHeader.setDim(4, nResiduals);
-		savedHeader.open(outPrefix + "FM_Residual.nii.gz", Nifti::Modes::Write);
-		for (int i = 0; i < nResiduals; i++)
-			savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
+	}
+	savedHeader.setDim(4, static_cast<int>(residuals.size()));
+	savedHeader.open(outPrefix + "FM_Residual.nii.gz", Nifti::Modes::Write);
+	for (int i = 0; i < residuals.size(); i++)
+		savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
+	savedHeader.close();
+	if (debug) {
+		savedHeader.setDim(4, 1);
+		savedHeader.setDatatype(DT_INT16);
+		savedHeader.open(outPrefix + "FM_debug_contractions.nii.gz", Nifti::Modes::Write);
+		savedHeader.writeVolume(0, contractData);
 		savedHeader.close();
 	}
 	return EXIT_SUCCESS;

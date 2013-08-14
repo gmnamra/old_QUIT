@@ -354,68 +354,44 @@ int main(int argc, char **argv)
 		if (B0_hiFiles[i].isOpen()) B0HiVolumes[i].resize(voxelsPerSlice);
 	}
 	
+	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << mcType::to_string(components) << " component model." << endl;
-	size_t nP = mcType::nP(components);
-	size_t nB0 = mcType::nOffRes(B0fit, signalFiles.size());
-	size_t nPD = mcType::nPD(PD, signalFiles.size());
-	const vector<string> names = mcType::names(components);
+	mcType mcd(components, data, tesla, B0fit, PD);
 	
-	int totalSignals = 0;
-	for (int i = 0; i < data.size(); i++)
-		totalSignals += data[i].size();
-	ArrayXd weights(totalSignals);
+	ArrayXd weights(mcd.values());
 	size_t index = 0;
-	bool symmetricB0 = true; // If we only have 0/180 phase-cycling then can't differentiate +/- off-res
 	for (int i = 0; i < data.size(); i++) {
-		if (data[i].spoil)
-			weights.segment(index, data[i].size()).setConstant(weighting);
+		if (data.at(i).spoil)
+			weights.segment(index, data.at(i).size()).setConstant(weighting);
 		else
-			weights.segment(index, data[i].size()).setConstant(1.0);
-		if (fmod(data[i].phase, M_PI) > numeric_limits<double>::epsilon())
-			symmetricB0 = false;
-		index += data[i].size();
+			weights.segment(index, data.at(i).size()).setConstant(1.0);
+		index += data.at(i).size();
 	}
 	savedHeader.setDim(4, 1);
 	savedHeader.setDatatype(DT_FLOAT32);
-	vector<Nifti::File> paramsHdrs(nP + nB0 + nPD, savedHeader);
-	vector<vector<double>> paramsData(nP + nB0 + nPD);
+	vector<Nifti::File> paramsHdrs(mcd.inputs(), savedHeader);
+	vector<vector<double>> paramsData(mcd.inputs());
 	
-	vector<vector<double>> residualData(totalSignals);
+	vector<vector<double>> residualData(mcd.values());
 	for (int i = 0; i < residualData.size(); i ++)
-		residualData[i].resize(voxelsPerVolume);
+		residualData.at(i).resize(voxelsPerVolume);
 	Nifti::File residualHdr(savedHeader);
-	residualHdr.setDim(4, totalSignals);
+	residualHdr.setDim(4, static_cast<int>(mcd.values()));
 	residualHdr.open(outPrefix + "MCD_" + mcType::to_string(components) + "c_" + "Residual.nii.gz", Nifti::Modes::Write);
 	
-	ArrayXXd bounds(nP + nB0 + nPD, 2);
-	bounds.block(0, 0, nP, 2) = mcType::defaultBounds(components, tesla);
+	ArrayXXd bounds = mcd.defaultBounds();
 	if (prompt && tesla == mcType::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
 	}
-	for (int i = 0; i < nP; i++) {
+	for (int i = 0; i < mcd.nP(); i++) {
 		if (tesla == mcType::FieldStrength::Unknown) {
-			if (prompt) cout << names[i] << ": " << flush;
+			if (prompt) cout << mcd.names()[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
+	}
+	for (int i = 0; i < mcd.inputs(); i++) {
 		paramsData.at(i).resize(voxelsPerSlice);
-		paramsHdrs.at(i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_" + names[i] + ".nii.gz", Nifti::Modes::Write);
-	}
-	
-	
-	for (int i = 0; i < nB0; i++) {
-		if (symmetricB0)
-			bounds(nP + i, 0) = 0.0;
-		else
-			bounds(nP + i, 0) = -0.5 / data[i].TR;
-		bounds(nP + i, 1) =  0.5 / data[i].TR;
-		paramsData.at(nP + i).resize(voxelsPerSlice);
-		paramsHdrs.at(nP + i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_B0_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
-	}
-	for (int i = 0; i < nPD; i++) {
-		bounds(nP + nB0 + i, 0) = INFINITY; // These will be set properly later in the main loop
-		bounds(nP + nB0 + i, 1) = 0.;
-		paramsData.at(nP + nB0 + i).resize(voxelsPerSlice);
-		paramsHdrs.at(nP + nB0 + i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_PD_" + to_string(i) + ".nii.gz", Nifti::Modes::Write);
+		paramsHdrs.at(i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_" + mcd.names()[i] + ".nii.gz", Nifti::Modes::Write);
 	}
 	
 	if (verbose) {
@@ -435,7 +411,7 @@ int main(int argc, char **argv)
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
-	for (size_t slice = start_slice; slice < end_slice; slice++)
+	for (int slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose) cout << "Reading data for slice " << slice << "..." << flush;
 		atomic<int> voxCount{0};
@@ -452,7 +428,8 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
-			ArrayXd params(nP + nB0 + nPD), residuals(totalSignals);
+			mcType localf(mcd);
+			ArrayXd params(localf.inputs()), residuals(localf.values());
 			params.setZero();
 			residuals.setZero();
 			if ((maskData.size() == 0) || (maskData[sliceOffset + vox] > 0.)) {
@@ -466,40 +443,32 @@ int main(int argc, char **argv)
 					for (size_t j = 0; j < localData[i].size(); j++) {
 						sig(j) = signalVolumes[i][voxelsPerSlice*j + vox];
 					}
-					switch (PD) {
-						case (mcType::PDMode::Normalise): sig /= sig.mean(); break;
-						case (mcType::PDMode::Global):
-							localBounds(nP + nB0 + i, 0) = min(localBounds(nP + nB0 + i, 0), sig.maxCoeff());
-							localBounds(nP + nB0 + i, 1) = max(localBounds(nP + nB0 + i, 0), 100 * sig.maxCoeff());
-						case (mcType::PDMode::Individual):
-							localBounds(nP + nB0 + i, 0) = sig.maxCoeff();
-							localBounds(nP + nB0 + i, 1) = 100 * sig.maxCoeff();
-							break;
+					if (PD == mcType::PDMode::Normalise) {
+						sig /= sig.mean(); break;
 					}
-					localData[i].setSignal(sig);
+					localData.at(i).setSignal(sig);
 					if (B0fit == mcType::OffResMode::Map) {
-						localData[i].f0_off = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
+						localData.at(i).f0_off = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
 					}
-					localData[i].B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
+					localData.at(i).B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
 				if ((B0fit == mcType::OffResMode::Bounded) || (B0fit == mcType::OffResMode::MultiBounded)) {
-					for (int b = 0; b < nB0; b++) {
-						localBounds(nP + b, 0) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
-						localBounds(nP + b, 1) = B0_hiFiles[b].isOpen() ? B0HiVolumes[b][vox] : 0.;
+					for (int b = 0; b < localf.nOffRes(); b++) {
+						localBounds(localf.nP() + b, 0) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
+						localBounds(localf.nP() + b, 1) = B0_hiFiles[b].isOpen() ? B0HiVolumes[b][vox] : 0.;
 					}
 				}
-				mcType mcd(components, localData, B0fit, PD, (voxI > -1));
-				RegionContraction<mcType> rc(mcd, localBounds, weights,
+				RegionContraction<mcType> rc(localf, localBounds, weights,
 											 samples, retain, contract, 0.05, expand);
 				rc.optimise(params, rSeed);
 				residuals = rc.residuals();
 			}
-			for (int p = 0; p < (nP + nB0 + nPD); p++) {
+			for (int p = 0; p < paramsData.size(); p++) {
 				paramsData.at(p).at(vox) = params[p];
 			}
-			for (int i = 0; i < totalSignals; i++) {
+			for (int i = 0; i < residuals.size(); i++) {
 				residualData.at(i).at(slice * voxelsPerSlice + vox) = residuals[i];
 			}
 		};
@@ -519,8 +488,8 @@ int main(int argc, char **argv)
 			cout << "finished." << endl;
 		}
 		
-		for (int p = 0; p < (nP + nB0 + nPD); p++)
-			paramsHdrs.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData[p]);
+		for (int p = 0; p < paramsHdrs.size(); p++)
+			paramsHdrs.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData.at(p));
 		if (interrupt_received)
 			break;
 	}
@@ -531,8 +500,8 @@ int main(int argc, char **argv)
 	
 	// Clean up memory and close files (automatically done in destructor)
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
-	for (int r = 0; r < totalSignals; r++) {
-		residualHdr.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData[r]);
+	for (int r = 0; r < residualData.size(); r++) {
+		residualHdr.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData.at(r));
 	}
 	residualHdr.close();
 	cout << "Finished writing data." << endl;

@@ -18,6 +18,7 @@
 #include <map>
 #include <iostream>
 #include <exception>
+#include <string>
 #include <Eigen/Dense>
 
 #include "DESPOT.h"
@@ -87,49 +88,80 @@ class DESPOTFunctor : public Functor<double> {
 		enum class OffResMode {
 			Map = 0, Single, Multi, Bounded, MultiBounded
 		};
-		
-		static const size_t nPD(const PDMode& p, const size_t &nSignals) {
-			switch (p) {
-				case PDMode::Normalise: return 0;
-				case PDMode::Global: return 1;
-				case PDMode::Individual: return static_cast<size_t>(nSignals);
-			}
-		}
-		
-		static const size_t nOffRes(const OffResMode &m, const size_t &nSignals) {
-			switch (m) {
-				case OffResMode::Map: return 0;
-				case OffResMode::Single: return 1;
-				case OffResMode::Multi: return static_cast<size_t>(nSignals);
-				case OffResMode::Bounded: return 1;
-				case OffResMode::MultiBounded: return static_cast<size_t>(nSignals);
-			}
-		}
 	
 	protected:
+		const FieldStrength m_fieldStrength;
 		const OffResMode m_offRes;
 		const PDMode m_PDMode;
-		size_t m_nP, m_nV, m_nOffRes, m_nPD;
+		size_t m_nV;
 		vector<DESPOTData> &m_data;
+		vector<string> m_names; // Subclasses responsible for initialising this
 		const bool m_debug;
 	
+		ArrayXXd offResBounds() {
+			ArrayXXd b(nOffRes(), 2);
+			for (size_t i = 0; i < nOffRes(); i++) {
+				bool symmetricB0 = (fmod(m_data.at(i).phase, M_PI) < numeric_limits<double>::epsilon());
+				if (symmetricB0) b(nP() + i, 0) = 0;
+				else b(i, 0) = -0.5 / m_data.at(i).TR;
+				b(i, 1) = 0.5 / m_data.at(i).TR;
+			}
+			return b;
+		}
+	
+		ArrayXXd PDBounds() {
+			ArrayXXd b(nPD(), 2);
+			for (size_t i = 0; i < nPD(); i++) {
+				b(i, 0) = 0.;
+				b(i, 1) = 1.e7;
+			}
+			return b;
+		}
+	
 	public:
-		const long inputs() const { return m_nP + m_nOffRes + m_nPD; }
+		const size_t nOffRes() const {
+			switch (m_offRes) {
+				case OffResMode::Map: return 0;
+				case OffResMode::Single: return 1;
+				case OffResMode::Multi: return m_data.size();
+				case OffResMode::Bounded: return 1;
+				case OffResMode::MultiBounded: return m_data.size();
+			}
+		}
+		
+		const size_t nPD() const {
+			switch (m_PDMode) {
+				case PDMode::Normalise: return 0;
+				case PDMode::Global: return 1;
+				case PDMode::Individual: return m_data.size();
+			}
+		}
+		
+		virtual const size_t nP() const { return 0; } // Base classes MUST override this
+		
+		const long inputs() const { return this->nP() + nOffRes() + nPD(); }
 		const long values() const { return m_nV; }
 		
-		DESPOTFunctor(vector<DESPOTData> &data,
+		DESPOTFunctor(vector<DESPOTData> &data, const FieldStrength &tesla,
 		              const OffResMode &offRes = OffResMode::Single, const PDMode &PD = PDMode::Normalise,
 		              const bool &debug = false) :
-			m_data(data), m_offRes(offRes), m_PDMode(PD), m_debug(debug)
+			m_fieldStrength(tesla), m_offRes(offRes),
+			m_PDMode(PD), m_debug(debug), m_data(data)
 		{
+			setData(data);
+		}
+		
+		const vector<string> &names() { return m_names; }
+		void setData(const vector<DESPOTData> &data) {
+			m_data = data;
 			m_nV = 0;
-			for (int i = 0; i < data.size(); i++) {
-				if (data[i].flip().size() != data[i].signal().size()) {
-					cerr << "Angles and signals size mis-match for signal " << i << endl;
-					cerr << "Angles = " << data[i].flip().size() << " signal = " << data[i].signal().size() << endl;
+			for (auto d : data) {
+				if (d.flip().size() != d.signal().size()) {
+					cerr << "Angles and signals size mis-match." << endl;
+					cerr << "Angles = " << d.flip().size() << " signal = " << d.signal().size() << endl;
 					exit(EXIT_FAILURE);
 				}
-				m_nV += m_data[i].flip().size();
+				m_nV += d.flip().size();
 			}
 		}
 		
@@ -142,6 +174,19 @@ class DESPOTFunctor : public Functor<double> {
 				index += m_data[i].signal().size();
 			}
 			return v;
+		}
+		
+		int operator()(const VectorXd &params, ArrayXd &diffs) const {
+			eigen_assert(diffs.size() == values());
+			ArrayXd t = theory(params);
+			ArrayXd s = signals();
+			diffs = t - s;
+			if (m_debug) {
+				cout << endl << __PRETTY_FUNCTION__ << endl;
+				cout << "Diffs:  " << diffs.transpose() << endl;
+				cout << "Sum:    " << diffs.square().sum() << endl;
+			}
+			return 0;
 		}
 };
 
@@ -160,57 +205,61 @@ class mcDESPOT : public DESPOTFunctor {
 				case Components::Three: return "three";
 			}
 		};
-		static const int nP(const Components &c) {
-			switch (c) {
+	protected:
+		const Components m_components;
+	
+	public:
+		const size_t nP() const {
+			switch (m_components) {
 				case Components::One: return 2;
 				case Components::Two: return 6;
 				case Components::Three: return 9;
 			}
 		}
-	protected:
-		const Components m_components;
-	
-	public:
-		static const vector<string> names(const Components &c) {
-			switch (c) {
-				case Components::One: return { "T1", "T2" };
-				case Components::Two: return { "T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a"  };
-				case Components::Three: return { "T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c" };
-			}
-		}
 		
-		static const ArrayXXd defaultBounds(const Components &c, const FieldStrength &tesla) {
-			ArrayXXd b(nP(c), 2);
-			switch (tesla) {
+		const ArrayXXd defaultBounds() {
+			ArrayXXd b(inputs(), 2);
+			switch (m_fieldStrength) {
 				case FieldStrength::Three:
-					switch (c) {
-						case Components::One: b << 0.25, 3.0, 0.01, 0.25; break;
-						case Components::Two: b << 0.25, 1.0, 0.01, 0.05, 0.75, 1.5, 0.01, 0.05, 0.01, 0.5, 0.001, 0.95; break;
-						case Components::Three: b << 0.35, 0.55, 0.002, 0.016, 0.700, 2.0, 0.075, 0.145, 3.5, 7.5, 0.175, 0.5, 0.05, 0.3, 0.001, 0.3, 0.001, 0.95; break;
-					}
-					break;
+					switch (m_components) {
+						case Components::One:   b.block(0, 0, 2, 2) << 0.25, 3.0, 0.01, 0.25; break;
+						case Components::Two:   b.block(0, 0, 6, 2) << 0.25, 1.0, 0.01, 0.05, 0.75, 1.5, 0.01, 0.05, 0.01, 0.5, 0.001, 0.95; break;
+						case Components::Three: b.block(0, 0, 9, 2) << 0.35, 0.55, 0.002, 0.016, 0.700, 2.0, 0.075, 0.145, 3.5, 7.5, 0.175, 0.5, 0.05, 0.3, 0.001, 0.3, 0.001, 0.95; break;
+					} break;
 				case FieldStrength::Seven:
-					switch (c) {
-						case Components::One: b << 0.25, 5.0, 0.01, 0.1; break;
-						case Components::Two: b << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 0.01, 0.25, 0.001, 1.0; break;
-						case Components::Three: b << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 3., 4.5, 0.5, 2.0, 0.01, 0.25, 0.001, 0.4, 0.001, 1.0; break;
-					}
-					break;
+					switch (m_components) {
+						case Components::One:   b.block(0, 0, 2, 2) << 0.25, 5.0, 0.01, 0.1; break;
+						case Components::Two:   b.block(0, 0, 6, 2) << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 0.01, 0.25, 0.001, 1.0; break;
+						case Components::Three: b.block(0, 0, 9, 2) << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 3., 4.5, 0.5, 2.0, 0.01, 0.25, 0.001, 0.4, 0.001, 1.0; break;
+					} break;
 				case FieldStrength::Unknown:
-					b.setZero(); break;
+					switch (m_components) {
+						case Components::One:   b.block(0, 0, 2, 2).setZero(); break;
+						case Components::Two:   b.block(0, 0, 6, 2).setZero(); break;
+						case Components::Three: b.block(0, 0, 9, 2).setZero(); break;
+					} break;
 			}
+			b.block(nP(), 0, nOffRes(), 2) = offResBounds();
+			b.block(nP() + nOffRes(), 0, nPD(), 2) = PDBounds();
 			return b;
 		}
 	
 		mcDESPOT(const Components &c, vector<DESPOTData> &data,
-				 const OffResMode &offRes, const PDMode &PD = PDMode::Normalise,
+				 const FieldStrength &tesla, const OffResMode &offRes, const PDMode &PD = PDMode::Normalise,
 				 const bool &debug = false) :
-			DESPOTFunctor(data, offRes, PD, debug),
+			DESPOTFunctor(data, tesla, offRes, PD, debug),
 			m_components(c)
 		{
-			m_nP = nP(c);
-			m_nOffRes = nOffRes(offRes, m_data.size());
-			m_nPD = nPD(PD, m_data.size());
+			m_names.reserve(inputs());
+			switch (c) {
+				case Components::One: m_names = {"T1", "T2"}; break;
+				case Components::Two: m_names = {"T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a"}; break;
+				case Components::Three: m_names = {"T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c"}; break;
+			}
+			for (int i = 0; i < nOffRes(); i++)
+				m_names.emplace_back("f" + std::to_string(i));
+			for (int i = 0; i < nPD(); i++)
+				m_names.emplace_back("PD" + std::to_string(i));
 		}
 		
 		const bool constraint(const VectorXd &params) {
@@ -249,26 +298,26 @@ class mcDESPOT : public DESPOTFunctor {
 			for (int i = 0; i < m_data.size(); i++) {
 				MagVector M(3, m_data[i].flip().size());
 				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
-					m_data[i].f0_off = params[m_nP];
+					m_data[i].f0_off = params[nP()];
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
-					m_data[i].f0_off = params[m_nP + i];
+					m_data[i].f0_off = params[nP() + i];
 				double PD;
 				switch (m_PDMode) {
 					case (PDMode::Normalise): PD = 1.; break;
-					case (PDMode::Global): PD = params[m_nP + m_nOffRes]; break;
-					case (PDMode::Individual): PD = params[m_nP + m_nOffRes + i]; break;
+					case (PDMode::Global): PD = params[nP() + nOffRes()]; break;
+					case (PDMode::Individual): PD = params[nP() + nOffRes() + i]; break;
 				}
 				if (m_data[i].spoil == true) {
 					switch (m_components) {
-						case Components::One: M = One_SPGR(m_data[i], params.head(m_nP), PD); break;
-						case Components::Two: M = Two_SPGR(m_data[i], params.head(m_nP), PD); break;
-						case Components::Three: M = Three_SPGR(m_data[i], params.head(m_nP), PD); break;
+						case Components::One: M = One_SPGR(m_data[i], params.head(nP()), PD); break;
+						case Components::Two: M = Two_SPGR(m_data[i], params.head(nP()), PD); break;
+						case Components::Three: M = Three_SPGR(m_data[i], params.head(nP()), PD); break;
 					}
 				} else {
 					switch (m_components) {
-						case Components::One: M = One_SSFP(m_data[i], params.head(m_nP), PD); break;
-						case Components::Two: M = Two_SSFP(m_data[i], params.head(m_nP), PD); break;
-						case Components::Three: M = Three_SSFP(m_data[i], params.head(m_nP), PD); break;
+						case Components::One: M = One_SSFP(m_data[i], params.head(nP()), PD); break;
+						case Components::Two: M = Two_SSFP(m_data[i], params.head(nP()), PD); break;
+						case Components::Three: M = Three_SSFP(m_data[i], params.head(nP()), PD); break;
 					}
 				}
 				ArrayXd theory = SigMag(M);
@@ -281,70 +330,47 @@ class mcDESPOT : public DESPOTFunctor {
 			}
 			return t;
 		}
-				
-		int operator()(const VectorXd &params, ArrayXd &diffs) const {
-			eigen_assert(diffs.size() == values());
-			ArrayXd t = theory(params);
-			ArrayXd s = signals();
-			diffs = t - s;
-			if (m_debug) {
-				cout << endl << __PRETTY_FUNCTION__ << endl;
-				cout << "Diffs:  " << diffs.transpose() << endl;
-				cout << "Sum:    " << diffs.square().sum() << endl;
-			}
-			return 0;
-		}
 };
 
 class mcFinite : public mcDESPOT {
 	public:
-		static const int nP(const Components &c) {
-			switch (c) {
-				case Components::One: return 3;
-				case Components::Two: return 7;
-				case Components::Three: return 10;
-			}
+		const size_t nP() const {
+			return mcDESPOT::nP() + 1;
 		}
-		
-		static const vector<string> names(const Components &c) {
-			switch (c) {
-				case Components::One: return { "T1", "T2", "delta_f" };
-				case Components::Two: return { "T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a", "delta_f"  };
-				case Components::Three: return { "T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c", "delta_f" };
-			}
-		}
-		
-		static const ArrayXXd defaultBounds(const Components &c, const FieldStrength &tesla) {
-			ArrayXXd b(nP(c), 2);
-			switch (tesla) {
+				
+		const ArrayXXd defaultBounds() {
+			ArrayXXd b(inputs(), 2);
+			switch (m_fieldStrength) {
 				case FieldStrength::Three:
-					switch (c) {
-						case Components::One: b << 0.25, 3.0, 0.01, 0.25, 0., 100.; break;
-						case Components::Two: b << 0.25, 1.0, 0.01, 0.05, 0.75, 1.5, 0.01, 0.05, 0.01, 0.5, 0.001, 0.95, 0., 100.; break;
-						case Components::Three: b << 0.35, 0.55, 0.002, 0.016, 0.700, 2.0, 0.075, 0.145, 3.5, 7.5, 0.175, 0.5, 0.05, 0.3, 0.001, 0.3, 0.001, 0.95, 0., 100.; break;
-					}
-					break;
+					switch (m_components) {
+						case Components::One:   b.block(0, 0, 2, 2) << 0.25, 3.0, 0.01, 0.25, 0., 100.; break;
+						case Components::Two:   b.block(0, 0, 6, 2) << 0.25, 1.0, 0.01, 0.05, 0.75, 1.5, 0.01, 0.05, 0.01, 0.5, 0.001, 0.95, 0., 100.; break;
+						case Components::Three: b.block(0, 0, 9, 2) << 0.35, 0.55, 0.002, 0.016, 0.700, 2.0, 0.075, 0.145, 3.5, 7.5, 0.175, 0.5, 0.05, 0.3, 0.001, 0.3, 0.001, 0.95, 0., 100.; break;
+					} break;
 				case FieldStrength::Seven:
-					switch (c) {
-						case Components::One: b << 0.25, 5.0, 0.01, 0.1, 0., 100.; break;
-						case Components::Two: b << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 0.01, 0.25, 0.001, 1.0, 0., 100.; break;
-						case Components::Three: b << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 3., 4.5, 0.5, 2.0, 0.01, 0.25, 0.001, 0.4, 0.001, 1.0, 0., 100.; break;
-					}
-					break;
+					switch (m_components) {
+						case Components::One:   b.block(0, 0, 2, 2) << 0.25, 5.0, 0.01, 0.1, 0., 100.; break;
+						case Components::Two:   b.block(0, 0, 6, 2) << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 0.01, 0.25, 0.001, 1.0, 0., 100.; break;
+						case Components::Three: b.block(0, 0, 9, 2) << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 3., 4.5, 0.5, 2.0, 0.01, 0.25, 0.001, 0.4, 0.001, 1.0, 0., 100.; break;
+					} break;
 				case FieldStrength::Unknown:
-					b.setZero(); break;
+					switch (m_components) {
+						case Components::One:   b.block(0, 0, 2, 2).setZero(); break;
+						case Components::Two:   b.block(0, 0, 6, 2).setZero(); break;
+						case Components::Three: b.block(0, 0, 9, 2).setZero(); break;
+					} break;
 			}
+			b.block(nP(), 0, nOffRes(), 2) = offResBounds();
+			b.block(nP() + nOffRes(), 0, nPD(), 2) = PDBounds();
 			return b;
 		}
 		
 		mcFinite(const Components &c, vector<DESPOTData> &data,
-				 const OffResMode &offRes, const PDMode &PD = PDMode::Normalise,
+				 const FieldStrength &tesla, const OffResMode &offRes, const PDMode &PD = PDMode::Normalise,
 				 const bool &debug = false) :
-			mcDESPOT(c, data, offRes, PD, debug)
+			mcDESPOT(c, data, tesla, offRes, PD, debug)
 		{
-			m_nP = nP(c);
-			m_nOffRes = nOffRes(offRes, m_data.size());
-			m_nPD = nPD(PD, m_data.size());
+			m_names.insert(m_names.begin() + nP(), "delta_f");
 		}
 		
 		const ArrayXd theory(const VectorXd &params) const {
@@ -354,19 +380,19 @@ class mcFinite : public mcDESPOT {
 			for (int i = 0; i < m_data.size(); i++) {
 				MagVector M(3, m_data[i].flip().size());
 				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
-					m_data[i].f0_off = params[m_nP];
+					m_data[i].f0_off = params[nP()];
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
-					m_data[i].f0_off = params[m_nP + i];
+					m_data[i].f0_off = params[nP() + i];
 				double PD;
 				switch (m_PDMode) {
 					case (PDMode::Normalise): PD = 1.; break;
-					case (PDMode::Global): PD = params[m_nP + m_nOffRes]; break;
-					case (PDMode::Individual): PD = params[m_nP + m_nOffRes + i]; break;
+					case (PDMode::Global): PD = params[nP() + nOffRes()]; break;
+					case (PDMode::Individual): PD = params[nP() + nOffRes() + i]; break;
 				}
 				switch (m_components) {
-					case Components::One: M = One_SSFP_Finite(m_data[i], params.head(m_nP), PD); break;
-					case Components::Two: M = Two_SSFP_Finite(m_data[i], params.head(m_nP), PD); break;
-					case Components::Three: M = Three_SSFP_Finite(m_data[i], params.head(m_nP), PD); break;
+					case Components::One: M = One_SSFP_Finite(m_data[i], params.head(nP()), PD); break;
+					case Components::Two: M = Two_SSFP_Finite(m_data[i], params.head(nP()), PD); break;
+					case Components::Three: M = Three_SSFP_Finite(m_data[i], params.head(nP()), PD); break;
 				}
 				ArrayXd theory = SigMag(M);
 				if (m_PDMode == PDMode::Normalise) {
@@ -385,23 +411,22 @@ class mcFinite : public mcDESPOT {
 class DESPOT2FM : public DESPOTFunctor {
 	protected:
 		double m_T1;
+		
 	public:
-		static const int nP() {
+		const size_t nP() const {
 			return 1;
 		}
 		
-		static const vector<string> &names() {
-			static const vector<string> _names = { { "FM_T2" } };
-			return _names;
-		}
-		
-		static const ArrayXXd defaultBounds(const FieldStrength tesla) {
-			ArrayXXd b(nP(), 2);
-			switch (tesla) {
-				case FieldStrength::Three: b << 0.010, 0.5; return b;
-				case FieldStrength::Seven: b << 0.005, 0.25; return b;
-				case FieldStrength::Unknown: b.setZero(); return b;
+		const ArrayXXd defaultBounds() {
+			ArrayXXd b(inputs(), 2);
+			switch (m_fieldStrength) {
+				case FieldStrength::Three: b.block(0, 0, 1, 2) << 0.010, 0.5; break;
+				case FieldStrength::Seven: b.block(0, 0, 1, 2) << 0.005, 0.25; break;
+				case FieldStrength::Unknown: b.block(0, 0, 1, 2).setZero(); break;
 			}
+			b.block(nP(), 0, nOffRes(), 2) = offResBounds();
+			b.block(nP() + nOffRes(), 0, nPD(), 2) = PDBounds();
+			return b;
 		}
 		
 		const bool constraint(const VectorXd &params) {
@@ -412,15 +437,19 @@ class DESPOT2FM : public DESPOTFunctor {
 		}
 		
 		DESPOT2FM(vector<DESPOTData> &data, const double T1,
-				  const OffResMode &offRes, const PDMode &PD = PDMode::Global,
+				  const FieldStrength& tesla, const OffResMode &offRes, const PDMode &PD = PDMode::Global,
 				  const bool &debug = false) :
-			DESPOTFunctor(data, offRes, PD, debug), m_T1(T1)
+			DESPOTFunctor(data, tesla, offRes, PD, debug), m_T1(T1)
 		{
-			m_nP = nP();
-			m_nOffRes = nOffRes(offRes, m_data.size());
-			m_nPD = nPD(PD, m_data.size());
+			m_names.resize(inputs());
+			m_names.at(0) = "FM_T2";
+			for (int i = 0; i < nOffRes(); i++)
+				m_names.at(1 + i) = "FM_f" + std::to_string(i);
+			for (int i = 0; i < nPD(); i++)
+				m_names.at(1 + nOffRes() + i) = "FM_PD" + std::to_string(i);
 		}
-		DESPOT2FM(const DESPOT2FM &) = delete;
+		
+		void setT1(const double T1) { m_T1 = T1; }
 		
 		const ArrayXd theory(const VectorXd &params) const {
 			VectorXd T1T2(2);
@@ -431,14 +460,14 @@ class DESPOT2FM : public DESPOTFunctor {
 			for (int i = 0; i < m_data.size(); i++) {
 				MagVector M(3, m_data[i].flip().size());
 				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
-					m_data[i].f0_off = params[m_nP];
+					m_data[i].f0_off = params[nP()];
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
-					m_data[i].f0_off = params[m_nP + i];
+					m_data[i].f0_off = params[nP() + i];
 				double PD;
 				switch (m_PDMode) {
 					case (PDMode::Normalise): PD = 1.; break;
-					case (PDMode::Global): PD = params[m_nP + m_nOffRes]; break;
-					case (PDMode::Individual): PD = params[m_nP + m_nOffRes + i]; break;
+					case (PDMode::Global): PD = params[nP() + nOffRes()]; break;
+					case (PDMode::Individual): PD = params[nP() + nOffRes() + i]; break;
 				}
 				M = One_SSFP(m_data.at(i), T1T2, PD);
 				ArrayXd theory = SigMag(M);

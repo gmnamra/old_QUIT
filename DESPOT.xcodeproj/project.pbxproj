@@ -1241,6 +1241,7 @@
 				F6F5343317B91A610059F82C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
