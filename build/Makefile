@@ -28,7 +28,7 @@ RELEASE_FLAGS = -O3
 .PHONY : release debug install clean
 .PRECIOUS: $(OBJ_DIR)/%.o # Stop make removing the object files
 
-TARGETS = despot1 despot2 despot-hifi mcdespot mcfinite phasemap afi
+TARGETS = despot1 despot-hifi despot2 despot2-fm mcdespot mcfinite phasemap afi
 
 release : CXX_FLAGS+=$(RELEASE_FLAGS)
 release : $(TARGETS)
