@@ -1,5 +1,5 @@
 /*
- *  despot_hifi.cpp
+ *  despot1hifi.cpp
  *
  *  Created by Tobias Wood on 17/10/2011.
  *  Copyright (c) 2011-2013 Tobias Wood.

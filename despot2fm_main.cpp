@@ -1,5 +1,5 @@
 /*
- *  despot2-fm_main.cpp
+ *  despot2fm_main.cpp
  *
  *  Created by Tobias Wood on 2013/08/12.
  *  Copyright (c) 2013 Tobias Wood.
