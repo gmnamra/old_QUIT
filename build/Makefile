@@ -17,23 +17,19 @@ EIGEN  = /home/k1078535/Code/eigen
 
 # Set up all our compiler options
 CXX = LD_RUN_PATH=$(LIBCPP) /software/system/gcc/gcc-4.8.0/bin/g++
-CXX_FLAGS = -std=c++11 -lstdc++ -m64 -msse3 -mssse3 -msse4.1 -msse4.2 -pthread -Wfatal-errors $(DEBUG) -DHAVE_NRECON
+CXX_FLAGS = -std=c++11 -lstdc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -pthread -Wfatal-errors $(DEBUG) -DHAVE_NRECON
 INCLUDE = -I$(SRC_DIR) -I$(INSTALL_INC) -I$(EIGEN)
 LD_FLAGS = -std=c++11 -lstdc++ -O3 -pthread -L$(INSTALL_LIB)
 LD_LIBS  = -lrecon -lNifti -lz
-DEBUG_FLAGS = -g
-RELEASE_FLAGS = -O3
 
 # Top level build rules
 .PHONY : release debug install clean
 .PRECIOUS: $(OBJ_DIR)/%.o # Stop make removing the object files
 
-TARGETS = despot1 despot-hifi despot2 despot2-fm mcdespot mcfinite phasemap afi
+TARGETS = despot1 despot1hifi despot2 despot2fm mcdespot mcfinite phasemap afi
 
-release : CXX_FLAGS+=$(RELEASE_FLAGS)
-release : $(TARGETS)
-
-debug   : CXX_FLAGS+=$(DEBUG_FLAGS)
+debug   : CXX_FLAGS+=-g
+debug   : LD_FLAGS+=-g
 debug   : $(TARGETS)
 
 install : $(INSTALL_BIN) 
@@ -52,7 +48,7 @@ $(OBJ_DIR)/mcfinite_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Funct
 $(OBJ_DIR)/mcdespot_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
 
-$(OBJ_DIR)/despot2-fm_main.o: $(SRC_DIR)/despot2-fm_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
+$(OBJ_DIR)/despot2fm_main.o: $(SRC_DIR)/despot2fm_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
