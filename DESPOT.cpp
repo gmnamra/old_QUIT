@@ -114,38 +114,24 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
 }
 
 //******************************************************************************
-#pragma DESPOTData
+#pragma Info
 // Class that holds a complete set of information needed to process a mcDESPOT
 // dataset
 //******************************************************************************
-DESPOTData::DESPOTData() : TR(0.), Trf(0.), TE(0.), phase(0.), f0_off(0.), B1(0.), spoil(false), _flip(), _signal()
+Info::Info() : TR(0.), Trf(0.), TE(0.), phase(0.), f0_off(0.), B1(0.), spoil(false), m_flip()
 {}
 
-DESPOTData::DESPOTData(const size_t nData, bool inSpoil,
-                       double inTR, double inTrf, double inTE,
-					   double inPhase, double inf0_off, double inB1) :
+Info::Info(const VectorXd &flip, bool inSpoil,
+           double inTR, double inTrf, double inTE,
+	       double inPhase, double inf0_off, double inB1) :
 	TR(inTR), Trf(inTrf), TE(inTE), phase(inPhase),
-	f0_off(inf0_off), B1(inB1), spoil(inSpoil), _flip(), _signal()
-{
-	_flip.resize(nData);
-	_signal.resize(nData);
-}
+	f0_off(inf0_off), B1(inB1), spoil(inSpoil), m_flip(flip)
+{}
 
-const size_t DESPOTData::size() const { return _flip.rows(); }
-void DESPOTData::resize(const size_t n) {
-	_flip.resize(n);
-	_signal.resize(n);
-}
-
-const VectorXd &DESPOTData::flip() const { return _flip; }
-void DESPOTData::setFlip(const VectorXd &inFlip) {
-	assert(inFlip.rows() == _flip.rows());
-	_flip = inFlip;
-}
-const VectorXd &DESPOTData::signal() const { return _signal; }
-void DESPOTData::setSignal(const VectorXd &inSig) {
-	assert(inSig.rows() == _signal.rows());
-	_signal = inSig;
+const size_t Info::nAngles() const { return m_flip.rows(); }
+const VectorXd &Info::flip() const { return m_flip; }
+void Info::setFlip(const VectorXd &inFlip) {
+	m_flip = inFlip;
 }
 
 //******************************************************************************
@@ -236,7 +222,7 @@ const void CalcExchange(const double tau_a, const double f_a, const double f_b, 
 #pragma mark One Component Signals
 // Parameters are { T1, T2 }
 //******************************************************************************
-MagVector One_SPGR(const DESPOTData &d, const VectorXd &p, const double PD)
+MagVector One_SPGR(const Info &d, const VectorXd &p, const double PD)
 {
 	MagVector M(3, d.flip().size()); M.setZero();
 	ArrayXd sa = (d.flip().array() * d.B1).sin();
@@ -246,7 +232,7 @@ MagVector One_SPGR(const DESPOTData &d, const VectorXd &p, const double PD)
 	return M;
 }
 
-MagVector One_SSFP(const DESPOTData &d, const VectorXd &p, const double PD)
+MagVector One_SSFP(const Info &d, const VectorXd &p, const double PD)
 {
 	Vector3d M0, Mobs;
 	M0 << 0., 0., 1.;
@@ -262,7 +248,7 @@ MagVector One_SSFP(const DESPOTData &d, const VectorXd &p, const double PD)
 }
 
 // Parameters are { T1, T2, delta_f }
-MagVector One_SSFP_Finite(const DESPOTData &d, const VectorXd &p, const double PD)
+MagVector One_SSFP_Finite(const Info &d, const VectorXd &p, const double PD)
 {
 	const Matrix3d I = Matrix3d::Identity();
 	const Matrix3d O = OffResonance(d.f0_off);
@@ -300,7 +286,7 @@ MagVector One_SSFP_Finite(const DESPOTData &d, const VectorXd &p, const double P
 #pragma mark Two Component Signals
 //******************************************************************************
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a }
-MagVector Two_SPGR(const DESPOTData &d, const VectorXd &p, const double PD)
+MagVector Two_SPGR(const Info &d, const VectorXd &p, const double PD)
 {
 	Matrix2d A, eATR;
 	Vector2d M0, Mobs;
@@ -320,7 +306,7 @@ MagVector Two_SPGR(const DESPOTData &d, const VectorXd &p, const double PD)
 	return signal;
 }
 
-MagVector Two_SSFP(const DESPOTData &d, const VectorXd &p, const double PD)
+MagVector Two_SSFP(const Info &d, const VectorXd &p, const double PD)
 {
 	MagVector signal(3, d.flip().size());
 	Vector6d M0; M0 << 0., 0., p[5], 0., 0., (1. - p[5]);
@@ -345,7 +331,7 @@ MagVector Two_SSFP(const DESPOTData &d, const VectorXd &p, const double PD)
 }
 
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a, delta_f }
-MagVector Two_SSFP_Finite(const DESPOTData &d, const VectorXd &p, const double PD)
+MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p, const double PD)
 {
 	const Matrix6d I = Matrix6d::Identity();
 	Matrix6d R = Matrix6d::Zero(), C = Matrix6d::Zero();
@@ -398,7 +384,7 @@ MagVector Two_SSFP_Finite(const DESPOTData &d, const VectorXd &p, const double P
 #pragma mark Three Component
 //******************************************************************************
 // Parameters are { T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
-MagVector Three_SPGR(const DESPOTData &d, const VectorXd &p, const double PD)
+MagVector Three_SPGR(const Info &d, const VectorXd &p, const double PD)
 {
 	VectorXd p_c(2), p_ab(6);
 	double PD_ab = PD * p(7);
@@ -415,7 +401,7 @@ MagVector Three_SPGR(const DESPOTData &d, const VectorXd &p, const double PD)
 	return r;
 }
 
-MagVector Three_SSFP(const DESPOTData &d, const VectorXd &p, const double PD)
+MagVector Three_SSFP(const Info &d, const VectorXd &p, const double PD)
 {
 	VectorXd p_c(2), p_ab(6);
 	double PD_ab = PD * p(7);
@@ -433,7 +419,7 @@ MagVector Three_SSFP(const DESPOTData &d, const VectorXd &p, const double PD)
 }
 
 // Parameters are { T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c, delta_f }
-MagVector Three_SSFP_Finite(const DESPOTData &d, const VectorXd &p, const double PD)
+MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p, const double PD)
 {
 	VectorXd p_c(3), p_ab(7);
 	double PD_ab = PD * p(7);

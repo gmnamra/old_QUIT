@@ -134,13 +134,13 @@ Nifti::File openAndCheck(const string &path, const Nifti::File &saved, const str
 	return in;
 }
 
-Nifti::File parseInput(vector<DESPOTData> &data,
+Nifti::File parseInput(vector<Info> &info,
 				       vector<Nifti::File > &signalFiles,
 				       vector<Nifti::File > &B1_files,
 				       vector<Nifti::File > &B0_loFiles,
 					   vector<Nifti::File > &B0_hiFiles,
 					   const mcDESPOT::OffResMode &B0fit, const bool &finiteRF);
-Nifti::File parseInput(vector<DESPOTData> &data,
+Nifti::File parseInput(vector<Info> &info,
 				       vector<Nifti::File > &signalFiles,
 				       vector<Nifti::File > &B1_files,
 				       vector<Nifti::File > &B0_loFiles,
@@ -200,8 +200,7 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 				getline(cin, path); // Just to eat the newline
 			#endif
 		}
-		data.emplace_back(inAngles.size(), spoil, inTR, inTrf, inTE, inPhase * M_PI / 180.);
-		data.back().setFlip(inAngles * M_PI / 180.);
+		info.emplace_back(inAngles * M_PI / 180., spoil, inTR, inTrf, inTE, inPhase * M_PI / 180.);
 		
 		if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
 		getline(cin, path);
@@ -232,7 +231,7 @@ Nifti::File parseInput(vector<DESPOTData> &data,
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
-	if (data.size() == 0) {
+	if (info.size() == 0) {
 		cerr << "No input images specified." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -328,9 +327,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	vector<DESPOTData> data;
+	vector<Info> info;
 	vector<Nifti::File > signalFiles, B1_files, B0_loFiles, B0_hiFiles;
-	savedHeader = parseInput(data, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0fit, finiteRF);
+	savedHeader = parseInput(info, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0fit, finiteRF);
 	if ((maskData.size() > 0) && !(maskFile.matchesSpace(savedHeader))) {
 		cerr << "Mask file has different dimensions/transform to input data." << endl;
 		exit(EXIT_FAILURE);
@@ -348,7 +347,7 @@ int main(int argc, char **argv)
 				     B0LoVolumes(signalFiles.size()),
 					 B0HiVolumes(signalFiles.size());
 	for (int i = 0; i < signalFiles.size(); i++) {
-		signalVolumes[i].resize(voxelsPerSlice * data[i].size());
+		signalVolumes[i].resize(voxelsPerSlice * info.at(i).nAngles());
 		if (B1_files[i].isOpen()) B1Volumes[i].resize(voxelsPerSlice);
 		if (B0_loFiles[i].isOpen()) B0LoVolumes[i].resize(voxelsPerSlice);
 		if (B0_hiFiles[i].isOpen()) B0HiVolumes[i].resize(voxelsPerSlice);
@@ -356,16 +355,16 @@ int main(int argc, char **argv)
 	
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << mcType::to_string(components) << " component model." << endl;
-	mcType mcd(components, data, tesla, B0fit, PD);
+	mcType mcd(components, info, tesla, B0fit, PD);
 	
 	ArrayXd weights(mcd.values());
 	size_t index = 0;
-	for (int i = 0; i < data.size(); i++) {
-		if (data.at(i).spoil)
-			weights.segment(index, data.at(i).size()).setConstant(weighting);
+	for (int i = 0; i < info.size(); i++) {
+		if (info.at(i).spoil)
+			weights.segment(index, info.at(i).nAngles()).setConstant(weighting);
 		else
-			weights.segment(index, data.at(i).size()).setConstant(1.0);
-		index += data.at(i).size();
+			weights.segment(index, info.at(i).nAngles()).setConstant(1.0);
+		index += info.at(i).nAngles();
 	}
 	savedHeader.setDim(4, 1);
 	savedHeader.setDatatype(DT_FLOAT32);
@@ -428,7 +427,7 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
-			mcType localf(mcd);
+			mcType localf(mcd); // Take a thread local copy so we can change info/signals
 			ArrayXd params(localf.inputs()), residuals(localf.values());
 			params.setZero();
 			residuals.setZero();
@@ -436,21 +435,18 @@ int main(int argc, char **argv)
 				voxCount++;
 				vector<VectorXd> signals(signalFiles.size());
 				// Need local copies because of per-voxel changes
-				vector<DESPOTData> localData = data;
 				ArrayXXd localBounds = bounds;
 				for (size_t i = 0; i < signalFiles.size(); i++) {
-					VectorXd sig(localData[i].size());
-					for (size_t j = 0; j < localData[i].size(); j++) {
-						sig(j) = signalVolumes[i][voxelsPerSlice*j + vox];
+					for (size_t j = 0; j < localf.signal(i).size(); j++) {
+						localf.signal(i)(j) = signalVolumes[i][voxelsPerSlice*j + vox];
 					}
 					if (PD == mcType::PDMode::Normalise) {
-						sig /= sig.mean(); break;
+						localf.signal(i) /= localf.signal(i).mean();
 					}
-					localData.at(i).setSignal(sig);
 					if (B0fit == mcType::OffResMode::Map) {
-						localData.at(i).f0_off = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
+						localf.info(i).f0_off = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
 					}
-					localData.at(i).B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
+					localf.info(i).B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;

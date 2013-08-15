@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	
 	vector<VectorXd> signals, angles;
 	vector<double> TR, phases, B0, B1;
-	vector<DESPOTData> data;
+	vector<Info> data;
 	data.emplace_back(alphaSPGR, true, spgrTR, Trf, 0.003, 0., 0., 1.);
 	data.emplace_back(alphaSSFP, false, ssfpTR, Trf, 0., 0., 0., 1.);
 	//angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.emplace_back(false, ssfpTR, Trf, 0., M_PI);

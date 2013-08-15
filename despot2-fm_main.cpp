@@ -165,11 +165,11 @@ int main(int argc, char **argv)
 	// Gather SSFP Data
 	//**************************************************************************
 	size_t nPhases = argc - optind;
-	vector<DESPOTData> data(nPhases);
+	vector<Info> info;
 	int voxelsPerSlice, voxelsPerVolume;
 	vector<vector<double>> ssfpData(nPhases);
 	VectorXd inFlip;
-	double inTR;
+	double inTR, inPhase;
 	for (size_t p = 0; p < nPhases; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], Nifti::Modes::Read);
@@ -198,20 +198,18 @@ int main(int argc, char **argv)
 			}
 			inFlip *= M_PI / 180.;
 		}
-		data[p].resize(inFlip.size());
-		data[p].TR = inTR;
-		data[p].setFlip(inFlip);
 		#ifdef HAVE_NRECON
 		ParameterList pars;
 		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
-			data[p].phase = RealValue(pars, "rfphase") * M_PI / 180.;
+			inPhase = RealValue(pars, "rfphase") * M_PI / 180.;
 		} else
 		#endif
 		{
 			cout << "Enter phase-cycling (degrees): " << flush;
-			cin >> data[p].phase; data[p].phase *= M_PI / 180.;
+			cin >> inPhase; inPhase *= M_PI / 180.;
 		}
 		cout << "Reading SSFP data..." << endl;
+		info.emplace_back(inFlip, false, inTR, 0., 0., inPhase);
 		ssfpData[p] = inFile.readAllVolumes<double>();
 		inFile.close();
 		optind++;
@@ -222,7 +220,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	DESPOT2FM d2fm(data, 0., tesla, offRes, DESPOT2FM::PDMode::Global);
+	DESPOT2FM d2fm(info, 0., tesla, offRes, DESPOT2FM::PDMode::Global);
 	ArrayXXd bounds = d2fm.defaultBounds();
 	if (tesla == DESPOT2FM::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
@@ -231,9 +229,11 @@ int main(int argc, char **argv)
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 	}
+	ArrayXd weights(d2fm.values());
+	weights.setConstant(1.0);
 	
 	if (verbose) {
-		cout << "SSFP Angles (deg): " << data[0].flip().transpose() * 180 / M_PI << endl;
+		cout << "SSFP Angles (deg): " << info.at(0).flip().transpose() * 180 / M_PI << endl;
 		cout << "Low bounds: " << bounds.col(0).transpose() << endl
 		     << "Hi bounds:  " << bounds.col(1).transpose() << endl;
 	}
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			// Set up parameters and constants
-			DESPOT2FM locald2(d2fm);
+			DESPOT2FM locald2(d2fm); // Take a thread local copy of the functor
 			ArrayXd params(locald2.inputs()); params.setZero();
 			ArrayXd resid(locald2.values()); resid.setZero();
 			size_t c = 0;
@@ -279,20 +279,14 @@ int main(int argc, char **argv)
 			{	// Zero T1 causes zero-pivot error.
 				voxCount++;
 				// Gather signals.
-				vector<DESPOTData> localData = data;
 				for (int p = 0; p < nPhases; p++) {
-					localData.at(p).f0_off = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
-					localData.at(p).B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
-					VectorXd sig(localData.at(p).size());
-					for (int i = 0; i < sig.rows(); i++)
-						sig(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
-					localData[p].setSignal(sig);
+					locald2.info(p).f0_off = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
+					locald2.info(p).B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
+					for (int i = 0; i < locald2.signal(p).rows(); i++)
+						locald2.signal(p)(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
 				}
 				
 				// DESPOT2-FM
-				ArrayXd weights(locald2.values());
-				weights.setConstant(1.0);
-				locald2.setData(localData);
 				locald2.setT1(T1Data.at(sliceOffset + vox));
 				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights,
 				                                samples, retain, contract, 0.05, expand);

@@ -43,29 +43,25 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
 			   const double &M0, const double &T1);
 
 //******************************************************************************
-#pragma DESPOTData
+#pragma Info
 // Class that holds a complete set of information needed to process a mcDESPOT
-// dataset
+// dataset, e.g. TR, TE, flip-angles
 //******************************************************************************
-class DESPOTData {
+class Info {
 	private:
-		VectorXd _flip, _signal;
+		VectorXd m_flip;
 	public:
 		// B0 is field-strength in T, f0_off is off-resonance in Hz
 		double TR, Trf, TE, phase, f0_off, B1;
 		bool spoil;
 	
-		DESPOTData();
-		DESPOTData(const size_t nData, bool inSpoil, double inTR, double inTrf, double inTE = 0., double inPhase = M_PI, double inf0_off = 0., double inB1 = 1.);
-		DESPOTData(const size_t nData, double inSpoil, double inTR, double inTrf, double inTE, double inPhase, double inf0_off, double inB1) = delete;
+		Info();
+		Info(const VectorXd &flip, bool inSpoil, double inTR, double inTrf = 0., double inTE = 0., double inPhase = M_PI, double inf0_off = 0., double inB1 = 1.);
+		Info(const VectorXd &flip, double inSpoil, double inTR, double inTrf, double inTE, double inPhase, double inf0_off, double inB1) = delete;
 		
-		const size_t size() const;
-		void resize(const size_t n);
-		
+		const size_t nAngles() const;
 		const VectorXd &flip() const;
 		void setFlip(const VectorXd &inFlip);
-		const VectorXd &signal() const;
-		void setSignal(const VectorXd &inSig);
 };
 
 //******************************************************************************
@@ -92,22 +88,22 @@ const void CalcExchange(const double tau_a, const double f_a, const double f_b, 
 #pragma mark One Component Signals
 // Parameters are { T1, T2 }
 //******************************************************************************
-MagVector One_SPGR(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
-MagVector One_SSFP(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
-MagVector One_SSFP_Finite(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+MagVector One_SPGR(const Info &d, const VectorXd &p, const double PD = 1.0);
+MagVector One_SSFP(const Info &d, const VectorXd &p, const double PD = 1.0);
+MagVector One_SSFP_Finite(const Info &d, const VectorXd &p, const double PD = 1.0);
 //******************************************************************************
 #pragma mark Two Component Signals
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a }
 //******************************************************************************
-MagVector Two_SPGR(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
-MagVector Two_SSFP(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
-MagVector Two_SSFP_Finite(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+MagVector Two_SPGR(const Info &d, const VectorXd &p, const double PD = 1.0);
+MagVector Two_SSFP(const Info &d, const VectorXd &p, const double PD = 1.0);
+MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p, const double PD = 1.0);
 //******************************************************************************
 #pragma mark Three Component
 // Parameters are { T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
 //******************************************************************************
-MagVector Three_SPGR(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
-MagVector Three_SSFP(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
-MagVector Three_SSFP_Finite(const DESPOTData &d, const VectorXd &p, const double PD = 1.0);
+MagVector Three_SPGR(const Info &d, const VectorXd &p, const double PD = 1.0);
+MagVector Three_SSFP(const Info &d, const VectorXd &p, const double PD = 1.0);
+MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p, const double PD = 1.0);
 
 #endif
