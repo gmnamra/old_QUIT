@@ -50,7 +50,7 @@ class RegionContraction {
 	
 	private:
 		Functor_t &m_f;
-		ArrayXXd m_startBounds;
+		ArrayXXd m_startBounds, m_currentBounds;
 		ArrayXd m_weights, m_residuals;
 		size_t m_nS, m_nR, m_maxContractions, m_contractions;
 		double m_thresh, m_expand;
@@ -61,7 +61,8 @@ class RegionContraction {
 		RegionContraction(Functor_t &f, const Ref<ArrayXXd> &startBounds, const Ref<ArrayXd> &weights,
 						  const int nS = 5000, const int nR = 50, const int maxContractions = 10,
 						  const double thresh = 0.05, const double expand = 0.) :
-				m_f(f), m_startBounds(startBounds), m_nS(nS), m_nR(nR), m_maxContractions(maxContractions),
+				m_f(f), m_startBounds(startBounds), m_currentBounds(startBounds),
+				m_nS(nS), m_nR(nR), m_maxContractions(maxContractions),
 				m_thresh(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0),
 				m_status(Status::NotStarted), m_weights(weights)
 		{
@@ -84,6 +85,9 @@ class RegionContraction {
 		const ArrayXd &residuals() const { return m_residuals; }
 		const size_t contractions() const { return m_contractions; }
 		const Status status() const { return m_status; }
+		const ArrayXXd &currentBounds() const { return m_currentBounds; }
+		const ArrayXd regionSize() const { return m_currentBounds.col(1) - m_currentBounds.col(0); }
+		const ArrayXd midPoint() const { return (m_currentBounds.rowwise().sum() / 2.); }
 		
 		void optimise(Ref<ArrayXd> params, const int seed = 0) {
 			static atomic<bool> finiteWarning(false);
@@ -94,9 +98,10 @@ class RegionContraction {
 			ArrayXXd retained(m_f.inputs(), m_nR);
 			ArrayXd sampleRes(m_nS);
 			vector<size_t> indices(m_nR);
-			ArrayXXd bounds = m_startBounds;
-			ArrayXd regionSize = (bounds.col(1) - bounds.col(0));
+			m_currentBounds = m_startBounds;
 			m_residuals.setZero();
+			ArrayXd rs = regionSize();
+
 			
 			mt19937 twist(seed);
 			uniform_real_distribution<double> uniform(0., 1.);
@@ -108,9 +113,7 @@ class RegionContraction {
 					size_t nTries = 0;
 					do {
 						for (int p = 0; p < nP; p++)
-							tempSample(p) = uniform(twist);
-						tempSample.array() *= regionSize.array();
-						tempSample += bounds.col(0);
+							tempSample(p) = uniform(twist) * rs(p) + m_currentBounds(p, 0);
 						nTries++;
 						if (nTries > 100) {
 							if (!constraintWarning) {
@@ -147,20 +150,18 @@ class RegionContraction {
 					retained.col(i) = samples.col(indices[i]);
 				
 				// Find the min and max for each parameter in the top nR samples
-				bounds.col(0) = retained.rowwise().minCoeff();
-				bounds.col(1) = retained.rowwise().maxCoeff();
-				regionSize = (bounds.col(1) - bounds.col(0));
+				m_currentBounds.col(0) = retained.rowwise().minCoeff();
+				m_currentBounds.col(1) = retained.rowwise().maxCoeff();
 				// Terminate if ALL the distances between bounds are under the threshold
-				if (((regionSize.array() / bounds.col(1)).abs() < m_thresh).all()) {
+				if (((regionSize() / midPoint()).abs() < m_thresh).all()) {
 					m_status = Status::Converged;
 					break;
 				}
 				
 				// Expand the boundaries back out in case we just missed a minima,
 				// but don't go past initial boundaries
-				bounds.col(0) = (bounds.col(0) - regionSize * m_expand).max(m_startBounds.col(0));
-				bounds.col(1) = (bounds.col(1) + regionSize * m_expand).min(m_startBounds.col(1));
-				regionSize = bounds.col(1) - bounds.col(0);
+				m_currentBounds.col(0) = (m_currentBounds.col(0) - regionSize() * m_expand).max(m_startBounds.col(0));
+				m_currentBounds.col(1) = (m_currentBounds.col(1) + regionSize() * m_expand).min(m_startBounds.col(1));
 			}
 			// Return the best evaluated solution so far
 			params = retained.col(0);
