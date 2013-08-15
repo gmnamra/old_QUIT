@@ -283,7 +283,8 @@ int main(int argc, char **argv)
 			ArrayXd resid(locald2.values()); resid.setZero();
 			// Debug stuff
 			size_t c = 0;
-			ArrayXd rs, mid;
+			ArrayXd rs(locald2.inputs()); rs.setZero();
+			ArrayXd mid(locald2.inputs()); mid.setZero();
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				voxCount++;
