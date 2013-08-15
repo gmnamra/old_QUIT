@@ -240,15 +240,15 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
-	vector<vector<double>> paramsData(d2fm.inputs());
+	vector<vector<float>> paramsData(d2fm.inputs());
 	for (auto &p : paramsData)
 		p.resize(voxelsPerVolume);
-	vector<vector<double>> residuals(d2fm.values());
+	vector<vector<float>> residuals(d2fm.values());
 	for (auto &r : residuals)
 		r.resize(voxelsPerVolume);
 	vector<size_t> contractData;
-	vector<vector<size_t>> midData(d2fm.inputs());
-	vector<vector<size_t>> regionSizeData(d2fm.inputs());
+	vector<vector<float>> midData(d2fm.inputs());
+	vector<vector<float>> regionSizeData(d2fm.inputs());
 	if (debug) {
 		contractData.resize(voxelsPerVolume);
 		for (auto &m : midData)
@@ -264,8 +264,8 @@ int main(int argc, char **argv)
 	if ((end_slice < 0) || (end_slice > inFile.dim(3)))
 		end_slice = inFile.dim(3);
 	ThreadPool pool;
-	if (debug)
-		pool.resize(1);
+	//if (debug)
+	//	pool.resize(1);
     time_t procStart = time(NULL);
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
 			ArrayXd rs(locald2.inputs()); rs.setZero();
 			ArrayXd mid(locald2.inputs()); mid.setZero();
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
-			{	// Zero T1 causes zero-pivot error.
+			{	// -ve T1 is non-sensical, no point fitting
 				voxCount++;
 				// Gather signals.
 				for (int p = 0; p < nPhases; p++) {
@@ -302,7 +302,9 @@ int main(int argc, char **argv)
 				locald2.setT1(T1Data.at(sliceOffset + vox));
 				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights,
 				                                samples, retain, contract, 0.05, expand);
-				rc.optimise(params);
+				// Add the voxel number to the time to get a decent random seed
+				int rSeed = static_cast<int>(time(NULL)) + vox;
+				rc.optimise(params, rSeed);
 				resid = rc.residuals();
 				if (debug) {
 					c = rc.contractions();
@@ -352,20 +354,18 @@ int main(int argc, char **argv)
 	if (debug) {
 		savedHeader.setDim(4, 1);
 		savedHeader.setDatatype(DT_INT16);
-		savedHeader.open(outPrefix + "FM_debug_contractions.nii.gz", Nifti::Modes::Write);
+		savedHeader.open(outPrefix + "FM_nContract.nii.gz", Nifti::Modes::Write);
 		savedHeader.writeVolume(0, contractData);
 		savedHeader.close();
-		savedHeader.setDim(4, static_cast<int>(d2fm.inputs()));
 		savedHeader.setDatatype(DT_FLOAT32);
-		savedHeader.open(outPrefix + "FM_debug_regionsize.nii.gz", Nifti::Modes::Write);
-		for (int i = 0; i < regionSizeData.size(); i++)
-			savedHeader.writeVolume(i, regionSizeData.at(i));
-		savedHeader.close();
-		savedHeader.setDim(4, static_cast<int>(d2fm.inputs()));
-		savedHeader.open(outPrefix + "FM_debug_midpoint.nii.gz", Nifti::Modes::Write);
-		for (int i = 0; i < midData.size(); i++)
-			savedHeader.writeVolume(i, midData.at(i));
-		savedHeader.close();
+		for (int p = 0; p < d2fm.inputs(); p++) {
+			savedHeader.open(outPrefix + d2fm.names().at(p) + "_width.nii.gz", Nifti::Modes::Write);
+			savedHeader.writeVolume(0, regionSizeData.at(p));
+			savedHeader.close();
+			savedHeader.open(outPrefix + d2fm.names().at(p) + "_mid.nii.gz", Nifti::Modes::Write);
+			savedHeader.writeVolume(0, midData.at(p));
+			savedHeader.close();
+		}
 	}
 	return EXIT_SUCCESS;
 }
