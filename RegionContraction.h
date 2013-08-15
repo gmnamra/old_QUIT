@@ -101,7 +101,6 @@ class RegionContraction {
 			vector<size_t> indices(m_nR);
 			m_currentBounds = m_startBounds;
 			m_residuals.setZero();
-			ArrayXd rs = regionSize();
 			
 			if (m_debug) {
 				cout << "Starting bounds: " << endl << m_startBounds.transpose() << endl;
@@ -119,7 +118,9 @@ class RegionContraction {
 					size_t nTries = 0;
 					do {
 						for (int p = 0; p < nP; p++)
-							tempSample(p) = uniform(twist) * rs(p) + m_currentBounds(p, 0);
+							tempSample(p) = uniform(twist);
+						tempSample *= regionSize();
+						tempSample += m_currentBounds.col(0);
 						nTries++;
 						if (nTries > 100) {
 							if (!constraintWarning) {
@@ -156,6 +157,8 @@ class RegionContraction {
 					retained.col(i) = samples.col(indices[i]);
 				
 				// Find the min and max for each parameter in the top nR samples
+				if (m_debug)
+					cout << "Before search: " << endl << m_currentBounds.transpose() << endl;
 				m_currentBounds.col(0) = retained.rowwise().minCoeff();
 				m_currentBounds.col(1) = retained.rowwise().maxCoeff();
 				// Terminate if ALL the distances between bounds are under the threshold
@@ -166,11 +169,17 @@ class RegionContraction {
 				
 				// Expand the boundaries back out in case we just missed a minima,
 				// but don't go past initial boundaries
-				m_currentBounds.col(0) = (m_currentBounds.col(0) - regionSize() * m_expand).max(m_startBounds.col(0));
-				m_currentBounds.col(1) = (m_currentBounds.col(1) + regionSize() * m_expand).min(m_startBounds.col(1));
+				if (m_debug)
+					cout << "After search:  " << endl << m_currentBounds.transpose() << endl;
+				ArrayXd tempRS = regionSize(); // Because altering .col(0) will change region size
+				m_currentBounds.col(0) = (m_currentBounds.col(0) - tempRS * m_expand).max(m_startBounds.col(0));
+				m_currentBounds.col(1) = (m_currentBounds.col(1) + tempRS * m_expand).min(m_startBounds.col(1));
+				if (m_debug)
+					cout << "After expand:  " << endl << m_currentBounds.transpose() << endl;
 				
 				if (m_debug) {
 					cout << "Finished contraction " << m_contractions << endl;
+					cout << m_currentBounds.transpose() << endl;
 					cout << "Mid-point:   " << midPoint().transpose() << endl;
 					cout << "Region Size: " << regionSize().transpose() << endl;
 				}

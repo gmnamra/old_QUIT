@@ -301,7 +301,7 @@ int main(int argc, char **argv)
 				// DESPOT2-FM
 				locald2.setT1(T1Data.at(sliceOffset + vox));
 				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights,
-				                                samples, retain, contract, 0.05, expand, debug);
+				                                samples, retain, contract, 0.05, expand);
 				rc.optimise(params);
 				resid = rc.residuals();
 				if (debug) {
