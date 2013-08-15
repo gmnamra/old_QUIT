@@ -241,19 +241,19 @@ int main(int argc, char **argv)
 	// Set up results data
 	//**************************************************************************
 	vector<vector<double>> paramsData(d2fm.inputs());
-	for (auto p : paramsData)
+	for (auto &p : paramsData)
 		p.resize(voxelsPerVolume);
 	vector<vector<double>> residuals(d2fm.values());
-	for (auto r : residuals)
+	for (auto &r : residuals)
 		r.resize(voxelsPerVolume);
 	vector<size_t> contractData;
-	vector<vector<size_t>> midData;
+	vector<vector<size_t>> midData(d2fm.inputs());
 	vector<vector<size_t>> regionSizeData(d2fm.inputs());
 	if (debug) {
 		contractData.resize(voxelsPerVolume);
-		for (auto m : midData)
+		for (auto &m : midData)
 			m.resize(voxelsPerVolume);
-		for (auto r : regionSizeData)
+		for (auto &r : regionSizeData)
 			r.resize(voxelsPerVolume);
 	}
 	//**************************************************************************
@@ -283,8 +283,7 @@ int main(int argc, char **argv)
 			ArrayXd resid(locald2.values()); resid.setZero();
 			// Debug stuff
 			size_t c = 0;
-			ArrayXd rs(locald2.inputs()); rs.setZero();
-			ArrayXd mid(locald2.inputs()); mid.setZero();
+			ArrayXd rs, mid;
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// Zero T1 causes zero-pivot error.
 				voxCount++;
@@ -302,19 +301,21 @@ int main(int argc, char **argv)
 				                                samples, retain, contract, 0.05, expand);
 				rc.optimise(params);
 				resid = rc.residuals();
-				c = rc.contractions();
-				rs = rc.regionSize();
-				mid = rc.midPoint();
+				if (debug) {
+					c = rc.contractions();
+					rs = rc.regionSize();
+					mid = rc.midPoint();
+				}
 			}
-			for (int p = 0; p < params.size(); p++) {
+			for (int p = 0; p < locald2.inputs(); p++) {
 				paramsData.at(p).at(sliceOffset + vox) = params(p);
 			}
-			for (int i = 0; i < resid.size(); i++) {
+			for (int i = 0; i < locald2.values(); i++) {
 				residuals.at(i).at(sliceOffset + vox) = resid(i);
 			}
 			if (debug) {
 				contractData.at(sliceOffset + vox) = c;
-				for (int i = 0; i < rs.rows(); i++) {
+				for (int i = 0; i < locald2.inputs(); i++) {
 					regionSizeData.at(i).at(sliceOffset + vox) = rs(i);
 					midData.at(i).at(sliceOffset + vox) = mid(i);
 				}
