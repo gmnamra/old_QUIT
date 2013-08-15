@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:vt:srced", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:o:vt:s:r:c:e:d", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;

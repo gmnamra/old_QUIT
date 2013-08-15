@@ -102,7 +102,7 @@ class DESPOTFunctor : public Functor<double> {
 			ArrayXXd b(nOffRes(), 2);
 			for (size_t i = 0; i < nOffRes(); i++) {
 				bool symmetricB0 = (fmod(m_data.at(i).phase, M_PI) < numeric_limits<double>::epsilon());
-				if (symmetricB0) b(nP() + i, 0) = 0;
+				if (symmetricB0) b(i, 0) = 0;
 				else b(i, 0) = -0.5 / m_data.at(i).TR;
 				b(i, 1) = 0.5 / m_data.at(i).TR;
 			}
