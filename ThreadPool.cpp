@@ -9,12 +9,17 @@
 #include "ThreadPool.h"
 
 ThreadPool::ThreadPool(const size_t num_threads) {
+	m_size = num_threads;
 	m_pool.reserve(num_threads);
+}
+
+void ThreadPool::resize(const size_t num_threads) {
+	m_size = num_threads;
 }
 
 void ThreadPool::for_loop(const function<void(int)> f,
                           const int start, const int stop, const int step) {
-	int thread_step = static_cast<int>(m_pool.capacity()) * step;
+	int thread_step = static_cast<int>(m_size) * step;
 	
 	function<void(int)> worker = [&](int local) {
 		while (m_run && (local < stop)) {

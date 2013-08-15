@@ -264,6 +264,8 @@ int main(int argc, char **argv)
 	if ((end_slice < 0) || (end_slice > inFile.dim(3)))
 		end_slice = inFile.dim(3);
 	ThreadPool pool;
+	if (debug)
+		pool.resize(1);
     time_t procStart = time(NULL);
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
@@ -299,7 +301,7 @@ int main(int argc, char **argv)
 				// DESPOT2-FM
 				locald2.setT1(T1Data.at(sliceOffset + vox));
 				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights,
-				                                samples, retain, contract, 0.05, expand);
+				                                samples, retain, contract, 0.05, expand, debug);
 				rc.optimise(params);
 				resid = rc.residuals();
 				if (debug) {

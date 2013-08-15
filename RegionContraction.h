@@ -55,16 +55,17 @@ class RegionContraction {
 		size_t m_nS, m_nR, m_maxContractions, m_contractions;
 		double m_thresh, m_expand;
 		Status m_status;
+		bool m_debug;
 	
 	public:
 	
 		RegionContraction(Functor_t &f, const Ref<ArrayXXd> &startBounds, const Ref<ArrayXd> &weights,
 						  const int nS = 5000, const int nR = 50, const int maxContractions = 10,
-						  const double thresh = 0.05, const double expand = 0.) :
+						  const double thresh = 0.05, const double expand = 0., const bool debug = false) :
 				m_f(f), m_startBounds(startBounds), m_currentBounds(startBounds),
 				m_nS(nS), m_nR(nR), m_maxContractions(maxContractions),
 				m_thresh(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0),
-				m_status(Status::NotStarted), m_weights(weights)
+				m_status(Status::NotStarted), m_weights(weights), m_debug(debug)
 		{
 			eigen_assert(f.inputs() == startBounds.rows());
 			eigen_assert(startBounds.cols() == 2);
@@ -101,7 +102,12 @@ class RegionContraction {
 			m_currentBounds = m_startBounds;
 			m_residuals.setZero();
 			ArrayXd rs = regionSize();
-
+			
+			if (m_debug) {
+				cout << "Starting bounds: " << endl << m_startBounds.transpose() << endl;
+				cout << "Mid-point:   " << midPoint().transpose() << endl;
+				cout << "Region Size: " << regionSize().transpose() << endl;
+			}
 			
 			mt19937 twist(seed);
 			uniform_real_distribution<double> uniform(0., 1.);
@@ -162,13 +168,23 @@ class RegionContraction {
 				// but don't go past initial boundaries
 				m_currentBounds.col(0) = (m_currentBounds.col(0) - regionSize() * m_expand).max(m_startBounds.col(0));
 				m_currentBounds.col(1) = (m_currentBounds.col(1) + regionSize() * m_expand).min(m_startBounds.col(1));
+				
+				if (m_debug) {
+					cout << "Finished contraction " << m_contractions << endl;
+					cout << "Mid-point:   " << midPoint().transpose() << endl;
+					cout << "Region Size: " << regionSize().transpose() << endl;
+				}
 			}
 			// Return the best evaluated solution so far
 			params = retained.col(0);
 			// Calculate the residuals
 			m_f(params, m_residuals);
 			//diffs /= f.signals();
-			
+			if (m_debug) {
+				cout << "Finished, contractions = " << m_contractions << endl;
+				cout << "Mid-point:   " << midPoint().transpose() << endl;
+				cout << "Region Size: " << regionSize().transpose() << endl;
+			}
 		}
 };
 #endif

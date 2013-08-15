@@ -19,6 +19,7 @@ using namespace std;
 class ThreadPool {
 	private:
 		vector<thread> m_pool;
+		size_t m_size;
 		bool m_run;
 
 	public:
@@ -26,6 +27,7 @@ class ThreadPool {
 		ThreadPool(ThreadPool &) = delete;
 		ThreadPool(ThreadPool &&) = delete;
 		
+		void resize(const size_t num_threads);
 		void for_loop(const function<void(int)> f, const int start, const int stop, const int step);
 		void for_loop(const function<void(int)> f, const int stop);
 		void stop();
