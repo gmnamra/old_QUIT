@@ -87,7 +87,7 @@ class RegionContraction {
 		const size_t contractions() const { return m_contractions; }
 		const Status status() const { return m_status; }
 		const ArrayXXd &currentBounds() const { return m_currentBounds; }
-		const ArrayXd regionSize() const { return m_currentBounds.col(1) - m_currentBounds.col(0); }
+		const ArrayXd width() const { return m_currentBounds.col(1) - m_currentBounds.col(0); }
 		const ArrayXd midPoint() const { return (m_currentBounds.rowwise().sum() / 2.); }
 		
 		void optimise(Ref<ArrayXd> params, const int seed = 0) {
@@ -104,8 +104,8 @@ class RegionContraction {
 			
 			if (m_debug) {
 				cout << "Starting bounds: " << endl << m_startBounds.transpose() << endl;
-				cout << "Mid-point:   " << midPoint().transpose() << endl;
-				cout << "Region Size: " << regionSize().transpose() << endl;
+				cout << "Mid-point: " << midPoint().transpose() << endl;
+				cout << "Width:     " << width().transpose() << endl;
 			}
 			
 			mt19937 twist(seed);
@@ -119,7 +119,7 @@ class RegionContraction {
 					do {
 						for (int p = 0; p < nP; p++)
 							tempSample(p) = uniform(twist);
-						tempSample *= regionSize();
+						tempSample *= width();
 						tempSample += m_currentBounds.col(0);
 						nTries++;
 						if (nTries > 100) {
@@ -162,7 +162,7 @@ class RegionContraction {
 				m_currentBounds.col(0) = retained.rowwise().minCoeff();
 				m_currentBounds.col(1) = retained.rowwise().maxCoeff();
 				// Terminate if ALL the distances between bounds are under the threshold
-				if (((regionSize() / midPoint()).abs() < m_thresh).all()) {
+				if (((width() / midPoint()).abs() < m_thresh).all()) {
 					m_status = Status::Converged;
 					break;
 				}
@@ -171,17 +171,17 @@ class RegionContraction {
 				// but don't go past initial boundaries
 				if (m_debug)
 					cout << "After search:  " << endl << m_currentBounds.transpose() << endl;
-				ArrayXd tempRS = regionSize(); // Because altering .col(0) will change region size
-				m_currentBounds.col(0) = (m_currentBounds.col(0) - tempRS * m_expand).max(m_startBounds.col(0));
-				m_currentBounds.col(1) = (m_currentBounds.col(1) + tempRS * m_expand).min(m_startBounds.col(1));
+				ArrayXd tempW = width(); // Because altering .col(0) will change width
+				m_currentBounds.col(0) = (m_currentBounds.col(0) - tempW * m_expand).max(m_startBounds.col(0));
+				m_currentBounds.col(1) = (m_currentBounds.col(1) + tempW * m_expand).min(m_startBounds.col(1));
 				if (m_debug)
 					cout << "After expand:  " << endl << m_currentBounds.transpose() << endl;
 				
 				if (m_debug) {
 					cout << "Finished contraction " << m_contractions << endl;
 					cout << m_currentBounds.transpose() << endl;
-					cout << "Mid-point:   " << midPoint().transpose() << endl;
-					cout << "Region Size: " << regionSize().transpose() << endl;
+					cout << "Mid-point: " << midPoint().transpose() << endl;
+					cout << "Width:     " << width().transpose() << endl;
 				}
 			}
 			// Return the best evaluated solution so far
@@ -191,8 +191,8 @@ class RegionContraction {
 			//diffs /= f.signals();
 			if (m_debug) {
 				cout << "Finished, contractions = " << m_contractions << endl;
-				cout << "Mid-point:   " << midPoint().transpose() << endl;
-				cout << "Region Size: " << regionSize().transpose() << endl;
+				cout << "Mid-point: " << midPoint().transpose() << endl;
+				cout << "Width:     " << width().transpose() << endl;
 			}
 		}
 };

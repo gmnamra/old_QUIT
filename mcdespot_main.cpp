@@ -79,7 +79,7 @@ static auto B0fit = mcType::OffResMode::Single;
 static auto components = mcType::Components::Two;
 static auto tesla = mcType::FieldStrength::Three;
 static auto PD = mcType::PDMode::Normalise;
-static int verbose = false, prompt = true, finiteRF = false,
+static int verbose = false, prompt = true, debug = false,
            start_slice = -1, end_slice = -1,
 		   samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
@@ -94,7 +94,6 @@ static struct option long_options[] =
 	{"start_slice", required_argument, 0, 'S'},
 	{"end_slice", required_argument, 0, 'E'},
 	{"PD", required_argument, 0, 'P'},
-	{"finite", no_argument, &finiteRF, true},
 	{"tesla", required_argument, 0, 't'},
 	{"samples", required_argument, 0, 's'},
 	{"retain", required_argument, 0, 'r'},
@@ -139,14 +138,14 @@ Nifti::File parseInput(vector<Info> &info,
 				       vector<Nifti::File > &B1_files,
 				       vector<Nifti::File > &B0_loFiles,
 					   vector<Nifti::File > &B0_hiFiles,
-					   const mcDESPOT::OffResMode &B0fit, const bool &finiteRF);
+					   const mcDESPOT::OffResMode &B0fit);
 Nifti::File parseInput(vector<Info> &info,
 				       vector<Nifti::File > &signalFiles,
 				       vector<Nifti::File > &B1_files,
 				       vector<Nifti::File > &B0_loFiles,
 					   vector<Nifti::File > &B0_hiFiles,
-					   const mcDESPOT::OffResMode &B0fit, const bool &finiteRF) {
-	Nifti::File savedHeader;
+					   const mcDESPOT::OffResMode &B0fit) {
+	Nifti::File templateFile;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
@@ -158,9 +157,9 @@ Nifti::File parseInput(vector<Info> &info,
 		if (prompt) cout << "Enter image path: " << flush;
 		getline(cin, path);
 		if (signalFiles.size() == 0) {
-			savedHeader.open(path, Nifti::Modes::ReadHeader);
+			templateFile.open(path, Nifti::Modes::ReadHeader);
 		}
-		signalFiles.push_back(openAndCheck(path, savedHeader, type));
+		signalFiles.push_back(openAndCheck(path, templateFile, type));
 		double inTR = 0., inTrf = 0., inPhase = 0., inTE = 0.;
 		VectorXd inAngles(signalFiles.back().dim(4));
 		#ifdef HAVE_NRECON
@@ -205,7 +204,7 @@ Nifti::File parseInput(vector<Info> &info,
 		if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
 		getline(cin, path);
 		if ((path != "NONE") && (path != "")) {
-			B1_files.push_back(openAndCheck(path, savedHeader, "B1"));
+			B1_files.push_back(openAndCheck(path, templateFile, "B1"));
 		} else {
 			B1_files.push_back(Nifti::File());
 		}
@@ -216,7 +215,7 @@ Nifti::File parseInput(vector<Info> &info,
 			else if (prompt)
 				cout << "Enter path to low B0 bound map: " << flush;
 			getline(cin, path);
-			B0_loFiles.push_back(openAndCheck(path, savedHeader, "B0"));
+			B0_loFiles.push_back(openAndCheck(path, templateFile, "B0"));
 		} else {
 			B0_loFiles.push_back(Nifti::File());
 		}
@@ -224,7 +223,7 @@ Nifti::File parseInput(vector<Info> &info,
 		if ((!spoil) && ((B0fit == mcDESPOT::OffResMode::Bounded) || (B0fit == mcDESPOT::OffResMode::MultiBounded))) {
 			if (prompt) cout << "Enter path to high B0 bound map: " << flush;
 			getline(cin, path);
-			B0_hiFiles.push_back(openAndCheck(path, savedHeader, "B0"));
+			B0_hiFiles.push_back(openAndCheck(path, templateFile, "B0"));
 		} else {
 			B0_hiFiles.push_back(Nifti::File());
 		}
@@ -235,7 +234,7 @@ Nifti::File parseInput(vector<Info> &info,
 		cerr << "No input images specified." << endl;
 		exit(EXIT_FAILURE);
 	}
-	return savedHeader;
+	return templateFile;
 }
 //******************************************************************************
 // Main
@@ -247,11 +246,11 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	Eigen::initParallel();
-	Nifti::File maskFile, savedHeader;
+	Nifti::File maskFile, templateFile;
 	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "123hvpt:b:m:o:P:fw:s:r:c:e:i:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "123hvpt:b:m:o:P:w:s:r:c:e:i:j:d", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case '1': components = mcType::Components::One; break;
 			case '2': components = mcType::Components::Two; break;
@@ -282,7 +281,6 @@ int main(int argc, char **argv)
 						exit(EXIT_FAILURE);
 						break;
 				} break;
-			case 'f': finiteRF = true; break;
 			case 'w': weighting = atof(optarg); break;
 			case 's': samples  = atoi(optarg); break;
 			case 'r': retain   = atoi(optarg); break;
@@ -313,6 +311,7 @@ int main(int argc, char **argv)
 			case 0:
 				// Just a flag
 				break;
+			case 'd': debug = true; break;
 			case 'h':
 			case '?': // getopt will print an error message
 				cout << usage << endl;
@@ -329,8 +328,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	vector<Info> info;
 	vector<Nifti::File > signalFiles, B1_files, B0_loFiles, B0_hiFiles;
-	savedHeader = parseInput(info, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0fit, finiteRF);
-	if ((maskData.size() > 0) && !(maskFile.matchesSpace(savedHeader))) {
+	templateFile = parseInput(info, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0fit);
+	if ((maskData.size() > 0) && !(maskFile.matchesSpace(templateFile))) {
 		cerr << "Mask file has different dimensions/transform to input data." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -339,8 +338,8 @@ int main(int argc, char **argv)
 	// Use if files are open to indicate default values should be used -
 	// 0 for B0, 1 for B1
 	//**************************************************************************
-	int voxelsPerSlice = savedHeader.voxelsPerSlice();
-	int voxelsPerVolume = savedHeader.voxelsPerVolume();
+	int voxelsPerSlice = templateFile.voxelsPerSlice();
+	int voxelsPerVolume = templateFile.voxelsPerVolume();
 	
 	vector<vector<double>> signalVolumes(signalFiles.size()),
 	                 B1Volumes(signalFiles.size()),
@@ -356,6 +355,7 @@ int main(int argc, char **argv)
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << mcType::to_string(components) << " component model." << endl;
 	mcType mcd(components, info, tesla, B0fit, PD);
+	outPrefix = outPrefix + mcType::to_string(components) + "CD_";
 	
 	ArrayXd weights(mcd.values());
 	size_t index = 0;
@@ -366,31 +366,44 @@ int main(int argc, char **argv)
 			weights.segment(index, info.at(i).nAngles()).setConstant(1.0);
 		index += info.at(i).nAngles();
 	}
-	savedHeader.setDim(4, 1);
-	savedHeader.setDatatype(DT_FLOAT32);
-	vector<Nifti::File> paramsHdrs(mcd.inputs(), savedHeader);
-	vector<vector<double>> paramsData(mcd.inputs());
+	templateFile.setDim(4, 1);
+	templateFile.setDatatype(DT_FLOAT32);
+	
+	vector<Nifti::File> paramsFiles(mcd.inputs(), templateFile);
+	vector<Nifti::File> midpFiles(mcd.inputs(), templateFile);
+	vector<Nifti::File> widthFiles(mcd.inputs(), templateFile);
+	Nifti::File contractFile(templateFile);
+	vector<vector<float>> paramsData(mcd.inputs());
+	vector<vector<float>> midpData(mcd.inputs());
+	vector<vector<float>> widthData(mcd.inputs());
+	vector<size_t> contractData(voxelsPerSlice);
+	for (int i = 0; i < mcd.inputs(); i++) {
+		paramsData.at(i).resize(voxelsPerSlice);
+		paramsFiles.at(i).open(outPrefix + mcd.names()[i] + ".nii.gz", Nifti::Modes::Write);
+		if (debug) {
+			midpData.at(i).resize(voxelsPerSlice);
+			midpFiles.at(i).open(outPrefix + mcd.names()[i] + "_mid.nii.gz", Nifti::Modes::Write);
+			widthData.at(i).resize(voxelsPerSlice);
+			widthFiles.at(i).open(outPrefix + mcd.names()[i] + "_width.nii.gz", Nifti::Modes::Write);
+		}
+	}
+	if (debug)
+		contractFile.open(outPrefix + "_n_contract.nii.gz", Nifti::Modes::Write);
 	
 	vector<vector<double>> residualData(mcd.values());
 	for (int i = 0; i < residualData.size(); i ++)
 		residualData.at(i).resize(voxelsPerVolume);
-	Nifti::File residualHdr(savedHeader);
-	residualHdr.setDim(4, static_cast<int>(mcd.values()));
-	residualHdr.open(outPrefix + "MCD_" + mcType::to_string(components) + "c_" + "Residual.nii.gz", Nifti::Modes::Write);
+	Nifti::File residualFile(templateFile);
+	residualFile.setDim(4, static_cast<int>(mcd.values()));
+	residualFile.open(outPrefix + mcType::to_string(components) + "CD_residuals.nii.gz", Nifti::Modes::Write);
 	
 	ArrayXXd bounds = mcd.defaultBounds();
 	if (prompt && tesla == mcType::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
-	}
-	for (int i = 0; i < mcd.nP(); i++) {
-		if (tesla == mcType::FieldStrength::Unknown) {
+		for (int i = 0; i < mcd.nP(); i++) {
 			if (prompt) cout << mcd.names()[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
-	}
-	for (int i = 0; i < mcd.inputs(); i++) {
-		paramsData.at(i).resize(voxelsPerSlice);
-		paramsHdrs.at(i).open(outPrefix + "MCD_" + mcType::to_string(components) + "c_" + mcd.names()[i] + ".nii.gz", Nifti::Modes::Write);
 	}
 	
 	if (verbose) {
@@ -400,10 +413,10 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Do the fitting
 	//**************************************************************************
-	if ((start_slice < 0) || (start_slice >= savedHeader.dim(3)))
+	if ((start_slice < 0) || (start_slice >= templateFile.dim(3)))
 		start_slice = 0;
-	if ((end_slice < 0) || (end_slice > savedHeader.dim(3)))
-		end_slice = savedHeader.dim(3);
+	if ((end_slice < 0) || (end_slice > templateFile.dim(3)))
+		end_slice = templateFile.dim(3);
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	
     time_t procStart = time(NULL);
@@ -428,9 +441,10 @@ int main(int argc, char **argv)
 		function<void (const int&)> processVox = [&] (const int &vox)
 		{
 			mcType localf(mcd); // Take a thread local copy so we can change info/signals
-			ArrayXd params(localf.inputs()), residuals(localf.values());
-			params.setZero();
-			residuals.setZero();
+			ArrayXd params(localf.inputs()), residuals(localf.values()),
+					width(localf.inputs()), midp(localf.inputs());
+			size_t c = 0;
+			width.setZero(); midp.setZero(); params.setZero(); residuals.setZero();
 			if ((maskData.size() == 0) || (maskData[sliceOffset + vox] > 0.)) {
 				voxCount++;
 				vector<VectorXd> signals(signalFiles.size());
@@ -448,21 +462,32 @@ int main(int argc, char **argv)
 					}
 					localf.info(i).B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
-				// Add the voxel number to the time to get a decent random seed
-				int rSeed = static_cast<int>(time(NULL)) + vox;
 				if ((B0fit == mcType::OffResMode::Bounded) || (B0fit == mcType::OffResMode::MultiBounded)) {
 					for (int b = 0; b < localf.nOffRes(); b++) {
 						localBounds(localf.nP() + b, 0) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
 						localBounds(localf.nP() + b, 1) = B0_hiFiles[b].isOpen() ? B0HiVolumes[b][vox] : 0.;
 					}
 				}
+				// Add the voxel number to the time to get a decent random seed
+				int rSeed = static_cast<int>(time(NULL)) + vox;
 				RegionContraction<mcType> rc(localf, localBounds, weights,
 											 samples, retain, contract, 0.05, expand);
 				rc.optimise(params, rSeed);
 				residuals = rc.residuals();
+				if (debug) {
+					c = rc.contractions();
+					width = rc.width();
+					midp = rc.midPoint();
+				}
 			}
+			if (debug)
+				contractData.at(sliceOffset + vox) = c;
 			for (int p = 0; p < paramsData.size(); p++) {
 				paramsData.at(p).at(vox) = params[p];
+				if (debug) {
+					widthData.at(p).at(sliceOffset + vox) = width(p);
+					midpData.at(p).at(sliceOffset + vox) = midp(p);
+				}
 			}
 			for (int i = 0; i < residuals.size(); i++) {
 				residualData.at(i).at(slice * voxelsPerSlice + vox) = residuals[i];
@@ -471,7 +496,7 @@ int main(int argc, char **argv)
 		if (voxI == -1)
 			threads.for_loop(processVox, voxelsPerSlice);
 		else {
-			int voxInd = savedHeader.dim(1) * voxJ + voxI;
+			int voxInd = templateFile.dim(1) * voxJ + voxI;
 			processVox(voxInd);
 			exit(0);
 		}
@@ -484,8 +509,15 @@ int main(int argc, char **argv)
 			cout << "finished." << endl;
 		}
 		
-		for (int p = 0; p < paramsHdrs.size(); p++)
-			paramsHdrs.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData.at(p));
+		for (int p = 0; p < paramsFiles.size(); p++) {
+			paramsFiles.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData.at(p));
+			if (debug) {
+				midpFiles.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, midpData.at(p));
+				widthFiles.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, widthData.at(p));
+			}
+		}
+		if (debug)
+			contractFile.writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, contractData);
 		if (interrupt_received)
 			break;
 	}
@@ -493,13 +525,9 @@ int main(int argc, char **argv)
     strftime(theTime, 512, "%H:%M:%S", localtime(&procEnd));
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << endl;
-	
-	// Clean up memory and close files (automatically done in destructor)
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
-	for (int r = 0; r < residualData.size(); r++) {
-		residualHdr.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData.at(r));
-	}
-	residualHdr.close();
+	for (int r = 0; r < residualData.size(); r++)
+		residualFile.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData.at(r));
 	cout << "Finished writing data." << endl;
 	return EXIT_SUCCESS;
 }

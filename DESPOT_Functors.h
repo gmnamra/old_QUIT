@@ -198,9 +198,9 @@ class mcDESPOT : public DESPOTFunctor {
 		};
 		static const string to_string(const Components& c) {
 			switch (c) {
-				case Components::One: return "one";
-				case Components::Two: return "two";
-				case Components::Three: return "three";
+				case Components::One: return "1";
+				case Components::Two: return "2";
+				case Components::Three: return "3";
 			}
 		};
 	protected:
@@ -440,11 +440,11 @@ class DESPOT2FM : public DESPOTFunctor {
 			DESPOTFunctor(data, tesla, offRes, PD, debug), m_T1(T1)
 		{
 			m_names.resize(inputs());
-			m_names.at(0) = "FM_T2";
+			m_names.at(0) = "T2";
 			for (int i = 0; i < nOffRes(); i++)
-				m_names.at(1 + i) = "FM_f" + std::to_string(i);
+				m_names.at(1 + i) = "f0_off_" + std::to_string(i);
 			for (int i = 0; i < nPD(); i++)
-				m_names.at(1 + nOffRes() + i) = "FM_PD" + std::to_string(i);
+				m_names.at(1 + nOffRes() + i) = "PD_" + std::to_string(i);
 		}
 		
 		void setT1(const double T1) { m_T1 = T1; }
