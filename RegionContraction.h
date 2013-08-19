@@ -161,6 +161,13 @@ class RegionContraction {
 						cout << "Squared res " << residuals.col(indices[i]).square().sum() << endl;
 					}
 				}
+				if (m_debug) {
+					cout << "Sorted SoS residuals: ";
+					for (int i = 0; i < m_nS; i++) {
+						cout << toSort(indices[i]) << "\t";
+					}
+					cout << endl;
+				}
 				// Find the min and max for each parameter in the top nR samples
 				if (m_debug)
 					cout << "Before search: " << endl << m_currentBounds.transpose() << endl;

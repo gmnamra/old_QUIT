@@ -309,7 +309,7 @@ int main(int argc, char **argv)
 				// DESPOT2-FM
 				locald2.setT1(T1Data.at(sliceOffset + vox));
 				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights,
-				                                samples, retain, contract, 0.05, expand);
+				                                samples, retain, contract, 0.05, expand, (voxI != -1));
 				// Add the voxel number to the time to get a decent random seed
 				int rSeed = static_cast<int>(time(NULL)) + vox;
 				rc.optimise(params, rSeed);
