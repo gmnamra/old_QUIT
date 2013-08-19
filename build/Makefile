@@ -23,14 +23,16 @@ LD_FLAGS = -std=c++11 -lstdc++ -O3 -pthread -L$(INSTALL_LIB)
 LD_LIBS  = -lrecon -lNifti -lz
 
 # Top level build rules
-.PHONY : release debug install clean
+.PHONY : all debug install clean
 .PRECIOUS: $(OBJ_DIR)/%.o # Stop make removing the object files
 
 TARGETS = despot1 despot1hifi despot2 despot2fm mcdespot mcfinite phasemap afi
 
 debug   : CXX_FLAGS+=-g
 debug   : LD_FLAGS+=-g
-debug   : $(TARGETS)
+debug   : all
+
+all		: $(TARGETS)
 
 install : $(INSTALL_BIN) 
 	cp $(TARGETS) $(INSTALL_BIN)/
