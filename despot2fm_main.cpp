@@ -59,7 +59,7 @@ Options:\n\
 	--expand, -e n    : Re-expand boundary by percentage n (Default 0).\n"
 };
 
-// tesla == 0 means NO DESPOT-FM
+static auto PD = DESPOT2FM::PDMode::Normalise;
 static auto tesla = DESPOT2FM::FieldStrength::Three;
 static auto offRes = DESPOT2FM::OffResMode::Single;
 static int verbose = false, debug = false, start_slice = -1, end_slice = -1,
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:vt:s:r:c:e:i:j:w:d", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:o:vt:P:s:r:c:e:i:j:w:d", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;
@@ -128,6 +128,16 @@ int main(int argc, char **argv)
 					case 'u': tesla = DESPOT2FM::FieldStrength::Unknown; break;
 					default:
 						cout << "Unknown boundaries type " << optarg << endl;
+						exit(EXIT_FAILURE);
+						break;
+				} break;
+			case 'P':
+				switch (*optarg) {
+					case 'n' : PD = DESPOT2FM::PDMode::Normalise; break;
+					case 'i' : PD = DESPOT2FM::PDMode::Individual; break;
+					case 'g' : PD = DESPOT2FM::PDMode::Global; break;
+					default:
+						cout << "Invalid PD fitting mode." << endl;
 						exit(EXIT_FAILURE);
 						break;
 				} break;
@@ -224,7 +234,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	DESPOT2FM d2fm(info, 0., tesla, offRes, DESPOT2FM::PDMode::Global);
+	DESPOT2FM d2fm(info, 0., tesla, offRes, PD);
 	ArrayXXd bounds = d2fm.defaultBounds();
 	if (tesla == DESPOT2FM::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
@@ -304,6 +314,9 @@ int main(int argc, char **argv)
 						biggest_signal = locald2.signal(p).sum();
 					}
 					index += locald2.signal(p).rows();
+					if (PD == DESPOT2FM::PDMode::Normalise) {
+						locald2.signal(p) /= locald2.signal(p).mean();
+					}
 				}
 				weights.segment(w_start, w_size).setConstant(weighting);
 				// DESPOT2-FM
