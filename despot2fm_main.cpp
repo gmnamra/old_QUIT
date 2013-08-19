@@ -229,8 +229,6 @@ int main(int argc, char **argv)
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 	}
-	ArrayXd weights(d2fm.values());
-	weights.setConstant(1.0);
 	
 	if (verbose) {
 		cout << "SSFP Angles (deg): " << info.at(0).flip().transpose() * 180 / M_PI << endl;
@@ -290,14 +288,22 @@ int main(int argc, char **argv)
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// -ve T1 is non-sensical, no point fitting
 				voxCount++;
-				// Gather signals.
+				ArrayXd weights(d2fm.values());
+				weights.setConstant(1.0);
+				float biggest_signal = 0.;
+				size_t w_start, w_size, index = 0;
 				for (int p = 0; p < nPhases; p++) {
 					locald2.info(p).f0_off = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
 					locald2.info(p).B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 					for (int i = 0; i < locald2.signal(p).rows(); i++)
 						locald2.signal(p)(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
+					if (locald2.signal(p).sum() > biggest_signal) {
+						w_start = index; w_size = locald2.signal(p).rows();
+						biggest_signal = locald2.signal(p).sum();
+					}
+					index += locald2.signal(p).rows();
 				}
-				
+				weights.segment(w_start, w_size).setConstant(2.0);
 				// DESPOT2-FM
 				locald2.setT1(T1Data.at(sliceOffset + vox));
 				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights,
