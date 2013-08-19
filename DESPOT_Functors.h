@@ -54,7 +54,7 @@ class Functor
 		long inputs() const { return m_inputs; }
 		long values() const { return m_values; }
 		
-		virtual int operator()(const VectorXd &params, ArrayXd &diffs) = 0;
+		virtual int operator()(const VectorXd &params, Ref<ArrayXd> diffs) = 0;
 		
 		virtual const ArrayXd theory(const VectorXd &params) = 0;
 		virtual const ArrayXd signals() const = 0;
@@ -174,7 +174,7 @@ class DESPOTFunctor : public Functor<double> {
 			return v;
 		}
 		
-		int operator()(const VectorXd &params, ArrayXd &diffs) {
+		int operator()(const VectorXd &params, Ref<ArrayXd> diffs) {
 			eigen_assert(diffs.size() == values());
 			ArrayXd t = theory(params);
 			ArrayXd s = signals();

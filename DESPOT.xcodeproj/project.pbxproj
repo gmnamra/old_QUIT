@@ -1203,6 +1203,7 @@
 				F660A66217BD1299008682C3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F660A66D17BD12AC008682C3 /* Build configuration list for PBXNativeTarget "despot2fm" */ = {
 			isa = XCConfigurationList;
@@ -1211,6 +1212,7 @@
 				F660A66F17BD12AC008682C3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F666E51017AFFBC800A6BBE2 /* Build configuration list for PBXNativeTarget "mcfinite" */ = {
 			isa = XCConfigurationList;

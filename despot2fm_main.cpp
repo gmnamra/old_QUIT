@@ -63,8 +63,9 @@ Options:\n\
 static auto tesla = DESPOT2FM::FieldStrength::Three;
 static auto offRes = DESPOT2FM::OffResMode::Single;
 static int verbose = false, debug = false, start_slice = -1, end_slice = -1,
-		   samples = 5000, retain = 50, contract = 10;
-static double expand = 0.;
+		   samples = 5000, retain = 50, contract = 10,
+           voxI = -1, voxJ = -1;
+static double expand = 0., weighting = 1.0;
 static string outPrefix;
 static struct option long_options[] =
 {
@@ -93,12 +94,12 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	Eigen::initParallel();
-	Nifti::File maskFile, B0File, B1File, inFile, savedHeader;
+	Nifti::File maskFile, B0File, B1File, inFile, templateFile;
 	vector<double> maskData, B0Data, B1Data, T1Data;
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:vt:s:r:c:e:d", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:o:vt:s:r:c:e:i:j:w:d", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;
@@ -130,6 +131,9 @@ int main(int argc, char **argv)
 						exit(EXIT_FAILURE);
 						break;
 				} break;
+			case 'i': voxI = atoi(optarg); break;
+			case 'j': voxJ = atoi(optarg); break;
+			case 'w': weighting = atof(optarg); break;
 			case 'v': verbose = true; break;
 			case 'd': debug = true; break;
 			case 'S': start_slice = atoi(optarg); break;
@@ -152,12 +156,12 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
-	savedHeader.open(argv[optind++], Nifti::Modes::Read);
-	T1Data = savedHeader.readVolume<double>(0);
-	savedHeader.close();
-	if ((maskFile.isOpen() && !savedHeader.matchesSpace(maskFile)) ||
-	    (B0File.isOpen() && !savedHeader.matchesSpace(B0File)) ||
-		(B1File.isOpen() && !savedHeader.matchesSpace(B1File))){
+	templateFile.open(argv[optind++], Nifti::Modes::Read);
+	T1Data = templateFile.readVolume<double>(0);
+	templateFile.close();
+	if ((maskFile.isOpen() && !templateFile.matchesSpace(maskFile)) ||
+	    (B0File.isOpen() && !templateFile.matchesSpace(B0File)) ||
+		(B1File.isOpen() && !templateFile.matchesSpace(B1File))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -173,7 +177,7 @@ int main(int argc, char **argv)
 	for (size_t p = 0; p < nPhases; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], Nifti::Modes::Read);
-		if (!inFile.matchesSpace(savedHeader)) {
+		if (!inFile.matchesSpace(templateFile)) {
 			cerr << "Input file dimensions and/or transforms do not match." << endl;
 			exit(EXIT_FAILURE);
 		}
@@ -261,9 +265,7 @@ int main(int argc, char **argv)
 		start_slice = 0;
 	if ((end_slice < 0) || (end_slice > inFile.dim(3)))
 		end_slice = inFile.dim(3);
-	ThreadPool pool;
-	//if (debug)
-	//	pool.resize(1);
+	ThreadPool threads;
     time_t procStart = time(NULL);
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
@@ -303,7 +305,7 @@ int main(int argc, char **argv)
 					}
 					index += locald2.signal(p).rows();
 				}
-				weights.segment(w_start, w_size).setConstant(2.0);
+				weights.segment(w_start, w_size).setConstant(weighting);
 				// DESPOT2-FM
 				locald2.setT1(T1Data.at(sliceOffset + vox));
 				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights,
@@ -332,7 +334,13 @@ int main(int argc, char **argv)
 				}
 			}
 		};
-		pool.for_loop(processVox, voxelsPerSlice);
+		if (voxI == -1)
+			threads.for_loop(processVox, voxelsPerSlice);
+		else {
+			int voxInd = templateFile.dim(1) * voxJ + voxI;
+			processVox(voxInd);
+			exit(0);
+		}
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -349,29 +357,29 @@ int main(int argc, char **argv)
 	
 	outPrefix = outPrefix + "FM_";
 	for (int p = 0; p < d2fm.inputs(); p++) {
-		savedHeader.open(outPrefix + d2fm.names().at(p) + ".nii.gz", Nifti::Modes::Write);
-		savedHeader.writeVolume(0, paramsData.at(p));
-		savedHeader.close();
+		templateFile.open(outPrefix + d2fm.names().at(p) + ".nii.gz", Nifti::Modes::Write);
+		templateFile.writeVolume(0, paramsData.at(p));
+		templateFile.close();
 	}
-	savedHeader.setDim(4, static_cast<int>(residuals.size()));
-	savedHeader.open(outPrefix + "residuals.nii.gz", Nifti::Modes::Write);
+	templateFile.setDim(4, static_cast<int>(residuals.size()));
+	templateFile.open(outPrefix + "residuals.nii.gz", Nifti::Modes::Write);
 	for (int i = 0; i < residuals.size(); i++)
-		savedHeader.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
-	savedHeader.close();
+		templateFile.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
+	templateFile.close();
 	if (debug) {
-		savedHeader.setDim(4, 1);
-		savedHeader.setDatatype(DT_INT16);
-		savedHeader.open(outPrefix + "n_contract.nii.gz", Nifti::Modes::Write);
-		savedHeader.writeVolume(0, contractData);
-		savedHeader.close();
-		savedHeader.setDatatype(DT_FLOAT32);
+		templateFile.setDim(4, 1);
+		templateFile.setDatatype(DT_INT16);
+		templateFile.open(outPrefix + "n_contract.nii.gz", Nifti::Modes::Write);
+		templateFile.writeVolume(0, contractData);
+		templateFile.close();
+		templateFile.setDatatype(DT_FLOAT32);
 		for (int p = 0; p < d2fm.inputs(); p++) {
-			savedHeader.open(outPrefix + d2fm.names().at(p) + "_width.nii.gz", Nifti::Modes::Write);
-			savedHeader.writeVolume(0, widthData.at(p));
-			savedHeader.close();
-			savedHeader.open(outPrefix + d2fm.names().at(p) + "_mid.nii.gz", Nifti::Modes::Write);
-			savedHeader.writeVolume(0, midpData.at(p));
-			savedHeader.close();
+			templateFile.open(outPrefix + d2fm.names().at(p) + "_width.nii.gz", Nifti::Modes::Write);
+			templateFile.writeVolume(0, widthData.at(p));
+			templateFile.close();
+			templateFile.open(outPrefix + d2fm.names().at(p) + "_mid.nii.gz", Nifti::Modes::Write);
+			templateFile.writeVolume(0, midpData.at(p));
+			templateFile.close();
 		}
 	}
 	return EXIT_SUCCESS;

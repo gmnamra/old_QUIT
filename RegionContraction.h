@@ -97,7 +97,7 @@ class RegionContraction {
 			int nP = static_cast<int>(params.size());
 			ArrayXXd samples(m_f.inputs(), m_nS);
 			ArrayXXd retained(m_f.inputs(), m_nR);
-			ArrayXd sampleRes(m_nS);
+			ArrayXXd residuals(m_f.values(), m_nS);
 			vector<size_t> indices(m_nR);
 			m_currentBounds = m_startBounds;
 			m_residuals.setZero();
@@ -134,8 +134,7 @@ class RegionContraction {
 							return;
 						}
 					} while (!m_f.constraint(tempSample));
-					m_f(tempSample, m_residuals);
-					sampleRes(s) = (m_residuals * m_weights).square().sum();
+					m_f(tempSample, residuals.col(s));
 					if (!isfinite(m_residuals.square().sum())) {
 						if (!finiteWarning) {
 							finiteWarning = true;
@@ -152,10 +151,16 @@ class RegionContraction {
 					}
 					samples.col(s) = tempSample;
 				}
-				indices = index_partial_sort(sampleRes, m_nR);
-				for (int i = 0; i < m_nR; i++)
+				ArrayXd toSort = residuals.square().colwise().sum();
+				indices = index_partial_sort(toSort, m_nR);
+				for (int i = 0; i < m_nR; i++) {
 					retained.col(i) = samples.col(indices[i]);
-				
+					if (m_debug) {
+						cout << "Sample " << indices[i] << ": " << retained.col(i).transpose() << endl;
+						cout << "Residuals " << residuals.col(indices[i]).transpose() << endl;
+						cout << "Squared res " << residuals.col(indices[i]).square().sum() << endl;
+					}
+				}
 				// Find the min and max for each parameter in the top nR samples
 				if (m_debug)
 					cout << "Before search: " << endl << m_currentBounds.transpose() << endl;
@@ -170,19 +175,12 @@ class RegionContraction {
 				// Expand the boundaries back out in case we just missed a minima,
 				// but don't go past initial boundaries
 				if (m_debug)
-					cout << "After search:  " << endl << m_currentBounds.transpose() << endl;
+					cout << "After search:  " << endl << width().transpose() << endl;
 				ArrayXd tempW = width(); // Because altering .col(0) will change width
 				m_currentBounds.col(0) = (m_currentBounds.col(0) - tempW * m_expand).max(m_startBounds.col(0));
 				m_currentBounds.col(1) = (m_currentBounds.col(1) + tempW * m_expand).min(m_startBounds.col(1));
 				if (m_debug)
-					cout << "After expand:  " << endl << m_currentBounds.transpose() << endl;
-				
-				if (m_debug) {
-					cout << "Finished contraction " << m_contractions << endl;
-					cout << m_currentBounds.transpose() << endl;
-					cout << "Mid-point: " << midPoint().transpose() << endl;
-					cout << "Width:     " << width().transpose() << endl;
-				}
+					cout << "After expand:  " << endl << width().transpose() << endl;
 			}
 			// Return the best evaluated solution so far
 			params = retained.col(0);
