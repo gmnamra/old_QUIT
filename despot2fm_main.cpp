@@ -62,7 +62,7 @@ Options:\n\
 static auto PD = DESPOT2FM::PDMode::Normalise;
 static auto tesla = DESPOT2FM::FieldStrength::Three;
 static auto offRes = DESPOT2FM::OffResMode::Single;
-static int verbose = false, debug = false, start_slice = -1, end_slice = -1,
+static int verbose = false, debug = false, use_finite = false, start_slice = -1, end_slice = -1,
 		   samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
 static double expand = 0., weighting = 1.0;
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:vt:P:s:r:c:e:i:j:w:d", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:o:vt:P:s:r:c:e:i:j:w:fd", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;
@@ -145,6 +145,7 @@ int main(int argc, char **argv)
 			case 'j': voxJ = atoi(optarg); break;
 			case 'w': weighting = atof(optarg); break;
 			case 'v': verbose = true; break;
+			case 'f': use_finite = true; break;
 			case 'd': debug = true; break;
 			case 'S': start_slice = atoi(optarg); break;
 			case 'E': end_slice = atoi(optarg); break;
@@ -183,7 +184,7 @@ int main(int argc, char **argv)
 	int voxelsPerSlice, voxelsPerVolume;
 	vector<vector<double>> ssfpData(nPhases);
 	VectorXd inFlip;
-	double inTR, inPhase;
+	double inTR, inTrf = 0., inPhase;
 	for (size_t p = 0; p < nPhases; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], Nifti::Modes::Read);
@@ -201,6 +202,8 @@ int main(int argc, char **argv)
 				inTR = RealValue(pars, "tr");
 				for (int i = 0; i < inFlip.size(); i++)
 					inFlip[i] = RealValue(pars, "flip1", i);
+				if (use_finite)
+					inTrf = RealValue(pars, "p1")/1.e6; // p1 is in microseconds
 			} else
 			#endif
 			{
@@ -209,6 +212,10 @@ int main(int argc, char **argv)
 				cout << "Enter " << inFlip.size() << " flip angles (degrees): " << flush;
 				for (int i = 0; i < inFlip.size(); i++)
 					cin >> inFlip[i];
+				if (use_finite) {
+					cout << "Enter RF Pulse Length (seconds): " << flush;
+					cin >> inTrf;
+				}
 			}
 			inFlip *= M_PI / 180.;
 		}
@@ -223,7 +230,7 @@ int main(int argc, char **argv)
 			cin >> inPhase; inPhase *= M_PI / 180.;
 		}
 		cout << "Reading SSFP data..." << endl;
-		info.emplace_back(inFlip, false, inTR, 0., 0., inPhase);
+		info.emplace_back(inFlip, false, inTR, inTrf, 0., inPhase);
 		ssfpData[p] = inFile.readAllVolumes<double>();
 		inFile.close();
 		optind++;
@@ -234,7 +241,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	DESPOT2FM d2fm(info, 0., tesla, offRes, PD);
+	DESPOT2FM d2fm(info, 0., tesla, offRes, PD, use_finite);
 	ArrayXXd bounds = d2fm.defaultBounds();
 	if (tesla == DESPOT2FM::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
