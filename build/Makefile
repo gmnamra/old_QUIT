@@ -23,14 +23,16 @@ LD_FLAGS = -std=c++11 -lstdc++ -O3 -pthread -L$(INSTALL_LIB)
 LD_LIBS  = -lrecon -lNifti -lz
 
 # Top level build rules
-.PHONY : release debug install clean
+.PHONY : all debug install clean
 .PRECIOUS: $(OBJ_DIR)/%.o # Stop make removing the object files
 
 TARGETS = despot1 despot1hifi despot2 despot2fm mcdespot mcfinite phasemap afi
 
 debug   : CXX_FLAGS+=-g
 debug   : LD_FLAGS+=-g
-debug   : $(TARGETS)
+debug   : all
+
+all		: $(TARGETS)
 
 install : $(INSTALL_BIN) 
 	cp $(TARGETS) $(INSTALL_BIN)/
@@ -42,13 +44,13 @@ clean :
 %: $(OBJ_DIR)/%_main.o $(OBJ_DIR)/DESPOT.o $(OBJ_DIR)/ThreadPool.o | $(OBJ_DIR)
 	$(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS)
 
-$(OBJ_DIR)/mcfinite_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
+$(OBJ_DIR)/mcfinite_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h $(SRC_DIR)/RegionContraction.h | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -DUSE_MCFINITE -o $@ $<
 
-$(OBJ_DIR)/mcdespot_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
+$(OBJ_DIR)/mcdespot_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h $(SRC_DIR)/RegionContraction.h | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
 
-$(OBJ_DIR)/despot2fm_main.o: $(SRC_DIR)/despot2fm_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
+$(OBJ_DIR)/despot2fm_main.o: $(SRC_DIR)/despot2fm_main.cpp $(SRC_DIR)/DESPOT_Functors.h $(SRC_DIR)/RegionContraction.h | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)

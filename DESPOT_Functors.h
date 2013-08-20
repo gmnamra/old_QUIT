@@ -113,8 +113,8 @@ class DESPOTFunctor : public Functor<double> {
 		ArrayXXd PDBounds() {
 			ArrayXXd b(nPD(), 2);
 			for (size_t i = 0; i < nPD(); i++) {
-				b(i, 0) = 0.;
-				b(i, 1) = 1.e7;
+				b(i, 0) = 1.e4;
+				b(i, 1) = 5.e6;
 			}
 			return b;
 		}
