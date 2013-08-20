@@ -156,21 +156,15 @@ class RegionContraction {
 				for (int i = 0; i < m_nR; i++) {
 					retained.col(i) = samples.col(indices[i]);
 					if (m_debug) {
-						cout << "Sample " << indices[i] << ": " << retained.col(i).transpose() << endl;
-						cout << "Residuals " << residuals.col(indices[i]).transpose() << endl;
-						cout << "Squared res " << residuals.col(indices[i]).square().sum() << endl;
+						cout << "Sample " << indices[i] << " RES " << residuals.col(indices[i]).square().sum() << "\t PARAMS " << retained.col(i).transpose();
+						cout << "\t " << residuals.col(indices[i]).transpose() << endl;
 					}
-				}
-				if (m_debug) {
-					cout << "Sorted SoS residuals: ";
-					for (int i = 0; i < m_nS; i++) {
-						cout << toSort(indices[i]) << "\t";
-					}
-					cout << endl;
 				}
 				// Find the min and max for each parameter in the top nR samples
-				if (m_debug)
-					cout << "Before search: " << endl << m_currentBounds.transpose() << endl;
+				if (m_debug) {
+					cout << "RES Min: " << toSort.minCoeff() << " Max: " << toSort.maxCoeff() << endl;
+					cout << "Before search MID: " << midPoint().transpose() << " WIDTH: " << width().transpose() << endl;
+				}
 				m_currentBounds.col(0) = retained.rowwise().minCoeff();
 				m_currentBounds.col(1) = retained.rowwise().maxCoeff();
 				// Terminate if ALL the distances between bounds are under the threshold
@@ -182,12 +176,12 @@ class RegionContraction {
 				// Expand the boundaries back out in case we just missed a minima,
 				// but don't go past initial boundaries
 				if (m_debug)
-					cout << "After search:  " << endl << width().transpose() << endl;
+					cout << "After search MID: " << midPoint().transpose() << " WIDTH: " << width().transpose() << endl;
 				ArrayXd tempW = width(); // Because altering .col(0) will change width
 				m_currentBounds.col(0) = (m_currentBounds.col(0) - tempW * m_expand).max(m_startBounds.col(0));
 				m_currentBounds.col(1) = (m_currentBounds.col(1) + tempW * m_expand).min(m_startBounds.col(1));
 				if (m_debug)
-					cout << "After expand:  " << endl << width().transpose() << endl;
+					cout << "After expand MID: " << midPoint().transpose() << " WIDTH: " << width().transpose() << endl;
 			}
 			// Return the best evaluated solution so far
 			params = retained.col(0);
