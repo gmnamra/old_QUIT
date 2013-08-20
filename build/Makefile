@@ -44,13 +44,13 @@ clean :
 %: $(OBJ_DIR)/%_main.o $(OBJ_DIR)/DESPOT.o $(OBJ_DIR)/ThreadPool.o | $(OBJ_DIR)
 	$(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS)
 
-$(OBJ_DIR)/mcfinite_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
+$(OBJ_DIR)/mcfinite_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h $(SRC_DIR)/RegionContraction.h | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -DUSE_MCFINITE -o $@ $<
 
-$(OBJ_DIR)/mcdespot_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
+$(OBJ_DIR)/mcdespot_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h $(SRC_DIR)/RegionContraction.h | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
 
-$(OBJ_DIR)/despot2fm_main.o: $(SRC_DIR)/despot2fm_main.cpp $(SRC_DIR)/DESPOT_Functors.h | $(OBJ_DIR)
+$(OBJ_DIR)/despot2fm_main.o: $(SRC_DIR)/despot2fm_main.cpp $(SRC_DIR)/DESPOT_Functors.h $(SRC_DIR)/RegionContraction.h | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
