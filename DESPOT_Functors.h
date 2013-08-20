@@ -409,6 +409,7 @@ class mcFinite : public mcDESPOT {
 class DESPOT2FM : public DESPOTFunctor {
 	protected:
 		double m_T1;
+		bool m_finite;
 		
 	public:
 		const size_t nP() const {
@@ -436,8 +437,8 @@ class DESPOT2FM : public DESPOTFunctor {
 		
 		DESPOT2FM(vector<Info> &data, const double T1,
 				  const FieldStrength& tesla, const OffResMode &offRes, const PDMode &PD = PDMode::Global,
-				  const bool &debug = false) :
-			DESPOTFunctor(data, tesla, offRes, PD, debug), m_T1(T1)
+				  const bool &finite = false, const bool &debug = false) :
+			DESPOTFunctor(data, tesla, offRes, PD, debug), m_T1(T1), m_finite(finite)
 		{
 			m_names.resize(inputs());
 			m_names.at(0) = "T2";
@@ -467,7 +468,11 @@ class DESPOT2FM : public DESPOTFunctor {
 					case (PDMode::Global): PD = params[nP() + nOffRes()]; break;
 					case (PDMode::Individual): PD = params[nP() + nOffRes() + i]; break;
 				}
-				M = One_SSFP(m_info.at(i), T1T2, PD);
+				if (m_finite) {
+					M = One_SSFP_Finite(m_info.at(i), T1T2, PD);
+				} else {
+					M = One_SSFP(m_info.at(i), T1T2, PD);
+				}
 				ArrayXd theory = SigMag(M);
 				if (m_PDMode == PDMode::Normalise) {
 					theory /= theory.mean();

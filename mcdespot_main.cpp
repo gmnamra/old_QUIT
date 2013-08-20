@@ -173,7 +173,7 @@ Nifti::File parseInput(vector<Info> &info,
 			#ifdef USE_MCFINITE
 				if (spoil)
 					inTE = RealValue(pars, "te");
-				inTrf = RealValue(pars, "p1") / 1e6; // p1 is in microseconds
+				inTrf = RealValue(pars, "p1") / 1.e6; // p1 is in microseconds
 			#endif
 		} else
 		#endif
