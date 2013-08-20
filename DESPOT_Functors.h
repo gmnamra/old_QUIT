@@ -419,8 +419,8 @@ class DESPOT2FM : public DESPOTFunctor {
 		const ArrayXXd defaultBounds() {
 			ArrayXXd b(inputs(), 2);
 			switch (m_fieldStrength) {
-				case FieldStrength::Three: b.block(0, 0, 1, 2) << 0.010, 0.5; break;
-				case FieldStrength::Seven: b.block(0, 0, 1, 2) << 0.005, 0.25; break;
+				case FieldStrength::Three: b.block(0, 0, 1, 2) << 0.010, 1.5; break;
+				case FieldStrength::Seven: b.block(0, 0, 1, 2) << 0.005, 2.0; break;
 				case FieldStrength::Unknown: b.block(0, 0, 1, 2).setZero(); break;
 			}
 			b.block(nP(), 0, nOffRes(), 2) = offResBounds();

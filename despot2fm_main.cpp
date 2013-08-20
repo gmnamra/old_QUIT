@@ -63,7 +63,7 @@ static auto PD = DESPOT2FM::PDMode::Normalise;
 static auto tesla = DESPOT2FM::FieldStrength::Three;
 static auto offRes = DESPOT2FM::OffResMode::Single;
 static int verbose = false, debug = false, use_finite = false, start_slice = -1, end_slice = -1,
-		   samples = 5000, retain = 50, contract = 10,
+		   samples = 2000, retain = 20, contract = 10,
            voxI = -1, voxJ = -1;
 static double expand = 0., weighting = 1.0;
 static string outPrefix;
