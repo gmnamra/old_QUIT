@@ -51,8 +51,8 @@ class Functor
 		
 		virtual ~Functor() {};
 		
-		long inputs() const { return m_inputs; }
-		long values() const { return m_values; }
+		virtual const long inputs() const { return m_inputs; }
+		virtual const long values() const { return m_values; }
 		
 		virtual int operator()(const VectorXd &params, Ref<ArrayXd> diffs) = 0;
 		
@@ -123,6 +123,8 @@ class DESPOTFunctor : public Functor<double> {
 			}
 			return b;
 		}
+		
+		virtual const ArrayXXd defaultBounds() = 0;
 	
 	public:
 		const size_t nOffRes() const {
@@ -143,10 +145,10 @@ class DESPOTFunctor : public Functor<double> {
 			}
 		}
 		
-		virtual const size_t nP() const { return 0; } // Base classes MUST override this
-		
-		const long inputs() const { return this->nP() + nOffRes() + nPD(); }
-		const long values() const { return m_nV; }
+		virtual const size_t nP() const = 0;
+		virtual const bool constraint(const VectorXd &params) const = 0;
+		const long inputs() const override { return this->nP() + nOffRes() + nPD(); }
+		const long values() const override { return m_nV; }
 		
 		DESPOTFunctor(vector<Info> &info_in,
 					  const FieldStrength &tesla,
@@ -179,7 +181,7 @@ class DESPOTFunctor : public Functor<double> {
 			return v;
 		}
 		
-		int operator()(const VectorXd &params, Ref<ArrayXd> diffs) {
+		int operator()(const VectorXd &params, Ref<ArrayXd> diffs) override {
 			eigen_assert(diffs.size() == values());
 			ArrayXd t = theory(params);
 			ArrayXd s = signals();
@@ -212,7 +214,7 @@ class mcDESPOT : public DESPOTFunctor {
 		const Components m_components;
 	
 	public:
-		const size_t nP() const {
+		const size_t nP() const override {
 			switch (m_components) {
 				case Components::One: return 2;
 				case Components::Two: return 6;
@@ -220,7 +222,7 @@ class mcDESPOT : public DESPOTFunctor {
 			}
 		}
 		
-		const ArrayXXd defaultBounds() {
+		const ArrayXXd defaultBounds() override {
 			ArrayXXd b(inputs(), 2);
 			switch (m_fieldStrength) {
 				case FieldStrength::Three:
@@ -265,7 +267,7 @@ class mcDESPOT : public DESPOTFunctor {
 				m_names.emplace_back("PD_" + std::to_string(i));
 		}
 		
-		const bool constraint(const VectorXd &params) {
+		const bool constraint(const VectorXd &params) const override {
 			// Negative PD or T1/T2 makes no sense
 			if ((params[0] <= 0.) || (params[1] <= 0.))
 				return false;
@@ -294,7 +296,7 @@ class mcDESPOT : public DESPOTFunctor {
 				return true;
 		}
 		
-		const ArrayXd theory(const VectorXd &params) {
+		const ArrayXd theory(const VectorXd &params) override {
 			ArrayXd t(values());
 			int index = 0;
 			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
@@ -337,11 +339,11 @@ class mcDESPOT : public DESPOTFunctor {
 
 class mcFinite : public mcDESPOT {
 	public:
-		const size_t nP() const {
+		const size_t nP() const override {
 			return mcDESPOT::nP() + 1;
 		}
 				
-		const ArrayXXd defaultBounds() {
+		const ArrayXXd defaultBounds() override {
 			ArrayXXd b(inputs(), 2);
 			switch (m_fieldStrength) {
 				case FieldStrength::Three:
@@ -376,7 +378,7 @@ class mcFinite : public mcDESPOT {
 			m_names.insert(m_names.begin() + nP(), "delta_f");
 		}
 		
-		const ArrayXd theory(const VectorXd &params) {
+		const ArrayXd theory(const VectorXd &params) override {
 			ArrayXd t(values());
 			int index = 0;
 			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
@@ -417,11 +419,11 @@ class DESPOT2FM : public DESPOTFunctor {
 		bool m_finite;
 		
 	public:
-		const size_t nP() const {
+		const size_t nP() const override {
 			return 1;
 		}
 		
-		const ArrayXXd defaultBounds() {
+		const ArrayXXd defaultBounds() override {
 			ArrayXXd b(inputs(), 2);
 			switch (m_fieldStrength) {
 				case FieldStrength::Three: b.block(0, 0, 1, 2) << 0.010, 1.5; break;
@@ -433,7 +435,7 @@ class DESPOT2FM : public DESPOTFunctor {
 			return b;
 		}
 		
-		const bool constraint(const VectorXd &params) {
+		const bool constraint(const VectorXd &params) const override {
 			if (params[0] < 0.)
 				return false;
 			else
@@ -455,7 +457,7 @@ class DESPOT2FM : public DESPOTFunctor {
 		
 		void setT1(const double T1) { m_T1 = T1; }
 		
-		const ArrayXd theory(const VectorXd &params) {
+		const ArrayXd theory(const VectorXd &params) override {
 			VectorXd T1T2(2);
 			T1T2 << m_T1, params[0];
 			
