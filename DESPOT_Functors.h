@@ -255,9 +255,9 @@ class mcDESPOT : public DESPOTFunctor {
 				case Components::Three: m_names = {"T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c"}; break;
 			}
 			for (int i = 0; i < nOffRes(); i++)
-				m_names.emplace_back("f" + std::to_string(i));
+				m_names.emplace_back("f0_" + std::to_string(i));
 			for (int i = 0; i < nPD(); i++)
-				m_names.emplace_back("PD" + std::to_string(i));
+				m_names.emplace_back("PD_" + std::to_string(i));
 		}
 		
 		const bool constraint(const VectorXd &params) {
@@ -443,7 +443,7 @@ class DESPOT2FM : public DESPOTFunctor {
 			m_names.resize(inputs());
 			m_names.at(0) = "T2";
 			for (int i = 0; i < nOffRes(); i++)
-				m_names.at(1 + i) = "f0_off_" + std::to_string(i);
+				m_names.at(1 + i) = "f0_" + std::to_string(i);
 			for (int i = 0; i < nPD(); i++)
 				m_names.at(1 + nOffRes() + i) = "PD_" + std::to_string(i);
 		}
