@@ -101,8 +101,13 @@ class DESPOTFunctor : public Functor<double> {
 	
 		ArrayXXd offResBounds() {
 			ArrayXXd b(nOffRes(), 2);
+			bool symmetricB0 = true;
+			for (auto &i : m_info) {
+				if (fmod(i.phase, M_PI) > numeric_limits<double>::epsilon()) {
+					symmetricB0 = false;
+				}
+			}
 			for (size_t i = 0; i < nOffRes(); i++) {
-				bool symmetricB0 = (fmod(m_info.at(i).phase, M_PI) < numeric_limits<double>::epsilon());
 				if (symmetricB0) b(i, 0) = 0;
 				else b(i, 0) = -0.5 / m_info.at(i).TR;
 				b(i, 1) = 0.5 / m_info.at(i).TR;
