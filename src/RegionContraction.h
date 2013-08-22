@@ -149,6 +149,7 @@ class RegionContraction {
 						m_status = Status::ErrorInfiniteResidual;
 						return;
 					}
+					residuals.col(s) *= m_weights;
 					samples.col(s) = tempSample;
 				}
 				ArrayXd toSort = residuals.square().colwise().sum();
