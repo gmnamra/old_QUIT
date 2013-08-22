@@ -14,11 +14,6 @@
 			<key>orderHint</key>
 			<integer>3</integer>
 		</dict>
-		<key>nrecon.xcscheme</key>
-		<dict>
-			<key>orderHint</key>
-			<integer>2</integer>
-		</dict>
 		<key>procparse.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
