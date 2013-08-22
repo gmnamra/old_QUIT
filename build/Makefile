@@ -6,7 +6,7 @@
 ###################################################
 
 # Set up Paths
-SRC_DIR = ..
+SRC_DIR = ../src
 OBJ_DIR := obj
 INSTALL_DIR := /home/k1078535/Code
 INSTALL_BIN = $(INSTALL_DIR)/bin
@@ -32,7 +32,7 @@ debug   : CXX_FLAGS+=-g
 debug   : LD_FLAGS+=-g
 debug   : all
 
-all		: $(TARGETS)
+all	: $(TARGETS)
 
 install : $(INSTALL_BIN) 
 	cp $(TARGETS) $(INSTALL_BIN)/

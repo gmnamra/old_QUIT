@@ -22,7 +22,7 @@
 #include "RegionContraction.h"
 #include "ThreadPool.h"
 
-#ifdef HAVE_NRECON
+#ifdef AGILENT
 	#include "procpar.h"
 	using namespace Recon;
 #endif
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 			inFlip.resize(inFile.dim(4));
 			voxelsPerSlice = inFile.voxelsPerSlice();
 			voxelsPerVolume = inFile.voxelsPerVolume();
-			#ifdef HAVE_NRECON
+			#ifdef AGILENT
 			ParameterList pars;
 			if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
 				inTR = RealValue(pars, "tr");
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
 			}
 			inFlip *= M_PI / 180.;
 		}
-		#ifdef HAVE_NRECON
+		#ifdef AGILENT
 		ParameterList pars;
 		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
 			inPhase = RealValue(pars, "rfphase") * M_PI / 180.;

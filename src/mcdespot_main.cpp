@@ -22,7 +22,7 @@
 #include "ThreadPool.h"
 #include "RegionContraction.h"
 
-#ifdef HAVE_NRECON
+#ifdef AGILENT
 	#include "procpar.h"
 	using namespace Recon;
 #endif
@@ -162,7 +162,7 @@ Nifti::File parseInput(vector<Info> &info,
 		signalFiles.push_back(openAndCheck(path, templateFile, type));
 		double inTR = 0., inTrf = 0., inPhase = 0., inTE = 0.;
 		VectorXd inAngles(signalFiles.back().dim(4));
-		#ifdef HAVE_NRECON
+		#ifdef AGILENT
 		ParameterList pars;
 		if (ReadProcpar(signalFiles.back().basePath() + ".procpar", pars)) {
 			inTR = RealValue(pars, "tr");

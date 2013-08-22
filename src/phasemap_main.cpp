@@ -17,7 +17,7 @@
 #include "procpar.h"
 
 using namespace std;
-#ifdef HAVE_NRECON
+#ifdef AGILENT
 	#include "procpar.h"
 	using namespace Recon;
 #endif
@@ -70,7 +70,7 @@ int main(int argc, char** argv)
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
-		#ifdef HAVE_NRECON
+		#ifdef AGILENT
 		ParameterList pars;
 		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
 			TE1 = RealValue(pars, "te", 0);
@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
-		#ifdef HAVE_NRECON
+		#ifdef AGILENT
 		ParameterList pars;
 		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
 			TE1 = RealValue(pars, "te", 0);
@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
-		#ifdef HAVE_NRECON
+		#ifdef AGILENT
 		if (ReadProcpar(inFile.basePath() + ".procpar", pars)){
 			TE2 = RealValue(pars, "te", 0);
 		} else

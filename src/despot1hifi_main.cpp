@@ -22,7 +22,7 @@
 #include "DESPOT.h"
 #include "ThreadPool.h"
 
-#ifdef HAVE_NRECON
+#ifdef AGILENT
 #include "procpar.h"
 using namespace Recon;
 #endif
@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
 	VectorXd spgrAngles(nSPGR);
 	double spgrTR;
 	
-	#ifdef HAVE_NRECON
+	#ifdef AGILENT
 	ParameterList pars;
 	if (ReadProcpar(spgrFile.basePath() + ".procpar", pars)) {
 		spgrTR = RealValue(pars, "tr");
@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
 	VectorXd irTI(nIR);
 	double irAngle, irTR;
 	
-	#ifdef HAVE_NRECON
+	#ifdef AGILENT
 	if (ReadProcpar(irFile.basePath() + ".procpar", pars)) {
 		irAngle = RealValue(pars, "flip1") * M_PI / 180.;
 		for (int i = 0; i < nIR; i++) irTI[i] = RealValue(pars, "ti", i);
