@@ -18,7 +18,7 @@
 #include "FIDFile.h"
 #include "procpar.h"
 
-namespace Recon {
+namespace Agilent {
 
 enum AppTypes {
 	im2D = 0,

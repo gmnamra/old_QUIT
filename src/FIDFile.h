@@ -107,7 +107,7 @@ using namespace std;
 #define DATA_FILE	0x80
 #define PHAS_FILE	0xc0
 
-namespace Recon {
+namespace Agilent {
 
 class FIDFile {
 
@@ -190,6 +190,6 @@ class FIDFile {
 		const string print_header() const;
 };
 
-}; // End namespace Recon
+}; // End namespace Agilent
 
 #endif /* defined(__Nrecon__fid__) */

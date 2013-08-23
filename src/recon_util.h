@@ -6,10 +6,10 @@
 //
 //
 
-#ifndef Nrecon_recon_util_h
-#define Nrecon_recon_util_h
+#ifndef AGILENT_AGILENT
+#define AGILENT_AGILENT
 
-namespace Recon {
+namespace Agilent {
 
 #define NRECON_ERROR( err ) do { std::cerr << __PRETTY_FUNCTION__ << ": " << ( err ) << std::flush << std::endl; } while(0)
 #define NRECON_FAIL( err ) do { NRECON_ERROR( err ); exit(EXIT_FAILURE); } while(0)
@@ -35,5 +35,5 @@ void SwapEndianness(T *ptr, int n = 1) {
 	}
 }
 
-} // End namespace Recon
+} // End namespace Agilent
 #endif

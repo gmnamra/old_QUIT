@@ -11,7 +11,7 @@
 #include "procpar.h"
 
 using namespace std;
-using namespace Recon;
+using namespace Agilent;
 
 static int full = false, partial = false, verbose = false;
 

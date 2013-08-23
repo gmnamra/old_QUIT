@@ -8,7 +8,7 @@
 
 #include "FIDFile.h"
 
-namespace Recon {
+namespace Agilent {
 
 void FIDFile::SwapFileHeader(FileHeader *hdr) {
 	SwapEndianness(&hdr->nblocks);
@@ -147,4 +147,4 @@ const string FIDFile::print_header() const {
 	return ss.str();
 }
 
-} // End namespace Recon
+} // End namespace Agilent

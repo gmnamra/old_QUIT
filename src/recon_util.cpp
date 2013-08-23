@@ -8,7 +8,7 @@
 
 #include "recon_util.h"
 
-namespace Recon {
+namespace Agilent {
 
 Endianness HostEndianness() {
 	union {
@@ -24,4 +24,4 @@ Endianness HostEndianness() {
 		return LittleEndian;
 }
 
-} // End namespace Recon
+} // End namespace Agilent

@@ -8,7 +8,7 @@
 
 #include "FID.h"
 
-namespace Recon {
+namespace Agilent {
 const map<string, AppTypes> FID::AppTypeMap
 {
 	{"im2D", im2D},

@@ -8,7 +8,7 @@
 
 #include "procpar.h"
 
-namespace Recon {
+namespace Agilent {
 
 //******************************************************************************
 #pragma mark Constructors
@@ -427,4 +427,4 @@ const string &StringValue(const ParameterList &pl, const string &name, const int
 		return p->second.stringValue(index);
 }
 
-}; // End namespace Recon
+}; // End namespace Agilent
