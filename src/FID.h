@@ -6,8 +6,8 @@
 //
 //
 
-#ifndef __Nrecon__FID__
-#define __Nrecon__FID__
+#ifndef AGILENT_FID
+#define AGILENT_FID
 
 #include <string>
 #include <iostream>

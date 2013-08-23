@@ -6,8 +6,8 @@
  *  Copyright (c) 2012 Tobias Wood. All rights reserved.
  */
 
-#ifndef __Nrecon__fid__
-#define __Nrecon__fid__
+#ifndef AGILENT_FIDFILE
+#define AGILENT_FIDFILE
 
 #include <iostream>
 #include <fstream>

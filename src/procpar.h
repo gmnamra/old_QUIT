@@ -6,8 +6,8 @@
 //  Copyright (c) 2012 Tobias Wood. All rights reserved.
 //
 
-#ifndef PROCPAR
-#define PROCPAR
+#ifndef AGILENT_PROCPAR
+#define AGILENT_PROCPAR
 
 #include <string>
 #include <sstream>
