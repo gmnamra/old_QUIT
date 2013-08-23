@@ -303,9 +303,9 @@ class mcDESPOT : public DESPOTFunctor {
 			for (int i = 0; i < m_info.size(); i++) {
 				MagVector M(3, m_info[i].flip().size());
 				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
-					m_info.at(i).f0_off = params[nP()];
+					m_info.at(i).f0 = params[nP()];
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
-					m_info.at(i).f0_off = params[nP() + i];
+					m_info.at(i).f0 = params[nP() + i];
 				double PD;
 				switch (m_PDMode) {
 					case (PDMode::Normalise): PD = 1.; break;
@@ -385,9 +385,9 @@ class mcFinite : public mcDESPOT {
 			for (int i = 0; i < m_info.size(); i++) {
 				MagVector M(3, m_info[i].flip().size());
 				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
-					m_info[i].f0_off = params[nP()];
+					m_info[i].f0 = params[nP()];
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
-					m_info[i].f0_off = params[nP() + i];
+					m_info[i].f0 = params[nP() + i];
 				double PD;
 				switch (m_PDMode) {
 					case (PDMode::Normalise): PD = 1.; break;
@@ -466,9 +466,9 @@ class DESPOT2FM : public DESPOTFunctor {
 			for (int i = 0; i < m_info.size(); i++) {
 				MagVector M(3, m_info[i].flip().size());
 				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
-					m_info[i].f0_off = params[nP()];
+					m_info[i].f0 = params[nP()];
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
-					m_info[i].f0_off = params[nP() + i];
+					m_info[i].f0 = params[nP() + i];
 				double PD;
 				switch (m_PDMode) {
 					case (PDMode::Normalise): PD = 1.; break;

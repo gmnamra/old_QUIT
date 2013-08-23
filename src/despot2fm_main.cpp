@@ -312,7 +312,7 @@ int main(int argc, char **argv)
 				float biggest_signal = 0.;
 				size_t w_start, w_size, index = 0;
 				for (int p = 0; p < nPhases; p++) {
-					locald2.info(p).f0_off = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
+					locald2.info(p).f0 = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
 					locald2.info(p).B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 					for (int i = 0; i < locald2.signal(p).rows(); i++)
 						locald2.signal(p)(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
@@ -321,8 +321,14 @@ int main(int argc, char **argv)
 						biggest_signal = locald2.signal(p).sum();
 					}
 					index += locald2.signal(p).rows();
+					if (voxI != -1) {
+						cout << "Signal " << p << ": " << locald2.signal(p).transpose() << endl;
+					}
 					if (PD == DESPOT2FM::PDMode::Normalise) {
 						locald2.signal(p) /= locald2.signal(p).mean();
+						if (voxI != -1) {
+							cout << "Normalised: " << locald2.signal(p).transpose() << endl;
+						}
 					}
 				}
 				weights.segment(w_start, w_size).setConstant(weighting);

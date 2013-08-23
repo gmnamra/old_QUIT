@@ -51,13 +51,13 @@ class Info {
 	private:
 		VectorXd m_flip;
 	public:
-		// B0 is field-strength in T, f0_off is off-resonance in Hz
-		double TR, Trf, TE, phase, f0_off, B1;
+		// B0 is field-strength in T, f0 is off-resonance in Hz
+		double TR, Trf, TE, phase, f0, B1;
 		bool spoil;
 	
 		Info();
-		Info(const VectorXd &flip, bool inSpoil, double inTR, double inTrf = 0., double inTE = 0., double inPhase = M_PI, double inf0_off = 0., double inB1 = 1.);
-		Info(const VectorXd &flip, double inSpoil, double inTR, double inTrf, double inTE, double inPhase, double inf0_off, double inB1) = delete;
+		Info(const VectorXd &flip, bool inSpoil, double inTR, double inTrf = 0., double inTE = 0., double inPhase = M_PI, double inf0 = 0., double inB1 = 1.);
+		Info(const VectorXd &flip, double inSpoil, double inTR, double inTrf, double inTE, double inPhase, double inf0, double inB1) = delete;
 		
 		const size_t nAngles() const;
 		const VectorXd &flip() const;

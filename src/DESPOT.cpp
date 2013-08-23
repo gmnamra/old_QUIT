@@ -118,14 +118,14 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
 // Class that holds a complete set of information needed to process a mcDESPOT
 // dataset
 //******************************************************************************
-Info::Info() : TR(0.), Trf(0.), TE(0.), phase(0.), f0_off(0.), B1(0.), spoil(false), m_flip()
+Info::Info() : TR(0.), Trf(0.), TE(0.), phase(0.), f0(0.), B1(0.), spoil(false), m_flip()
 {}
 
 Info::Info(const VectorXd &flip, bool inSpoil,
            double inTR, double inTrf, double inTE,
-	       double inPhase, double inf0_off, double inB1) :
+	       double inPhase, double inf0, double inB1) :
 	TR(inTR), Trf(inTrf), TE(inTE), phase(inPhase),
-	f0_off(inf0_off), B1(inB1), spoil(inSpoil), m_flip(flip)
+	f0(inf0), B1(inB1), spoil(inSpoil), m_flip(flip)
 {}
 
 const size_t Info::nAngles() const { return m_flip.rows(); }
@@ -236,7 +236,7 @@ MagVector One_SSFP(const Info &d, const VectorXd &p, const double PD)
 {
 	Vector3d M0, Mobs;
 	M0 << 0., 0., 1.;
-	Matrix3d L = (-(Relax(p[0], p[1]) + OffResonance(d.f0_off))*d.TR).exp();
+	Matrix3d L = (-(Relax(p[0], p[1]) + OffResonance(d.f0))*d.TR).exp();
 	const Vector3d RHS = (Matrix3d::Identity() - L) * M0;
 	MagVector theory(3, d.flip().size());
 	Matrix3d R_rf;
@@ -251,7 +251,7 @@ MagVector One_SSFP(const Info &d, const VectorXd &p, const double PD)
 MagVector One_SSFP_Finite(const Info &d, const VectorXd &p, const double PD)
 {
 	const Matrix3d I = Matrix3d::Identity();
-	const Matrix3d O = OffResonance(d.f0_off);
+	const Matrix3d O = OffResonance(d.f0);
 	Matrix3d C, R;
 	double TE;
 	if (d.spoil) {
@@ -313,7 +313,7 @@ MagVector Two_SSFP(const Info &d, const VectorXd &p, const double PD)
 	Matrix6d R = Matrix6d::Zero();
 	R.block(0,0,3,3) = Relax(p[0], p[1]);
 	R.block(3,3,3,3) = Relax(p[2], p[3]);
-	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(d.f0_off);
+	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(d.f0);
 	double k_ab, k_ba;
 	CalcExchange(p[4], p[5], (1 - p[5]), k_ab, k_ba);
 	Matrix6d K = Exchange(k_ab, k_ba);
@@ -335,7 +335,7 @@ MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p, const double PD)
 {
 	const Matrix6d I = Matrix6d::Identity();
 	Matrix6d R = Matrix6d::Zero(), C = Matrix6d::Zero();
-	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(d.f0_off);
+	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(d.f0);
 	Matrix3d C3;
 	double TE;
 	if (d.spoil) {

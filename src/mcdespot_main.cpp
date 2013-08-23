@@ -458,7 +458,7 @@ int main(int argc, char **argv)
 						localf.signal(i) /= localf.signal(i).mean();
 					}
 					if (B0fit == mcType::OffResMode::Map) {
-						localf.info(i).f0_off = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
+						localf.info(i).f0 = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
 					}
 					localf.info(i).B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
