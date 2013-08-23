@@ -23,12 +23,12 @@ FID::FID(const string &path) {
 		_bundlePath.resize(path.size() - 1);
 	std::string ext = _bundlePath.substr(_bundlePath.find_last_of(".") + 1);
 	if (ext != "fid")
-		NRECON_FAIL("Invalid extension for FID Bundle: " + _bundlePath);
+		throw(runtime_error("Invalid extension for FID Bundle: " + _bundlePath));
 	_fid.open(_bundlePath + "/fid");
 	if (!ReadProcpar(_bundlePath + "/procpar", _procpar))
-		NRECON_FAIL("Failed to read procpar within FID Bundle: " + _bundlePath);
+		throw(runtime_error("Failed to read procpar within FID Bundle: " + _bundlePath));
 	if (!ParExists(_procpar, "seqcon") || !ParExists(_procpar, "apptype"))
-		NRECON_FAIL("No apptype or seqcon found in FID Bundle: " + _bundlePath);
+		throw(runtime_error("No apptype or seqcon found in FID Bundle: " + _bundlePath));
 	_appType = AppTypeMap.find(StringValue(_procpar, "apptype"))->second;
 }
 
@@ -64,7 +64,7 @@ const int FID::nDim2() const {
 	else if (_appType == im3D)
 		return static_cast<int>(RealValue(_procpar, "nv2"));
 	else
-		NRECON_FAIL("Unknown application type.");
+		throw(runtime_error("Unknown application type."));
 }
 
 } // End namespace Nrecon

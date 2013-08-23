@@ -11,9 +11,6 @@
 
 namespace Agilent {
 
-#define NRECON_ERROR( err ) do { std::cerr << __PRETTY_FUNCTION__ << ": " << ( err ) << std::flush << std::endl; } while(0)
-#define NRECON_FAIL( err ) do { NRECON_ERROR( err ); exit(EXIT_FAILURE); } while(0)
-
 enum Endianness {
 	LittleEndian = 0,
 	BigEndian
