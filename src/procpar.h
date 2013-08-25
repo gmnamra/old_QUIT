@@ -13,55 +13,58 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <array>
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <exception>
 
 using namespace std;
 
-#define PROCPAR_ERROR( err ) do { std::cerr << __PRETTY_FUNCTION__ << ": " << ( err ) << std::flush << std::endl; } while(0)
-#define PROCPAR_FAIL( err ) do { PROCPAR_ERROR( err ); exit(EXIT_FAILURE); } while(0)
-
 namespace Agilent {
-
-	enum Type {
-		TYPE_REAL = 1,
-		TYPE_STRING
-	};
-	
-	enum SubType {
-		SUB_REAL = 1,
-		SUB_STRING,
-		SUB_DELAY,
-		SUB_FLAG,
-		SUB_FREQ,
-		SUB_PULSE,
-		SUB_INT
-	};
 	
 	class Parameter {
+		public:
+			enum class Type : size_t {
+				Real = 1,
+				String
+			};
+			
+			enum class SubType : size_t {
+				Junk = 0,
+				Real = 1,
+				String,
+				Delay,
+				Flag,
+				Freq,
+				Pulse,
+				Int
+			};
+	
 		protected:
-			string _name;
-			int  _type, _subtype;
-			double  _max, _min, _step;
-			int  _ggroup, _dgroup, _protection, _active, _intptr;
-			vector<string> _stringValues, _stringAllowed;
-			vector<double> _realValues, _realAllowed;
+			string m_name;
+			Type m_type;
+			SubType m_subtype;
+			double  m_max, m_min, m_step;
+			int  m_ggroup, m_dgroup, m_protection, m_active, m_intptr;
+			vector<string> m_stringValues, m_stringAllowed;
+			vector<double> m_realValues, m_realAllowed;
+			
 		public:
 			Parameter();
-			Parameter(const string &name, const int &st, const string &val);          //!< Construct a string parameter with one value
-			Parameter(const string &name, const int &st, const double &val);          //!< Construct a string parameter with multiple values
-			Parameter(const string &name, const int &st,
+			Parameter(const string &name, const SubType &st, const string &val);          //!< Construct a string parameter with one value
+			Parameter(const string &name, const SubType &st, const double &val);          //!< Construct a string parameter with multiple values
+			Parameter(const string &name, const SubType &st,
 			          const vector<string> &vals, const vector<string> &allowed,
 					  const int ggroup, const int dgroup,
 					  const double max, const double min, const double step,
 					  const int protection, const int active, const int intptr); //!< Construct a real parameter with one value
-			Parameter(const string &name, const int &st,
+			Parameter(const string &name, const SubType &st,
 			          const vector<double> &vals, const vector<double> &allowed,
 					  const int ggroup, const int dgroup,
 					  const double max, const double min, const double step,
 					  const int protection, const int active, const int intptr); //!< Construct a real parameter with multiple values
-			Parameter(const string &name, const int &st, const int n);                //!< Construct a blank parameter with space for several values
+			Parameter(const string &name, const SubType &st, const int n);                //!< Construct a blank parameter with space for several values
 
 			const string &name() const;
 			const size_t nvals() const;
@@ -69,9 +72,9 @@ namespace Agilent {
 			const string &type_name() const;
 			const string &subtype_name() const;
 			
-			const string &stringValue(const int i) const;
+			const string &stringValue(const size_t i) const;
 			const vector<string> &stringValues() const;
-			const double &realValue(const int i) const;
+			const double &realValue(const size_t i) const;
 			const vector<double> &realValues() const;
 			const string print_values() const;
 			const string print_allowed() const;
@@ -89,8 +92,8 @@ namespace Agilent {
 	bool WriteProcpar(const string &path, ParameterList &pl);
 	
 	const bool ParExists(const ParameterList &pl, const string &name);
-	const double RealValue(const ParameterList &pl, const string &name, const int index = 0);
-	const string &StringValue(const ParameterList &pl, const string &name, const int index = 0);
+	const double RealValue(const ParameterList &pl, const string &name, const size_t index = 0);
+	const string &StringValue(const ParameterList &pl, const string &name, const size_t index = 0);
 } // End namespace Agilent
 
 #endif
