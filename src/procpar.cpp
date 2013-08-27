@@ -353,60 +353,70 @@ const bool Parameter::operator==(const Parameter &other)
 
 const bool Parameter::operator!=(const Parameter &other) { return !(operator==(other)); }
 //******************************************************************************
-#pragma mark Convenience
+#pragma mark ProcPar Class
 //******************************************************************************
 /*
- *  Returns false if it can't find a procpar file, otherwise reads it into pp
- *
+ *  Extracts entire ProcPar into p
  */
-bool ReadProcpar(const string &path, ParameterList &pp) {
-	ifstream fpp;
-	fpp.open(path.c_str());
-	if (!fpp)
-		return false;
-	
-	pp.clear();
+istream &operator>>(istream &is, ProcPar &pp) {
 	Parameter p;
-	while(fpp >> p)
-		pp.insert(pair<string, Parameter>(p.name(), p));
-	
-	fpp.close();
+	while(is >> p)
+		pp.insert(p);
+	return is;
+}
+
+ostream &operator<<(ostream &os, const ProcPar &pp) {
+	for (auto &p : pp.m_parameters)
+		os << p.second << endl;
+	return os;
+}
+
+const bool ProcPar::contains(const string &name) const {
+	auto p = m_parameters.find(name);
+	if (p == m_parameters.end())
+		return false;
 	return true;
 }
 
-bool WriteProcpar(const string &path, ParameterList &pp) {
-	ofstream fpp;
-	fpp.open(path.c_str());
-	if (!fpp) {
-		throw(runtime_error("Cannot open procpar file for writing: " + path));
-		return false;
+void ProcPar::insert(const Parameter &p) {
+	m_parameters.insert(pair<string, Parameter>(p.name(), p));
+}
+
+void ProcPar::remove(const string &name) {
+	if (contains(name)) {
+		m_parameters.erase(m_parameters.find(name));
+	} else {
+		throw(runtime_error("Tried to remove non-existent parameter " + name));
 	}
-	
-	ParameterList::const_iterator p;
-	for (p = pp.begin(); p != pp.end(); p++)
-		fpp << p->second << endl;
-	fpp.close();
-	return true;
 }
 
-const bool ParExists(const ParameterList &pl, const string &name) {
-	ParameterList::const_iterator p = pl.find(name);
-	if (p == pl.end())
-		return false;
-	return true;
+size_t ProcPar::count() const {
+	return m_parameters.size();
 }
 
-const double RealValue(const ParameterList &pl, const string &name, const int index) {
-	ParameterList::const_iterator p = pl.find(name);
-	if (p == pl.end())
+const Parameter &ProcPar::parameter(const string &name) const {
+	return m_parameters.find(name)->second;
+}
+
+const vector<string> ProcPar::names() const {
+	vector<string> n;
+	n.reserve(m_parameters.size());
+	for (auto &p : m_parameters)
+		n.emplace_back(p.first);
+	return n;
+}
+
+const double ProcPar::realValue(const string &name, const size_t index) const {
+	auto p = m_parameters.find(name);
+	if (p == m_parameters.end())
 		throw(invalid_argument("Could not find parameter " + name));
 	else
 		return p->second.realValue(index);
 }
 
-const string &StringValue(const ParameterList &pl, const string &name, const int index) {
-	ParameterList::const_iterator p = pl.find(name);
-	if (p == pl.end())
+const string &ProcPar::stringValue(const string &name, const size_t index) const {
+	auto p = m_parameters.find(name);
+	if (p == m_parameters.end())
 		throw(invalid_argument("Could not find parameter " + name));
 	else
 		return p->second.stringValue(index);

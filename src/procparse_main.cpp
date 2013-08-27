@@ -7,6 +7,9 @@
 //
 
 #include <iostream>
+#include <fstream>
+#include <list>
+#include <vector>
 #include <getopt.h>
 #include "procpar.h"
 
@@ -23,128 +26,88 @@ then the whole file will be listed.\n\
 Options:\n\
  -f, --full:       Print the full parameter information, not a shortened version.\n\
  -p, --partial:    Print parameters that are partial matches.\n\
- -c, --cmp file2:  Compare to file 2. List parameters that differ or are missing.\n\
+ -i, --in file:    Check additional procpar files (can be more than 1).\n\
  -v, --verbose:    Print more information.\n";
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 	static struct option long_options[] =
 	{
 		{"full", no_argument, &full, true},
 		{"partial", no_argument, &partial, true},
-		{"cmp",  required_argument, 0, 'c'},
 		{"verbose", no_argument, &verbose, true},
+		{"in", required_argument, 0, 'i'},
 		{0, 0, 0, 0}
 	};
 	
 	int indexptr = 0, c;
-	string procparFile = "", cmpFile = "";
-	while ((c = getopt_long(argc, argv, "fphvc:", long_options, &indexptr)) != -1) {
+	list<string> paths;
+	while ((c = getopt_long(argc, argv, "fphvi:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 0: break; // It was an option that just sets a flag.
 			case 'f': full = true; break;
 			case 'p': partial = true; break;
 			case 'h': cout << usage << endl; break;
 			case 'v': verbose = true; break;
-			case 'c': cmpFile = string(optarg); break;
+			case 'i': paths.emplace_back(optarg); break;
 			default: cout << "Unknown option " << optarg << endl;
 		}
 	}
-	
-	ParameterList pars, cmpPars;
-	ParameterList::iterator par, cmpPar;
 	
 	if ((argc - optind) <= 0) {
 		cout << "No procpar file specified." << endl << usage << endl;
 		exit(EXIT_FAILURE);
 	}
-	
-	procparFile = string(argv[optind++]);
-	if (verbose)
-		cout << "Reading procpar file: " << procparFile << endl;
-	
-	if (!ReadProcpar(procparFile, pars)) {
-		cout << "Could not find procpar file.";
-		exit(EXIT_FAILURE);
-	}
-	if (cmpFile != "") {
-		if (verbose)
-			cout << "Reading comparison procpar file: " << cmpFile;
-		if (!ReadProcpar(cmpFile, cmpPars)) {
-			cout << "Could not find procpar file.";
-			exit(EXIT_FAILURE);
+	paths.emplace_front((argv[optind++]));
+		
+	vector<ProcPar> pps;
+	for (auto &p : paths) {
+		ifstream pp_file(p);
+		pps.emplace_back();
+		pp_file >> pps.back();
+		if (!pp_file.eof()) {
+			throw(runtime_error("Failed to read contents of file: " + p));
 		}
 	}
 	
-	if (optind == argc && cmpFile != "") {
-		// Look for parameters present in one file but not the other
-		for (par = pars.begin(); par != pars.end(); par++) {
-			cmpPar = cmpPars.find(par->first);
-			if (cmpPar == cmpPars.end()) {
-				cout << "Parameter " << par->first << " missing in " << cmpFile << endl;
-			} else {
-				if (par->second != cmpPar->second) {
-					cout << "Parameter " << par->first << ": " << par->second.print_values() << " vs " << cmpPar->second.print_values() << endl;
-				}
+	while (optind < argc) {
+		string searchName(argv[optind]);
+		if (verbose) {
+			cout << "Searching for parameter: " << searchName << endl;
+		}
+		auto pp_it = pps.begin();
+		auto path_it = paths.begin();
+		for (; pp_it != pps.end() && path_it != paths.end(); pp_it++, path_it++) {
+			if (verbose) {
+				cout << "In file: " << *path_it << endl;
 			}
-		}
-		for (cmpPar = cmpPars.begin(); cmpPar != cmpPars.end(); cmpPar++) {
-			par = pars.find(cmpPar->first);
-			if (par == pars.end())
-				cout << "Parameter " << cmpPar->first << " missing in " << procparFile << endl;
-		}
-	} else {
-		while (optind < argc) {
+			//for (auto &n : pp_it->names())
+			//	cout << n << endl;
+			
 			if (partial) {
-				if (verbose)
-					cout << "Listing partial matches for: " << argv[optind] << endl;
-				int matches = 0;
-				for (par = pars.begin(); par != pars.end(); par++) {
-					if (par->first.find(string(argv[optind])) != string::npos) {
-						if (full)
-							cout << par->second << endl;
-						else
-							cout << par->first << ": " << par->second.print_values() << endl;
-						matches++;
-						
-						if (cmpFile != "") {
-							cmpPar = cmpPars.find(par->first);
-							if (cmpPar == cmpPars.end())
-								cout << "Not present in " << cmpFile << endl;
-							else if (!(cmpPar->second == par->second)) {
-								cout << "Differs in " << cmpFile << endl;
-								if (full)
-									cout << cmpPar->second << endl;
-								else
-									cout << cmpPar->first << ": " << cmpPar->second.print_values() << endl;
-							}
+				size_t matches(0);
+				vector<string> names = pp_it->names();
+				for (auto &n : names) {
+					if (n.find(searchName) != string::npos) {
+						if (full) {
+							cout << pp_it->parameter(n) << endl;
+						} else {
+							cout << n << ": " << pp_it->parameter(n).print_values() << endl;
 						}
+						matches++;
 					}
 				}
-				if (verbose)
-					cout << "Found " << matches << " matches." << endl;
+				cout << matches << " matches." << endl;
+			} else if (pp_it->contains(searchName)) {
+				if (full)
+					cout << pp_it->parameter(searchName) << endl;
+				else
+					cout << searchName << ": " << pp_it->parameter(searchName).print_values() << endl;
 			} else {
-				string search(argv[optind]);
-				par = pars.find(search);
-				if (par != pars.end()) {
-					if (full)
-						cout << par->second << endl;
-					else
-						cout << par->first << ": " << par->second.print_values() << endl;
-				}
-				if (cmpFile != "") {
-					cmpPar = cmpPars.find(search);
-					if (cmpPar != cmpPars.end()) {
-						cout << "In " << cmpFile << endl;
-						if (full)
-							cout << cmpPar->second << endl;
-						else
-							cout << cmpPar->first << ": " << cmpPar->second.print_values() << endl;
-					}
-				}
+				if (verbose)
+					cout << "Not found." << endl;
 			}
-			optind++;
 		}
+		optind++;
 	}
     return EXIT_SUCCESS;
 }

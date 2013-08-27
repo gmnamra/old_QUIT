@@ -83,17 +83,30 @@ namespace Agilent {
 			const bool operator==(const Parameter &other);
 			const bool operator!=(const Parameter &other);
 			friend ostream& operator<<(ostream &os, const Parameter &p);
-			friend istream& operator>>(istream &is, const Parameter &p);
+			friend istream& operator>>(istream &is, Parameter &p);
 	};
 	
-	typedef map<string, Parameter> ParameterList;
-	
-	bool ReadProcpar(const string &path, ParameterList &pl);
-	bool WriteProcpar(const string &path, ParameterList &pl);
-	
-	const bool ParExists(const ParameterList &pl, const string &name);
-	const double RealValue(const ParameterList &pl, const string &name, const size_t index = 0);
-	const string &StringValue(const ParameterList &pl, const string &name, const size_t index = 0);
+	class ProcPar {
+		protected:
+			typedef map<string, Parameter> ParMap;
+			ParMap m_parameters;
+		
+		public:
+			friend ostream& operator<<(ostream &os, const ProcPar &p);
+			friend istream& operator>>(istream &is, ProcPar &p);
+			
+			const bool contains(const string &name) const;
+			void insert(const Parameter &p);
+			void remove(const string &name);
+			size_t count() const;
+			
+			const Parameter &parameter(const string &name) const;
+			const vector<string> names() const;
+			const double realValue(const string &name, const size_t index = 0) const;
+			const vector<double> realValues(const string &name) const;
+			const string &stringValue(const string &name, const size_t index = 0) const;
+			const vector<string> stringValues(const string &name) const;
+	};
 } // End namespace Agilent
 
 #endif

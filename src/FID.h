@@ -11,6 +11,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <complex>
 #include <map>
 #include <exception>
@@ -19,21 +20,15 @@
 #include "FIDFile.h"
 #include "procpar.h"
 
+using namespace std;
+
 namespace Agilent {
-
-enum AppTypes {
-	im2D = 0,
-	im3D
-};
-
 class FID {
 	private:
-		string _bundlePath;
-		FIDFile _fid;
-		ParameterList _procpar;
-		AppTypes _appType;
-		
-		static const map<string, AppTypes> AppTypeMap;
+		string m_bundlePath;
+		FIDFile m_fid;
+		ProcPar m_procpar;
+	
 	public:
 		FID(const string &path);
 		//~FID();
