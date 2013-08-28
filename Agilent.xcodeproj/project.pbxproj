@@ -7,10 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F62E0D7217C7C85200A445AE /* fdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F62E0D7017C7C85200A445AE /* fdf.cpp */; };
+		F62E0D7317C7C85200A445AE /* fdf.h in Headers */ = {isa = PBXBuildFile; fileRef = F62E0D7117C7C85200A445AE /* fdf.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F62E0D7817C7C89000A445AE /* fdfFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F62E0D7617C7C89000A445AE /* fdfFile.cpp */; };
+		F62E0D7917C7C89000A445AE /* fdfFile.h in Headers */ = {isa = PBXBuildFile; fileRef = F62E0D7717C7C89000A445AE /* fdfFile.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F67FA0BF17CEA7CF00B4FA63 /* FID.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D3F17C60AC00043A338 /* FID.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F67FA0C017CEA7D600B4FA63 /* FIDFile.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4117C60AC00043A338 /* FIDFile.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F67FA0C117CEA7D900B4FA63 /* procpar.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4517C60AC00043A338 /* procpar.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F67FA0C217CEA7E700B4FA63 /* util.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4717C60AC00043A338 /* util.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F6E41D5217C60B1E0043A338 /* FID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E41D3E17C60AC00043A338 /* FID.cpp */; };
 		F6E41D5317C60B1E0043A338 /* FIDFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E41D4017C60AC00043A338 /* FIDFile.cpp */; };
 		F6E41D5417C60B1E0043A338 /* procpar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E41D4417C60AC00043A338 /* procpar.cpp */; };
-		F6E41D5517C60B3B0043A338 /* recon_util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E41D4617C60AC00043A338 /* recon_util.cpp */; };
+		F6E41D5517C60B3B0043A338 /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E41D4617C60AC00043A338 /* util.cpp */; };
 		F6E41D6517C60B650043A338 /* procparse_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E41D4217C60AC00043A338 /* procparse_main.cpp */; };
 		F6E41D6617C60B6D0043A338 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D4D17C60B0D0043A338 /* libAgilent.a */; };
 /* End PBXBuildFile section */
@@ -52,6 +60,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F62E0D7017C7C85200A445AE /* fdf.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fdf.cpp; path = src/fdf.cpp; sourceTree = "<group>"; };
+		F62E0D7117C7C85200A445AE /* fdf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fdf.h; path = src/fdf.h; sourceTree = "<group>"; };
+		F62E0D7617C7C89000A445AE /* fdfFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fdfFile.cpp; path = src/fdfFile.cpp; sourceTree = "<group>"; };
+		F62E0D7717C7C89000A445AE /* fdfFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fdfFile.h; path = src/fdfFile.h; sourceTree = "<group>"; };
 		F6E41D3E17C60AC00043A338 /* FID.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FID.cpp; path = src/FID.cpp; sourceTree = "<group>"; };
 		F6E41D3F17C60AC00043A338 /* FID.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FID.h; path = src/FID.h; sourceTree = "<group>"; };
 		F6E41D4017C60AC00043A338 /* FIDFile.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FIDFile.cpp; path = src/FIDFile.cpp; sourceTree = "<group>"; };
@@ -60,8 +72,8 @@
 		F6E41D4317C60AC00043A338 /* nrecon.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = nrecon.cpp; path = src/nrecon.cpp; sourceTree = "<group>"; };
 		F6E41D4417C60AC00043A338 /* procpar.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = procpar.cpp; path = src/procpar.cpp; sourceTree = "<group>"; };
 		F6E41D4517C60AC00043A338 /* procpar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = procpar.h; path = src/procpar.h; sourceTree = "<group>"; };
-		F6E41D4617C60AC00043A338 /* recon_util.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = recon_util.cpp; path = src/recon_util.cpp; sourceTree = "<group>"; };
-		F6E41D4717C60AC00043A338 /* recon_util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = recon_util.h; path = src/recon_util.h; sourceTree = "<group>"; };
+		F6E41D4617C60AC00043A338 /* util.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = util.cpp; path = src/util.cpp; sourceTree = "<group>"; };
+		F6E41D4717C60AC00043A338 /* util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = util.h; path = src/util.h; sourceTree = "<group>"; };
 		F6E41D4D17C60B0D0043A338 /* libAgilent.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libAgilent.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E41D5A17C60B490043A338 /* procparse */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = procparse; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E41D7817C60CF30043A338 /* NiftiImage.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = NiftiImage.xcodeproj; path = ../Nifti/NiftiImage.xcodeproj; sourceTree = "<group>"; };
@@ -102,12 +114,16 @@
 				F6E41D3F17C60AC00043A338 /* FID.h */,
 				F6E41D4017C60AC00043A338 /* FIDFile.cpp */,
 				F6E41D4117C60AC00043A338 /* FIDFile.h */,
-				F6E41D4217C60AC00043A338 /* procparse_main.cpp */,
-				F6E41D4317C60AC00043A338 /* nrecon.cpp */,
 				F6E41D4417C60AC00043A338 /* procpar.cpp */,
 				F6E41D4517C60AC00043A338 /* procpar.h */,
-				F6E41D4617C60AC00043A338 /* recon_util.cpp */,
-				F6E41D4717C60AC00043A338 /* recon_util.h */,
+				F6E41D4617C60AC00043A338 /* util.cpp */,
+				F6E41D4717C60AC00043A338 /* util.h */,
+				F62E0D7017C7C85200A445AE /* fdf.cpp */,
+				F62E0D7117C7C85200A445AE /* fdf.h */,
+				F62E0D7617C7C89000A445AE /* fdfFile.cpp */,
+				F62E0D7717C7C89000A445AE /* fdfFile.h */,
+				F6E41D4217C60AC00043A338 /* procparse_main.cpp */,
+				F6E41D4317C60AC00043A338 /* nrecon.cpp */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -137,6 +153,12 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F62E0D7317C7C85200A445AE /* fdf.h in Headers */,
+				F62E0D7917C7C89000A445AE /* fdfFile.h in Headers */,
+				F67FA0BF17CEA7CF00B4FA63 /* FID.h in Headers */,
+				F67FA0C017CEA7D600B4FA63 /* FIDFile.h in Headers */,
+				F67FA0C117CEA7D900B4FA63 /* procpar.h in Headers */,
+				F67FA0C217CEA7E700B4FA63 /* util.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -232,10 +254,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6E41D5517C60B3B0043A338 /* recon_util.cpp in Sources */,
+				F6E41D5517C60B3B0043A338 /* util.cpp in Sources */,
 				F6E41D5217C60B1E0043A338 /* FID.cpp in Sources */,
 				F6E41D5317C60B1E0043A338 /* FIDFile.cpp in Sources */,
 				F6E41D5417C60B1E0043A338 /* procpar.cpp in Sources */,
+				F62E0D7217C7C85200A445AE /* fdf.cpp in Sources */,
+				F62E0D7817C7C89000A445AE /* fdfFile.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -317,6 +341,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Debug;
 		};
@@ -344,6 +369,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};
