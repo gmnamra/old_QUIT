@@ -55,11 +55,25 @@ ostream &operator<<(ostream &os, const fdfType &t) {
 	return os;
 }
 
-fdfValue::fdfValue(const int &ival) { m_value.i_val = ival; }
-fdfValue::fdfValue(const float &fval) { m_value.f_val = fval; }
-fdfValue::fdfValue(const string &sval) { m_value.s_val = new string(sval); }
+fdfValue::fdfValue(const int &ival) { m_value.i_val = ival; m_type = fdfType::Integer; }
+fdfValue::fdfValue(const float &fval) { m_value.f_val = fval; m_type = fdfType::Float; }
+fdfValue::fdfValue(const string &sval) { m_value.s_val = new string(sval); m_type = fdfType::String; }
+fdfValue::fdfValue(const fdfValue &other) : m_type(other.m_type) {
+	switch (m_type) {
+		case (fdfType::Integer) : m_value.i_val = other.m_value.i_val; break;
+		case (fdfType::Float)   : m_value.f_val = other.m_value.f_val; break;
+		case (fdfType::String)  : m_value.s_val = new string(*(other.m_value.s_val)); break;
+	}
+}
+fdfValue::fdfValue(fdfValue &&other) : m_type(other.m_type) {
+	switch (m_type) {
+		case (fdfType::Integer) : m_value.i_val = other.m_value.i_val; break;
+		case (fdfType::Float)   : m_value.f_val = other.m_value.f_val; break;
+		case (fdfType::String)  : m_value.s_val = other.m_value.s_val; other.m_value.s_val = nullptr; break;
+	}
+}
 fdfValue::~fdfValue() {
-	if (m_type == fdfType::String) {
+	if ((m_type == fdfType::String) && (m_value.s_val != nullptr)) {
 		delete m_value.s_val;
 	}
 }
@@ -69,7 +83,7 @@ const string fdfValue::value() const {
 	switch (m_type) {
 		case fdfType::Integer: return std::to_string(m_value.i_val);
 		case fdfType::Float:   return std::to_string(m_value.f_val);
-		case fdfType::String: return *(m_value.s_val);
+		case fdfType::String: return "\"" + *(m_value.s_val) + "\"";
 	}
 }
 
@@ -89,7 +103,7 @@ istream &operator>> (istream &is, fdfField &f) {
 			case fdfType::Integer: f.m_values.emplace_back(stoi(value)); break;
 			case fdfType::Float: f.m_values.emplace_back(stof(value)); break;
 			case fdfType::String: {
-				size_t leftQuote = value.find("\"");
+				size_t leftQuote = value.find("\"") + 1;
 				size_t rightQuote = value.rfind("\"");
 				f.m_values.emplace_back(value.substr(leftQuote, rightQuote - leftQuote));
 			} break;
@@ -108,26 +122,31 @@ istream &operator>> (istream &is, fdfField &f) {
 				case fdfType::Integer: f.m_values.emplace_back(stoi(value)); break;
 				case fdfType::Float: f.m_values.emplace_back(stof(value)); break;
 				case fdfType::String: {
-					size_t leftQuote = value.find("\"");
+					size_t leftQuote = value.find("\"") + 1;
 					size_t rightQuote = value.rfind("\"");
 					f.m_values.emplace_back(value.substr(leftQuote, rightQuote - leftQuote));
 				} break;
 			}
-			thisComma = nextComma;
-			nextComma = values.find(",", nextComma);
+			thisComma = nextComma + 1; // Want to point after the comma
+			nextComma = values.find(",", thisComma);
 			if (nextComma == string::npos)
 				nextComma = values.size();
 		} while (thisComma < values.size());
 	}
+	size_t firstChar = name.find_first_not_of(" ");
+	size_t lastChar  = name.find_last_not_of(" ");
+	f.m_name = name.substr(firstChar, lastChar - firstChar + 1);
 	return is;
 }
 
 ostream &operator<<(ostream &os, const fdfField &f) {
-	os << f.m_type << f.m_name << " = ";
+	os << f.m_type << " " << f.m_name;
+	if (f.m_values.size() > 1) cout << "[]";
+	cout << " = ";
 	if (f.m_values.size() > 1) cout << "{";
-	for (auto &v : f.m_values) {
-		cout << v.value<string>();
-		if (f.m_values.size() > 1) cout << ",";
+	for (size_t i = 0; i < f.m_values.size(); i++) {
+		cout << f.m_values.at(i).value<string>();
+		if (i < (f.m_values.size() - 1)) cout << ",";
 	}
 	if (f.m_values.size() > 1) cout << "}";
 	cout << ";";
@@ -160,17 +179,25 @@ void fdfFile::open(const string &path) {
 		fdfField temp;
 		m_file >> temp;
 		m_header.insert(pair<string, fdfField>(temp.name(), temp));
+		cout << temp << endl;
+		if (temp.name() == "checksum")
+			break;
 	}
-	getline(m_file, nextLine, '\0'); // Just to eat the null
+	while (m_file.get() != '\0') {}
 	m_hdrSize = m_file.tellg();
 	m_dtype = headerValue<string>("storage");
+	m_rank = headerValue<size_t>("rank");
 	m_dims[0] = headerValue<size_t>("matrix", 0);
 	m_dims[1] = headerValue<size_t>("matrix", 1);
-	if (headerValue<size_t>("rank") == 3) {
+	if (m_rank == 3) {
 		m_dims[2] = headerValue<size_t>("matrix", 2);
 	} else {
 		m_dims[2] = 1;
 	}
+}
+
+void fdfFile::close() {
+	m_file.close();
 }
 
 const size_t fdfFile::rank() const { return m_rank; }

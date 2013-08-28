@@ -41,24 +41,24 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 		} else if (strstr(dp->d_name, ".fdf")) { // Ignore any other files that VnmrJ has saved
 			// Grab interesting information from first file
 			string fname(dp->d_name);
-			size_t prefixStart = fname.find_first_of("0123456789");
-			size_t prefixEnd = fname.find_first_not_of("0123456789", prefixStart);
-			string prefix = fname.substr(prefixStart, prefixEnd - prefixStart);
+			size_t prefixEnd = fname.find_first_not_of("0123456789");
+			string prefix = fname.substr(0, prefixEnd);
 			if (m_filePrefix == "") { // Haven't set a prefix yet
 				m_filePrefix = prefix;
 			} else if (m_filePrefix != prefix) {
 				throw(runtime_error("Detected multiple file prefixes in: " + m_folderPath));
 			}
-			m_files.insert(pair<string, fdfFile>(fname, fdfFile(fname)));
+			m_files.insert(pair<string, fdfFile>(fname, fdfFile(m_folderPath + "/" + fname)));
 		}
 	}
-	m_rank = m_files.at(0).rank();
-	m_dim[0] = m_files.at(0).dim(0);
-	m_dim[1] = m_files.at(0).dim(1);
+	auto f = m_files.begin();
+	m_rank = f->second.rank();
+	m_dim[0] = f->second.dim(0);
+	m_dim[1] = f->second.dim(1);
 	if (m_rank == 2) {
 		m_dim[2] = static_cast<size_t>(m_pp.realValue("ns"));
 	} else {
-		m_dim[2] = m_files.at(0).dim(2);
+		m_dim[2] = f->second.dim(2);
 	}
 	m_dim[3] = m_files.size() / static_cast<size_t>(m_pp.realValue("ns") * m_pp.realValue("ne"));
 	m_dim[4] = static_cast<size_t>(m_pp.realValue("ne"));

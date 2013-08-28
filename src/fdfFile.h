@@ -20,9 +20,7 @@ using namespace std;
 
 namespace Agilent {
 
-enum class fdfType : size_t {
-	Integer, Float, String
-};
+enum class fdfType : size_t { Integer, Float, String };
 fdfType to_Type(const string &s);
 string to_string(const fdfType &t);
 istream &operator>>(istream &is, fdfType &t);
@@ -42,6 +40,8 @@ class fdfValue {
 		fdfValue(const int &ival);
 		fdfValue(const float &fval);
 		fdfValue(const string &sval);
+		fdfValue(const fdfValue &other);
+		fdfValue(fdfValue &&other);
 		~fdfValue();
 		
 		template<typename T> const T value() const {
