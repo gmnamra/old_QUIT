@@ -17,8 +17,16 @@ using namespace std;
 using namespace Agilent;
 
 static int full = false, partial = false, verbose = false;
-
-const string usage = "procparse - A utility to find interesting information in Agilent procpar files.\n\
+static struct option long_options[] =
+{
+	{"full", no_argument, &full, true},
+	{"partial", no_argument, &partial, true},
+	{"verbose", no_argument, &verbose, true},
+	{"in", required_argument, 0, 'i'},
+	{0, 0, 0, 0}
+};
+const string usage {
+"procparse - A utility to find interesting information in Agilent procpar files.\n\
 \n\
 Usage: procparse [opts] file1 par1 par2 ... parN\n\
 par1 to parN are parameter names to search for in procpar. If none are specified \
@@ -27,18 +35,10 @@ Options:\n\
  -f, --full:       Print the full parameter information, not a shortened version.\n\
  -p, --partial:    Print parameters that are partial matches.\n\
  -i, --in file:    Check additional procpar files (can be more than 1).\n\
- -v, --verbose:    Print more information.\n";
+ -v, --verbose:    Print more information.\n"
+};
 
 int main(int argc, char **argv) {
-	static struct option long_options[] =
-	{
-		{"full", no_argument, &full, true},
-		{"partial", no_argument, &partial, true},
-		{"verbose", no_argument, &verbose, true},
-		{"in", required_argument, 0, 'i'},
-		{0, 0, 0, 0}
-	};
-	
 	int indexptr = 0, c;
 	list<string> paths;
 	while ((c = getopt_long(argc, argv, "fphvi:", long_options, &indexptr)) != -1) {
