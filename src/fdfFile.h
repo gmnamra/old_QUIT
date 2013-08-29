@@ -37,6 +37,7 @@ class fdfValue {
 		fdfType m_type;
 		storage_type m_value;
 	public:
+		fdfValue();
 		fdfValue(const int &ival);
 		fdfValue(const float &fval);
 		fdfValue(const string &sval);
@@ -87,8 +88,11 @@ class fdfFile {
 		}
 	
 	public:
-		fdfFile();
+		fdfFile() = delete;
+		fdfFile(const fdfFile &f) = delete;
+		fdfFile(fdfFile &&f) = delete;
 		fdfFile(const string &path);
+		
 		void open(const string &path);
 		void close();
 		const size_t rank() const;
@@ -96,11 +100,23 @@ class fdfFile {
 		const size_t dataSize() const;
 		
 		template<typename T> vector<T>readData() {
-			m_file.seekg(m_hdrSize);
-			vector<T> Tbuffer;
+			cout << this << " " << &m_file << " " << m_file.good() << endl;
+			cout << m_file.tellg() << endl;
+			if (!m_file)
+				throw(runtime_error("Could not read data from file: " + m_path));
+			m_file.seekg(m_hdrSize, ios_base::beg);
+			if (!m_file)
+				throw(runtime_error("Could not read data from file: " + m_path));
+			cout << m_file.tellg() << endl;
+			vector<T> Tbuffer(dataSize());
 			if (m_dtype == "float") {
 				vector<float> floatBuffer(dataSize());
+				
 				m_file.read(reinterpret_cast<char *>(floatBuffer.data()), dataSize() * sizeof(float));
+				if (!m_file) {
+					cout << "Read " << m_file.gcount() << " chars." << endl;
+					throw(runtime_error("Could not read data from file: " + m_path));
+				}
 				for (size_t i = 0; i < dataSize(); i++) {
 					Tbuffer[i] = static_cast<T>(floatBuffer[i]);
 				}

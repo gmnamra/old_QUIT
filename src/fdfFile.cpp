@@ -49,12 +49,10 @@ istream &operator>>(istream &is, fdfType &t) {
 		
 ostream &operator<<(ostream &os, const fdfType &t) {
 	os << to_string(t);
-	if (t == fdfType::String) {
-		cout << " *";
-	}
 	return os;
 }
 
+fdfValue::fdfValue() { m_value.i_val = 0; m_type = fdfType::Integer; }
 fdfValue::fdfValue(const int &ival) { m_value.i_val = ival; m_type = fdfType::Integer; }
 fdfValue::fdfValue(const float &fval) { m_value.f_val = fval; m_type = fdfType::Float; }
 fdfValue::fdfValue(const string &sval) { m_value.s_val = new string(sval); m_type = fdfType::String; }
@@ -83,7 +81,7 @@ const string fdfValue::value() const {
 	switch (m_type) {
 		case fdfType::Integer: return std::to_string(m_value.i_val);
 		case fdfType::Float:   return std::to_string(m_value.f_val);
-		case fdfType::String: return "\"" + *(m_value.s_val) + "\"";
+		case fdfType::String: return *(m_value.s_val);
 	}
 }
 
@@ -94,6 +92,7 @@ const string &fdfField::name() const { return m_name; }
 istream &operator>> (istream &is, fdfField &f) {
 	string name, values;
 	is >> f.m_type;
+	f.m_values.resize(0);
 	getline(is, name, '=');
 	if (name.find("[]") == string::npos) {
 		string temp, value;
@@ -140,7 +139,13 @@ istream &operator>> (istream &is, fdfField &f) {
 }
 
 ostream &operator<<(ostream &os, const fdfField &f) {
-	os << f.m_type << " " << f.m_name;
+	os << f.m_type << "  ";
+	if (f.m_type == fdfType::String) {
+		cout << " *";
+	} else if (f.m_type == fdfType::Integer) {
+		cout << "  ";
+	}
+	cout << f.m_name;
 	if (f.m_values.size() > 1) cout << "[]";
 	cout << " = ";
 	if (f.m_values.size() > 1) cout << "{";
@@ -162,7 +167,7 @@ fdfFile::fdfFile(const string &path) {
 }
 
 void fdfFile::open(const string &path) {	
-	fstream m_file(path, ios::in);
+	m_file.open(path, ios::in);
 	string nextLine;
 		
 	if (!m_file) {
@@ -170,21 +175,20 @@ void fdfFile::open(const string &path) {
 	}
 	m_path = path;
 	
+	m_header.clear();
 	if (!getline(m_file, nextLine) || nextLine != "#!/usr/local/fdf/startup") {
 		throw(runtime_error("Could not magic string in file: " + path));
 	}
-
-	m_header.clear();
-	while (m_file.peek() != '\0') {
-		fdfField temp;
+	fdfField temp;
+	while (temp.name() != "checksum") {
 		m_file >> temp;
 		m_header.insert(pair<string, fdfField>(temp.name(), temp));
 		cout << temp << endl;
-		if (temp.name() == "checksum")
-			break;
 	}
+	cout << m_file.tellg() << endl;
 	while (m_file.get() != '\0') {}
 	m_hdrSize = m_file.tellg();
+	cout << m_file.tellg() << " " << m_hdrSize << endl;
 	m_dtype = headerValue<string>("storage");
 	m_rank = headerValue<size_t>("rank");
 	m_dims[0] = headerValue<size_t>("matrix", 0);
@@ -194,6 +198,7 @@ void fdfFile::open(const string &path) {
 	} else {
 		m_dims[2] = 1;
 	}
+	cout << this << " " << &m_file << " " << m_file.good() << endl;
 }
 
 void fdfFile::close() {
