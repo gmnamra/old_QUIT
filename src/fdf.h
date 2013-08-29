@@ -65,7 +65,6 @@ class fdfImage {
 			for (size_t sl = 0; sl < m_sls; sl++) { // Slice or slab
 				size_t offset = sl * m_sl_size;
 				string name = filePath(sl, vol, echo);
-				cout << name << endl;
 				auto file = m_files.find(name);
 				if (file == m_files.end())
 					throw(runtime_error("Could not find file: " + name));

@@ -100,25 +100,27 @@ class fdfFile {
 		const size_t dataSize() const;
 		
 		template<typename T> vector<T>readData() {
-			cout << this << " " << &m_file << " " << m_file.good() << endl;
-			cout << m_file.tellg() << endl;
-			if (!m_file)
-				throw(runtime_error("Could not read data from file: " + m_path));
 			m_file.seekg(m_hdrSize, ios_base::beg);
-			if (!m_file)
-				throw(runtime_error("Could not read data from file: " + m_path));
-			cout << m_file.tellg() << endl;
 			vector<T> Tbuffer(dataSize());
 			if (m_dtype == "float") {
 				vector<float> floatBuffer(dataSize());
-				
 				m_file.read(reinterpret_cast<char *>(floatBuffer.data()), dataSize() * sizeof(float));
 				if (!m_file) {
-					cout << "Read " << m_file.gcount() << " chars." << endl;
 					throw(runtime_error("Could not read data from file: " + m_path));
 				}
-				for (size_t i = 0; i < dataSize(); i++) {
-					Tbuffer[i] = static_cast<T>(floatBuffer[i]);
+				if (m_rank == 2) {
+					// 2D fdfs have an extra, really stupid, flip of the data ordering
+          			for(size_t i = 0; i < m_dims[1]; i++) {
+						for (size_t j = 0; j < m_dims[0]; j++) {
+							size_t ix1 = i * m_dims[0] + j;
+							size_t ix2 = (m_dims[0] - j - 1) * m_dims[1] + m_dims[1] - i - 1;
+							Tbuffer[ix1] = static_cast<T>(floatBuffer[ix2]);
+						}
+					}
+				} else if (m_rank == 3) {
+					for (size_t i = 0; i < dataSize(); i++) {
+						Tbuffer[i] = static_cast<T>(floatBuffer[i]);
+					}
 				}
 			} else {
 				throw(runtime_error("Unsupported datatype " + m_dtype + " in file: " + m_path));

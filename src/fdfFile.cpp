@@ -180,15 +180,14 @@ void fdfFile::open(const string &path) {
 		throw(runtime_error("Could not magic string in file: " + path));
 	}
 	fdfField temp;
+	// Checksum is always the last header field
 	while (temp.name() != "checksum") {
 		m_file >> temp;
 		m_header.insert(pair<string, fdfField>(temp.name(), temp));
-		cout << temp << endl;
 	}
-	cout << m_file.tellg() << endl;
+	// Now search for the null character for end of the header
 	while (m_file.get() != '\0') {}
 	m_hdrSize = m_file.tellg();
-	cout << m_file.tellg() << " " << m_hdrSize << endl;
 	m_dtype = headerValue<string>("storage");
 	m_rank = headerValue<size_t>("rank");
 	m_dims[0] = headerValue<size_t>("matrix", 0);
@@ -198,7 +197,6 @@ void fdfFile::open(const string &path) {
 	} else {
 		m_dims[2] = 1;
 	}
-	cout << this << " " << &m_file << " " << m_file.good() << endl;
 }
 
 void fdfFile::close() {

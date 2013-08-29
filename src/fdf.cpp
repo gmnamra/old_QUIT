@@ -50,7 +50,6 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 			}
 			auto temp = make_shared<fdfFile>(m_folderPath + "/" + fname);
 			m_files.insert(pair<string, shared_ptr<fdfFile>>(fname, temp));
-			cout << fname << endl;
 		}
 	}
 	closedir(dfd);
@@ -76,7 +75,7 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	m_dim[3] = m_files.size() / (m_sls * ne);
 	m_dim[4] = static_cast<size_t>(m_pp.realValue("ne"));
 	m_sl_size = f->second->dataSize();
-	// Now we have the joy of calculating a correct qform (orientation) field
+	// Now we have the joy of calculating a correct orientation field
 	// Get "Euler" angles. These describe how to get to the user frame
 	// from the magnet frame.
 	double psi = m_pp.realValue("psi"), phi = m_pp.realValue("phi"),
@@ -119,7 +118,11 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	R(2, 0) = -sintht*cosphi;
 	R(2, 1) =  sintht*sinphi;
 	R(2, 2) =  costht;
-	m_transform = (T*R*S).matrix();
+	m_transform = (R*T*S).matrix();
+	cout << "Angles:   " << psi << " " << phi << " " << tht << endl;
+	cout << "Rotation: " << endl << R.matrix() << endl;
+	cout << "Scaling:  " << endl << S.matrix() << endl;
+	cout << "Translate:" << endl << T.matrix() << endl;
 }
 
 void fdfImage::close() {
