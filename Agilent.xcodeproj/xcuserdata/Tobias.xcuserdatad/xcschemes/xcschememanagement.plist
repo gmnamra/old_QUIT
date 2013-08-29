@@ -7,21 +7,31 @@
 		<key>Agilent.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>0</integer>
+			<integer>2</integer>
 		</dict>
-		<key>All.xcscheme</key>
+		<key>All Agilent.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>3</integer>
+			<integer>15</integer>
+		</dict>
+		<key>fdf2nii.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>19</integer>
 		</dict>
 		<key>procparse.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>1</integer>
+			<integer>3</integer>
 		</dict>
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
+		<key>F6CF0AD617CFEFBC000B56BA</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
 		<key>F6E41D4C17C60B0D0043A338</key>
 		<dict>
 			<key>primary</key>

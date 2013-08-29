@@ -580,6 +580,7 @@
 				F6CF0ADF17CFEFBC000B56BA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F6E41D3B17C60A8F0043A338 /* Build configuration list for PBXProject "Agilent" */ = {
 			isa = XCConfigurationList;
