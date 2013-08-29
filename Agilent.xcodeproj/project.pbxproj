@@ -8,13 +8,17 @@
 
 /* Begin PBXBuildFile section */
 		F62E0D7217C7C85200A445AE /* fdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F62E0D7017C7C85200A445AE /* fdf.cpp */; };
-		F62E0D7317C7C85200A445AE /* fdf.h in Headers */ = {isa = PBXBuildFile; fileRef = F62E0D7117C7C85200A445AE /* fdf.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F62E0D7317C7C85200A445AE /* fdf.h in Headers */ = {isa = PBXBuildFile; fileRef = F62E0D7117C7C85200A445AE /* fdf.h */; settings = {ATTRIBUTES = (); }; };
 		F62E0D7817C7C89000A445AE /* fdfFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F62E0D7617C7C89000A445AE /* fdfFile.cpp */; };
-		F62E0D7917C7C89000A445AE /* fdfFile.h in Headers */ = {isa = PBXBuildFile; fileRef = F62E0D7717C7C89000A445AE /* fdfFile.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		F67FA0BF17CEA7CF00B4FA63 /* FID.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D3F17C60AC00043A338 /* FID.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		F67FA0C017CEA7D600B4FA63 /* FIDFile.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4117C60AC00043A338 /* FIDFile.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		F67FA0C117CEA7D900B4FA63 /* procpar.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4517C60AC00043A338 /* procpar.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		F67FA0C217CEA7E700B4FA63 /* util.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4717C60AC00043A338 /* util.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F62E0D7917C7C89000A445AE /* fdfFile.h in Headers */ = {isa = PBXBuildFile; fileRef = F62E0D7717C7C89000A445AE /* fdfFile.h */; settings = {ATTRIBUTES = (); }; };
+		F67FA0BF17CEA7CF00B4FA63 /* FID.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D3F17C60AC00043A338 /* FID.h */; settings = {ATTRIBUTES = (); }; };
+		F67FA0C017CEA7D600B4FA63 /* FIDFile.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4117C60AC00043A338 /* FIDFile.h */; settings = {ATTRIBUTES = (); }; };
+		F67FA0C117CEA7D900B4FA63 /* procpar.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4517C60AC00043A338 /* procpar.h */; settings = {ATTRIBUTES = (); }; };
+		F67FA0C217CEA7E700B4FA63 /* util.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4717C60AC00043A338 /* util.h */; settings = {ATTRIBUTES = (); }; };
+		F6CF0AE417CFEFCC000B56BA /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D4D17C60B0D0043A338 /* libAgilent.a */; };
+		F6CF0AE517CFEFCC000B56BA /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D8017C60CF30043A338 /* libNifti.a */; };
+		F6CF0AE717CFEFD1000B56BA /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CF0AE617CFEFD1000B56BA /* libz.dylib */; };
+		F6CF0AE917CFF063000B56BA /* fdf2nii_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CF0AE817CFF063000B56BA /* fdf2nii_main.cpp */; };
 		F6E41D5217C60B1E0043A338 /* FID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E41D3E17C60AC00043A338 /* FID.cpp */; };
 		F6E41D5317C60B1E0043A338 /* FIDFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E41D4017C60AC00043A338 /* FIDFile.cpp */; };
 		F6E41D5417C60B1E0043A338 /* procpar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E41D4417C60AC00043A338 /* procpar.cpp */; };
@@ -24,6 +28,20 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		F6CF0AE017CFEFC6000B56BA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E41D3817C60A8F0043A338 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
+			remoteInfo = Agilent;
+		};
+		F6CF0AE217CFEFC6000B56BA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E41D7817C60CF30043A338 /* NiftiImage.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
 		F6E41D6317C60B5E0043A338 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D3817C60A8F0043A338 /* Project object */;
@@ -48,6 +66,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		F6CF0AD517CFEFBC000B56BA /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		F6E41D5817C60B490043A338 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -64,6 +91,9 @@
 		F62E0D7117C7C85200A445AE /* fdf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fdf.h; path = src/fdf.h; sourceTree = "<group>"; };
 		F62E0D7617C7C89000A445AE /* fdfFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fdfFile.cpp; path = src/fdfFile.cpp; sourceTree = "<group>"; };
 		F62E0D7717C7C89000A445AE /* fdfFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fdfFile.h; path = src/fdfFile.h; sourceTree = "<group>"; };
+		F6CF0AD717CFEFBC000B56BA /* fdf2nii */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = fdf2nii; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6CF0AE617CFEFD1000B56BA /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/lib/libz.dylib; sourceTree = DEVELOPER_DIR; };
+		F6CF0AE817CFF063000B56BA /* fdf2nii_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fdf2nii_main.cpp; path = src/fdf2nii_main.cpp; sourceTree = "<group>"; };
 		F6E41D3E17C60AC00043A338 /* FID.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FID.cpp; path = src/FID.cpp; sourceTree = "<group>"; };
 		F6E41D3F17C60AC00043A338 /* FID.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FID.h; path = src/FID.h; sourceTree = "<group>"; };
 		F6E41D4017C60AC00043A338 /* FIDFile.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FIDFile.cpp; path = src/FIDFile.cpp; sourceTree = "<group>"; };
@@ -80,6 +110,16 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F6CF0AD417CFEFBC000B56BA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6CF0AE717CFEFD1000B56BA /* libz.dylib in Frameworks */,
+				F6CF0AE417CFEFCC000B56BA /* libAgilent.a in Frameworks */,
+				F6CF0AE517CFEFCC000B56BA /* libNifti.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F6E41D4A17C60B0D0043A338 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -101,6 +141,7 @@
 		F6E41D3717C60A8F0043A338 = {
 			isa = PBXGroup;
 			children = (
+				F6CF0AE617CFEFD1000B56BA /* libz.dylib */,
 				F6E41D7817C60CF30043A338 /* NiftiImage.xcodeproj */,
 				F6E41D4817C60ACA0043A338 /* Source */,
 				F6E41D4E17C60B0D0043A338 /* Products */,
@@ -122,8 +163,9 @@
 				F62E0D7117C7C85200A445AE /* fdf.h */,
 				F62E0D7617C7C89000A445AE /* fdfFile.cpp */,
 				F62E0D7717C7C89000A445AE /* fdfFile.h */,
-				F6E41D4217C60AC00043A338 /* procparse_main.cpp */,
 				F6E41D4317C60AC00043A338 /* nrecon.cpp */,
+				F6E41D4217C60AC00043A338 /* procparse_main.cpp */,
+				F6CF0AE817CFF063000B56BA /* fdf2nii_main.cpp */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -133,6 +175,7 @@
 			children = (
 				F6E41D4D17C60B0D0043A338 /* libAgilent.a */,
 				F6E41D5A17C60B490043A338 /* procparse */,
+				F6CF0AD717CFEFBC000B56BA /* fdf2nii */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -165,6 +208,25 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		F6CF0AD617CFEFBC000B56BA /* fdf2nii */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6CF0ADD17CFEFBC000B56BA /* Build configuration list for PBXNativeTarget "fdf2nii" */;
+			buildPhases = (
+				F6CF0AD317CFEFBC000B56BA /* Sources */,
+				F6CF0AD417CFEFBC000B56BA /* Frameworks */,
+				F6CF0AD517CFEFBC000B56BA /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F6CF0AE117CFEFC6000B56BA /* PBXTargetDependency */,
+				F6CF0AE317CFEFC6000B56BA /* PBXTargetDependency */,
+			);
+			name = fdf2nii;
+			productName = fdf2nii;
+			productReference = F6CF0AD717CFEFBC000B56BA /* fdf2nii */;
+			productType = "com.apple.product-type.tool";
+		};
 		F6E41D4C17C60B0D0043A338 /* Agilent */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F6E41D4F17C60B0D0043A338 /* Build configuration list for PBXNativeTarget "Agilent" */;
@@ -228,6 +290,7 @@
 			targets = (
 				F6E41D4C17C60B0D0043A338 /* Agilent */,
 				F6E41D5917C60B490043A338 /* procparse */,
+				F6CF0AD617CFEFBC000B56BA /* fdf2nii */,
 			);
 		};
 /* End PBXProject section */
@@ -250,6 +313,14 @@
 /* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F6CF0AD317CFEFBC000B56BA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6CF0AE917CFF063000B56BA /* fdf2nii_main.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F6E41D4917C60B0D0043A338 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -274,6 +345,16 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		F6CF0AE117CFEFC6000B56BA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F6E41D4C17C60B0D0043A338 /* Agilent */;
+			targetProxy = F6CF0AE017CFEFC6000B56BA /* PBXContainerItemProxy */;
+		};
+		F6CF0AE317CFEFC6000B56BA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CF0AE217CFEFC6000B56BA /* PBXContainerItemProxy */;
+		};
 		F6E41D6417C60B5E0043A338 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = F6E41D4C17C60B0D0043A338 /* Agilent */;
@@ -282,6 +363,61 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		F6CF0ADE17CFEFBC000B56BA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		F6CF0ADF17CFEFBC000B56BA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
 		F6E41D3C17C60A8F0043A338 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -293,6 +429,7 @@
 				GCC_WARN_UNUSED_PARAMETER = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = "~/Code/eigen";
+				USER_HEADER_SEARCH_PATHS = "~/Code/MR/Nifti/src";
 			};
 			name = Debug;
 		};
@@ -307,6 +444,7 @@
 				GCC_WARN_UNUSED_PARAMETER = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = "~/Code/eigen";
+				USER_HEADER_SEARCH_PATHS = "~/Code/MR/Nifti/src";
 			};
 			name = Release;
 		};
@@ -435,6 +573,14 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F6CF0ADD17CFEFBC000B56BA /* Build configuration list for PBXNativeTarget "fdf2nii" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6CF0ADE17CFEFBC000B56BA /* Debug */,
+				F6CF0ADF17CFEFBC000B56BA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
 		F6E41D3B17C60A8F0043A338 /* Build configuration list for PBXProject "Agilent" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
