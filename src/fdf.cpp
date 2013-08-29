@@ -83,7 +83,7 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	m_voxdim[1] = m_pp.realValue("lpe")/m_dim[1];
 	offset(1)   = m_pp.realValue("ppe") - (m_pp.realValue("lpe") - m_voxdim[1])/2.;
 	if (m_rank == 2) {
-		m_voxdim[2] = m_pp.realValue("thk") + m_pp.realValue("gap");
+		m_voxdim[2] = m_pp.realValue("thk")/10. + m_pp.realValue("gap"); // thk seems to be in mm already
 		offset[2]   = m_pp.realValue("pss", 0); // Find the most negative slice center
 		for (size_t i = 1; i < m_slabs; i++) {
 			if (m_pp.realValue("pss", i) < offset[2])
