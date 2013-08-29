@@ -86,43 +86,32 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	double sinpsi = sin(psi*M_PI/180.), cospsi = cos(psi*M_PI/180.);
 	
 	// Now for the vox dimensions and offsets in the user frame
-	double offset[3];
-	m_voxdim[0] = m_pp.realValue("lro")*10./m_dim[0]; /* Readout pixel dimension in mm */
-	offset[0] = (m_pp.realValue("pro")*10. - m_pp.realValue("lro")*10./2.0) - m_voxdim[0]/2.; /* Assume data has been acquired in a positive readout gradient */
-	m_voxdim[1] = m_pp.realValue("lpe")*10./m_dim[1]; /* Phase encode pixel dimension in mm */
-	offset[1] = (m_pp.realValue("ppe")*10. - m_pp.realValue("lpe")*10./2.0) + m_voxdim[1]/2.; /* Assume phase encoding gradient starts positive and ends up negative */
+	Array3d offset;
+	m_voxdim[0] = m_pp.realValue("lro")/m_dim[0];
+	offset(0)   = m_pp.realValue("pro") - (m_pp.realValue("lro") - m_voxdim[0])/2.;
+	m_voxdim[1] = m_pp.realValue("lpe")/m_dim[1];
+	offset(1)   = m_pp.realValue("ppe") - (m_pp.realValue("lpe") - m_voxdim[1])/2.;
 	if (m_rank == 2) {
-		m_voxdim[2] = m_pp.realValue("thk")+m_pp.realValue("gap")*10.;  /* Slice thickness and gap in mm */
-		offset[2] = m_pp.realValue("pss", 0); // Find the most negative slice center
+		m_voxdim[2] = m_pp.realValue("thk") + m_pp.realValue("gap");
+		offset[2]   = m_pp.realValue("pss", 0); // Find the most negative slice center
 		for (size_t i = 1; i < m_sls; i++) {
 			if (m_pp.realValue("pss", i) < offset[2])
 				offset[2] = m_pp.realValue("pss", i);
 		}
-		offset[2] *= 10.;      /* For 2D we just need centre of the first slice which we have ordered to be the most negative */
 	} else {
-		m_voxdim[2] = m_pp.realValue("lpe2")*10./m_dim[2];              /* 2nd phase encode pixel dimension in mm */
-		offset[2] = (m_pp.realValue("ppe2")*10. - m_pp.realValue("lpe2")*10./2.0) - m_voxdim[2]/2.;    /* Assume 2nd phase encoding gradient starts positive and ends up negative */
+		m_voxdim[2] = m_pp.realValue("lpe2")/m_dim[2];
+		offset[2]   = m_pp.realValue("ppe2") - (m_pp.realValue("lpe2") - m_voxdim[2])/2.;
 	}
-	
-	// Now build the transform matrix
-	Affine3d S; S = Scaling(m_voxdim[0], m_voxdim[1], m_voxdim[2]);
+	// Now build the transform matrix - the 10 is to convert from cm to mm
+	Affine3d S; S = Scaling(m_voxdim[0], m_voxdim[1], m_voxdim[2]) * 10.;
 	Affine3d T; T = Translation3d(offset[0], offset[1], offset[2]);
 	// From Michael Gyngell
-	Affine3d R;
-	R(0, 0) = -cospsi*sinphi + sinpsi*costht*cosphi;
-	R(0, 1) = -cospsi*cosphi - sinpsi*costht*sinphi;
-	R(0, 2) =  sinpsi*sintht;
-	R(1, 0) =  sinpsi*sinphi + cospsi*costht*cosphi;
-	R(1, 1) =  sinpsi*cosphi - cospsi*costht*sinphi;
-	R(1, 2) =  cospsi*sintht;
-	R(2, 0) = -sintht*cosphi;
-	R(2, 1) =  sintht*sinphi;
-	R(2, 2) =  costht;
+	Matrix3d Rd;
+	Rd << -cospsi*sinphi + sinpsi*costht*cosphi, -cospsi*cosphi - sinpsi*costht*sinphi, sinpsi*sintht,
+	       sinpsi*sinphi + cospsi*costht*cosphi,  sinpsi*cosphi - cospsi*costht*sinphi, cospsi*sintht,
+		  -sintht*cosphi, sintht*sinphi, costht;
+	Affine3d R(Rd);
 	m_transform = (R*T*S).matrix();
-	cout << "Angles:   " << psi << " " << phi << " " << tht << endl;
-	cout << "Rotation: " << endl << R.matrix() << endl;
-	cout << "Scaling:  " << endl << S.matrix() << endl;
-	cout << "Translate:" << endl << T.matrix() << endl;
 }
 
 void fdfImage::close() {

@@ -41,7 +41,7 @@ class fdfImage {
 		ProcPar m_pp;
 		size_t m_rank, m_sls, m_sl_size, // Number of slabs or slices, number of voxels per slab or slice
 		       m_dim[5]; //x y z t e(echoes)
-		double m_voxdim[3];
+		Array3d m_voxdim;
 		map<string, shared_ptr<fdfFile>> m_files;
 		Matrix4d m_transform;
 		const string filePath(const size_t slice, const size_t image, const size_t echo) const;
