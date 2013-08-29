@@ -39,8 +39,8 @@ class fdfImage {
 	protected:
 		string m_folderPath, m_filePrefix, m_dtype;
 		ProcPar m_pp;
-		size_t m_rank, m_sls, m_sl_size, // Number of slabs or slices, number of voxels per slab or slice
-		       m_dim[5]; //x y z t e(echoes)
+		size_t m_rank, m_slabs, m_echoes, m_images,
+		       m_dim[3]; // x y z
 		Array3d m_voxdim;
 		map<string, shared_ptr<fdfFile>> m_files;
 		Matrix4d m_transform;
@@ -62,13 +62,13 @@ class fdfImage {
 		template<typename T>
 		vector<T> readVolume(const size_t vol, const size_t echo = 0) {
 			vector<T> Tbuffer(voxelsPerVolume());
-			for (size_t sl = 0; sl < m_sls; sl++) { // Slice or slab
-				size_t offset = sl * m_sl_size;
+			for (size_t sl = 0; sl < m_slabs; sl++) { // Slice or slab
 				string name = filePath(sl, vol, echo);
 				auto file = m_files.find(name);
 				if (file == m_files.end())
 					throw(runtime_error("Could not find file: " + name));
 				vector<T> Tsl = file->second->readData<T>();
+				size_t offset = Tsl.size() * sl;
 				for (size_t i = 0; i < Tsl.size(); i++)
 					Tbuffer[offset + i] = Tsl[i];
 			}

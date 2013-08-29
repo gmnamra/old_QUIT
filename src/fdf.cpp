@@ -55,26 +55,17 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	closedir(dfd);
 	
 	auto f = m_files.begin();
-	size_t ne;
-	if (m_pp.contains("ns"))
-		m_sls = static_cast<size_t>(m_pp.realValue("ns"));
-	else
-		m_sls = 1;
-	if (m_pp.contains("ne"))
-		ne = static_cast<size_t>(m_pp.realValue("ne"));
-	else
-		ne = 1;
+	m_slabs = static_cast<size_t>(m_pp.realValue("ns"));
+	m_echoes = static_cast<size_t>(m_pp.realValue("ne"));
+	m_images = m_files.size() / (m_slabs * m_echoes);
 	m_rank = f->second->rank();
 	m_dim[0] = f->second->dim(0);
 	m_dim[1] = f->second->dim(1);
 	if (m_rank == 2) {
-		m_dim[2] = m_sls;
+		m_dim[2] = m_slabs;
 	} else {
 		m_dim[2] = f->second->dim(2);
 	}
-	m_dim[3] = m_files.size() / (m_sls * ne);
-	m_dim[4] = static_cast<size_t>(m_pp.realValue("ne"));
-	m_sl_size = f->second->dataSize();
 	// Now we have the joy of calculating a correct orientation field
 	// Get "Euler" angles. These describe how to get to the user frame
 	// from the magnet frame.
@@ -94,7 +85,7 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	if (m_rank == 2) {
 		m_voxdim[2] = m_pp.realValue("thk") + m_pp.realValue("gap");
 		offset[2]   = m_pp.realValue("pss", 0); // Find the most negative slice center
-		for (size_t i = 1; i < m_sls; i++) {
+		for (size_t i = 1; i < m_slabs; i++) {
 			if (m_pp.realValue("pss", i) < offset[2])
 				offset[2] = m_pp.realValue("pss", i);
 		}
@@ -122,6 +113,10 @@ void fdfImage::close() {
 const size_t fdfImage::dim(const size_t d) const {
 	if (d > 4)
 		throw(invalid_argument("Tried to access dimension " + std::to_string(d) + " of image: " + m_folderPath));
+	else if (d == 3)
+		return m_images;
+	else if (d == 4)
+		return m_echoes;
 	else
 		return m_dim[d];
 }
@@ -133,11 +128,14 @@ const double fdfImage::voxdim(const size_t d) const {
 }
 const size_t fdfImage::voxelsPerSlice() const { return m_dim[0] * m_dim[1]; }
 const size_t fdfImage::voxelsPerVolume() const { return voxelsPerSlice() * m_dim[2]; }
-const string fdfImage::filePath(const size_t slice, const size_t image, const size_t echo) const {
+const string fdfImage::filePath(const size_t sl, const size_t image, const size_t echo) const {
+	if (sl    >= m_slabs)  throw(invalid_argument("Invalid slice number: " + std::to_string(sl)));
+	if (image >= m_images) throw(invalid_argument("Invalid image number: " + std::to_string(image)));
+	if (echo  >= m_echoes) throw(invalid_argument("Invalid echo number: " + std::to_string(echo)));
 	const size_t w = 3;
 	stringstream p;
 	// fdf Indices are base 1
-	p << setfill('0') << m_filePrefix << setw(w) << slice + 1
+	p << setfill('0') << m_filePrefix << setw(w) << sl + 1
 	  << "image" << setw(w) << image + 1 << "echo" << setw(w) << echo + 1 << ".fdf";
 	return p.str();
 }
