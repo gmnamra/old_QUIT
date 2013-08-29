@@ -172,7 +172,7 @@ class File {
 		template<typename T> void convertFromBytes(const vector<char> &bytes, const size_t nEl, vector<T> &data) {
 			assert(nEl == (bytes.size() / bytesPerVoxel()));
 			data.resize(nEl);
-			for (int i = 0; i < nEl; i++) {
+			for (size_t i = 0; i < nEl; i++) {
 				switch (_datatype.code) {
 					case NIFTI_TYPE_INT8:      data[i] = static_cast<T>(reinterpret_cast<const char *>(bytes.data())[i]); break;
 					case NIFTI_TYPE_UINT8:     data[i] = static_cast<T>(reinterpret_cast<const unsigned char *>(bytes.data())[i]); break;
@@ -199,7 +199,7 @@ class File {
 		template<typename T> void convertFromBytes(const vector<complex<T>> &bytes, const size_t nEl, vector<T> &data) {
 			assert(nEl == (bytes.size() / bytesPerVoxel()));
 			data.resize(nEl);
-			for (int i = 0; i < nEl; i++) {
+			for (size_t i = 0; i < nEl; i++) {
 				switch (_datatype.code) {
 					case NIFTI_TYPE_INT8:      data[i] = complex<T>(static_cast<T>(reinterpret_cast<const char *>(bytes.data())[i]), 0.); break;
 					case NIFTI_TYPE_UINT8:     data[i] = complex<T>(static_cast<T>(reinterpret_cast<const unsigned char *>(bytes.data())[i]), 0.); break;
@@ -231,7 +231,7 @@ class File {
 		  */
 		template<typename T> vector<char> convertToBytes(const vector<T> &data) {
 			vector<char> bytes(data.size() * bytesPerVoxel());
-			for (int i = 0; i < data.size(); i++) {
+			for (size_t i = 0; i < data.size(); i++) {
 				switch (_datatype.code) {
 					case NIFTI_TYPE_INT8:              reinterpret_cast<char *>(bytes.data())[i] = static_cast<char>(data[i]); break;
 					case NIFTI_TYPE_UINT8:    reinterpret_cast<unsigned char *>(bytes.data())[i] = static_cast<unsigned char>(data[i]); break;
@@ -244,9 +244,9 @@ class File {
 					case NIFTI_TYPE_INT64:             reinterpret_cast<long *>(bytes.data())[i] = static_cast<long>(data[i]); break;
 					case NIFTI_TYPE_UINT64:   reinterpret_cast<unsigned long *>(bytes.data())[i] = static_cast<unsigned long>(data[i]); break;
 					case NIFTI_TYPE_FLOAT128:   reinterpret_cast<long double *>(bytes.data())[i] = static_cast<long double>(data[i]); break;
-					case NIFTI_TYPE_COMPLEX64:  reinterpret_cast<complex<float> *>(bytes.data())[i] = complex<T>(static_cast<float>(data[i])); break;
-					case NIFTI_TYPE_COMPLEX128: reinterpret_cast<complex<double> *>(bytes.data())[i] = complex<T>(static_cast<double>(data[i])); break;
-					case NIFTI_TYPE_COMPLEX256: reinterpret_cast<complex<long double> *>(bytes.data())[i] = complex<T>(static_cast<long double>(data[i])); break;
+					case NIFTI_TYPE_COMPLEX64:  reinterpret_cast<complex<float> *>(bytes.data())[i] = complex<float>(static_cast<float>(data[i])); break;
+					case NIFTI_TYPE_COMPLEX128: reinterpret_cast<complex<double> *>(bytes.data())[i] = complex<double>(static_cast<double>(data[i])); break;
+					case NIFTI_TYPE_COMPLEX256: reinterpret_cast<complex<long double> *>(bytes.data())[i] = complex<long double>(static_cast<long double>(data[i])); break;
 					case NIFTI_TYPE_RGB24: case NIFTI_TYPE_RGBA32:
 						throw(runtime_error("RGB/RGBA datatypes not supported.")); break;				}
 			}
@@ -286,10 +286,10 @@ class File {
 		File(File &&other) noexcept; //!< Move constructor
 		
 		File(const int nx, const int ny, const int nz, const int nt,
-		           const float dx, const float dy, const float dz, const float dt,
-				   const int datatype);
+			 const float dx, const float dy, const float dz, const float dt,
+			 const int datatype, const Matrix4f &qform = Matrix4f::Identity());
 		File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
-                   const Matrix4f &qform = Matrix4f::Identity(), const Matrix4f &sform = Matrix4f::Identity());
+			 const Matrix4f &qform = Matrix4f::Identity(), const Matrix4f &sform = Matrix4f::Identity());
 		File(const string &filename, const Modes &mode);
 		
 		void open(const string &filename, const Modes &mode); //!< Attempts to open a NIfTI file. Throws runtime_error on failure or invalid_argument on failure.
@@ -393,7 +393,7 @@ class File {
 		template<typename T> void readSubvolume(const int &sx, const int &sy, const int &sz, const int &st,
 		                                        const int &ex, const int &ey, const int &ez, const int &et,
 												vector<T> &buffer) {
-			size_t lx, ly, lz, lt, total, toRead;
+			int lx, ly, lz, lt, total, toRead;
 			lx = ((ex == -1) ? dim(1) : ex) - sx;
 			ly = ((ey == -1) ? dim(2) : ey) - sy;
 			lz = ((ez == -1) ? dim(3) : ez) - sz;
@@ -462,7 +462,7 @@ class File {
 		template<typename T> void writeSubvolume(const int &sx, const int &sy, const int &sz, const int &st,
 												 const int &ex, const int &ey, const int &ez, const int &et,
 												 const vector<T> &data) {
-			size_t lx, ly, lz, lt, total, toWrite;
+			int lx, ly, lz, lt, total, toWrite;
 			lx = ((ex == -1) ? dim(1) : ex) - sx;
 			ly = ((ey == -1) ? dim(2) : ey) - sy;
 			lz = ((ez == -1) ? dim(3) : ez) - sz;

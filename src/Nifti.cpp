@@ -550,17 +550,19 @@ File::File(const string &filename, const Modes &mode) :
 }
 
 File::File(const int nx, const int ny, const int nz, const int nt,
-		               const float dx, const float dy, const float dz, const float dt,
-		               const int datatype) :
+		   const float dx, const float dy, const float dz, const float dt,
+		   const int datatype, const Matrix4f &qform) :
 	File()
 {
 	_datatype = DataTypes().find(datatype)->second;
-	_qform.setIdentity(); _sform.setIdentity();
+	_qform = qform; _sform.setIdentity();
+	qform_code = NIFTI_XFORM_SCANNER_ANAT;
+	sform_code = NIFTI_XFORM_UNKNOWN;
 	_dim[0] = nx < 1 ? 1 : nx;
 	_dim[1] = ny < 1 ? 1 : ny;
 	_dim[2] = nz < 1 ? 1 : nz;
 	_dim[3] = nt < 1 ? 1 : nt;
-	_voxdim[0] = dx; _voxdim[1] = ny; _voxdim[2] = dz; _voxdim[3] = dt;
+	_voxdim[0] = dx; _voxdim[1] = dy; _voxdim[2] = dz; _voxdim[3] = dt;
 }
 
 File::File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
@@ -572,8 +574,8 @@ File::File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
 	
 	_dim.head(dim.rows()) = dim;
 	_voxdim.head(voxdim.rows()) = voxdim;
-	_qform = qform;
-	_sform = sform;
+	_qform = qform; qform_code = NIFTI_XFORM_SCANNER_ANAT;
+	_sform = sform; sform_code = NIFTI_XFORM_SCANNER_ANAT;
 	_datatype = DataTypes().find(datatype)->second;
 }
 
