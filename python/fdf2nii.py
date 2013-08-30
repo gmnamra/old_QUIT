@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import Tkinter as Tk
-import tkFileDialog 
+import tkFileDialog, tkMessageBox
 import subprocess
 import os
 
@@ -62,8 +62,16 @@ class App:
 		if self.embed_procpar.get():
 			command = command + '-p '
 		if self.study.get():
+			if inpath.endswith(".img"):
+				tkMessageBox.showwarning("Wrong folder",
+				                         "You must select the parent folder when converting a whole study.")
+				return
 			command = command + inpath + '/*.img'
 		else:
+			if not(inpath.endswith(".img")):
+				tkMessageBox.showwarning("Wrong Extension",
+										 "You must select the .img folder when converting a single image.")
+				return
 			command = command + inpath
 		self.go_text.set("Starting...")
 		root.config(cursor = "wait")
