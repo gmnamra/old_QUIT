@@ -61,14 +61,14 @@ int main(int argc, char **argv) {
 		cout << "Converting " << path << " to " << outPath << endl;
 		Agilent::fdfImage input(path);
 		Nifti::File output(input.dim(0), input.dim(1), input.dim(2), input.dim(3),
-						   input.voxdim(0), input.voxdim(1), input.voxdim(2), 1.,
+						   input.voxdim(0) * scale, input.voxdim(1) * scale, input.voxdim(2) * scale, 1.,
 			               DT_FLOAT32, input.ijk_to_xyz().cast<float>());
 		output.open(outPath, Nifti::Modes::Write);
 		for (size_t v = 0; v < input.dim(3); v++) {
 			output.writeVolume<float>(v, input.readVolume<float>(v));
 		}
 		output.close();
-		cout << input.ijk_to_xyz() << endl << output.ijk_to_xyz() << endl;
+		output.open(outPath, Nifti::Modes::Read);
 		optind++;
 	}
     return EXIT_SUCCESS;

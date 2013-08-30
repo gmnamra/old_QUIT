@@ -94,7 +94,9 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 		offset[2]   = m_pp.realValue("ppe2") - (m_pp.realValue("lpe2") - m_voxdim[2])/2.;
 	}
 	// Now build the transform matrix - the 10 is to convert from cm to mm
-	Affine3d S; S = Scaling(m_voxdim[0], m_voxdim[1], m_voxdim[2]) * 10.;
+	m_voxdim *= 10.;
+	offset *= 10.;
+	Affine3d S; S = Scaling(m_voxdim[0], m_voxdim[1], m_voxdim[2]);
 	Affine3d T; T = Translation3d(offset[0], offset[1], offset[2]);
 	// From Michael Gyngell
 	Matrix3d Rd;
