@@ -100,7 +100,8 @@ class fdfFile {
 		const size_t dataSize() const;
 		
 		template<typename T> vector<T>readData() {
-			m_file.seekg(m_hdrSize, ios_base::beg);
+			m_file.open(m_path, ios::in);
+			m_file.seekg(m_hdrSize, ios::beg);
 			vector<T> Tbuffer(dataSize());
 			if (m_dtype == "float") {
 				vector<float> floatBuffer(dataSize());
@@ -125,6 +126,7 @@ class fdfFile {
 			} else {
 				throw(runtime_error("Unsupported datatype " + m_dtype + " in file: " + m_path));
 			}
+			m_file.close();
 			return Tbuffer;
 		}
 		

@@ -197,6 +197,9 @@ void fdfFile::open(const string &path) {
 	} else {
 		m_dims[2] = 1;
 	}
+	// Unfortunately cannot keep all the headers open in a large dataset as
+	// there is a hard limit on the number of open file descriptors.
+	m_file.close();
 }
 
 void fdfFile::close() {
