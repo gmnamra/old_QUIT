@@ -35,7 +35,7 @@ class App:
 		Tk.Checkbutton(options, text = "Scale for SPM", variable = self.spm_scale).grid(row = 0, column = 1)
 		self.embed_procpar = Tk.IntVar()
 		self.embed_procpar.set(1)
-		Tk.Checkbutton(options, text = "Embed procpar", variable = self.embed_procpar).grid(row = 0, column = 2)
+		#Tk.Checkbutton(options, text = "Embed procpar", variable = self.embed_procpar).grid(row = 0, column = 2)
 		
 		go = Tk.Frame(frame)
 		go.grid(row = 2)
@@ -59,8 +59,8 @@ class App:
 		command = 'fdf2nii -o ' + outpath + '/ '
 		if self.spm_scale.get():
 			command = command + '-s 10.0 '
-		if self.embed_procpar.get():
-			command = command + '-p '
+		#if self.embed_procpar.get():
+		#	command = command + '-p '
 		if self.study.get():
 			if inpath.endswith(".img"):
 				tkMessageBox.showwarning("Wrong folder",
