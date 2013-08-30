@@ -38,10 +38,10 @@ AG_HDR = $(patsubst %, $(SRC_DIR)/%.h, $(AG_BASE))
 AG_OBJ = $(patsubst %, $(OBJ_DIR)/%.o, $(AG_BASE))
 
 # Build rules
-%: $(OBJ_DIR)/%_main.o | $(OBJ_DIR)
+%: $(OBJ_DIR)/%_main.o libAgilent.a | $(OBJ_DIR)
 	$(CXX) $^ -o $@ $(LD_FLAGS) -lAgilent -lNifti -lz
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+$(OBJ_DIR)/%.o : $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
 
 libAgilent.a : $(AG_OBJ) | $(OBJ_DIR)
