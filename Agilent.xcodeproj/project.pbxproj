@@ -93,6 +93,7 @@
 		F62E0D7617C7C89000A445AE /* fdfFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fdfFile.cpp; path = src/fdfFile.cpp; sourceTree = "<group>"; };
 		F62E0D7717C7C89000A445AE /* fdfFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fdfFile.h; path = src/fdfFile.h; sourceTree = "<group>"; };
 		F6B126D617D09FFA008D30F2 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = build/Makefile; sourceTree = "<group>"; };
+		F6B126E317D0D451008D30F2 /* fdf2nii.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; name = fdf2nii.py; path = python/fdf2nii.py; sourceTree = "<group>"; };
 		F6CF0AD717CFEFBC000B56BA /* fdf2nii */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = fdf2nii; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6CF0AE617CFEFD1000B56BA /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/lib/libz.dylib; sourceTree = DEVELOPER_DIR; };
 		F6CF0AE817CFF063000B56BA /* fdf2nii_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fdf2nii_main.cpp; path = src/fdf2nii_main.cpp; sourceTree = "<group>"; };
@@ -140,6 +141,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		F6B126E117D0D445008D30F2 /* Python */ = {
+			isa = PBXGroup;
+			children = (
+				F6B126E317D0D451008D30F2 /* fdf2nii.py */,
+			);
+			name = Python;
+			sourceTree = "<group>";
+		};
 		F6E41D3717C60A8F0043A338 = {
 			isa = PBXGroup;
 			children = (
@@ -148,6 +157,7 @@
 				F6B126D617D09FFA008D30F2 /* Makefile */,
 				F6E41D4817C60ACA0043A338 /* Source */,
 				F6E41D4E17C60B0D0043A338 /* Products */,
+				F6B126E117D0D445008D30F2 /* Python */,
 			);
 			sourceTree = "<group>";
 		};
