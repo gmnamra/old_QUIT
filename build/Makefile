@@ -27,7 +27,7 @@ LD_FLAGS = -std=c++11 -lstdc++ -O3 -pthread -L$(INSTALL_LIB) -L.
 INCLUDE = -I$(SRC_DIR) -I$(EIGEN)
 
 # Source files for libAgilent
-AG_BASE = FID FIDFile procpar recon_util
+AG_BASE = FID FIDFile procpar recon_util fdf fdfFile
 AG_HDR = $(patsubst %, $(SRC_DIR)/%.h, $(AG_BASE))
 AG_OBJ = $(patsubst %, $(OBJ_DIR)/%.o, $(AG_BASE))
 
@@ -45,12 +45,12 @@ libAgilent.a : $(AG_OBJ) | $(OBJ_DIR)
 .PHONY : all install clean
 .PRECIOUS: $(OBJ_DIR)/%.o # Stop make removing the object files
 
-TARGETS = libAgilent.a procparse
+TARGETS = libAgilent.a procparse fdf2nii
 
 all	: $(TARGETS)
 
 install : | $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB)
-	cp procparse $(INSTALL_BIN)/
+	cp procparse fdf2nii $(INSTALL_BIN)/
 	cp libAgilent.a $(INSTALL_LIB)/
 	cp $(AG_HDR) $(INSTALL_INC)/
 

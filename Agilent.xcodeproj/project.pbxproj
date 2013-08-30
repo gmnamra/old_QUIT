@@ -15,6 +15,7 @@
 		F67FA0C017CEA7D600B4FA63 /* FIDFile.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4117C60AC00043A338 /* FIDFile.h */; settings = {ATTRIBUTES = (); }; };
 		F67FA0C117CEA7D900B4FA63 /* procpar.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4517C60AC00043A338 /* procpar.h */; settings = {ATTRIBUTES = (); }; };
 		F67FA0C217CEA7E700B4FA63 /* util.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4717C60AC00043A338 /* util.h */; settings = {ATTRIBUTES = (); }; };
+		F6B126D717D09FFB008D30F2 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = F6B126D617D09FFA008D30F2 /* Makefile */; };
 		F6CF0AE417CFEFCC000B56BA /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D4D17C60B0D0043A338 /* libAgilent.a */; };
 		F6CF0AE517CFEFCC000B56BA /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D8017C60CF30043A338 /* libNifti.a */; };
 		F6CF0AE717CFEFD1000B56BA /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CF0AE617CFEFD1000B56BA /* libz.dylib */; };
@@ -91,6 +92,7 @@
 		F62E0D7117C7C85200A445AE /* fdf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fdf.h; path = src/fdf.h; sourceTree = "<group>"; };
 		F62E0D7617C7C89000A445AE /* fdfFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fdfFile.cpp; path = src/fdfFile.cpp; sourceTree = "<group>"; };
 		F62E0D7717C7C89000A445AE /* fdfFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fdfFile.h; path = src/fdfFile.h; sourceTree = "<group>"; };
+		F6B126D617D09FFA008D30F2 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = build/Makefile; sourceTree = "<group>"; };
 		F6CF0AD717CFEFBC000B56BA /* fdf2nii */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = fdf2nii; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6CF0AE617CFEFD1000B56BA /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/lib/libz.dylib; sourceTree = DEVELOPER_DIR; };
 		F6CF0AE817CFF063000B56BA /* fdf2nii_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fdf2nii_main.cpp; path = src/fdf2nii_main.cpp; sourceTree = "<group>"; };
@@ -143,6 +145,7 @@
 			children = (
 				F6CF0AE617CFEFD1000B56BA /* libz.dylib */,
 				F6E41D7817C60CF30043A338 /* NiftiImage.xcodeproj */,
+				F6B126D617D09FFA008D30F2 /* Makefile */,
 				F6E41D4817C60ACA0043A338 /* Source */,
 				F6E41D4E17C60B0D0043A338 /* Products */,
 			);
@@ -331,6 +334,7 @@
 				F6E41D5417C60B1E0043A338 /* procpar.cpp in Sources */,
 				F62E0D7217C7C85200A445AE /* fdf.cpp in Sources */,
 				F62E0D7817C7C89000A445AE /* fdfFile.cpp in Sources */,
+				F6B126D717D09FFB008D30F2 /* Makefile in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
