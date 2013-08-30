@@ -54,22 +54,31 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	while (optind < argc) {
-		string path(argv[optind]);
-		string outPath = outPrefix + path.substr(path.find_last_of("/") + 1, path.find_last_of(".")) + ".nii";
+		string inPath(argv[optind]);
+		optind++;
+		string outPath = outPrefix + inPath.substr(inPath.find_last_of("/") + 1, inPath.find_last_of(".")) + ".nii";
 		if (zip)
 			outPath += ".gz";
-		cout << "Converting " << path << " to " << outPath << endl;
-		Agilent::fdfImage input(path);
-		Nifti::File output(input.dim(0), input.dim(1), input.dim(2), input.dim(3),
-						   input.voxdim(0) * scale, input.voxdim(1) * scale, input.voxdim(2) * scale, 1.,
-			               DT_FLOAT32, input.ijk_to_xyz().cast<float>());
-		output.open(outPath, Nifti::Modes::Write);
-		for (size_t v = 0; v < input.dim(3); v++) {
-			output.writeVolume<float>(v, input.readVolume<float>(v));
+		cout << "Converting " << inPath << " to " << outPath << endl;
+		try {
+			Agilent::fdfImage input(inPath);
+			try {
+				Nifti::File output(input.dim(0), input.dim(1), input.dim(2), input.dim(3),
+								   input.voxdim(0) * scale, input.voxdim(1) * scale, input.voxdim(2) * scale, 1.,
+								   DT_FLOAT32, input.ijk_to_xyz().cast<float>());
+				output.open(outPath, Nifti::Modes::Write);
+				for (size_t v = 0; v < input.dim(3); v++) {
+					output.writeVolume<float>(v, input.readVolume<float>(v));
+				}
+				output.close();
+			} catch (exception &e) {
+				cerr << "Error, skipping to next input. " << e.what() << outPath << endl;
+				continue;
+			}
+		} catch (exception &e) {
+			cerr << "Error, skipping to next input. " << e.what() << endl;
+			continue;
 		}
-		output.close();
-		output.open(outPath, Nifti::Modes::Read);
-		optind++;
 	}
     return EXIT_SUCCESS;
 }
