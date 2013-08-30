@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
 	}
 	while (optind < argc) {
 		string path(argv[optind]);
-		string outPath = path.substr(0, path.find_last_of(".")) + ".nii";
+		string outPath = outPrefix + path.substr(path.find_last_of("/") + 1, path.find_last_of(".")) + ".nii";
 		if (zip)
 			outPath += ".gz";
 		cout << "Converting " << path << " to " << outPath << endl;
