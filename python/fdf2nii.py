@@ -33,7 +33,10 @@ class App:
 		Tk.Checkbutton(options, text = "Scale for SPM", variable = self.spm_scale).grid(row = 0, column = 1)
 		self.embed_procpar = Tk.IntVar()
 		self.embed_procpar.set(1)
-		Tk.Checkbutton(options, text = "Embed procpar", variable = self.embed_procpar).grid(row = 0, column = 2)
+		Tk.Checkbutton(options, text = "Embed procpar", variable = self.embed_procpar).grid(row = 1, column = 0)
+		self.gz = Tk.IntVar()
+		self.gz.set(0)
+		Tk.Checkbutton(options, text = "Compress", variable = self.gz).grid(row = 1, column = 1)
 		
 		go = Tk.Frame(frame)
 		go.grid(row = 2)
@@ -53,11 +56,11 @@ class App:
 		
 	def find_in(self):
 		self.in_entry.delete(0, Tk.END)
-		self.in_entry.insert(0, tkFileDialog.askdirectory(mustexist = True))
+		self.in_entry.insert(0, tkFileDialog.askdirectory(initialdir = "/data/blinded/OSIRIS/", mustexist = True))
 	
 	def find_out(self):
 		self.out_entry.delete(0, Tk.END)
-		self.out_entry.insert(0, tkFileDialog.askdirectory(mustexist = False))
+		self.out_entry.insert(0, tkFileDialog.askdirectory(initialdir = "~", mustexist = False))
 
 	def go(self):
 		inpath  = self.in_entry.get()
@@ -67,6 +70,8 @@ class App:
 			command = command + '-s 10.0 '
 		if self.embed_procpar.get():
 			command = command + '-p '
+		if self.gz.get():
+			command = command + '-z '
 		if self.study.get():
 			if inpath.endswith(".img"):
 				tkMessageBox.showwarning("Wrong folder",
@@ -80,7 +85,7 @@ class App:
 				return
 			command = command + inpath
 		self.go_text.set("Starting...")
-		self.master.config(cursor = "wait")
+		self.master.config(cursor = "watch")
 		self.master.update()
 		p = subprocess.Popen(command,
 							 shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
