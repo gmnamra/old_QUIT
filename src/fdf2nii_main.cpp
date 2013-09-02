@@ -60,7 +60,14 @@ int main(int argc, char **argv) {
 	while (optind < argc) {
 		string inPath(argv[optind]);
 		optind++;
-		string outPath = outPrefix + inPath.substr(inPath.find_last_of("/") + 1, inPath.find_last_of(".")) + ".nii";
+		size_t fileSep = inPath.find_last_of("/") + 1;
+		size_t fileExt = inPath.find_last_of(".");
+		if (inPath.substr(fileExt) != ".img") {
+			cerr << inPath << " is not a valid .img folder. Skipping." << endl;
+			continue;
+		}
+		string outPath = outPrefix + inPath.substr(fileSep, fileExt - fileSep) + ".nii";
+
 		if (zip)
 			outPath += ".gz";
 		cout << "Converting " << inPath << " to " << outPath << endl;
