@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <complex>
 #include <vector>
+#include <list>
 #include <map>
 #include <limits>
 #include <exception>
@@ -113,6 +114,7 @@ class Extension {
 		
 		Extension(int code, vector<char> data);
 		Extension(int size, int code, char *data);
+		const int rawSize() const;
 		const int size() const;
 		const int padding() const;
 		const int code() const;
@@ -140,7 +142,7 @@ class File {
 		int _voxoffset;            //!< Offset to start of voxel data
 		int _swap;                 //!< True if byte order on disk is different to CPU
 		
-		vector<Extension> _extensions;
+		list<Extension> _extensions;
 		
 		static int needs_swap(short dim0, int hdrsize); //!< Check if file endianism matches host endianism.
 		static float fixFloat(const float f); //!< Converts invalid floats to 0 to ensure a marginally sane header
@@ -364,6 +366,10 @@ class File {
 		const string &timeUnits() const;
 		const string &intentName() const;
 		const string &sliceName() const;
+		
+		void addExtension(const int code, const vector<char> &data);
+		void addExtension(const Extension &e);
+		const list<Extension> &extensions();
 		
 		template<typename T> void readVolume(const int &vol, vector<T> &buffer) {
 			size_t bytesPerVolume = voxelsPerVolume() * bytesPerVoxel();

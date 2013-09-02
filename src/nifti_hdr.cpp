@@ -42,7 +42,7 @@ enum Modes {
 
 static int mode = Nothing;
 static int printDims = false, printVoxdims = false, printSize = false, printData = false,
-           printTransform = false;
+           printTransform = false, printExtensions = false;
 
 static struct option long_options[] =
 {
@@ -55,6 +55,7 @@ static struct option long_options[] =
 	{"full",   no_argument, &mode, Full},
 	{"comp",   no_argument, &mode, Compare},
 	{"help",   no_argument, 0, 'h'},
+	{"ext",    no_argument, 0, 'e'},
 	{0, 0, 0, 0}
 };
 
@@ -82,12 +83,13 @@ string dataMessage(const File &im) {
 
 int main(int argc, char **argv) {
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "dvtafchsd", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "dvtafchse", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'd': printDims = true; break;
 			case 'v': printVoxdims = true; break;
 			case 't': printTransform = true; break;
 			case 's': printSize = true; break;
+			case 'e': printExtensions = true; break;
 			case 'a': mode = Abbreviated; break;
 			case 'f': mode = Full; break;
 			case 'c': mode = Compare; break;
@@ -130,6 +132,7 @@ int main(int argc, char **argv) {
 			cout << "Dimensions:  " << im.dims().transpose() << endl;
 			cout << voxMessage(im) << endl;
 			cout << "Transform matrix: " << endl << im.ijk_to_xyz() << endl;
+			cout << "Number of extensions: " << im.extensions().size() << endl;
 		} else if (mode == Full) {
 			cout << "Full Nifti Header for file: " << im.imagePath() << endl;
 			cout << dataMessage(im) << endl;
@@ -152,6 +155,12 @@ int main(int argc, char **argv) {
 			cout << im.qform() << endl;
 			cout << "SForm: " << im.sformName() << endl;
 			cout << im.sform() << endl;
+			cout << "Extensions: " << endl;
+			for (auto &e : im.extensions()) {
+				cout << "Extension Code: " << e.code() << endl;
+				string out(e.data().begin(), e.data().end());
+				cout << out << endl;
+			}
 		}
 	}
 	

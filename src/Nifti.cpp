@@ -156,18 +156,17 @@ Extension::Extension(int size, int code, char *data) :
 		_data[i] = data[i];
 	}
 }
-
-const int Extension::size() const {
-	size_t rem = _data.size() % 16;
-	if (rem == 0) {
-		return static_cast<int>(_data.size());
-	} else {
-		return static_cast<int>(_data.size() + rem);
-	}
+const int Extension::rawSize() const {
+	return static_cast<int>(_data.size());
 }
 const int Extension::padding() const {
-	return static_cast<int>(_data.size() % 16);
+	return static_cast<int>(16 - ((_data.size() + 8) % 16));
 }
+const int Extension::size() const {
+	// Must leave 8 bytes for the code and size fields (ints)
+	return rawSize() + 8 + padding();
+}
+
 const int Extension::code() const { return _code; }
 const string &Extension::codeName() const { return CodeName(_code); }
 void Extension::setCode(int code) {
@@ -817,7 +816,7 @@ void File::readExtensions()
 		if (_file.read(dataBytes.data(), size - 8) < (size - 8)) {
 			throw(runtime_error("Could not read extension in file: " + headerPath()));
 		}
-		_extensions.emplace_back(Extension(code, dataBytes));
+		_extensions.emplace_back(code, dataBytes);
 
 		if (_nii && (_file.tell() > _voxoffset)) {
 			throw(runtime_error("Went past start of voxel data while reading extensions in file: " + headerPath()));
@@ -825,6 +824,17 @@ void File::readExtensions()
 	}
 }
 
+void File::addExtension(const int code, const vector<char> &data) {
+	_extensions.emplace_back(code, data);
+}
+
+void File::addExtension(const Extension &e) {
+	_extensions.push_back(e);
+}
+
+const list<Extension> &File::extensions() {
+	return _extensions;
+}
 
 void File::writeHeader() {
 	struct nifti_1_header nhdr;
@@ -941,18 +951,18 @@ void File::writeExtensions() {
 	for (auto ext : _extensions) {
 		int size = ext.size();
 		int padding = ext.padding();
-		long bytesWritten = _file.write(&size, 4);
+		long bytesWritten = _file.write(&size, sizeof(int));
 		int code = ext.code();
-		bytesWritten += _file.write(&code, 4);
-		if (bytesWritten != 16) {
+		bytesWritten += _file.write(&code, sizeof(int));
+		if (bytesWritten != (2*sizeof(int))) {
 			throw(runtime_error("Could not write extension size and code to file: " + headerPath()));
 		}
-		if (_file.write(ext.data().data(), size - 8) != (size - 8)) {
+		if (_file.write(ext.data().data(), ext.rawSize()) != (ext.rawSize())) {
 			throw(runtime_error("Could not write extension data to file: " + headerPath()));
 		}
 		if (padding) {
-			vector<char> pad(padding, 0);
-			if (_file.write(pad.data(), padding) != padding) {
+			vector<char> pad(ext.padding(), 0);
+			if (_file.write(pad.data(), ext.padding()) != ext.padding()) {
 				throw(runtime_error("Could not write extension padding to file: " + headerPath()));
 			}
 		}
@@ -1054,7 +1064,7 @@ void File::open(const string &path, const Modes &mode) {
 				throw(runtime_error("Failed to open file: " + headerPath()));
 			}
 			readHeader();
-			if (_mode == Modes::Read) {
+			if (_mode != Modes::ReadSkipExt ) {
 				readExtensions();
 			}
 		} else if (_mode == Modes::Write) {
