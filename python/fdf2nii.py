@@ -5,8 +5,6 @@ import tkFileDialog, tkMessageBox
 import subprocess
 import os
 
-root = Tk.Tk()
-
 class App:
 	def __init__(self, master):
 		frame = Tk.Frame(master)
@@ -35,7 +33,7 @@ class App:
 		Tk.Checkbutton(options, text = "Scale for SPM", variable = self.spm_scale).grid(row = 0, column = 1)
 		self.embed_procpar = Tk.IntVar()
 		self.embed_procpar.set(1)
-		#Tk.Checkbutton(options, text = "Embed procpar", variable = self.embed_procpar).grid(row = 0, column = 2)
+		Tk.Checkbutton(options, text = "Embed procpar", variable = self.embed_procpar).grid(row = 0, column = 2)
 		
 		go = Tk.Frame(frame)
 		go.grid(row = 2)
@@ -44,6 +42,14 @@ class App:
 		self.go_text = Tk.StringVar()
 		self.go_text.set("Ready")
 		Tk.Label(go, textvariable = self.go_text, width=25).grid(row = 0, column = 0, columnspan = 2)
+		
+		menu = Tk.Menu(root)
+		root.config(menu=menu)
+		filemenu = Tk.Menu(menu)
+		menu.add_cascade(label="File", menu=filemenu)
+		filemenu.add_command(label="Exit", command=frame.quit)
+		master.title("FDF to Nifti Conversion Tool")
+		self.master = master
 		
 	def find_in(self):
 		self.in_entry.delete(0, Tk.END)
@@ -59,8 +65,8 @@ class App:
 		command = 'fdf2nii -o ' + outpath + '/ '
 		if self.spm_scale.get():
 			command = command + '-s 10.0 '
-		#if self.embed_procpar.get():
-		#	command = command + '-p '
+		if self.embed_procpar.get():
+			command = command + '-p '
 		if self.study.get():
 			if inpath.endswith(".img"):
 				tkMessageBox.showwarning("Wrong folder",
@@ -74,16 +80,17 @@ class App:
 				return
 			command = command + inpath
 		self.go_text.set("Starting...")
-		root.config(cursor = "wait")
-		root.update()
+		self.master.config(cursor = "wait")
+		self.master.update()
 		p = subprocess.Popen(command,
 							 shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		for line in iter(p.stdout.readline, ''):
 			self.go_text.set(line)
-			print line
-			root.update()
-		root.config(cursor = "")
+			print line,
+			self.master.update()
+		self.master.config(cursor = "")
 		self.go_text.set("Finished")
 
+root = Tk.Tk()
 app = App(root)
 root.mainloop()
