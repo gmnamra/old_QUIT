@@ -32,7 +32,7 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	if (!pp_file)
 		throw(runtime_error("Could not open propcar in folder: " + m_folderPath));
 	pp_file >> m_pp;
-	
+	pp_file.close();
 	while ((dp = readdir(dfd))) {
 		if (dp->d_name[0] == '.') // Ignore ., .., and hidden files
 			continue;
