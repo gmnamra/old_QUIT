@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
 				size_t outVol = 0;
 				for (size_t inVol = 0; inVol < input.dim(3); inVol++) {
 					if (verbose)
-						cout << "Writing volume " << outVol << " of " << nOutImages << endl;
+						cout << "Writing volume " << (outVol + 1) << " of " << nOutImages << endl;
 					if (echoMode >= 0) {
 						output.writeVolume<float>(outVol++, input.readVolume<float>(inVol, echoMode));
 					} else if (echoMode == -1) {
