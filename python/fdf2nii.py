@@ -3,7 +3,7 @@
 import Tkinter as Tk
 import tkFileDialog, tkMessageBox
 import subprocess
-import os, errno
+import os, glob, errno
 
 def mkdir_p(path):
     try:
@@ -46,6 +46,9 @@ class App:
 		self.gz = Tk.IntVar()
 		self.gz.set(0)
 		Tk.Checkbutton(options, text = "Compress", variable = self.gz).grid(row = 0, column = 3)
+		self.ignore_scout = Tk.IntVar()
+		self.ignore_scout.set(1)
+		Tk.Checkbutton(options, text = "Ignore scouts", variable = self.ignore_scout).grid(row = 0, column = 4)
 		
 		go = Tk.Frame(frame)
 		go.grid(row = 2)
@@ -79,24 +82,34 @@ class App:
 		command = 'fdf2nii '
 		if self.spm_scale.get():
 			command = command + '-s 10.0 '
+		
 		if self.embed_procpar.get():
 			command = command + '-p '
+		
 		if self.gz.get():
 			command = command + '-z '
+		
 		if self.study.get():
 			if inext == ".img":
 				tkMessageBox.showwarning("Wrong folder", "You must select the parent folder when converting a whole study.")
 				return
 			outpath = outpath + '/' + inbase
 			mkdir_p(outpath)
-			command = command + '-o ' + outpath + '/ ' + inpath + '/*.img'
+			command = command + '-o ' + outpath + '/ '
+			
+			scans = glob.glob(inpath + '/*.img')
+			for s in scans:
+				if (self.ignore_scout.get() and (os.path.basename(s).lower().find("scout") != -1)):
+					pass
+				else:
+					command = command + s + ' '
 		else:
 			if inext != ".img":
 				tkMessageBox.showwarning("Wrong Extension", "You must select the .img folder when converting a single image.")
 				return
 			command = command + '-o ' + outpath + '/ ' + inpath + inext
-		#print command
 		
+		#print command
 		self.go_text.set("Starting...")
 		self.master.config(cursor = "watch")
 		self.master.update()
