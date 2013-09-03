@@ -7,6 +7,7 @@
 
 # Set up variables
 SRC_DIR = ../src
+PYTHON_DIR = ../python
 OBJ_DIR := obj
 INSTALL_DIR := /home/k1078535/Code
 INSTALL_BIN = $(INSTALL_DIR)/bin
@@ -48,7 +49,7 @@ libAgilent.a : $(AG_OBJ) | $(OBJ_DIR)
 	$(AR) libAgilent.a $(AG_OBJ)
 
 install : | $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB)
-	cp procparse fdf2nii $(INSTALL_BIN)/
+	cp procparse fdf2nii $(PYTHON_DIR)/fdf2nii.py $(INSTALL_BIN)/
 	cp libAgilent.a $(INSTALL_LIB)/
 	cp $(AG_HDR) $(INSTALL_INC)/
 
