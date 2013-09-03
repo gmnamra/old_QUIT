@@ -3,7 +3,16 @@
 import Tkinter as Tk
 import tkFileDialog, tkMessageBox
 import subprocess
-import os
+import os, errno
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc: # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else: raise
+	
 
 class App:
 	def __init__(self, master):
@@ -12,10 +21,10 @@ class App:
 		
 		input = Tk.Frame(frame)
 		input.grid(row = 0, column = 0)
-		Tk.Label(input, text = 'Input Folder:').grid(row = 0, sticky=Tk.E)
-		Tk.Label(input, text = 'Output Folder:').grid(row = 1, sticky=Tk.E)
-		self.in_entry  = Tk.Entry(input)
-		self.out_entry = Tk.Entry(input)
+		Tk.Label(input, text = 'Input:').grid(row = 0, sticky=Tk.E)
+		Tk.Label(input, text = 'Output:').grid(row = 1, sticky=Tk.E)
+		self.in_entry  = Tk.Entry(input, width = 64)
+		self.out_entry = Tk.Entry(input, width = 64)
 		self.in_entry.grid(row = 0, column = 1)
 		self.out_entry.grid(row = 1, column = 1)
 		self.in_button = Tk.Button(input, text = "...", command = self.find_in)
@@ -33,10 +42,10 @@ class App:
 		Tk.Checkbutton(options, text = "Scale for SPM", variable = self.spm_scale).grid(row = 0, column = 1)
 		self.embed_procpar = Tk.IntVar()
 		self.embed_procpar.set(1)
-		Tk.Checkbutton(options, text = "Embed procpar", variable = self.embed_procpar).grid(row = 1, column = 0)
+		Tk.Checkbutton(options, text = "Embed procpar", variable = self.embed_procpar).grid(row = 0, column = 2)
 		self.gz = Tk.IntVar()
 		self.gz.set(0)
-		Tk.Checkbutton(options, text = "Compress", variable = self.gz).grid(row = 1, column = 1)
+		Tk.Checkbutton(options, text = "Compress", variable = self.gz).grid(row = 0, column = 3)
 		
 		go = Tk.Frame(frame)
 		go.grid(row = 2)
@@ -60,12 +69,14 @@ class App:
 	
 	def find_out(self):
 		self.out_entry.delete(0, Tk.END)
-		self.out_entry.insert(0, tkFileDialog.askdirectory(initialdir = "~", mustexist = False))
+		self.out_entry.insert(0, tkFileDialog.askdirectory(initialdir = "~", mustexist = True))
 
 	def go(self):
-		inpath  = self.in_entry.get()
+		(inpath, inext) = os.path.splitext(os.path.normpath(self.in_entry.get()))
+		(indir, inbase) = os.path.split(os.path.normpath(inpath))
 		outpath = self.out_entry.get()
-		command = 'fdf2nii -o ' + outpath + '/ '
+		
+		command = 'fdf2nii '
 		if self.spm_scale.get():
 			command = command + '-s 10.0 '
 		if self.embed_procpar.get():
@@ -73,17 +84,19 @@ class App:
 		if self.gz.get():
 			command = command + '-z '
 		if self.study.get():
-			if inpath.endswith(".img"):
-				tkMessageBox.showwarning("Wrong folder",
-				                         "You must select the parent folder when converting a whole study.")
+			if inext == ".img":
+				tkMessageBox.showwarning("Wrong folder", "You must select the parent folder when converting a whole study.")
 				return
-			command = command + inpath + '/*.img'
+			outpath = outpath + '/' + inbase
+			mkdir_p(outpath)
+			command = command + '-o ' + outpath + '/ ' + inpath + '/*.img'
 		else:
-			if not(inpath.endswith(".img")):
-				tkMessageBox.showwarning("Wrong Extension",
-										 "You must select the .img folder when converting a single image.")
+			if inext != ".img":
+				tkMessageBox.showwarning("Wrong Extension", "You must select the .img folder when converting a single image.")
 				return
-			command = command + inpath
+			command = command + '-o ' + outpath + '/ ' + inpath + inext
+		#print command
+		
 		self.go_text.set("Starting...")
 		self.master.config(cursor = "watch")
 		self.master.update()
