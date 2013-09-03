@@ -108,6 +108,8 @@ int main(int argc, char **argv) {
 				output.open(outPath, Nifti::Modes::Write);
 				size_t outVol = 0;
 				for (size_t inVol = 0; inVol < input.dim(3); inVol++) {
+					if (verbose)
+						cout << "Writing volume " << outVol << " of " << nOutImages << endl;
 					if (echoMode >= 0) {
 						output.writeVolume<float>(outVol++, input.readVolume<float>(inVol, echoMode));
 					} else if (echoMode == -1) {
@@ -122,8 +124,6 @@ int main(int argc, char **argv) {
 						}
 						output.writeVolume<float>(outVol++, sum);
 					}
-					if (verbose)
-						cout << "Wrote volume " << outVol << " of " << nOutImages << endl;
 				}
 				output.close();
 			} catch (exception &e) {
@@ -137,5 +137,7 @@ int main(int argc, char **argv) {
 		if (verbose)
 			cout << "Finished writing file " << outPath << endl;
 	}
+	if (verbose)
+		cout << "Finished." << endl;
     return EXIT_SUCCESS;
 }

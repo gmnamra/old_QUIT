@@ -151,7 +151,6 @@ class App:
 		for line in iter(p.stdout.readline, ''):
 			self.go_text.set(line)
 			self.master.update_idletasks()
-		self.go_text.set("All finished.\n")
 		self.master.config(cursor = "")
 
 root = Tk.Tk()
