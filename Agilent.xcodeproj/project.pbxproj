@@ -15,7 +15,6 @@
 		F67FA0C017CEA7D600B4FA63 /* FIDFile.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4117C60AC00043A338 /* FIDFile.h */; settings = {ATTRIBUTES = (); }; };
 		F67FA0C117CEA7D900B4FA63 /* procpar.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4517C60AC00043A338 /* procpar.h */; settings = {ATTRIBUTES = (); }; };
 		F67FA0C217CEA7E700B4FA63 /* util.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E41D4717C60AC00043A338 /* util.h */; settings = {ATTRIBUTES = (); }; };
-		F6B126D717D09FFB008D30F2 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = F6B126D617D09FFA008D30F2 /* Makefile */; };
 		F6CF0AE417CFEFCC000B56BA /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D4D17C60B0D0043A338 /* libAgilent.a */; };
 		F6CF0AE517CFEFCC000B56BA /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D8017C60CF30043A338 /* libNifti.a */; };
 		F6CF0AE717CFEFD1000B56BA /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CF0AE617CFEFD1000B56BA /* libz.dylib */; };
@@ -344,7 +343,6 @@
 				F6E41D5417C60B1E0043A338 /* procpar.cpp in Sources */,
 				F62E0D7217C7C85200A445AE /* fdf.cpp in Sources */,
 				F62E0D7817C7C89000A445AE /* fdfFile.cpp in Sources */,
-				F6B126D717D09FFB008D30F2 /* Makefile in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
