@@ -105,7 +105,7 @@ class App:
 		(indir, inbase) = os.path.split(os.path.normpath(inpath))
 		outpath = self.out_entry.get()
 		
-		command = 'fdf2nii -v'
+		command = 'fdf2nii -v '
 		if self.spm_scale.get():
 			command = command + '-s 10.0 '
 		
@@ -151,6 +151,7 @@ class App:
 		for line in iter(p.stdout.readline, ''):
 			self.go_text.set(line)
 			self.master.update_idletasks()
+		self.go_text.set("All finished.\n")
 		self.master.config(cursor = "")
 
 root = Tk.Tk()
