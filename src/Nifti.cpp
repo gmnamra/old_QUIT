@@ -832,7 +832,7 @@ void File::addExtension(const Extension &e) {
 	_extensions.push_back(e);
 }
 
-const list<Extension> &File::extensions() {
+const list<Extension> &File::extensions() const {
 	return _extensions;
 }
 

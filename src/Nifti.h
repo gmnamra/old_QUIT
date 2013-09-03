@@ -369,7 +369,7 @@ class File {
 		
 		void addExtension(const int code, const vector<char> &data);
 		void addExtension(const Extension &e);
-		const list<Extension> &extensions();
+		const list<Extension> &extensions() const;
 		
 		template<typename T> void readVolume(const int &vol, vector<T> &buffer) {
 			size_t bytesPerVolume = voxelsPerVolume() * bytesPerVoxel();
