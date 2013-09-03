@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import Tkinter as Tk
-import tkFileDialog, tkMessageBox
+import tkFileDialog, tkMessageBox, ScrolledText
 import subprocess
 import os, glob, errno
 
@@ -16,17 +16,22 @@ def mkdir_p(path):
 class StatusBar(Tk.Frame):
     def __init__(self, master):
 		Tk.Frame.__init__(self, master)
-		self.label = Tk.Label(self, bd=1, relief=Tk.SUNKEN, anchor=Tk.W, width = 64)
-		self.label.pack(fill=Tk.X)
-		self.label.pack_propagate(False)
+		self.text = ScrolledText.ScrolledText(self, bd=1, relief=Tk.SUNKEN, height = 4, state = Tk.NORMAL, wrap = Tk.NONE)
+		self.text.pack(fill=Tk.X)
 	
     def set(self, format, *args):
-		self.label.config(text=format % args)
-		self.label.update_idletasks()
+		self.text.config(state = Tk.NORMAL)
+		self.text.insert(Tk.END, format % args)
+		self.text.see('end')
+		self.text.config(state = Tk.DISABLED)
+		self.text.update_idletasks()
+		
 
     def clear(self):
-		self.label.config(text="")
-		self.label.update_idletasks()
+		self.text.config(state = Tk.NORMAL)
+		self.text.delete(1.0, Tk.END)
+		self.text.config(state = Tk.DISABLED)
+		self.text.update_idletasks()
 
 class App:
 	def __init__(self, master):
@@ -75,7 +80,7 @@ class App:
 		self.go_button = Tk.Button(options, text = "Convert", command = self.go)
 		self.go_button.grid(row = 0, column = 5, rowspan = 2, columnspan = 2, sticky=Tk.N+Tk.S+Tk.E+Tk.W)
 		self.go_text = StatusBar(frame)
-		self.go_text.set("Ready")
+		self.go_text.set("Ready.\n")
 		self.go_text.grid(row = 2, sticky=Tk.W + Tk.E)
 		self.go_text.grid_propagate(False)
 		
@@ -136,16 +141,17 @@ class App:
 			command = command + '-o ' + outpath + '/ ' + inpath + inext
 		
 		#print command
-		self.go_text.set("Starting...")
+		self.go_text.clear()
+		self.go_text.set("Starting.\n")
+		self.go_text.set("Input directory: " + inpath + "\nOutput Directory: " + outpath + "\n")
 		self.master.config(cursor = "watch")
 		self.master.update_idletasks()
 		p = subprocess.Popen(command,
 							 shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		for line in iter(p.stdout.readline, ''):
-			self.go_text.set(line.rstrip())
+			self.go_text.set(line)
 			self.master.update_idletasks()
 		self.master.config(cursor = "")
-		self.go_text.set("Finished")
 
 root = Tk.Tk()
 app = App(root)
