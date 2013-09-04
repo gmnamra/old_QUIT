@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F627EDEC17D77961001B3FCA /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
+		F627EDF217D77966001B3FCA /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
+		F627EDF317D77AD3001B3FCA /* mcdespot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */; };
+		F627EDF517D77BE5001B3FCA /* mcdespot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */; };
 		F64CA28D15A1A4EC00F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F64CA29115A1BF5200F72707 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E1F8DE1591E20E00DA918F /* libz.dylib */; };
 		F660A67017BD12D1008682C3 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
@@ -19,7 +23,6 @@
 		F660A67817BD12E4008682C3 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6A51DA31732CA4600436441 /* libz.dylib */; };
 		F660A67917BD12E8008682C3 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
 		F660A67B17BD12ED008682C3 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6A51DA31732CA4600436441 /* libz.dylib */; };
-		F666E52317AFFC0D00A6BBE2 /* mcdespot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */; };
 		F666E52417AFFC0D00A6BBE2 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
 		F666E52517AFFC2700A6BBE2 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
 		F666E52717AFFC2D00A6BBE2 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6A51DA31732CA4600436441 /* libz.dylib */; };
@@ -50,12 +53,18 @@
 		F6E4A2971590DB5300DA4001 /* despot1_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */; };
 		F6E4A2981590DB5800DA4001 /* despot2_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */; };
 		F6E4A2991590DB5800DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F6E4A29A1590DB6000DA4001 /* mcdespot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */; };
 		F6F5343A17B930D40059F82C /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F6F5343B17B930D70059F82C /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		F627EDEF17D77961001B3FCA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F6CF0AD717CFEFBC000B56BA;
+			remoteInfo = fdf2nii;
+		};
 		F660A67C17BD130B008682C3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
@@ -146,13 +155,6 @@
 			proxyType = 2;
 			remoteGlobalIDString = F6E41D5A17C60B490043A338;
 			remoteInfo = procparse;
-		};
-		F6E41D9817C64F1B0043A338 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F6E41D6B17C60B790043A338;
-			remoteInfo = nrecon;
 		};
 		F6E41D9A17C64FB10043A338 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -434,7 +436,7 @@
 			children = (
 				F6E41D9517C64F1B0043A338 /* libAgilent.a */,
 				F6E41D9717C64F1B0043A338 /* procparse */,
-				F6E41D9917C64F1B0043A338 /* nrecon */,
+				F627EDF017D77961001B3FCA /* fdf2nii */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -707,6 +709,13 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
+		F627EDF017D77961001B3FCA /* fdf2nii */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = fdf2nii;
+			remoteRef = F627EDEF17D77961001B3FCA /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		F67F7589179218BB00A278B6 /* nifti_hdr */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
@@ -733,13 +742,6 @@
 			fileType = "compiled.mach-o.executable";
 			path = procparse;
 			remoteRef = F6E41D9617C64F1B0043A338 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		F6E41D9917C64F1B0043A338 /* nrecon */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = nrecon;
-			remoteRef = F6E41D9817C64F1B0043A338 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -769,8 +771,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F627EDF317D77AD3001B3FCA /* mcdespot_main.cpp in Sources */,
 				F6F5343B17B930D70059F82C /* DESPOT.cpp in Sources */,
-				F666E52317AFFC0D00A6BBE2 /* mcdespot_main.cpp in Sources */,
 				F666E52417AFFC0D00A6BBE2 /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -779,6 +781,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F627EDEC17D77961001B3FCA /* DESPOT.cpp in Sources */,
 				F675C8D615CC120100BA95FC /* afi_main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -787,6 +790,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F627EDF217D77966001B3FCA /* DESPOT.cpp in Sources */,
 				F6E1F9141591FFF200DA918F /* phasemap_main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -815,8 +819,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F627EDF517D77BE5001B3FCA /* mcdespot_main.cpp in Sources */,
 				F6F5343A17B930D40059F82C /* DESPOT.cpp in Sources */,
-				F6E4A29A1590DB6000DA4001 /* mcdespot_main.cpp in Sources */,
 				F66A8FD317A6CB5900E93F5C /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -933,7 +937,6 @@
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -949,7 +952,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 			};
 			name = Release;
 		};
@@ -966,7 +968,6 @@
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -982,48 +983,22 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 			};
 			name = Release;
 		};
 		F666E50A17AFFBC800A6BBE2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				OTHER_CFLAGS = (
-					"-DHAVE_NRECON",
-					"-DUSE_MCFINITE",
-				);
+				OTHER_CFLAGS = "-DUSE_MCFINITE";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
 		F666E50B17AFFBC800A6BBE2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				OTHER_CFLAGS = (
-					"-DHAVE_NRECON",
-					"-DUSE_MCFINITE",
-				);
+				OTHER_CFLAGS = "-DUSE_MCFINITE";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 			};
 			name = Release;
 		};
@@ -1061,6 +1036,10 @@
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
 				COPY_PHASE_STRIP = NO;
 				GCC_C_LANGUAGE_STANDARD = c99;
@@ -1103,6 +1082,10 @@
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -1158,7 +1141,6 @@
 		F6E4A2731590DAA400DA4001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				GCC_OPTIMIZATION_LEVEL = 3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -1166,7 +1148,6 @@
 		F6E4A2801590DAB500DA4001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				OTHER_CFLAGS = "-DHAVE_NRECON";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -1174,7 +1155,6 @@
 		F6E4A2811590DAB500DA4001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				OTHER_CFLAGS = "-DHAVE_NRECON";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

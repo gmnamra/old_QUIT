@@ -24,7 +24,6 @@
 
 #ifdef AGILENT
 	#include "procpar.h"
-	using namespace Recon;
 #endif
 
 using namespace std;
@@ -197,13 +196,13 @@ int main(int argc, char **argv)
 			voxelsPerSlice = inFile.voxelsPerSlice();
 			voxelsPerVolume = inFile.voxelsPerVolume();
 			#ifdef AGILENT
-			ParameterList pars;
-			if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
-				inTR = RealValue(pars, "tr");
+			Agilent::ProcPar pp;
+			if (ReadPP(inFile, pp)) {
+				inTR = pp.realValue("tr");
 				for (int i = 0; i < inFlip.size(); i++)
-					inFlip[i] = RealValue(pars, "flip1", i);
+					inFlip[i] = pp.realValue("flip1", i);
 				if (use_finite)
-					inTrf = RealValue(pars, "p1")/1.e6; // p1 is in microseconds
+					inTrf = pp.realValue("p1")/1.e6; // p1 is in microseconds
 			} else
 			#endif
 			{
@@ -220,9 +219,9 @@ int main(int argc, char **argv)
 			inFlip *= M_PI / 180.;
 		}
 		#ifdef AGILENT
-		ParameterList pars;
-		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
-			inPhase = RealValue(pars, "rfphase") * M_PI / 180.;
+		Agilent::ProcPar pp;
+		if (ReadPP(inFile, pp)) {
+			inPhase = pp.realValue("rfphase") * M_PI / 180.;
 		} else
 		#endif
 		{

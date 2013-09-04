@@ -13,14 +13,13 @@
 #include <string>
 #include <getopt.h>
 
-#include "Nifti.h"
-#include "procpar.h"
-
 using namespace std;
+
+#include "Nifti.h"
 #ifdef AGILENT
 	#include "procpar.h"
-	using namespace Recon;
 #endif
+#include "DESPOT.h"
 
 const string usage
 {
@@ -71,10 +70,10 @@ int main(int argc, char** argv)
 			exit(EXIT_FAILURE);
 		}
 		#ifdef AGILENT
-		ParameterList pars;
-		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
-			TE1 = RealValue(pars, "te", 0);
-			TE2 = RealValue(pars, "te", 1);
+		Agilent::ProcPar pp;
+		if (ReadPP(inFile, pp)) {
+			TE1 = pp.realValue("te", 0);
+			TE2 = pp.realValue("te", 1);
 		} else
 		#endif
 		{
@@ -92,9 +91,9 @@ int main(int argc, char** argv)
 			exit(EXIT_FAILURE);
 		}
 		#ifdef AGILENT
-		ParameterList pars;
-		if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
-			TE1 = RealValue(pars, "te", 0);
+		Agilent::ProcPar pp;
+		if (ReadPP(inFile, pp)) {
+			TE1 = pp.realValue("te", 0);
 		} else
 		#endif
 		{
@@ -110,8 +109,8 @@ int main(int argc, char** argv)
 			exit(EXIT_FAILURE);
 		}
 		#ifdef AGILENT
-		if (ReadProcpar(inFile.basePath() + ".procpar", pars)){
-			TE2 = RealValue(pars, "te", 0);
+		if (ReadPP(inFile, pp)){
+			TE2 = pp.realValue("te", 0);
 		} else
 		#endif
 		{

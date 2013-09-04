@@ -23,8 +23,7 @@
 #include "ThreadPool.h"
 
 #ifdef AGILENT
-#include "procpar.h"
-using namespace Recon;
+	#include "procpar.h"
 #endif
 
 using namespace std;
@@ -203,10 +202,10 @@ int main(int argc, char **argv) {
 	double spgrTR;
 	
 	#ifdef AGILENT
-	ParameterList pars;
-	if (ReadProcpar(spgrFile.basePath() + ".procpar", pars)) {
-		spgrTR = RealValue(pars, "tr");
-		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = RealValue(pars, "flip1", i);
+	Agilent::ProcPar pp;
+	if (ReadPP(spgrFile, pp)) {
+		spgrTR = pp.realValue("tr");
+		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = pp.realValue("flip1", i);
 	} else
 	#endif
 	{
@@ -230,10 +229,10 @@ int main(int argc, char **argv) {
 	double irAngle, irTR;
 	
 	#ifdef AGILENT
-	if (ReadProcpar(irFile.basePath() + ".procpar", pars)) {
-		irAngle = RealValue(pars, "flip1") * M_PI / 180.;
-		for (int i = 0; i < nIR; i++) irTI[i] = RealValue(pars, "ti", i);
-		irTR = RealValue(pars, "trseg") - irTI[0];
+	if (ReadPP(irFile, pp)) {
+		irAngle = pp.realValue("flip1") * M_PI / 180.;
+		for (int i = 0; i < nIR; i++) irTI[i] = pp.realValue("ti", i);
+		irTR = pp.realValue("trseg") - irTI[0];
 	} else
 	#endif
 	{

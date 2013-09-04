@@ -10,20 +10,18 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
+#include <iostream>
+#include <string>
 #include <time.h>
-#include <stdbool.h>
 #include <getopt.h>
 
-#include "Nifti.h"
-#include "procpar.h"
-
 using namespace std;
+
+#include "Nifti.h"
 #ifdef AGILENT
 	#include "procpar.h"
-	using namespace Recon;
 #endif
+#include "DESPOT.h"
 
 const string usage("Usage is: afi [options] input output \n\
 \
@@ -70,12 +68,12 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	#ifdef AGILENT
-	Agilent::Procpar pp;
+	Agilent::ProcPar pp;
 	if (ReadPP(inFile, pp)) {
 		// From Sam Hurley. The sequence is implemented by waiting afi_dummy
 		// periods after the first afi_tr.
-		n = pp.RealValue("afi_dummy") + 1;
-		nomFlip = pp.RealValue("flip1");
+		n = pp.realValue("afi_dummy") + 1;
+		nomFlip = pp.realValue("flip1");
 		cout << "Read TR2/TR1 ratio of " << n << " and flip-angle " << nomFlip << " degrees from procpar." << endl;
 	} else
 	#endif

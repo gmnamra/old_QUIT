@@ -24,7 +24,6 @@
 
 #ifdef AGILENT
 	#include "procpar.h"
-	using namespace Recon;
 #endif
 
 #ifdef USE_MCFINITE
@@ -163,17 +162,17 @@ Nifti::File parseInput(vector<Info> &info,
 		double inTR = 0., inTrf = 0., inPhase = 0., inTE = 0.;
 		VectorXd inAngles(signalFiles.back().dim(4));
 		#ifdef AGILENT
-		ParameterList pars;
-		if (ReadProcpar(signalFiles.back().basePath() + ".procpar", pars)) {
-			inTR = RealValue(pars, "tr");
+		Agilent::ProcPar pp;
+		if (ReadPP(signalFiles.back(), pp)) {
+			inTR = pp.realValue("tr");
 			for (int i = 0; i < inAngles.size(); i++)
-				inAngles[i] = RealValue(pars, "flip1", i);
+				inAngles[i] = pp.realValue("flip1", i);
 			if (!spoil)
-				inPhase = RealValue(pars, "rfphase");
+				inPhase = pp.realValue("rfphase");
 			#ifdef USE_MCFINITE
 				if (spoil)
-					inTE = RealValue(pars, "te");
-				inTrf = RealValue(pars, "p1") / 1.e6; // p1 is in microseconds
+					inTE = pp.realValue("te");
+				inTrf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
 			#endif
 		} else
 		#endif
