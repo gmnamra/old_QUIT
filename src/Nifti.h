@@ -292,6 +292,7 @@ class File {
 			 const int datatype, const Matrix4f &qform = Matrix4f::Identity());
 		File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
 			 const Matrix4f &qform = Matrix4f::Identity(), const Matrix4f &sform = Matrix4f::Identity());
+		File(const File &other, const size_t nt, const int datatype); //!< Copies basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
 		File(const string &filename, const Modes &mode);
 		
 		void open(const string &filename, const Modes &mode); //!< Attempts to open a NIfTI file. Throws runtime_error on failure or invalid_argument on failure.

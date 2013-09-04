@@ -504,6 +504,7 @@ File::File(const File &other) :
 	_dim(other._dim), _voxdim(other._voxdim),
 	_sform(other._sform), _qform(other._qform), _datatype(other._datatype),
 	_file(), _basepath(other._basepath),
+	_extensions(other._extensions),
 	scaling_slope(other.scaling_slope), scaling_inter(other.scaling_inter),
 	calibration_min(other.calibration_min), calibration_max(other.calibration_max),
 	freq_dim(other.freq_dim), phase_dim(other.phase_dim), slice_dim(other.slice_dim),
@@ -523,12 +524,23 @@ File::File(const File &other) :
 	}
 }
 
+File::File(const File &other, const size_t nt, const int datatype) : File() {
+	_dim.head(3) = other._dim.head(3);
+	setDim(4, nt);
+	_voxdim.head(3) = other._voxdim.head(3);
+	_qform = other._qform; _sform = other._sform;
+	qform_code = other.qform_code; sform_code = other.sform_code;
+	xyz_units = other.xyz_units;
+	_datatype = DataTypes().find(datatype)->second;
+}
+
 File::File(File &&other) noexcept :
 	_mode(other._mode), _gz(other._gz), _nii(other._nii),
 	_swap(other._swap), _voxoffset(other._voxoffset),
 	_dim(other._dim), _voxdim(other._voxdim),
 	_sform(other._sform), _qform(other._qform), _datatype(other._datatype),
 	_file(other._file), _basepath(other._basepath),
+	_extensions(other._extensions),
 	scaling_slope(other.scaling_slope), scaling_inter(other.scaling_inter),
 	calibration_min(other.calibration_min), calibration_max(other.calibration_max),
 	freq_dim(other.freq_dim), phase_dim(other.phase_dim), slice_dim(other.slice_dim),
@@ -878,8 +890,7 @@ void File::writeHeader() {
 	strncpy(nhdr.intent_name, intent_name.c_str(), 16);
 	
 	// Check that _voxoffset is sensible
-	if (_nii && (_voxoffset < nhdr.sizeof_hdr))
-		_voxoffset = 352;
+	_voxoffset = 352;
 	if (_nii && (_mode != Modes::WriteSkipExt))
 		_voxoffset += totalExtensionSize();
 	nhdr.vox_offset = _voxoffset ;
