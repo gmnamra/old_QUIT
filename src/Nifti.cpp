@@ -562,22 +562,20 @@ File::File(const string &filename, const Modes &mode) :
 
 File::File(const int nx, const int ny, const int nz, const int nt,
 		   const float dx, const float dy, const float dz, const float dt,
-		   const int datatype, const Matrix4f &qform) :
+		   const int datatype, const Affine3f &xform) :
 	File()
 {
 	m_datatype = DataTypes().find(datatype)->second;
-	m_qform = qform; m_sform.setIdentity();
-	qform_code = NIFTI_XFORM_SCANNER_ANAT;
-	sform_code = NIFTI_XFORM_UNKNOWN;
 	m_dim[0] = nx < 1 ? 1 : nx;
 	m_dim[1] = ny < 1 ? 1 : ny;
 	m_dim[2] = nz < 1 ? 1 : nz;
 	m_dim[3] = nt < 1 ? 1 : nt;
 	m_voxdim[0] = dx; m_voxdim[1] = dy; m_voxdim[2] = dz; m_voxdim[3] = dt;
+	setTransform(xform);
 }
 
 File::File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
-                       const Matrix4f &qform, const Matrix4f &sform) :
+		   const Affine3f &xform) :
 	File()
 {
 	assert(dim.rows() < 8);
@@ -585,9 +583,8 @@ File::File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
 	
 	m_dim.head(dim.rows()) = dim;
 	m_voxdim.head(voxdim.rows()) = voxdim;
-	m_qform = qform; qform_code = NIFTI_XFORM_SCANNER_ANAT;
-	m_sform = sform; sform_code = NIFTI_XFORM_SCANNER_ANAT;
 	m_datatype = DataTypes().find(datatype)->second;
+	setTransform(xform);
 }
 
 File &File::operator=(const File &other)
@@ -1224,8 +1221,7 @@ void File::setDatatype(const int dt)
 		m_datatype = it->second;
 }
 
-bool File::matchesVoxels(const File &other) const
-{
+bool File::matchesVoxels(const File &other) const {
 	// Only check the first 3 dimensions
 	if ((m_dim.head(3) == other.m_dim.head(3)).all() && (m_voxdim.head(3).isApprox(other.m_voxdim.head(3))))
 		return true;
@@ -1233,31 +1229,26 @@ bool File::matchesVoxels(const File &other) const
 		return false;
 }
 
-bool File::matchesSpace(const File &other) const
-{
-	if (matchesVoxels(other) && ijk_to_xyz().isApprox(other.ijk_to_xyz()))
+bool File::matchesSpace(const File &other) const {
+	if (matchesVoxels(other) && transform().isApprox(other.transform()))
 		return true;
 	else
 		return false;	
 }
 
-const Matrix4f &File::qform() const { return m_qform.matrix(); }
-const Matrix4f &File::sform() const { return m_sform.matrix(); }
-const Matrix4f &File::ijk_to_xyz() const
-{
+const Affine3f &File::qform() const { return m_qform; }
+const Affine3f &File::sform() const { return m_sform; }
+const Affine3f &File::transform() const {
 	if ((sform_code > 0) && (sform_code >= qform_code))
-		return m_sform.matrix();
+		return m_sform;
 	else // There is always a m_qform matrix
-		return m_qform.matrix();
+		return m_qform;
 }
-const Matrix4f &File::xyz_to_ijk() const
-{
-	static Matrix4f inverse;
-	if ((sform_code > 0) && (sform_code >= qform_code))
-		inverse = m_sform.matrix().inverse();
-	else // There is always a m_qform matrix
-		inverse = m_qform.matrix().inverse();
-	return inverse;
+void File::setTransform(const Affine3f &t, const int transform_code) {
+	m_qform = t.linear();
+	m_sform = t;
+	qform_code = transform_code;
+	sform_code = transform_code;
 }
 
 }; // End namespace Nifti

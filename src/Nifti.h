@@ -283,20 +283,20 @@ class File {
 	public:
 		~File();
 		File();
-		File(const File &other);
-		File &operator=(const File &other);
-		File(File &&other) noexcept; //!< Move constructor
+		File(const File &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles
+		File &operator=(const File &other);  //!< Assignment. Copies all elements except file handles, and marks destination as Closed.
+		File(File &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed
 		
 		File(const int nx, const int ny, const int nz, const int nt,
 			 const float dx, const float dy, const float dz, const float dt,
-			 const int datatype, const Matrix4f &qform = Matrix4f::Identity());
+			 const int datatype, const Affine3f &transform = Affine3f::Identity());
 		File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
-			 const Matrix4f &qform = Matrix4f::Identity(), const Matrix4f &sform = Matrix4f::Identity());
+			 const Affine3f &transform = Affine3f::Identity());
 		File(const File &other, const size_t nt, const int datatype); //!< Copies basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
 		File(const string &filename, const Modes &mode);
 		
 		void open(const string &filename, const Modes &mode); //!< Attempts to open a NIfTI file. Throws runtime_error on failure or invalid_argument on failure.
-		void close();
+		void close();  //!< Closes the file
 		bool isOpen(); //!< Returns true if file is currently open for reading or writing.
 		
 		const string basePath() const;
@@ -305,44 +305,44 @@ class File {
 		char *readRawVolume(const int vol);
 		char *readRawAllVolumes();
 		
-		int dimensions() const;                //!< Get the number of dimensions (rank) of this image
-		void setDimensions(const ArrayXi &dims, const ArrayXf &voxDims); //!< Set all dimension information in one go
+		int dimensions() const;                     //!< Get the number of dimensions (rank) of this image.
+		void setDimensions(const ArrayXi &dims, const ArrayXf &voxDims); //!< Set all dimension information in one go.
 		
-		int dim(const int d) const;             //!< Get the size (voxel count) of a dimension
-		void setDim(const int d, const int n);  //!< Set the size (voxel count) of a dimension d
-		const ArrayXi dims() const;            //!< Get all dimension sizes
-		void setDims(const ArrayXi &newDims);   //!< Set all dimension sizes
-		int voxelsPerSlice() const;             //!< Voxel count for a whole slice (dim1 x dim2)
-		int voxelsPerVolume() const;            //!< Voxel count for a volume (dim1 x dim2 x dim3)
-		int voxelsTotal() const;                //!< Voxel count for whole image (all dimensions)
+		int dim(const int d) const;                 //!< Get the size (voxel count) of a dimension. Starts from 1, not 0.
+		void setDim(const int d, const int n);      //!< Set the size (voxel count) of a dimension. Starts from 1, not 0.
+		const ArrayXi dims() const;                 //!< Get all dimension sizes.
+		void setDims(const ArrayXi &newDims);       //!< Set all dimension sizes.
+		int voxelsPerSlice() const;                 //!< Voxel count for a whole slice (dim1 x dim2).
+		int voxelsPerVolume() const;                //!< Voxel count for a volume (dim1 x dim2 x dim3).
+		int voxelsTotal() const;                    //!< Voxel count for whole image (all dimensions).
 		
-		float voxDim(const int d) const;            //!< Get the voxel size along dimension d
-		void setVoxDim(const int d, const float f); //!< Set the voxel size along dimension d
-		const ArrayXf voxDims() const;             //!< Get all voxel sizes
-		void setVoxDims(const ArrayXf &newVoxDims); //!< Set all voxel sizes
+		float voxDim(const int d) const;            //!< Get the voxel size along dimension d. Starts from 1, not 0.
+		void setVoxDim(const int d, const float f); //!< Set the voxel size along dimension d. Starts from 1, not 0.
+		const ArrayXf voxDims() const;              //!< Get all voxel sizes.
+		void setVoxDims(const ArrayXf &newVoxDims); //!< Set all voxel sizes.
 		
 		const int &datatype() const;
 		const string &dtypeName() const;
 		const int &bytesPerVoxel() const;
 		void setDatatype(const int dt);
-		bool matchesSpace(const File &other) const; //!< Check if voxel dimensions, data size and transform match
-		bool matchesVoxels(const File &other) const; //!< Looser check if voxel dimensions and data size match
 		
 		float scaling_slope;
 		float scaling_inter;
 		float calibration_min;
 		float calibration_max;
 		
+		void setTransform(const Affine3f &t, const int transform_code = NIFTI_XFORM_SCANNER_ANAT); //!< Set the qform and sform from a 4x4 general matrix. The qform will be set to closest matching linear transform, the sform will be an exact copy.
+		const Affine3f &transform() const;           //!< Return the transform with the highest priority.
+		const Affine3f &qform() const;               //!< Return just the qform.
+		const Affine3f &sform() const;               //!< Return just the sform.
 		int qform_code;
 		int sform_code;
-		const Matrix4f &qform() const;
-		const Matrix4f &sform() const;
-		const Matrix4f &ijk_to_xyz() const;
-		const Matrix4f &xyz_to_ijk() const;
+		bool matchesSpace(const File &other) const;  //!< Check if voxel dimensions, data size and transform match
+		bool matchesVoxels(const File &other) const; //!< Looser check if voxel dimensions and data size match
 		
-		int freq_dim ;                //!< indexes (1,2,3, or 0) for MRI
-		int phase_dim;                //!< directions in dim[]/pixdim[]
-		int slice_dim;                //!< directions in dim[]/pixdim[]
+		int freq_dim ;                //!< Index of the frequency encode direction (1-3)
+		int phase_dim;                //!< Index of the phase encode direction (1-3)
+		int slice_dim;                //!< Index of the slice direction (1-3)
 		
 		int   slice_code;             //!< code for slice timing pattern
 		int   slice_start;            //!< index for start of slices
@@ -356,9 +356,9 @@ class File {
 		float intent_p1 ;             //!< intent parameters
 		float intent_p2 ;             //!< intent parameters
 		float intent_p3 ;             //!< intent parameters
-		string intent_name;      //!< optional description of intent data
-		string description;      //!< optional text to describe dataset
-		string aux_file;         //!< auxiliary filename
+		string intent_name;           //!< optional description of intent data
+		string description;           //!< optional text to describe dataset
+		string aux_file;              //!< auxiliary filename
 		
 		static const string &TransformName(const int code);
 		const string &qformName() const;
