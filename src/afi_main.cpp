@@ -35,8 +35,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	static struct option long_options[] =
-	{
+	static struct option long_options[] = {
 		{"mask", required_argument, 0, 'm'},
 		{0, 0, 0, 0}
 	};
@@ -46,10 +45,8 @@ int main(int argc, char **argv)
 	double n, nomFlip;
 	vector<double> tr1, tr2, flip, B1, mask;
 	Nifti::File maskFile, inFile;
-	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1)
-	{
-		switch (c)
-		{
+	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1) {
+		switch (c) {
 			case 'm':
 				cout << "Reading mask." << endl;
 				maskFile.open(optarg, Nifti::Modes::Read);
@@ -106,8 +103,8 @@ int main(int argc, char **argv)
 			B1[vox] = 1.; // So smoothing doesn't get messed up
 	}
 	Nifti::File outFile(inFile);
-	inFile.setDim(4,1);
-	inFile.setDatatype(DT_FLOAT32);
+	outFile.setDim(4, 1);
+	outFile.setDatatype(DT_FLOAT32);
 	string outPath = outPrefix + "_flip.nii.gz";
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
 	outFile.open(outPath, Nifti::Modes::Write);
