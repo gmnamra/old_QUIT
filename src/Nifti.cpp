@@ -478,14 +478,14 @@ void File::SwapAnalyzeHeader(nifti_analyze75 * h)
 
 File::~File()
 {
-	if (_mode != Modes::Closed)
+	if (m_mode != Modes::Closed)
 		close();
 }
 
 File::File() :
-	_mode(Modes::Closed), _gz(false), _nii(false), _swap(false), _voxoffset(0),
-	_dim(Matrix<int, 7, 1>::Ones()), _voxdim(Matrix<float, 7, 1>::Ones()),
-	_basepath(""),
+	m_mode(Modes::Closed), m_gz(false), m_nii(false), m_swap(false), m_voxoffset(0),
+	m_dim(Matrix<int, 7, 1>::Ones()), m_voxdim(Matrix<float, 7, 1>::Ones()),
+	m_basepath(""),
 	scaling_slope(1.), scaling_inter(0.), calibration_min(0.), calibration_max(0.),
 	freq_dim(0), phase_dim(0), slice_dim(0),
 	slice_code(0), slice_start(0), slice_end(0), slice_duration(0),
@@ -494,17 +494,17 @@ File::File() :
 	intent_name(""), description(""), aux_file(""),
 	qform_code(NIFTI_XFORM_UNKNOWN), sform_code(NIFTI_XFORM_UNKNOWN)
 {
-	_qform.setIdentity(); _sform.setIdentity();
-	_datatype = DataTypes().find(DT_FLOAT32)->second;
+	m_qform.setIdentity(); m_sform.setIdentity();
+	m_datatype = DataTypes().find(DT_FLOAT32)->second;
 }
 
 File::File(const File &other) :
-	_mode(other._mode), _gz(other._gz), _nii(other._nii),
-	_swap(other._swap), _voxoffset(other._voxoffset),
-	_dim(other._dim), _voxdim(other._voxdim),
-	_sform(other._sform), _qform(other._qform), _datatype(other._datatype),
-	_file(), _basepath(other._basepath),
-	_extensions(other._extensions),
+	m_mode(other.m_mode), m_gz(other.m_gz), m_nii(other.m_nii),
+	m_swap(other.m_swap), m_voxoffset(other.m_voxoffset),
+	m_dim(other.m_dim), m_voxdim(other.m_voxdim),
+	m_sform(other.m_sform), m_qform(other.m_qform), m_datatype(other.m_datatype),
+	m_file(), m_basepath(other.m_basepath),
+	m_extensions(other.m_extensions),
 	scaling_slope(other.scaling_slope), scaling_inter(other.scaling_inter),
 	calibration_min(other.calibration_min), calibration_max(other.calibration_max),
 	freq_dim(other.freq_dim), phase_dim(other.phase_dim), slice_dim(other.slice_dim),
@@ -515,32 +515,32 @@ File::File(const File &other) :
 	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file),
 	qform_code(other.qform_code), sform_code(other.sform_code)
 {
-	if ((_mode == Modes::Read) || (_mode == Modes::ReadSkipExt)) {
-		_file.open(imagePath(), "rb", _gz);
-		_file.seek(other._file.tell(), SEEK_SET);
-	} else if ((_mode == Modes::Write) || (_mode == Modes::WriteSkipExt)) {
-		_file.open(imagePath(), "wb", _gz);
-		_file.seek(other._file.tell(), SEEK_SET);
+	if ((m_mode == Modes::Read) || (m_mode == Modes::ReadSkipExt)) {
+		m_file.open(imagePath(), "rb", m_gz);
+		m_file.seek(other.m_file.tell(), SEEK_SET);
+	} else if ((m_mode == Modes::Write) || (m_mode == Modes::WriteSkipExt)) {
+		m_file.open(imagePath(), "wb", m_gz);
+		m_file.seek(other.m_file.tell(), SEEK_SET);
 	}
 }
 
 File::File(const File &other, const size_t nt, const int datatype) : File() {
-	_dim.head(3) = other._dim.head(3);
+	m_dim.head(3) = other.m_dim.head(3);
 	setDim(4, nt);
-	_voxdim.head(3) = other._voxdim.head(3);
-	_qform = other._qform; _sform = other._sform;
+	m_voxdim.head(3) = other.m_voxdim.head(3);
+	m_qform = other.m_qform; m_sform = other.m_sform;
 	qform_code = other.qform_code; sform_code = other.sform_code;
 	xyz_units = other.xyz_units;
-	_datatype = DataTypes().find(datatype)->second;
+	m_datatype = DataTypes().find(datatype)->second;
 }
 
 File::File(File &&other) noexcept :
-	_mode(other._mode), _gz(other._gz), _nii(other._nii),
-	_swap(other._swap), _voxoffset(other._voxoffset),
-	_dim(other._dim), _voxdim(other._voxdim),
-	_sform(other._sform), _qform(other._qform), _datatype(other._datatype),
-	_file(other._file), _basepath(other._basepath),
-	_extensions(other._extensions),
+	m_mode(other.m_mode), m_gz(other.m_gz), m_nii(other.m_nii),
+	m_swap(other.m_swap), m_voxoffset(other.m_voxoffset),
+	m_dim(other.m_dim), m_voxdim(other.m_voxdim),
+	m_sform(other.m_sform), m_qform(other.m_qform), m_datatype(other.m_datatype),
+	m_file(other.m_file), m_basepath(other.m_basepath),
+	m_extensions(other.m_extensions),
 	scaling_slope(other.scaling_slope), scaling_inter(other.scaling_inter),
 	calibration_min(other.calibration_min), calibration_max(other.calibration_max),
 	freq_dim(other.freq_dim), phase_dim(other.phase_dim), slice_dim(other.slice_dim),
@@ -551,7 +551,7 @@ File::File(File &&other) noexcept :
 	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file),
 	qform_code(other.qform_code), sform_code(other.sform_code)
 {
-	other._mode = Modes::Closed;
+	other.m_mode = Modes::Closed;
 }
 
 File::File(const string &filename, const Modes &mode) :
@@ -565,15 +565,15 @@ File::File(const int nx, const int ny, const int nz, const int nt,
 		   const int datatype, const Matrix4f &qform) :
 	File()
 {
-	_datatype = DataTypes().find(datatype)->second;
-	_qform = qform; _sform.setIdentity();
+	m_datatype = DataTypes().find(datatype)->second;
+	m_qform = qform; m_sform.setIdentity();
 	qform_code = NIFTI_XFORM_SCANNER_ANAT;
 	sform_code = NIFTI_XFORM_UNKNOWN;
-	_dim[0] = nx < 1 ? 1 : nx;
-	_dim[1] = ny < 1 ? 1 : ny;
-	_dim[2] = nz < 1 ? 1 : nz;
-	_dim[3] = nt < 1 ? 1 : nt;
-	_voxdim[0] = dx; _voxdim[1] = dy; _voxdim[2] = dz; _voxdim[3] = dt;
+	m_dim[0] = nx < 1 ? 1 : nx;
+	m_dim[1] = ny < 1 ? 1 : ny;
+	m_dim[2] = nz < 1 ? 1 : nz;
+	m_dim[3] = nt < 1 ? 1 : nt;
+	m_voxdim[0] = dx; m_voxdim[1] = dy; m_voxdim[2] = dz; m_voxdim[3] = dt;
 }
 
 File::File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
@@ -583,30 +583,30 @@ File::File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
 	assert(dim.rows() < 8);
 	assert(dim.rows() == voxdim.rows());
 	
-	_dim.head(dim.rows()) = dim;
-	_voxdim.head(voxdim.rows()) = voxdim;
-	_qform = qform; qform_code = NIFTI_XFORM_SCANNER_ANAT;
-	_sform = sform; sform_code = NIFTI_XFORM_SCANNER_ANAT;
-	_datatype = DataTypes().find(datatype)->second;
+	m_dim.head(dim.rows()) = dim;
+	m_voxdim.head(voxdim.rows()) = voxdim;
+	m_qform = qform; qform_code = NIFTI_XFORM_SCANNER_ANAT;
+	m_sform = sform; sform_code = NIFTI_XFORM_SCANNER_ANAT;
+	m_datatype = DataTypes().find(datatype)->second;
 }
 
 File &File::operator=(const File &other)
 {
 	if (this == &other)
 		return *this;
-	else if (_mode != Modes::Closed)
+	else if (m_mode != Modes::Closed)
 		close();
 	
-	_dim = other._dim;
-	_voxdim = other._voxdim;
-	_qform = other._qform;
-	_sform = other._sform;
-	_basepath = other._basepath;
-	_gz = other._gz;
-	_nii = other._nii;
-	_mode = Modes::Closed;
-	_voxoffset = 0;
-	_datatype = other._datatype;
+	m_dim = other.m_dim;
+	m_voxdim = other.m_voxdim;
+	m_qform = other.m_qform;
+	m_sform = other.m_sform;
+	m_basepath = other.m_basepath;
+	m_gz = other.m_gz;
+	m_nii = other.m_nii;
+	m_mode = Modes::Closed;
+	m_voxoffset = 0;
+	m_datatype = other.m_datatype;
 	scaling_slope = other.scaling_slope;
 	scaling_inter = other.scaling_inter;
 	calibration_min = other.calibration_min;
@@ -634,30 +634,30 @@ File &File::operator=(const File &other)
 }
 
 const string File::basePath() const {
-	return _basepath;
+	return m_basepath;
 }
 
 const string File::imagePath() const {
-	string path(_basepath);
-	if (_nii) {
+	string path(m_basepath);
+	if (m_nii) {
 		path += ".nii";
 	} else {
 		path += ".img";
 	}
-	if (_gz)
+	if (m_gz)
 		path += ".gz";
 	
 	return path;
 }
 
 const string File::headerPath() const {
-	string path(_basepath);
-	if (_nii) {
+	string path(m_basepath);
+	if (m_nii) {
 		path += ".nii";
 	} else {
 		path += ".hdr";
 	}
-	if (_gz)
+	if (m_gz)
 		path += ".gz";
 	
 	return path;
@@ -674,7 +674,7 @@ inline float File::fixFloat(const float f)
 void File::readHeader() {
 	struct nifti_1_header nhdr;
 	
-	if (_file.read(&nhdr, sizeof(nhdr)) < sizeof(nhdr)) {
+	if (m_file.read(&nhdr, sizeof(nhdr)) < sizeof(nhdr)) {
 		throw(runtime_error("Could not read header structure from " + headerPath()));
 	}
 	
@@ -687,7 +687,7 @@ void File::readHeader() {
 			throw(runtime_error("Could not determine byte order of header " + headerPath()));
 		}
 		// If we didn't fail, then we need to swap the header (first swap sizeof back)
-		_swap = true;
+		m_swap = true;
 		SwapBytes(1, 4, &nhdr.sizeof_hdr);
 	}
 	
@@ -697,32 +697,32 @@ void File::readHeader() {
                     (nhdr.magic[1]=='i' || nhdr.magic[1]=='+') &&
                     (nhdr.magic[2]>='1' && nhdr.magic[2]<='9')) ? true : false;
 	
-	if (_swap && is_nifti)
+	if (m_swap && is_nifti)
 		SwapNiftiHeader(&nhdr);
-	else if (_swap)
+	else if (m_swap)
 		SwapAnalyzeHeader((nifti_analyze75 *)&nhdr);
 	
 	if(nhdr.datatype == DT_BINARY || nhdr.datatype == DT_UNKNOWN  ) {
 		throw(runtime_error("Bad datatype in header: " + headerPath()));
 	}
-	_datatype = DataTypes().find(nhdr.datatype)->second;
+	m_datatype = DataTypes().find(nhdr.datatype)->second;
 	
 	if(nhdr.dim[1] <= 0) {
 		throw(runtime_error("Bad first dimension in header: " + headerPath()));
 	}
 	for (int i = 0; i < nhdr.dim[0]; i++) {
-		_dim[i] = nhdr.dim[i + 1];
-		_voxdim[i] = nhdr.pixdim[i + 1];
+		m_dim[i] = nhdr.dim[i + 1];
+		m_voxdim[i] = nhdr.pixdim[i + 1];
 	}
 	for (int i = nhdr.dim[0]; i < 7; i++) {
-		_dim[i] = 1;
-		_voxdim[i] = 1.;
+		m_dim[i] = 1;
+		m_voxdim[i] = 1.;
 	}
 	// Compute Q-Form
-	Affine3f S; S = Scaling(_voxdim[0], _voxdim[1], _voxdim[2]);
+	Affine3f S; S = Scaling(m_voxdim[0], m_voxdim[1], m_voxdim[2]);
 	if( !is_nifti || nhdr.qform_code <= 0 ) {
 		// If Q-Form not set or ANALYZE then just use voxel scaling
-		_qform = S.matrix();
+		m_qform = S.matrix();
 		qform_code = NIFTI_XFORM_UNKNOWN ;
 	} else {
 		float b = fixFloat(nhdr.quatern_b);
@@ -736,22 +736,22 @@ void File::readHeader() {
 
 		Quaternionf Q(a, b, c, d);
 		Affine3f T; T = Translation3f(x, y, z);
-		_qform = T*Q*S;
+		m_qform = T*Q*S;
 		
 		// Fix left-handed co-ords in a very dumb way (see writeHeader())
 		if (nhdr.pixdim[0] < 0.)
-			_qform.matrix().block(0, 2, 3, 1) *= -1.;
+			m_qform.matrix().block(0, 2, 3, 1) *= -1.;
 		qform_code = nhdr.qform_code;
 	}
 	// Load S-Form
 	if( !is_nifti || nhdr.sform_code <= 0 ) {
 		sform_code = NIFTI_XFORM_UNKNOWN ;
 	} else {
-		_sform.setIdentity();
+		m_sform.setIdentity();
 		for (int i = 0; i < 4; i++) {
-			_sform(0, i) = nhdr.srow_x[i];
-			_sform(1, i) = nhdr.srow_y[i];
-			_sform(2, i) = nhdr.srow_z[i];
+			m_sform(0, i) = nhdr.srow_x[i];
+			m_sform(1, i) = nhdr.srow_y[i];
+			m_sform(2, i) = nhdr.srow_z[i];
 		}
 		sform_code = nhdr.sform_code ;
 	}
@@ -784,68 +784,68 @@ void File::readHeader() {
 	description = string(nhdr.descrip);
 	aux_file    = string(nhdr.aux_file);
 	
-	if (_nii) {
-		_voxoffset = (int)nhdr.vox_offset;
-		if (_voxoffset < (int)sizeof(nhdr)) _voxoffset = (int)sizeof(nhdr);
+	if (m_nii) {
+		m_voxoffset = (int)nhdr.vox_offset;
+		if (m_voxoffset < (int)sizeof(nhdr)) m_voxoffset = (int)sizeof(nhdr);
 	} else {
-		_voxoffset = (int)nhdr.vox_offset ;
+		m_voxoffset = (int)nhdr.vox_offset ;
 	}
 }
 
 void File::readExtensions()
 {
-	long target = _voxoffset;
-	if (!_nii) {
-		_file.seek(0, SEEK_END);
-		target = _file.tell();
+	long target = m_voxoffset;
+	if (!m_nii) {
+		m_file.seek(0, SEEK_END);
+		target = m_file.tell();
 	}
-	_file.seek(sizeof(nifti_1_header), SEEK_SET);
+	m_file.seek(sizeof(nifti_1_header), SEEK_SET);
 	char extender[4];
-	if (_file.read(extender, 4) != 4) {
+	if (m_file.read(extender, 4) != 4) {
 		throw(runtime_error("While checking for extensions hit end of file: " + headerPath()));
 	}
 	if (extender[0] != 1) // There are no extensions
 		return;
 	
-	while (_file.tell() < target) {		
-		if(_file.tell() > target - 16 ){
+	while (m_file.tell() < target) {		
+		if(m_file.tell() > target - 16 ){
 			throw(runtime_error("Insufficient space for remaining extensions in file: " + headerPath()));
 		}
 		
 		int size, code;
-		long bytesRead = _file.read(&size, 4);
-		bytesRead += _file.read(&code, 4);
+		long bytesRead = m_file.read(&size, 4);
+		bytesRead += m_file.read(&code, 4);
 		if (bytesRead != 8) {
 			throw(runtime_error("Error while reading extension size and code in file: " + headerPath()));
 		}
 		
-		if (_swap) {
+		if (m_swap) {
 			SwapBytes(1, 4, &size);
 			SwapBytes(1, 4, &code);
 		}
 		
 		vector<char> dataBytes(size - 8);
-		if (_file.read(dataBytes.data(), size - 8) < (size - 8)) {
+		if (m_file.read(dataBytes.data(), size - 8) < (size - 8)) {
 			throw(runtime_error("Could not read extension in file: " + headerPath()));
 		}
-		_extensions.emplace_back(code, dataBytes);
+		m_extensions.emplace_back(code, dataBytes);
 
-		if (_nii && (_file.tell() > _voxoffset)) {
+		if (m_nii && (m_file.tell() > m_voxoffset)) {
 			throw(runtime_error("Went past start of voxel data while reading extensions in file: " + headerPath()));
 		}
 	}
 }
 
 void File::addExtension(const int code, const vector<char> &data) {
-	_extensions.emplace_back(code, data);
+	m_extensions.emplace_back(code, data);
 }
 
 void File::addExtension(const Extension &e) {
-	_extensions.push_back(e);
+	m_extensions.push_back(e);
 }
 
 const list<Extension> &File::extensions() const {
-	return _extensions;
+	return m_extensions;
 }
 
 void File::writeHeader() {
@@ -857,12 +857,12 @@ void File::writeHeader() {
 	
 	nhdr.dim[0] = dimensions(); //pixdim[0] is set later with qform
 	for (int i = 0; i < 7; i++) {	// Copy this way so types can be changed
-		nhdr.dim[i + 1] = _dim[i];
-		nhdr.pixdim[i + 1] = _voxdim[i];
+		nhdr.dim[i + 1] = m_dim[i];
+		nhdr.pixdim[i + 1] = m_voxdim[i];
 	}
 	
-	nhdr.datatype = _datatype.code;
-	nhdr.bitpix   = 8 * _datatype.size;
+	nhdr.datatype = m_datatype.code;
+	nhdr.bitpix   = 8 * m_datatype.size;
 	
 	if(calibration_max > calibration_min) {
 		nhdr.cal_max = calibration_max;
@@ -878,7 +878,7 @@ void File::writeHeader() {
 	strncpy(nhdr.aux_file, aux_file.c_str(), 24);
 	
 
-	if(_nii)
+	if(m_nii)
 		strcpy(nhdr.magic,"n+1");
 	else
 		strcpy(nhdr.magic,"ni1");
@@ -889,23 +889,23 @@ void File::writeHeader() {
 	nhdr.intent_p3   = intent_p3;
 	strncpy(nhdr.intent_name, intent_name.c_str(), 16);
 	
-	// Check that _voxoffset is sensible
-	_voxoffset = 352;
-	if (_nii && (_mode != Modes::WriteSkipExt))
-		_voxoffset += totalExtensionSize();
-	nhdr.vox_offset = _voxoffset ;
+	// Check that m_voxoffset is sensible
+	m_voxoffset = 352;
+	if (m_nii && (m_mode != Modes::WriteSkipExt))
+		m_voxoffset += totalExtensionSize();
+	nhdr.vox_offset = m_voxoffset ;
 	nhdr.xyzt_units = SPACE_TIME_TO_XYZT(xyz_units, time_units);
 	nhdr.toffset    = toffset ;
 	
 	nhdr.qform_code = qform_code;
-	Quaternionf Q(_qform.rotation());
-	Translation3f T(_qform.translation());
+	Quaternionf Q(m_qform.rotation());
+	Translation3f T(m_qform.translation());
 	// Fix left-handed co-ord systems in an incredibly dumb manner.
 	// First - NIFTI stores this information in pixdim[0], with both inconsistent
 	// documentation and a reference implementation that hides pixdim[0] on reading
 	// Second - Eigen .rotation() simultaneously calculates a scaling, and so may
 	// hide axes flips. Hence we need to use .linear() to get the determinant
-	if (_qform.linear().determinant() < 0)
+	if (m_qform.linear().determinant() < 0)
 		nhdr.pixdim[0] = -1.;
 	else
 		nhdr.pixdim[0] = 1.;
@@ -926,9 +926,9 @@ void File::writeHeader() {
 	
 	nhdr.sform_code = sform_code;
 	for (int i = 0; i < 4; i++) {
-		nhdr.srow_x[i]  = _sform(0, i);
-		nhdr.srow_y[i]  = _sform(1, i);
-		nhdr.srow_z[i]  = _sform(2, i);
+		nhdr.srow_x[i]  = m_sform(0, i);
+		nhdr.srow_y[i]  = m_sform(1, i);
+		nhdr.srow_z[i]  = m_sform(2, i);
 	}
 	
 	nhdr.dim_info = FPS_INTO_DIM_INFO(freq_dim, phase_dim, slice_dim);
@@ -937,48 +937,48 @@ void File::writeHeader() {
 	nhdr.slice_end      = slice_end;
 	nhdr.slice_duration = slice_duration;
 	
-	if(_file.write(&nhdr, sizeof(nhdr)) < sizeof(nhdr)) {
+	if(m_file.write(&nhdr, sizeof(nhdr)) < sizeof(nhdr)) {
 		throw(runtime_error("Could not write header to file: " + headerPath()));
 	}
 }
 
 int File::totalExtensionSize() {
 	int total = 0;
-	for (auto ext: _extensions) {
+	for (auto ext: m_extensions) {
 		total += ext.size();
 	}
 	return total;
 }
 
 void File::writeExtensions() {
-	_file.seek(sizeof(nifti_1_header), SEEK_SET);
+	m_file.seek(sizeof(nifti_1_header), SEEK_SET);
 	char extender[4] = {0, 0, 0, 0};
-	if (_extensions.size() > 0)
+	if (m_extensions.size() > 0)
 		extender[0] = 1;
-	if (_file.write(extender, 4) < 4) {
+	if (m_file.write(extender, 4) < 4) {
 		throw(runtime_error("Could not write extender block to file: " + headerPath()));
 	}
 	
-	for (auto ext : _extensions) {
+	for (auto ext : m_extensions) {
 		int size = ext.size();
 		int padding = ext.padding();
-		long bytesWritten = _file.write(&size, sizeof(int));
+		long bytesWritten = m_file.write(&size, sizeof(int));
 		int code = ext.code();
-		bytesWritten += _file.write(&code, sizeof(int));
+		bytesWritten += m_file.write(&code, sizeof(int));
 		if (bytesWritten != (2*sizeof(int))) {
 			throw(runtime_error("Could not write extension size and code to file: " + headerPath()));
 		}
-		if (_file.write(ext.data().data(), ext.rawSize()) != (ext.rawSize())) {
+		if (m_file.write(ext.data().data(), ext.rawSize()) != (ext.rawSize())) {
 			throw(runtime_error("Could not write extension data to file: " + headerPath()));
 		}
 		if (padding) {
 			vector<char> pad(ext.padding(), 0);
-			if (_file.write(pad.data(), ext.padding()) != ext.padding()) {
+			if (m_file.write(pad.data(), ext.padding()) != ext.padding()) {
 				throw(runtime_error("Could not write extension padding to file: " + headerPath()));
 			}
 		}
 	}
-	if ((_file.tell() - totalExtensionSize() - 4) != sizeof(nifti_1_header)) {
+	if ((m_file.tell() - totalExtensionSize() - 4) != sizeof(nifti_1_header)) {
 		throw(runtime_error("Wrote wrong number of bytes for extensions to file: " + headerPath()));
 	}
 }
@@ -995,10 +995,10 @@ void File::writeExtensions() {
   *           then will be the same). NULL on fail.
   */
 char *File::readBytes(size_t start, size_t length, char *buffer) {
-	if (_mode == Modes::Closed) {
+	if (m_mode == Modes::Closed) {
 		throw(logic_error("Cannot read from closed file: " + imagePath()));
 	}
-	if (_mode == Modes::Write) {
+	if (m_mode == Modes::Write) {
 		throw(logic_error("Cannot read from a file opened for reading: " + imagePath()));
 	}
 	if (length == 0) {
@@ -1007,14 +1007,14 @@ char *File::readBytes(size_t start, size_t length, char *buffer) {
 	if (!buffer) {
 		buffer = new char[length];
 	}
-	if (!_file.seek(_voxoffset + start, SEEK_SET)) {
+	if (!m_file.seek(m_voxoffset + start, SEEK_SET)) {
 		throw(runtime_error("Failed seek in file: " + imagePath()));
 	}
-	if (_file.read(buffer, static_cast<unsigned int>(length)) != length) {
+	if (m_file.read(buffer, static_cast<unsigned int>(length)) != length) {
 		throw(runtime_error("Read wrong number of bytes from file: " + imagePath()));
 	}
-	if (_datatype.swapsize > 1 && _swap)
-		SwapBytes(length / _datatype.swapsize, _datatype.swapsize, buffer);
+	if (m_datatype.swapsize > 1 && m_swap)
+		SwapBytes(length / m_datatype.swapsize, m_datatype.swapsize, buffer);
 	return buffer;
 }
 
@@ -1027,19 +1027,19 @@ char *File::readBytes(size_t start, size_t length, char *buffer) {
   *   @param length Number of bytes to write
   */
 void File::writeBytes(size_t start, size_t length, char *buffer) {
-	if (_mode == Modes::Closed) {
+	if (m_mode == Modes::Closed) {
 		throw(logic_error("Cannot write to closed file: " + imagePath()));
 	}
-	if (_mode == Modes::Read) {
+	if (m_mode == Modes::Read) {
 		throw(logic_error("Cannot write to file opened for writing: " + imagePath()));
 	}
 	if (length == 0) {
 		throw(invalid_argument("Asked to write 0 bytes to file: " + imagePath()));
 	}
-	if (!_file.seek(_voxoffset + start, SEEK_SET)) {
+	if (!m_file.seek(m_voxoffset + start, SEEK_SET)) {
 		throw(runtime_error("Failed seek in file: " + imagePath()));
 	}
-	if (_file.write(buffer, static_cast<unsigned int>(length)) != length) {
+	if (m_file.write(buffer, static_cast<unsigned int>(length)) != length) {
 		throw(runtime_error("Wrote wrong number of bytes to file: " + imagePath()));
 	}
 }
@@ -1048,64 +1048,64 @@ void File::open(const string &path, const Modes &mode) {
 	size_t lastDot = path.find_last_of(".");
 	string ext;
 	if (path.substr(lastDot + 1) == "gz") {
-		_gz = true;
+		m_gz = true;
 		size_t extDot = path.find_last_of(".", lastDot - 1);
 		ext = path.substr(extDot + 1, lastDot - extDot - 1);
-		_basepath = path.substr(0, extDot);
+		m_basepath = path.substr(0, extDot);
 	} else {
-		_gz = false;
+		m_gz = false;
 		ext = path.substr(lastDot + 1);
-		_basepath = path.substr(0, lastDot);
+		m_basepath = path.substr(0, lastDot);
 	}
 	if (ext == "hdr" || ext == "img") {
-		_nii = false;
+		m_nii = false;
 	} else if (ext == "nii") {
-		_nii = true;
+		m_nii = true;
 	} else {
 		throw(invalid_argument("Invalid NIfTI extension for file: " + path));
 	}
 	
-	if (_mode != Modes::Closed) {
+	if (m_mode != Modes::Closed) {
 		throw(logic_error("Attempted to open file: " + path +
 		           " when file: " + imagePath() + " is already open."));
 	} else {
-		_mode = mode;
-		if ((_mode == Modes::Read) || (_mode == Modes::ReadHeader) || (_mode == Modes::ReadSkipExt)) {
-			if(!_file.open(headerPath().c_str(), "rb", _gz)) {
+		m_mode = mode;
+		if ((m_mode == Modes::Read) || (m_mode == Modes::ReadHeader) || (m_mode == Modes::ReadSkipExt)) {
+			if(!m_file.open(headerPath().c_str(), "rb", m_gz)) {
 				throw(runtime_error("Failed to open file: " + headerPath()));
 			}
 			readHeader();
-			if (_mode != Modes::ReadSkipExt ) {
+			if (m_mode != Modes::ReadSkipExt ) {
 				readExtensions();
 			}
-		} else if (_mode == Modes::Write) {
-			if(!_file.open(headerPath().c_str(), "wb", _gz)) {
+		} else if (m_mode == Modes::Write) {
+			if(!m_file.open(headerPath().c_str(), "wb", m_gz)) {
 				throw(runtime_error("Failed to open file: " + headerPath()));
 			}
 			writeHeader();
-			if (_mode == Modes::Write) {
+			if (m_mode == Modes::Write) {
 				writeExtensions();
 			}
 		} else {
 			throw(invalid_argument("Invalid opening mode for file: " + path));
 		}
 		
-		if (_mode == Modes::ReadHeader) {
+		if (m_mode == Modes::ReadHeader) {
 			close();
 		} else {
-			if (!_nii) {
+			if (!m_nii) {
 				// Need to close the header and open the image
-				_file.close();
+				m_file.close();
 				bool result;
 				if (mode == Modes::Read)
-					result = _file.open(imagePath().c_str(), "rb", _gz);
+					result = m_file.open(imagePath().c_str(), "rb", m_gz);
 				else
-					result = _file.open(imagePath().c_str(), "wb", _gz);
+					result = m_file.open(imagePath().c_str(), "wb", m_gz);
 				if (!result) {
 					throw(runtime_error("Could not open image file: " + imagePath()));
 				}
 			}
-			if (!_file.seek(_voxoffset, SEEK_SET)) {
+			if (!m_file.seek(m_voxoffset, SEEK_SET)) {
 				throw(runtime_error("Could not seek to voxel offset in file: " + imagePath()));
 			}
 		}
@@ -1113,39 +1113,39 @@ void File::open(const string &path, const Modes &mode) {
 }
 
 bool File::isOpen() {
-	if (_mode == Modes::Closed)
+	if (m_mode == Modes::Closed)
 		return false;
 	else
 		return true;
 }
 void File::close()
 {
-	if (_mode == Modes::Closed) {
+	if (m_mode == Modes::Closed) {
 		throw(logic_error("Cannot close already closed file: " + imagePath()));
-	} else if ((_mode == Modes::Read) || (_mode == Modes::ReadHeader)) {
-		_file.close();
-		_mode = Modes::Closed;
-	} else if (_mode == Modes::Write) {
+	} else if ((m_mode == Modes::Read) || (m_mode == Modes::ReadHeader)) {
+		m_file.close();
+		m_mode = Modes::Closed;
+	} else if (m_mode == Modes::Write) {
 		// If we've been writing subvolumes then we may not have written a complete file
 		// Write a single zero-byte at the end to persuade the OS to write a file of the
 		// correct size.
-		_file.seek(0, SEEK_END);
-		long correctEnd = (voxelsTotal() * bytesPerVoxel() + _voxoffset);
+		m_file.seek(0, SEEK_END);
+		long correctEnd = (voxelsTotal() * bytesPerVoxel() + m_voxoffset);
 		char zero{0};
-		long pos = _file.tell();
+		long pos = m_file.tell();
 		if (pos < correctEnd) {
-			_file.seek(correctEnd - 1, SEEK_SET);
-			_file.write(&zero, 1);
+			m_file.seek(correctEnd - 1, SEEK_SET);
+			m_file.write(&zero, 1);
 		}
-		_file.flush();
-		_file.close();
-		_mode = Modes::Closed;
+		m_file.flush();
+		m_file.close();
+		m_mode = Modes::Closed;
 	}
 }
 
 int File::dimensions() const {
-	for (int d = static_cast<int>(_voxdim.rows()); d > 0; d--) {
-		if (_dim[d - 1] > 1) {
+	for (int d = static_cast<int>(m_voxdim.rows()); d > 0; d--) {
+		if (m_dim[d - 1] > 1) {
 			return d;
 		}
 	}
@@ -1153,67 +1153,67 @@ int File::dimensions() const {
 }
 void File::setDimensions(const ArrayXi &dims, const ArrayXf &voxDims) {
 	assert(dims.rows() == voxDims.rows());
-	assert((dims.rows() > 0) || (dims.rows() <= _voxdim.rows()));
-	_dim.head(dims.rows()) = dims;
-	_voxdim.head(voxDims.rows()) = voxDims;
-	for (int i = 0; i < _dim.rows(); i++) {
-		if (_dim[i] < 1)
-			_dim[i] = 1;
+	assert((dims.rows() > 0) || (dims.rows() <= m_voxdim.rows()));
+	m_dim.head(dims.rows()) = dims;
+	m_voxdim.head(voxDims.rows()) = voxDims;
+	for (int i = 0; i < m_dim.rows(); i++) {
+		if (m_dim[i] < 1)
+			m_dim[i] = 1;
 	}
 }
 	
 int File::dim(const int d) const {
-	assert((d > 0) && (d <= _voxdim.rows()));
-	return _dim[d - 1];
+	assert((d > 0) && (d <= m_voxdim.rows()));
+	return m_dim[d - 1];
 }
 void File::setDim(const int d, const int n) {
-	if (_mode == Modes::Closed) {
+	if (m_mode == Modes::Closed) {
 		assert((d > 0) && (d < 8));
-		_dim[d - 1] = n;
+		m_dim[d - 1] = n;
 	} else {
 		throw(logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
 }
-const ArrayXi File::dims() const { return _dim.head(dimensions()); }
+const ArrayXi File::dims() const { return m_dim.head(dimensions()); }
 void File::setDims(const ArrayXi &n) {
-	if (_mode == Modes::Closed) {
-		assert(n.rows() <= _voxdim.rows());
-		_dim.head(n.rows()) = n;
+	if (m_mode == Modes::Closed) {
+		assert(n.rows() <= m_voxdim.rows());
+		m_dim.head(n.rows()) = n;
 	} else {
 		throw(logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
 }
 
-int File::voxelsPerSlice() const  { return _dim[0]*_dim[1]; };
-int File::voxelsPerVolume() const { return _dim[0]*_dim[1]*_dim[2]; };
-int File::voxelsTotal() const     { return _dim.prod(); }
+int File::voxelsPerSlice() const  { return m_dim[0]*m_dim[1]; };
+int File::voxelsPerVolume() const { return m_dim[0]*m_dim[1]*m_dim[2]; };
+int File::voxelsTotal() const     { return m_dim.prod(); }
 
 float File::voxDim(const int d) const {
-	assert((d > 0) && (d <= _voxdim.rows()));
-	return _voxdim[d - 1];
+	assert((d > 0) && (d <= m_voxdim.rows()));
+	return m_voxdim[d - 1];
 }
 void File::setVoxDim(const int d, const float f) {
-	if (_mode == Modes::Closed) {
-		assert((d > 0) && (d <= _voxdim.rows()));
-		_voxdim[d] = f;
+	if (m_mode == Modes::Closed) {
+		assert((d > 0) && (d <= m_voxdim.rows()));
+		m_voxdim[d] = f;
 	} else
 		throw(logic_error("Cannot change voxel sizes for open file: " + imagePath()));
 }
-const ArrayXf File::voxDims() const { return _voxdim; }
+const ArrayXf File::voxDims() const { return m_voxdim; }
 void File::setVoxDims(const ArrayXf &n) {
-	if (_mode == Modes::Closed) {
-		assert(n.rows() <= _voxdim.rows());
-		_voxdim.head(n.rows()) = n;
+	if (m_mode == Modes::Closed) {
+		assert(n.rows() <= m_voxdim.rows());
+		m_voxdim.head(n.rows()) = n;
 	} else
 		throw(logic_error("Cannot change voxel sizes for open file: " + imagePath()));
 }
 
-const int &File::datatype() const { return _datatype.code; }
-const string &File::dtypeName() const { return _datatype.name; }
-const int &File::bytesPerVoxel() const { return _datatype.size; }
+const int &File::datatype() const { return m_datatype.code; }
+const string &File::dtypeName() const { return m_datatype.name; }
+const int &File::bytesPerVoxel() const { return m_datatype.size; }
 void File::setDatatype(const int dt)
 {
-	if (_mode != Modes::Closed) {
+	if (m_mode != Modes::Closed) {
 		throw(logic_error("Cannot set the datatype of open file: " + imagePath()));
 		return;
 	}
@@ -1221,13 +1221,13 @@ void File::setDatatype(const int dt)
 	if (it == DataTypes().end())
 		throw(invalid_argument("Attempted to set invalid datatype for file: " + imagePath()));
 	else
-		_datatype = it->second;
+		m_datatype = it->second;
 }
 
 bool File::matchesVoxels(const File &other) const
 {
 	// Only check the first 3 dimensions
-	if ((_dim.head(3) == other._dim.head(3)).all() && (_voxdim.head(3).isApprox(other._voxdim.head(3))))
+	if ((m_dim.head(3) == other.m_dim.head(3)).all() && (m_voxdim.head(3).isApprox(other.m_voxdim.head(3))))
 		return true;
 	else
 		return false;
@@ -1241,22 +1241,22 @@ bool File::matchesSpace(const File &other) const
 		return false;	
 }
 
-const Matrix4f &File::qform() const { return _qform.matrix(); }
-const Matrix4f &File::sform() const { return _sform.matrix(); }
+const Matrix4f &File::qform() const { return m_qform.matrix(); }
+const Matrix4f &File::sform() const { return m_sform.matrix(); }
 const Matrix4f &File::ijk_to_xyz() const
 {
 	if ((sform_code > 0) && (sform_code >= qform_code))
-		return _sform.matrix();
-	else // There is always a _qform matrix
-		return _qform.matrix();
+		return m_sform.matrix();
+	else // There is always a m_qform matrix
+		return m_qform.matrix();
 }
 const Matrix4f &File::xyz_to_ijk() const
 {
 	static Matrix4f inverse;
 	if ((sform_code > 0) && (sform_code >= qform_code))
-		inverse = _sform.matrix().inverse();
-	else // There is always a _qform matrix
-		inverse = _qform.matrix().inverse();
+		inverse = m_sform.matrix().inverse();
+	else // There is always a m_qform matrix
+		inverse = m_qform.matrix().inverse();
 	return inverse;
 }
 

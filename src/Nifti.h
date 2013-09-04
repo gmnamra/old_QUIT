@@ -130,19 +130,19 @@ class File {
 	private:		
 		static const DTMap &DataTypes();
 		
-		Array<int, 7, 1> _dim;     //!< Number of voxels = nx*ny*nz*...*nw
-		Array<float, 7, 1> _voxdim;//!< Dimensions of each voxel
-		Affine3f _qform, _sform;   //!< Tranformation matrices from voxel indices to physical co-ords
+		Array<int, 7, 1> m_dim;   //!< Number of voxels = nx*ny*nz*...*nw
+		Array<float, 7, 1> m_voxdim; //!< Dimensions of each voxel
+		Affine3f m_qform, m_sform;   //!< Tranformation matrices from voxel indices to physical co-ords
 		
-		string _basepath;          //!< Path to file without extension
-		bool _nii, _gz;
-		Modes _mode;                //!< Whether the file is closed or open for reading/writing
-		ZipFile _file;
-		DataType _datatype;        //!< Datatype on disk
-		int _voxoffset;            //!< Offset to start of voxel data
-		int _swap;                 //!< True if byte order on disk is different to CPU
+		string m_basepath;            //!< Path to file without extension
+		bool m_nii, m_gz;
+		Modes m_mode;                 //!< Whether the file is closed or open for reading/writing
+		ZipFile m_file;
+		DataType m_datatype;          //!< Datatype on disk
+		int m_voxoffset;              //!< Offset to start of voxel data
+		int m_swap;                   //!< True if byte order on disk is different to CPU
 		
-		list<Extension> _extensions;
+		list<Extension> m_extensions;
 		
 		static int needs_swap(short dim0, int hdrsize); //!< Check if file endianism matches host endianism.
 		static float fixFloat(const float f); //!< Converts invalid floats to 0 to ensure a marginally sane header
@@ -175,7 +175,7 @@ class File {
 			assert(nEl == (bytes.size() / bytesPerVoxel()));
 			data.resize(nEl);
 			for (size_t i = 0; i < nEl; i++) {
-				switch (_datatype.code) {
+				switch (m_datatype.code) {
 					case NIFTI_TYPE_INT8:      data[i] = static_cast<T>(reinterpret_cast<const char *>(bytes.data())[i]); break;
 					case NIFTI_TYPE_UINT8:     data[i] = static_cast<T>(reinterpret_cast<const unsigned char *>(bytes.data())[i]); break;
 					case NIFTI_TYPE_INT16:     data[i] = static_cast<T>(reinterpret_cast<const short *>(bytes.data())[i]); break;
@@ -202,7 +202,7 @@ class File {
 			assert(nEl == (bytes.size() / bytesPerVoxel()));
 			data.resize(nEl);
 			for (size_t i = 0; i < nEl; i++) {
-				switch (_datatype.code) {
+				switch (m_datatype.code) {
 					case NIFTI_TYPE_INT8:      data[i] = complex<T>(static_cast<T>(reinterpret_cast<const char *>(bytes.data())[i]), 0.); break;
 					case NIFTI_TYPE_UINT8:     data[i] = complex<T>(static_cast<T>(reinterpret_cast<const unsigned char *>(bytes.data())[i]), 0.); break;
 					case NIFTI_TYPE_INT16:     data[i] = complex<T>(static_cast<T>(reinterpret_cast<const short *>(bytes.data())[i]), 0.); break;
@@ -234,7 +234,7 @@ class File {
 		template<typename T> vector<char> convertToBytes(const vector<T> &data) {
 			vector<char> bytes(data.size() * bytesPerVoxel());
 			for (size_t i = 0; i < data.size(); i++) {
-				switch (_datatype.code) {
+				switch (m_datatype.code) {
 					case NIFTI_TYPE_INT8:              reinterpret_cast<char *>(bytes.data())[i] = static_cast<char>(data[i]); break;
 					case NIFTI_TYPE_UINT8:    reinterpret_cast<unsigned char *>(bytes.data())[i] = static_cast<unsigned char>(data[i]); break;
 					case NIFTI_TYPE_INT16:            reinterpret_cast<short *>(bytes.data())[i] = static_cast<short>(data[i]); break;
@@ -258,7 +258,7 @@ class File {
 		template<typename T> vector<char> convertToBytes(const vector<complex<T>> &data) {
 			vector<char> bytes(data.size() * bytesPerVoxel());
 			for (int i = 0; i < data.size(); i++) {
-				switch (_datatype.code) {
+				switch (m_datatype.code) {
 					case NIFTI_TYPE_INT8:              reinterpret_cast<char *>(bytes.data())[i] = static_cast<char>(abs(data[i])); break;
 					case NIFTI_TYPE_UINT8:    reinterpret_cast<unsigned char *>(bytes.data())[i] = static_cast<unsigned char>(abs(data[i])); break;
 					case NIFTI_TYPE_INT16:            reinterpret_cast<short *>(bytes.data())[i] = static_cast<short>(abs(data[i])); break;
