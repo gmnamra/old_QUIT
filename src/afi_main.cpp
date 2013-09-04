@@ -70,12 +70,12 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	#ifdef AGILENT
-	ParameterList pars;
-	if (ReadProcpar(inFile.basePath() + ".procpar", pars)) {
+	Agilent::Procpar pp;
+	if (ReadPP(inFile, pp)) {
 		// From Sam Hurley. The sequence is implemented by waiting afi_dummy
 		// periods after the first afi_tr.
-		n = RealValue(pars, "afi_dummy") + 1;
-		nomFlip = RealValue(pars, "flip1");
+		n = pp.RealValue("afi_dummy") + 1;
+		nomFlip = pp.RealValue("flip1");
 		cout << "Read TR2/TR1 ratio of " << n << " and flip-angle " << nomFlip << " degrees from procpar." << endl;
 	} else
 	#endif

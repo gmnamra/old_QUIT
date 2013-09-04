@@ -27,6 +27,28 @@ double clamp(double value, double low, double high)
 	return value;
 }
 
+#ifdef AGILENT
+bool ReadPP(const Nifti::File &nii, Agilent::ProcPar &pp) {
+	const list<Nifti::Extension> &exts = nii.extensions();
+	for (auto &e : exts) {
+		if (e.code() == NIFTI_ECODE_COMMENT) {
+			string s(e.data().begin(), e.data().end());
+			stringstream ss(s);
+			ss >> pp;
+			return true;
+		}
+	}
+	// If we got to here there are no procpar extensions, try the old method
+	string path = nii.imagePath().substr(0, nii.imagePath().find_last_of(".")) + ".procpar";
+	ifstream pp_file(path);
+	if (pp_file) {
+		pp_file >> pp;
+		return true;
+	}
+	return false;
+}
+#endif
+
 //******************************************************************************
 // Basic least squares fitting
 //******************************************************************************

@@ -22,7 +22,7 @@
 
 #ifdef AGILENT
 #include "procpar.h"
-using namespace Recon;
+using namespace Agilent;
 #endif
 
 using namespace std;
@@ -113,10 +113,10 @@ int main(int argc, char **argv)
 	VectorXd spgrAngles(nSPGR);
 	
 	#ifdef AGILENT
-	ParameterList pars;
-	if (ReadProcpar(spgrFile.basePath() + ".procpar", pars)) {
-		spgrTR = RealValue(pars, "tr");
-		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = RealValue(pars, "flip1", i);
+	ProcPar pp;
+	if (ReadPP(spgrFile, pp)) {
+		spgrTR = pp.realValue("tr");
+		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = pp.realValue("flip1", i);
 	} else
 	#endif
 	{
