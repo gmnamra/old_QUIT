@@ -106,8 +106,8 @@ class ZipFile {
 #pragma mark Extension Class
 class Extension {
 	private:
-		int _code;          //!< Extension code, one of the NIFTI_ECODE_ values
-		vector<char> _data; //!< Raw data, with no byte swapping (length is esize-8)
+		int m_code;          //!< Extension code, one of the NIFTI_ECODE_ values
+		vector<char> m_data; //!< Raw data, with no byte swapping (length is esize-8)
 	
 	public:
 		static const string &CodeName(const int code);

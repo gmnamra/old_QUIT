@@ -146,40 +146,40 @@ const string &Extension::CodeName(const int code) {
 }
 
 Extension::Extension(int code, vector<char> data) :
-	_code(code), _data(data)
+	m_code(code), m_data(data)
 {}
 Extension::Extension(int size, int code, char *data) :
-	_code(code)
+	m_code(code)
 {
-	_data.resize(size - 8);
+	m_data.resize(size - 8);
 	for (int i = 0; i < (size - 8); i++) {
-		_data[i] = data[i];
+		m_data[i] = data[i];
 	}
 }
 const int Extension::rawSize() const {
-	return static_cast<int>(_data.size());
+	return static_cast<int>(m_data.size());
 }
 const int Extension::padding() const {
-	return static_cast<int>(16 - ((_data.size() + 8) % 16));
+	return static_cast<int>(16 - ((m_data.size() + 8) % 16));
 }
 const int Extension::size() const {
 	// Must leave 8 bytes for the code and size fields (ints)
 	return rawSize() + 8 + padding();
 }
 
-const int Extension::code() const { return _code; }
-const string &Extension::codeName() const { return CodeName(_code); }
+const int Extension::code() const { return m_code; }
+const string &Extension::codeName() const { return CodeName(m_code); }
 void Extension::setCode(int code) {
 	// Code must be in range and even
 	if ((code > NIFTI_ECODE_IGNORE) && (code < NIFTI_MAX_ECODE) && !(code & 1 ))
-		_code = code;
+		m_code = code;
 	else
 		throw(invalid_argument("Invalid extension code."));
 }
 
-const vector<char> &Extension::data() const { return _data; };
+const vector<char> &Extension::data() const { return m_data; };
 void Extension::setData(const vector<char> &data) {
-	_data = data;
+	m_data = data;
 }
 
 //*********************************
