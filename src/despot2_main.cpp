@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	Eigen::initParallel();
-	Nifti::File maskFile, B0File, B1File, inFile, savedHeader;
+	Nifti::File maskFile, B0File, B1File;
 	vector<double> maskData, B0Data, B1Data, T1Data;
 	string procPath;
 	
@@ -119,15 +119,16 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
-	savedHeader.open(argv[optind++], Nifti::Modes::Read);
-	T1Data = savedHeader.readVolume<double>(0);
-	savedHeader.close();
-	if ((maskFile.isOpen() && !savedHeader.matchesSpace(maskFile)) ||
-	    (B0File.isOpen() && !savedHeader.matchesSpace(B0File)) ||
-		(B1File.isOpen() && !savedHeader.matchesSpace(B1File))){
+	Nifti::File inFile(argv[optind++], Nifti::Modes::Read);
+	T1Data = inFile.readVolume<double>(0);
+	inFile.close();
+	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
+	    (B0File.isOpen() && !inFile.matchesSpace(B0File)) ||
+		(B1File.isOpen() && !inFile.matchesSpace(B1File))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
+	Nifti::File outFile(inFile, 1); // Save the header data to write out files
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
@@ -137,6 +138,10 @@ int main(int argc, char **argv)
 	double inTR;
 	cout << "Reading SSFP header from " << argv[optind] << endl;
 	inFile.open(argv[optind], Nifti::Modes::Read);
+	if (!inFile.matchesSpace(outFile)) {
+		cerr << "Dimensions/transforms do not match in input files." << endl;
+		exit(EXIT_FAILURE);
+	}
 	nFlip = inFile.dim(4);
 	inFlip.resize(nFlip);
 	voxelsPerSlice = inFile.voxelsPerSlice();
@@ -224,15 +229,15 @@ int main(int argc, char **argv)
 	     << difftime(procEnd, procStart) << " s." << endl;
 	
 	const vector<string> classic_names { "D2_PD", "D2_T2" };
-	savedHeader.open(outPrefix + "D2_PD.nii.gz", Nifti::Modes::Write);
-	savedHeader.writeVolume(0, PDData);
-	savedHeader.close();
-	savedHeader.open(outPrefix + "D2_T2.nii.gz", Nifti::Modes::Write);
-	savedHeader.writeVolume(0, T2Data);
-	savedHeader.close();
-	savedHeader.open(outPrefix + "D2_Residual.nii.gz", Nifti::Modes::Write);
-	savedHeader.writeVolume(0, residualData);
-	savedHeader.close();
+	outFile.open(outPrefix + "D2_PD.nii.gz", Nifti::Modes::Write);
+	outFile.writeVolume(0, PDData);
+	outFile.close();
+	outFile.open(outPrefix + "D2_T2.nii.gz", Nifti::Modes::Write);
+	outFile.writeVolume(0, T2Data);
+	outFile.close();
+	outFile.open(outPrefix + "D2_Residual.nii.gz", Nifti::Modes::Write);
+	outFile.writeVolume(0, residualData);
+	outFile.close();
 	cout << "Finished writing data." << endl;
 	exit(EXIT_SUCCESS);
 }

@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 	int indexptr = 0, c;
 	string procPath, outPrefix;
 	double n, nomFlip;
-	vector<double> tr1, tr2, flip, B1, mask;
+	vector<double> mask;
 	Nifti::File maskFile, inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1) {
 		switch (c) {
@@ -79,12 +79,12 @@ int main(int argc, char **argv)
 		cin >> n >> nomFlip;
 	}
 	nomFlip = nomFlip * M_PI / 180.;
-	tr1 = inFile.readVolume<double>(0);
-	tr2 = inFile.readVolume<double>(1);
+	auto tr1 = inFile.readVolume<double>(0);
+	auto tr2 = inFile.readVolume<double>(1);
 	inFile.close();
 	outPrefix = string(argv[++optind]);
-	flip.resize(inFile.voxelsPerVolume());
-	B1.resize(inFile.voxelsPerVolume());
+	vector<double> flip(inFile.voxelsPerVolume());
+	vector<double> B1(inFile.voxelsPerVolume());
 	cout << "Allocated output memory." << endl;
 	cout << "Processing..." << endl;
 	for (int vox = 0; vox < inFile.voxelsPerVolume(); vox++) {
@@ -102,9 +102,7 @@ int main(int argc, char **argv)
 		else
 			B1[vox] = 1.; // So smoothing doesn't get messed up
 	}
-	Nifti::File outFile(inFile);
-	outFile.setDim(4, 1);
-	outFile.setDatatype(DT_FLOAT32);
+	Nifti::File outFile(inFile, 1);
 	string outPath = outPrefix + "_flip.nii.gz";
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
 	outFile.open(outPath, Nifti::Modes::Write);

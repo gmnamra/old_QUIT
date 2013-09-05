@@ -150,9 +150,7 @@ int main(int argc, char** argv)
 	cout << "Writing B0 map." << endl;
 	string outPath = outPrefix + "_B0.nii.gz";
 	
-	Nifti::File outFile(inFile);
-	outFile.setDim(4, 1);
-	outFile.setDatatype(DT_FLOAT32);
+	Nifti::File outFile(inFile, 1);
 	outFile.open(outPath, Nifti::Modes::Write);
 	outFile.writeVolume(0, B0);
 	outFile.close();

@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	Eigen::initParallel();
-	Nifti::File maskFile, B0File, B1File, inFile, templateFile;
+	Nifti::File maskFile, B0File, B1File;
 	vector<double> maskData, B0Data, B1Data, T1Data;
 	string procPath;
 	
@@ -166,15 +166,16 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
-	templateFile.open(argv[optind++], Nifti::Modes::Read);
-	T1Data = templateFile.readVolume<double>(0);
-	templateFile.close();
-	if ((maskFile.isOpen() && !templateFile.matchesSpace(maskFile)) ||
-	    (B0File.isOpen() && !templateFile.matchesSpace(B0File)) ||
-		(B1File.isOpen() && !templateFile.matchesSpace(B1File))){
+	Nifti::File inFile(argv[optind++], Nifti::Modes::Read);
+	T1Data = inFile.readVolume<double>(0);
+	inFile.close();
+	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
+	    (B0File.isOpen() && !inFile.matchesSpace(B0File)) ||
+		(B1File.isOpen() && !inFile.matchesSpace(B1File))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
+	Nifti::File templateFile(inFile, 1); // Save header data to write out results
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************

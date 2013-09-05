@@ -156,9 +156,11 @@ Nifti::File parseInput(vector<Info> &info,
 		if (prompt) cout << "Enter image path: " << flush;
 		getline(cin, path);
 		if (signalFiles.size() == 0) {
-			templateFile.open(path, Nifti::Modes::ReadHeader);
+			signalFiles.emplace_back(path, Nifti::Modes::Read);
+			templateFile = Nifti::File(signalFiles.back(), 1); // Save header info for later
+		} else {
+			signalFiles.push_back(openAndCheck(path, templateFile, type));
 		}
-		signalFiles.push_back(openAndCheck(path, templateFile, type));
 		double inTR = 0., inTrf = 0., inPhase = 0., inTE = 0.;
 		VectorXd inAngles(signalFiles.back().dim(4));
 		#ifdef AGILENT
