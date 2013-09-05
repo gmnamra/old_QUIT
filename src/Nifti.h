@@ -279,25 +279,26 @@ class File {
 			}
 			return bytes;
 		}
-		
+	
+	#pragma mark Public Methods
 	public:
 		~File();
-		File();
-		File(const File &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles
+		File();                              //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
+		File(const File &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
 		File &operator=(const File &other);  //!< Assignment. Copies all elements except file handles, and marks destination as Closed.
-		File(File &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed
+		File(File &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
 		
 		File(const int nx, const int ny, const int nz, const int nt,
 			 const float dx, const float dy, const float dz, const float dt,
-			 const int datatype, const Affine3f &transform = Affine3f::Identity());
-		File(const Array<size_t, Dynamic, 1> &dim, const ArrayXf &voxdim, const int &datatype,
-			 const Affine3f &transform = Affine3f::Identity());
-		File(const File &other, const size_t nt, const int datatype); //!< Copies basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
+			 const int datatype = NIFTI_TYPE_FLOAT32, const Affine3f &transform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
+		File(const Array<size_t, Dynamic, 1> &dim, const ArrayXf &voxdim,
+			 const int datatype = NIFTI_TYPE_FLOAT32, const Affine3f &transform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
+		File(const File &other, const size_t nt, const int datatype = NIFTI_TYPE_FLOAT32);               //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
 		File(const string &filename, const Modes &mode);
 		
-		void open(const string &filename, const Modes &mode); //!< Attempts to open a NIfTI file. Throws runtime_error on failure or invalid_argument on failure.
-		void close();  //!< Closes the file
-		bool isOpen(); //!< Returns true if file is currently open for reading or writing.
+		void open(const string &filename, const Modes &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
+		void close();                                         //!< Closes the file
+		bool isOpen();                                        //!< Returns true if file is currently open for reading or writing.
 		
 		const string basePath() const;
 		const string imagePath() const;

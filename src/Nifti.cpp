@@ -574,8 +574,8 @@ File::File(const int nx, const int ny, const int nz, const int nt,
 	setTransform(xform);
 }
 
-File::File(const Array<size_t, Dynamic, 1> &dim, const ArrayXf &voxdim, const int &datatype,
-		   const Affine3f &xform) :
+File::File(const Array<size_t, Dynamic, 1> &dim, const ArrayXf &voxdim,
+           const int datatype, const Affine3f &xform) :
 	File()
 {
 	assert(dim.rows() < 8);
