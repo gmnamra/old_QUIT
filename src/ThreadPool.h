@@ -28,8 +28,8 @@ class ThreadPool {
 		ThreadPool(ThreadPool &&) = delete;
 		
 		void resize(const size_t num_threads);
-		void for_loop(const function<void(int)> f, const int start, const int stop, const int step);
-		void for_loop(const function<void(int)> f, const int stop);
+		void for_loop(const function<void(size_t)> f, const size_t start, const size_t stop, const size_t step);
+		void for_loop(const function<void(size_t)> f, const size_t stop);
 		void stop();
 };
 #endif

@@ -103,13 +103,13 @@ int main(int argc, char **argv)
 			B1[vox] = 1.; // So smoothing doesn't get messed up
 	}
 	Nifti::File outFile(inFile, 1);
-	string outPath = outPrefix + "_flip.nii.gz";
+	string outPath = outPrefix + "angle.nii.gz";
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
 	outFile.open(outPath, Nifti::Modes::Write);
 	outFile.writeVolume(0, flip);
 	outFile.close();
 	
-	outPath = outPrefix + "_B1.nii.gz";
+	outPath = outPrefix + "B1.nii.gz";
 	cout << "Writing B1 ratio to " << outPath << "..." << endl;
 	outFile.open(outPath, Nifti::Modes::Write);
 	outFile.writeVolume(0, B1);

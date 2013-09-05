@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	size_t nPhases = argc - optind;
 	vector<Info> info;
-	int voxelsPerSlice, voxelsPerVolume;
+	size_t voxelsPerSlice, voxelsPerVolume;
 	vector<vector<double>> ssfpData(nPhases);
 	VectorXd inFlip;
 	double inTR, inTrf = 0., inPhase;
@@ -293,9 +293,9 @@ int main(int argc, char **argv)
 			cout << "Starting slice " << slice << "..." << flush;
 		
 		atomic<int> voxCount{0};
-		const int sliceOffset = slice * voxelsPerSlice;
+		const size_t sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
-		function<void (const int&)> processVox = [&] (const int &vox) {
+		function<void (const size_t&)> processVox = [&] (const size_t &vox) {
 			// Set up parameters and constants
 			DESPOT2FM locald2(d2fm); // Take a thread local copy of the functor
 			ArrayXd params(locald2.inputs()); params.setZero();
@@ -337,7 +337,7 @@ int main(int argc, char **argv)
 				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights,
 				                                samples, retain, contract, 0.05, expand, (voxI != -1));
 				// Add the voxel number to the time to get a decent random seed
-				int rSeed = static_cast<int>(time(NULL)) + vox;
+				size_t rSeed = time(NULL) + vox;
 				rc.optimise(params, rSeed);
 				resid = rc.residuals();
 				if (debug) {
@@ -363,7 +363,7 @@ int main(int argc, char **argv)
 		if (voxI == -1)
 			threads.for_loop(processVox, voxelsPerSlice);
 		else {
-			int voxInd = templateFile.dim(1) * voxJ + voxI;
+			size_t voxInd = templateFile.dim(1) * voxJ + voxI;
 			processVox(voxInd);
 			exit(0);
 		}

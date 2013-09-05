@@ -90,7 +90,7 @@ class RegionContraction {
 		const ArrayXd width() const { return m_currentBounds.col(1) - m_currentBounds.col(0); }
 		const ArrayXd midPoint() const { return (m_currentBounds.rowwise().sum() / 2.); }
 		
-		void optimise(Ref<ArrayXd> params, const int seed = 0) {
+		void optimise(Ref<ArrayXd> params, const size_t seed = 0) {
 			static atomic<bool> finiteWarning(false);
 			static atomic<bool> constraintWarning(false);
 			eigen_assert(m_f.inputs() == params.size());
@@ -108,7 +108,7 @@ class RegionContraction {
 				cout << "Width:     " << width().transpose() << endl;
 			}
 			
-			mt19937 twist(seed);
+			mt19937_64 twist(seed);
 			uniform_real_distribution<double> uniform(0., 1.);
 			
 			m_status = Status::DidNotConverge;

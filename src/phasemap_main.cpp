@@ -147,8 +147,8 @@ int main(int argc, char** argv)
 			}
 		}
 	}
-	cout << "Writing B0 map." << endl;
-	string outPath = outPrefix + "_B0.nii.gz";
+	cout << "Writing off-resonance map (in Hz)." << endl;
+	string outPath = outPrefix + "f0.nii.gz";
 	
 	Nifti::File outFile(inFile, 1);
 	outFile.open(outPath, Nifti::Modes::Write);

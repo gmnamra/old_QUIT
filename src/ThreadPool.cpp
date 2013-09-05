@@ -17,11 +17,11 @@ void ThreadPool::resize(const size_t num_threads) {
 	m_size = num_threads;
 }
 
-void ThreadPool::for_loop(const function<void(int)> f,
-                          const int start, const int stop, const int step) {
-	int thread_step = static_cast<int>(m_size) * step;
+void ThreadPool::for_loop(const function<void(size_t)> f,
+                          const size_t start, const size_t stop, const size_t step) {
+	size_t thread_step = static_cast<size_t>(m_size) * step;
 	
-	function<void(int)> worker = [&](int local) {
+	function<void(size_t)> worker = [&](size_t local) {
 		while (m_run && (local < stop)) {
 			f(local);
 			local += thread_step;
@@ -29,7 +29,7 @@ void ThreadPool::for_loop(const function<void(int)> f,
 	};
 	
 	m_run = true;
-	for (int thread_start = start; thread_start < thread_step; thread_start += step) {
+	for (size_t thread_start = start; thread_start < thread_step; thread_start += step) {
 		m_pool.emplace_back(worker, thread_start);
 	}
 	for (auto &t: m_pool) {
@@ -39,7 +39,7 @@ void ThreadPool::for_loop(const function<void(int)> f,
 	m_pool.resize(0);
 }
 
-void ThreadPool::for_loop(const function<void(int)> f, const int stop) {
+void ThreadPool::for_loop(const function<void(size_t)> f, const size_t stop) {
 	for_loop(f, 0, stop, 1);
 }
 

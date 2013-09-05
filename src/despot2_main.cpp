@@ -132,8 +132,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	int nFlip, nResiduals = 0;
-	int voxelsPerSlice, voxelsPerVolume;
+	size_t nFlip, nResiduals = 0;
 	VectorXd inFlip;
 	double inTR;
 	cout << "Reading SSFP header from " << argv[optind] << endl;
@@ -144,8 +143,8 @@ int main(int argc, char **argv)
 	}
 	nFlip = inFile.dim(4);
 	inFlip.resize(nFlip);
-	voxelsPerSlice = inFile.voxelsPerSlice();
-	voxelsPerVolume = inFile.voxelsPerVolume();
+	size_t voxelsPerSlice = inFile.voxelsPerSlice();
+	size_t voxelsPerVolume = inFile.voxelsPerVolume();
 	#ifdef AGILENT
 	Agilent::ProcPar pp;
 	if (ReadPP(inFile, pp)) {
@@ -192,7 +191,7 @@ int main(int argc, char **argv)
 			cout << "Starting slice " << slice << "..." << flush;
 		
 		atomic<int> voxCount{0};
-		const int sliceOffset = slice * voxelsPerSlice;
+		const size_t sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			// Set up parameters and constants

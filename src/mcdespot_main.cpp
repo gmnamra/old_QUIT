@@ -339,8 +339,8 @@ int main(int argc, char **argv)
 	// Use if files are open to indicate default values should be used -
 	// 0 for B0, 1 for B1
 	//**************************************************************************
-	int voxelsPerSlice = templateFile.voxelsPerSlice();
-	int voxelsPerVolume = templateFile.voxelsPerVolume();
+	size_t voxelsPerSlice = templateFile.voxelsPerSlice();
+	size_t voxelsPerVolume = templateFile.voxelsPerVolume();
 	
 	vector<vector<double>> signalVolumes(signalFiles.size()),
 	                 B1Volumes(signalFiles.size()),
@@ -428,7 +428,7 @@ int main(int argc, char **argv)
 	{
 		if (verbose) cout << "Reading data for slice " << slice << "..." << flush;
 		atomic<int> voxCount{0};
-		const int sliceOffset = slice * voxelsPerSlice;
+		const size_t sliceOffset = slice * voxelsPerSlice;
 		
 		// Read data for slices
 		for (size_t i = 0; i < signalFiles.size(); i++) {
@@ -439,7 +439,7 @@ int main(int argc, char **argv)
 		}
 		if (verbose) cout << "processing..." << endl;
 		clock_t loopStart = clock();
-		function<void (const int&)> processVox = [&] (const int &vox)
+		function<void (const size_t&)> processVox = [&] (const size_t &vox)
 		{
 			mcType localf(mcd); // Take a thread local copy so we can change info/signals
 			ArrayXd params(localf.inputs()), residuals(localf.values()),
@@ -470,7 +470,7 @@ int main(int argc, char **argv)
 					}
 				}
 				// Add the voxel number to the time to get a decent random seed
-				int rSeed = static_cast<int>(time(NULL)) + vox;
+				size_t rSeed = time(NULL) + vox;
 				RegionContraction<mcType> rc(localf, localBounds, weights,
 											 samples, retain, contract, 0.05, expand);
 				rc.optimise(params, rSeed);
@@ -497,7 +497,7 @@ int main(int argc, char **argv)
 		if (voxI == -1)
 			threads.for_loop(processVox, voxelsPerSlice);
 		else {
-			int voxInd = templateFile.dim(1) * voxJ + voxI;
+			size_t voxInd = templateFile.dim(1) * voxJ + voxI;
 			processVox(voxInd);
 			exit(0);
 		}

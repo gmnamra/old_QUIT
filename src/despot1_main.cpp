@@ -148,8 +148,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Allocate memory for slices
 	//**************************************************************************	
-	int voxelsPerSlice = spgrFile.voxelsPerSlice();
-	int voxelsPerVolume = spgrFile.voxelsPerVolume();
+	size_t voxelsPerSlice = spgrFile.voxelsPerSlice();
+	size_t voxelsPerVolume = spgrFile.voxelsPerVolume();
 	
 	cout << "Reading SPGR data..." << flush;
 	vector<double> spgrData = spgrFile.readAllVolumes<double>();
@@ -166,14 +166,14 @@ int main(int argc, char **argv)
 	// Do the fitting
 	//**************************************************************************
 	ThreadPool pool;
-	for (int slice = 0; slice < spgrFile.dim(3); slice++) {
+	for (size_t slice = 0; slice < spgrFile.dim(3); slice++) {
 		clock_t loopStart;
 		// Read in data
 		if (verbose)
 			cout << "Starting slice " << slice << "..." << flush;
 		loopStart = clock();
 		atomic<int> voxCount{0};
-		int sliceOffset = slice * voxelsPerSlice;
+		size_t sliceOffset = slice * voxelsPerSlice;
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
