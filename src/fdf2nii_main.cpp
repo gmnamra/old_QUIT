@@ -89,13 +89,12 @@ int main(int argc, char **argv) {
 			size_t nOutImages = input.dim(3);
 			if (echoMode == -1) {
 				nOutImages *= input.dim(4);
-			} else if ((echoMode >= 0) && (echoMode >= input.dim(4))) {
+			} else if ((echoMode >= 0) && (echoMode >= static_cast<int>(input.dim(4)))) {
 				throw(invalid_argument("Selected echo was above the maximum."));
 			}
 			try {
-				Nifti::File output(input.dim(0), input.dim(1), input.dim(2), nOutImages,
-								   input.voxdim(0) * scale, input.voxdim(1) * scale, input.voxdim(2) * scale, 1.,
-								   DT_FLOAT32, input.ijk_to_xyz().cast<float>());
+				Nifti::File output(input.dims(), (input.voxdims() * scale).cast<float>(), DT_FLOAT32, input.transform().cast<float>());
+				output.setDim(4, nOutImages);
 				if (procpar) {
 					ifstream pp_file(inPath + "/procpar", ios::binary);
 					pp_file.seekg(ios::end);
