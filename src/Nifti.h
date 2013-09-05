@@ -130,17 +130,17 @@ class File {
 	private:		
 		static const DTMap &DataTypes();
 		
-		Array<int, 7, 1> m_dim;   //!< Number of voxels = nx*ny*nz*...*nw
-		Array<float, 7, 1> m_voxdim; //!< Dimensions of each voxel
-		Affine3f m_qform, m_sform;   //!< Tranformation matrices from voxel indices to physical co-ords
+		Array<size_t, 7, 1> m_dim;   //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
+		Array<float, 7, 1> m_voxdim; //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
+		Affine3f m_qform, m_sform;   //!< Tranformation matrices from voxel indices to physical co-ords.
 		
-		string m_basepath;            //!< Path to file without extension
+		string m_basepath;            //!< Path to file without extension.
 		bool m_nii, m_gz;
-		Modes m_mode;                 //!< Whether the file is closed or open for reading/writing
+		Modes m_mode;                 //!< Whether the file is closed or open for reading/writing.
 		ZipFile m_file;
-		DataType m_datatype;          //!< Datatype on disk
-		int m_voxoffset;              //!< Offset to start of voxel data
-		int m_swap;                   //!< True if byte order on disk is different to CPU
+		DataType m_datatype;          //!< Datatype on disk.
+		int m_voxoffset;              //!< Offset to start of voxel data.
+		int m_swap;                   //!< True if byte order on disk is different to CPU.
 		
 		list<Extension> m_extensions;
 		
@@ -290,7 +290,7 @@ class File {
 		File(const int nx, const int ny, const int nz, const int nt,
 			 const float dx, const float dy, const float dz, const float dt,
 			 const int datatype, const Affine3f &transform = Affine3f::Identity());
-		File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
+		File(const Array<size_t, Dynamic, 1> &dim, const ArrayXf &voxdim, const int &datatype,
 			 const Affine3f &transform = Affine3f::Identity());
 		File(const File &other, const size_t nt, const int datatype); //!< Copies basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
 		File(const string &filename, const Modes &mode);
@@ -305,21 +305,19 @@ class File {
 		char *readRawVolume(const int vol);
 		char *readRawAllVolumes();
 		
-		int dimensions() const;                     //!< Get the number of dimensions (rank) of this image.
-		void setDimensions(const ArrayXi &dims, const ArrayXf &voxDims); //!< Set all dimension information in one go.
+		size_t dimensions() const;                              //!< Get the number of dimensions (rank) of this image.
+		size_t dim(const size_t d) const;                       //!< Get the size (voxel count) of a dimension. Valid dimensions are 1-7.
+		void setDim(const size_t d, const size_t n);            //!< Set the size (voxel count) of a dimension. Valid dimensions are 1-7.
+		const Array<size_t, Dynamic, 1> dims() const;           //!< Get all dimension sizes.
+		void setDims(const Array<size_t, Dynamic, 1> &newDims); //!< Set all dimension sizes.
+		size_t voxelsPerSlice() const;                          //!< Voxel count for a whole slice (dim1 x dim2).
+		size_t voxelsPerVolume() const;                         //!< Voxel count for a volume (dim1 x dim2 x dim3).
+		size_t voxelsTotal() const;                             //!< Voxel count for whole image (all dimensions).
 		
-		int dim(const int d) const;                 //!< Get the size (voxel count) of a dimension. Starts from 1, not 0.
-		void setDim(const int d, const int n);      //!< Set the size (voxel count) of a dimension. Starts from 1, not 0.
-		const ArrayXi dims() const;                 //!< Get all dimension sizes.
-		void setDims(const ArrayXi &newDims);       //!< Set all dimension sizes.
-		int voxelsPerSlice() const;                 //!< Voxel count for a whole slice (dim1 x dim2).
-		int voxelsPerVolume() const;                //!< Voxel count for a volume (dim1 x dim2 x dim3).
-		int voxelsTotal() const;                    //!< Voxel count for whole image (all dimensions).
-		
-		float voxDim(const int d) const;            //!< Get the voxel size along dimension d. Starts from 1, not 0.
-		void setVoxDim(const int d, const float f); //!< Set the voxel size along dimension d. Starts from 1, not 0.
-		const ArrayXf voxDims() const;              //!< Get all voxel sizes.
-		void setVoxDims(const ArrayXf &newVoxDims); //!< Set all voxel sizes.
+		float voxDim(const size_t d) const;                     //!< Get the voxel size along dimension d. Valid dimensions are 1-7.
+		void setVoxDim(const size_t d, const float f);          //!< Set the voxel size along dimension d. Valid dimensions are 1-7.
+		const ArrayXf voxDims() const;                          //!< Get all voxel sizes.
+		void setVoxDims(const ArrayXf &newVoxDims);             //!< Set all voxel sizes.
 		
 		const int &datatype() const;
 		const string &dtypeName() const;
@@ -372,14 +370,14 @@ class File {
 		void addExtension(const Extension &e);
 		const list<Extension> &extensions() const;
 		
-		template<typename T> void readVolume(const int &vol, vector<T> &buffer) {
+		template<typename T> void readVolume(const size_t &vol, vector<T> &buffer) {
 			size_t bytesPerVolume = voxelsPerVolume() * bytesPerVoxel();
 			vector<char> raw(bytesPerVolume);
 			readBytes(vol * bytesPerVolume, bytesPerVolume, raw.data());
 			convertFromBytes(raw, voxelsPerVolume(), buffer);
 		}
 		
-		template<typename T> vector<T> readVolume(const int &vol) {
+		template<typename T> vector<T> readVolume(const size_t &vol) {
 			vector<T> buffer;
 			readVolume(vol, buffer);
 			return buffer;
@@ -397,14 +395,23 @@ class File {
 			return buffer;
 		}
 		
-		template<typename T> void readSubvolume(const int &sx, const int &sy, const int &sz, const int &st,
-		                                        const int &ex, const int &ey, const int &ez, const int &et,
+		/**
+		  *   Reads a subvolume
+		  *
+		  *   Converts to the templated type from the NIfTI datatype.
+		  *   @param sx, sy, sz, st - Start voxels for each dimension.
+		  *   @param ex, ey, ez, et - End voxels for each dimension. Values are clamped to dimension sizes.
+		  *   @param buffer std::vector to store the data.
+		  *
+		  */
+		template<typename T> void readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
+		                                        const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et,
 												vector<T> &buffer) {
-			int lx, ly, lz, lt, total, toRead;
-			lx = ((ex == -1) ? dim(1) : ex) - sx;
-			ly = ((ey == -1) ? dim(2) : ey) - sy;
-			lz = ((ez == -1) ? dim(3) : ez) - sz;
-			lt = ((et == -1) ? dim(4) : et) - st;
+			size_t lx, ly, lz, lt, total, toRead;
+			lx = ((ex > dim(1)) ? dim(1) : ex) - sx;
+			ly = ((ey > dim(2)) ? dim(2) : ey) - sy;
+			lz = ((ez > dim(3)) ? dim(3) : ez) - sz;
+			lt = ((et > dim(4)) ? dim(4) : et) - st;
 			total = lx * ly * lz * lt;
 			
 			if (lx < 1 || ly < 1 || lz < 1 || lt < 1) { // There is nothing to write
@@ -429,11 +436,11 @@ class File {
 						
 			vector<char> raw(total * bytesPerVoxel());
 			char *nextRead = raw.data();
-			for (int t = st; t < st+lt; t++) {
+			for (size_t t = st; t < st+lt; t++) {
 				size_t tOff = t * voxelsPerVolume();
-				for (int z = sz; z < sz+lz; z++) {
+				for (size_t z = sz; z < sz+lz; z++) {
 					size_t zOff = z * voxelsPerSlice();
-					for (int y = sy; y < sy+ly; y++) {
+					for (size_t y = sy; y < sy+ly; y++) {
 						size_t yOff = y * dim(1);
 						if (readBytes((tOff + zOff + yOff) * bytesPerVoxel(), toRead, nextRead))
 							nextRead += toRead;
@@ -443,14 +450,14 @@ class File {
 			convertFromBytes<T>(raw, total, buffer);
 		}
 		
-		template<typename T> void readSubvolume(const int &sx, const int &sy, const int &sz, const int &st,
-		                                        const int &ex, const int &ey, const int &ez, const int &et) {
+		template<typename T> void readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
+		                                        const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et) {
 			vector<T> buffer;
 			readSubvolume(sx, sy, sz, st, ex, ey, ez, et, buffer);
 			return buffer;
 		}
 		
-		template<typename T> void writeVolume(const int vol, const vector<T> &data) {
+		template<typename T> void writeVolume(const size_t vol, const vector<T> &data) {
 			if (data.size() != voxelsPerVolume()) {
 				throw(invalid_argument("Insufficient data to write volume for file: " + imagePath()));
 			}
@@ -466,14 +473,23 @@ class File {
 			writeBytes(0, converted.size(), converted.data());
 		}
 		
-		template<typename T> void writeSubvolume(const int &sx, const int &sy, const int &sz, const int &st,
-												 const int &ex, const int &ey, const int &ez, const int &et,
+		/**
+		  *   Writes a subvolume
+		  *
+		  *   Converts from the templated type to a sequence of bytes suitable for writing to a NIfTI image.
+		  *   @param sx, sy, sz, st - Start voxels for each dimension.
+		  *   @param ex, ey, ez, et - End voxels for each dimension. Values are clamped to dimension sizes.
+		  *   @param data std::vector of the data.
+		  *
+		  */
+		template<typename T> void writeSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
+												 const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et,
 												 const vector<T> &data) {
-			int lx, ly, lz, lt, total, toWrite;
-			lx = ((ex == -1) ? dim(1) : ex) - sx;
-			ly = ((ey == -1) ? dim(2) : ey) - sy;
-			lz = ((ez == -1) ? dim(3) : ez) - sz;
-			lt = ((et == -1) ? dim(4) : et) - st;
+			size_t lx, ly, lz, lt, total, toWrite;
+			lx = ((ex > dim(1)) ? dim(1) : ex) - sx;
+			ly = ((ey > dim(2)) ? dim(2) : ey) - sy;
+			lz = ((ez > dim(3)) ? dim(3) : ez) - sz;
+			lt = ((et > dim(4)) ? dim(4) : et) - st;
 			total = lx * ly * lz * lt;
 			
 			if (lx < 1 || ly < 1 || lz < 1 || lt < 1) { // There is nothing to write
@@ -502,11 +518,11 @@ class File {
 			
 			vector<char> raw = convertToBytes(data);
 			char *nextWrite = raw.data();
-			for (int t = st; t < st+lt; t++) {
+			for (size_t t = st; t < st+lt; t++) {
 				size_t tOff = t * voxelsPerVolume();
-				for (int z = sz; z < sz+lz; z++) {
+				for (size_t z = sz; z < sz+lz; z++) {
 					size_t zOff = z * voxelsPerSlice();
-					for (int y = sy; y < sy+ly; y++) {
+					for (size_t y = sy; y < sy+ly; y++) {
 						size_t yOff = y * dim(1);
 						writeBytes((tOff + zOff + yOff) * bytesPerVoxel(), toWrite, nextWrite);
 						nextWrite += toWrite;

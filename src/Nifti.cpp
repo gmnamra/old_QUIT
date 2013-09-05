@@ -484,7 +484,7 @@ File::~File()
 
 File::File() :
 	m_mode(Modes::Closed), m_gz(false), m_nii(false), m_swap(false), m_voxoffset(0),
-	m_dim(Matrix<int, 7, 1>::Ones()), m_voxdim(Matrix<float, 7, 1>::Ones()),
+	m_dim(Array<size_t, 7, 1>::Ones()), m_voxdim(Array<float, 7, 1>::Ones()),
 	m_basepath(""),
 	scaling_slope(1.), scaling_inter(0.), calibration_min(0.), calibration_max(0.),
 	freq_dim(0), phase_dim(0), slice_dim(0),
@@ -574,7 +574,7 @@ File::File(const int nx, const int ny, const int nz, const int nt,
 	setTransform(xform);
 }
 
-File::File(const ArrayXi &dim, const ArrayXf &voxdim, const int &datatype,
+File::File(const Array<size_t, Dynamic, 1> &dim, const ArrayXf &voxdim, const int &datatype,
 		   const Affine3f &xform) :
 	File()
 {
@@ -853,7 +853,10 @@ void File::writeHeader() {
 	nhdr.regular    = 'r';             /* for some stupid reason */
 	
 	nhdr.dim[0] = dimensions(); //pixdim[0] is set later with qform
-	for (int i = 0; i < 7; i++) {	// Copy this way so types can be changed
+	for (size_t i = 0; i < 7; i++) { // Convert back to int/float
+		if (m_dim[i] > numeric_limits<short>::max()) {
+			throw(runtime_error("Nifti does not support dimensions greater than " + to_string(numeric_limits<short>::max())));
+		}
 		nhdr.dim[i + 1] = m_dim[i];
 		nhdr.pixdim[i + 1] = m_voxdim[i];
 	}
@@ -1140,30 +1143,20 @@ void File::close()
 	}
 }
 
-int File::dimensions() const {
-	for (int d = static_cast<int>(m_voxdim.rows()); d > 0; d--) {
+size_t File::dimensions() const {
+	for (size_t d = m_voxdim.rows(); d > 0; d--) {
 		if (m_dim[d - 1] > 1) {
 			return d;
 		}
 	}
 	return 1;
 }
-void File::setDimensions(const ArrayXi &dims, const ArrayXf &voxDims) {
-	assert(dims.rows() == voxDims.rows());
-	assert((dims.rows() > 0) || (dims.rows() <= m_voxdim.rows()));
-	m_dim.head(dims.rows()) = dims;
-	m_voxdim.head(voxDims.rows()) = voxDims;
-	for (int i = 0; i < m_dim.rows(); i++) {
-		if (m_dim[i] < 1)
-			m_dim[i] = 1;
-	}
-}
 	
-int File::dim(const int d) const {
+size_t File::dim(const size_t d) const {
 	assert((d > 0) && (d <= m_voxdim.rows()));
 	return m_dim[d - 1];
 }
-void File::setDim(const int d, const int n) {
+void File::setDim(const size_t d, const size_t n) {
 	if (m_mode == Modes::Closed) {
 		assert((d > 0) && (d < 8));
 		m_dim[d - 1] = n;
@@ -1171,8 +1164,8 @@ void File::setDim(const int d, const int n) {
 		throw(logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
 }
-const ArrayXi File::dims() const { return m_dim.head(dimensions()); }
-void File::setDims(const ArrayXi &n) {
+const Array<size_t, Dynamic, 1> File::dims() const { return m_dim.head(dimensions()); }
+void File::setDims(const Array<size_t, Dynamic, 1> &n) {
 	if (m_mode == Modes::Closed) {
 		assert(n.rows() <= m_voxdim.rows());
 		m_dim.head(n.rows()) = n;
@@ -1181,15 +1174,15 @@ void File::setDims(const ArrayXi &n) {
 	}
 }
 
-int File::voxelsPerSlice() const  { return m_dim[0]*m_dim[1]; };
-int File::voxelsPerVolume() const { return m_dim[0]*m_dim[1]*m_dim[2]; };
-int File::voxelsTotal() const     { return m_dim.prod(); }
+size_t File::voxelsPerSlice() const  { return m_dim[0]*m_dim[1]; };
+size_t File::voxelsPerVolume() const { return m_dim[0]*m_dim[1]*m_dim[2]; };
+size_t File::voxelsTotal() const     { return m_dim.prod(); }
 
-float File::voxDim(const int d) const {
+float File::voxDim(const size_t d) const {
 	assert((d > 0) && (d <= m_voxdim.rows()));
 	return m_voxdim[d - 1];
 }
-void File::setVoxDim(const int d, const float f) {
+void File::setVoxDim(const size_t d, const float f) {
 	if (m_mode == Modes::Closed) {
 		assert((d > 0) && (d <= m_voxdim.rows()));
 		m_voxdim[d] = f;
