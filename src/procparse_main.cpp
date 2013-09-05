@@ -11,6 +11,8 @@
 #include <list>
 #include <vector>
 #include <getopt.h>
+
+#include "Nifti.h"
 #include "procpar.h"
 
 using namespace std;
@@ -61,11 +63,29 @@ int main(int argc, char **argv) {
 		
 	vector<ProcPar> pps;
 	for (auto &p : paths) {
-		ifstream pp_file(p);
-		pps.emplace_back();
-		pp_file >> pps.back();
-		if (!pp_file.eof()) {
-			throw(runtime_error("Failed to read contents of file: " + p));
+		ProcPar pp;
+		try {
+			if (p.substr(p.size() - 7) == "procpar") {
+				ifstream pp_file(p);
+				pp_file >> pp;
+				if (!pp_file.eof()) {
+					throw(runtime_error("Failed to read contents of file: " + p));
+				}
+				pps.push_back(pp);
+			} else {
+				Nifti::File nii(p, Nifti::Modes::ReadHeader);
+				const list<Nifti::Extension> &exts = nii.extensions();
+				for (auto &e : exts) {
+					if (e.code() == NIFTI_ECODE_COMMENT) {
+						string s(e.data().begin(), e.data().end());
+						stringstream ss(s);
+						ss >> pp;
+						pps.push_back(pp);
+					}
+				}
+			}
+		} catch (exception &e) {
+			cout << "Could not read file " << p << ", not a valid procpar file." << endl;
 		}
 	}
 	

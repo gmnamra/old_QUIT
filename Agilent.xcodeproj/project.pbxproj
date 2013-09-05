@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F62B6E8A17D8D5FB009C9C3D /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D8017C60CF30043A338 /* libNifti.a */; };
+		F62B6E8B17D8D607009C9C3D /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CF0AE617CFEFD1000B56BA /* libz.dylib */; };
 		F62E0D7217C7C85200A445AE /* fdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F62E0D7017C7C85200A445AE /* fdf.cpp */; };
 		F62E0D7317C7C85200A445AE /* fdf.h in Headers */ = {isa = PBXBuildFile; fileRef = F62E0D7117C7C85200A445AE /* fdf.h */; settings = {ATTRIBUTES = (); }; };
 		F62E0D7817C7C89000A445AE /* fdfFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F62E0D7617C7C89000A445AE /* fdfFile.cpp */; };
@@ -28,6 +30,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		F62B6E8717D8D5F6009C9C3D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E41D7817C60CF30043A338 /* NiftiImage.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
 		F6CF0AE017CFEFC6000B56BA /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D3817C60A8F0043A338 /* Project object */;
@@ -133,6 +142,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F62B6E8B17D8D607009C9C3D /* libz.dylib in Frameworks */,
+				F62B6E8A17D8D5FB009C9C3D /* libNifti.a in Frameworks */,
 				F6E41D6617C60B6D0043A338 /* libAgilent.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -267,6 +278,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				F62B6E8817D8D5F6009C9C3D /* PBXTargetDependency */,
 				F6E41D6417C60B5E0043A338 /* PBXTargetDependency */,
 			);
 			name = procparse;
@@ -357,6 +369,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		F62B6E8817D8D5F6009C9C3D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F62B6E8717D8D5F6009C9C3D /* PBXContainerItemProxy */;
+		};
 		F6CF0AE117CFEFC6000B56BA /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = F6E41D4C17C60B0D0043A338 /* Agilent */;
