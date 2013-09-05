@@ -104,7 +104,7 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	       sinpsi*sinphi + cospsi*costht*cosphi,  sinpsi*cosphi - cospsi*costht*sinphi, cospsi*sintht,
 		  -sintht*cosphi, sintht*sinphi, costht;
 	Affine3d R(Rd);
-	m_transform = (R*T*S).matrix();
+	m_transform = (R*T*S);
 }
 
 void fdfImage::close() {
@@ -128,6 +128,10 @@ const double fdfImage::voxdim(const size_t d) const {
 	else
 		return m_voxdim[d];
 }
+const Array<size_t, 3, 1> &fdfImage::dims() const { return m_dim; }
+const Array3d &fdfImage::voxdims() const { return m_voxdim; }
+
+
 const size_t fdfImage::voxelsPerSlice() const { return m_dim[0] * m_dim[1]; }
 const size_t fdfImage::voxelsPerVolume() const { return voxelsPerSlice() * m_dim[2]; }
 const string fdfImage::filePath(const size_t sl, const size_t image, const size_t echo) const {
@@ -141,6 +145,6 @@ const string fdfImage::filePath(const size_t sl, const size_t image, const size_
 	  << "image" << setw(w) << image + 1 << "echo" << setw(w) << echo + 1 << ".fdf";
 	return p.str();
 }
-const Matrix4d &fdfImage::ijk_to_xyz() const { return m_transform; }
+const Affine3d &fdfImage::transform() const { return m_transform; }
 
 } // End namespace Agilent

@@ -39,11 +39,11 @@ class fdfImage {
 	protected:
 		string m_folderPath, m_filePrefix, m_dtype;
 		ProcPar m_pp;
-		size_t m_rank, m_slabs, m_echoes, m_images,
-		       m_dim[3]; // x y z
+		size_t m_rank, m_slabs, m_echoes, m_images;
+		Array<size_t, 3, 1> m_dim; // x y z
 		Array3d m_voxdim;
 		map<string, shared_ptr<fdfFile>> m_files;
-		Matrix4d m_transform;
+		Affine3d m_transform;
 		const string filePath(const size_t slice, const size_t image, const size_t echo) const;
 		
 	public:
@@ -53,11 +53,13 @@ class fdfImage {
 		void open(const string &path, const OpenMode &m = OpenMode::Read);
 		void close();
 		
-		const size_t dim(const size_t d) const;
-		const double voxdim(const size_t d) const;
+		const size_t dim(const size_t d) const;    //!< Return a particular dimension
+		const double voxdim(const size_t d) const; //!< Return a particular voxel size
+		const Array<size_t, 3, 1> &dims() const;   //!< Return the whole dimension array
+		const Array3d &voxdims() const;            //!< Return all the voxel sizes
 		const size_t voxelsPerSlice() const;
 		const size_t voxelsPerVolume() const;
-		const Matrix4d &ijk_to_xyz() const;
+		const Affine3d &transform() const;
 		
 		template<typename T>
 		vector<T> readVolume(const size_t vol, const size_t echo = 0) {
