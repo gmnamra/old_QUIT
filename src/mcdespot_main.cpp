@@ -59,7 +59,7 @@ Options:\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 2).\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
-	--normalise, -n   : Normalise signals to maximum (Ignore M0).\n\
+	--PD, -P n/i/g    : Proton Density mode. Default is n (normalise).\n\
 	--samples, -s n   : Use n samples for region contraction (Default 5000).\n\
 	--retain, -r  n   : Retain n samples for new boundary (Default 50).\n\
 	--contract, -c n  : Contract a maximum of n times (Default 10).\n\
@@ -94,6 +94,7 @@ static struct option long_options[] =
 	{"end_slice", required_argument, 0, 'E'},
 	{"PD", required_argument, 0, 'P'},
 	{"tesla", required_argument, 0, 't'},
+	{"B0", required_argument, 0, 'b'},
 	{"samples", required_argument, 0, 's'},
 	{"retain", required_argument, 0, 'r'},
 	{"contract", required_argument, 0, 'c'},
@@ -102,7 +103,6 @@ static struct option long_options[] =
 	{"1", no_argument, 0, '1'},
 	{"2", no_argument, 0, '2'},
 	{"3", no_argument, 0, '3'},
-	{"B0", no_argument, 0, 'b'},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
