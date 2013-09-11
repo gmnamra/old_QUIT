@@ -78,8 +78,8 @@ static auto B0fit = mcType::OffResMode::Single;
 static auto components = mcType::Components::Two;
 static auto tesla = mcType::FieldStrength::Three;
 static auto PD = mcType::PDMode::Normalise;
+static size_t start_slice = 0, end_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, debug = false,
-           start_slice = -1, end_slice = -1,
 		   samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
 static double expand = 0., weighting = 1.0;
@@ -414,17 +414,16 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Do the fitting
 	//**************************************************************************
-	if ((start_slice < 0) || (start_slice >= templateFile.dim(3)))
-		start_slice = 0;
-	if ((end_slice < 0) || (end_slice > templateFile.dim(3)))
+	if (end_slice > templateFile.dim(3))
 		end_slice = templateFile.dim(3);
+	
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	
     time_t procStart = time(NULL);
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
-	for (int slice = start_slice; slice < end_slice; slice++)
+	for (size_t slice = start_slice; slice < end_slice; slice++)
 	{
 		if (verbose) cout << "Reading data for slice " << slice << "..." << flush;
 		atomic<int> voxCount{0};
