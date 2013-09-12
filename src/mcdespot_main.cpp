@@ -122,6 +122,7 @@ void int_handler(int sig)
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
 //Utility function
+Nifti::File openAndCheck(const string &path, const Nifti::File &saved, const string &type);
 Nifti::File openAndCheck(const string &path, const Nifti::File &saved, const string &type) {
 	Nifti::File in(path, Nifti::Modes::Read);
 	if (!(in.matchesSpace(saved))) {
@@ -346,7 +347,7 @@ int main(int argc, char **argv)
 	                 B1Volumes(signalFiles.size()),
 				     B0LoVolumes(signalFiles.size()),
 					 B0HiVolumes(signalFiles.size());
-	for (int i = 0; i < signalFiles.size(); i++) {
+	for (size_t i = 0; i < signalFiles.size(); i++) {
 		signalVolumes[i].resize(voxelsPerSlice * info.at(i).nAngles());
 		if (B1_files[i].isOpen()) B1Volumes[i].resize(voxelsPerSlice);
 		if (B0_loFiles[i].isOpen()) B0LoVolumes[i].resize(voxelsPerSlice);
@@ -360,7 +361,7 @@ int main(int argc, char **argv)
 	
 	ArrayXd weights(mcd.values());
 	size_t index = 0;
-	for (int i = 0; i < info.size(); i++) {
+	for (size_t i = 0; i < info.size(); i++) {
 		if (info.at(i).spoil)
 			weights.segment(index, info.at(i).nAngles()).setConstant(weighting);
 		else
@@ -374,9 +375,9 @@ int main(int argc, char **argv)
 	vector<Nifti::File> midpFiles(mcd.inputs(), templateFile);
 	vector<Nifti::File> widthFiles(mcd.inputs(), templateFile);
 	Nifti::File contractFile(templateFile);
-	vector<vector<float>> paramsData(mcd.inputs());
-	vector<vector<float>> midpData(mcd.inputs());
-	vector<vector<float>> widthData(mcd.inputs());
+	vector<vector<double>> paramsData(mcd.inputs());
+	vector<vector<double>> midpData(mcd.inputs());
+	vector<vector<double>> widthData(mcd.inputs());
 	vector<size_t> contractData(voxelsPerSlice);
 	for (int i = 0; i < mcd.inputs(); i++) {
 		paramsData.at(i).resize(voxelsPerSlice);
@@ -392,7 +393,7 @@ int main(int argc, char **argv)
 		contractFile.open(outPrefix + "_n_contract.nii.gz", Nifti::Modes::Write);
 	
 	vector<vector<double>> residualData(mcd.values());
-	for (int i = 0; i < residualData.size(); i ++)
+	for (size_t i = 0; i < residualData.size(); i ++)
 		residualData.at(i).resize(voxelsPerVolume);
 	Nifti::File residualFile(templateFile);
 	residualFile.setDim(4, static_cast<int>(mcd.values()));
@@ -401,7 +402,7 @@ int main(int argc, char **argv)
 	ArrayXXd bounds = mcd.defaultBounds();
 	if (prompt && tesla == mcType::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
-		for (int i = 0; i < mcd.nP(); i++) {
+		for (size_t i = 0; i < mcd.nP(); i++) {
 			if (prompt) cout << mcd.names()[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
@@ -463,7 +464,7 @@ int main(int argc, char **argv)
 					localf.info(i).B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
 				if ((B0fit == mcType::OffResMode::Bounded) || (B0fit == mcType::OffResMode::MultiBounded)) {
-					for (int b = 0; b < localf.nOffRes(); b++) {
+					for (size_t b = 0; b < localf.nOffRes(); b++) {
 						localBounds(localf.nP() + b, 0) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
 						localBounds(localf.nP() + b, 1) = B0_hiFiles[b].isOpen() ? B0HiVolumes[b][vox] : 0.;
 					}
@@ -482,7 +483,7 @@ int main(int argc, char **argv)
 			}
 			if (debug)
 				contractData.at(sliceOffset + vox) = c;
-			for (int p = 0; p < paramsData.size(); p++) {
+			for (size_t p = 0; p < paramsData.size(); p++) {
 				paramsData.at(p).at(vox) = params[p];
 				if (debug) {
 					widthData.at(p).at(sliceOffset + vox) = width(p);
@@ -509,7 +510,7 @@ int main(int argc, char **argv)
 			cout << "finished." << endl;
 		}
 		
-		for (int p = 0; p < paramsFiles.size(); p++) {
+		for (size_t p = 0; p < paramsFiles.size(); p++) {
 			paramsFiles.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData.at(p));
 			if (debug) {
 				midpFiles.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, midpData.at(p));
@@ -526,7 +527,7 @@ int main(int argc, char **argv)
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << endl;
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
-	for (int r = 0; r < residualData.size(); r++)
+	for (size_t r = 0; r < residualData.size(); r++)
 		residualFile.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData.at(r));
 	cout << "Finished writing data." << endl;
 	return EXIT_SUCCESS;

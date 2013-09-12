@@ -25,11 +25,12 @@ using namespace Eigen;
 
 typedef Array<bool, Dynamic, Dynamic> ArrayXb;
 
+vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, size_t N);
 vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, size_t N)
 {
 	eigen_assert(x.size() >= N);
     vector<size_t> allIndices(x.size()), indices(N);
-    for(int i=0;i<allIndices.size();i++) {
+    for(size_t i = 0; i < allIndices.size(); i++) {
 		allIndices[i] = i;
     }
 	partial_sort(allIndices.begin(), allIndices.begin() + N, allIndices.end(),
@@ -113,7 +114,7 @@ class RegionContraction {
 			
 			m_status = Status::DidNotConverge;
 			for (m_contractions = 0; m_contractions < m_maxContractions; m_contractions++) {
-				for (int s = 0; s < m_nS; s++) {
+				for (size_t s = 0; s < m_nS; s++) {
 					ArrayXd tempSample(nP);
 					size_t nTries = 0;
 					do {
@@ -154,7 +155,7 @@ class RegionContraction {
 				}
 				ArrayXd toSort = residuals.square().colwise().sum();
 				indices = index_partial_sort(toSort, m_nR);
-				for (int i = 0; i < m_nR; i++) {
+				for (size_t i = 0; i < m_nR; i++) {
 					retained.col(i) = samples.col(indices[i]);
 					if (m_debug) {
 						cout << "Sample " << indices[i] << " RES " << residuals.col(indices[i]).square().sum() << "\t PARAMS " << retained.col(i).transpose();

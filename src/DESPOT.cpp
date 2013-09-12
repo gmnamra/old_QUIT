@@ -168,7 +168,7 @@ typedef Matrix<double, 3, Dynamic> MagVector;
 // Sum a multi-component magnetisation vector
 const MagVector SumMC(const MatrixXd &M_in) {
 	MagVector M_out = M_in.topRows(3);
-	for (size_t i = 3; i < M_in.rows(); i += 3) {
+	for (MatrixXd::Index i = 3; i < M_in.rows(); i += 3) {
 		M_out += M_in.block(i, 0, 3, M_in.cols());
 	}
 	return M_out;

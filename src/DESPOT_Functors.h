@@ -174,7 +174,7 @@ class DESPOTFunctor : public Functor<double> {
 			ArrayXd v(values());
 			int index = 0;
 			if (m_debug) cout << __PRETTY_FUNCTION__ << endl;
-			for (int i = 0; i < m_signals.size(); i++) {
+			for (size_t i = 0; i < m_signals.size(); i++) {
 				v.segment(index, m_signals.at(i).size()) = m_signals.at(i);
 				index += m_signals.at(i).size();
 			}
@@ -261,9 +261,9 @@ class mcDESPOT : public DESPOTFunctor {
 				case Components::Two: m_names = {"T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a"}; break;
 				case Components::Three: m_names = {"T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c"}; break;
 			}
-			for (int i = 0; i < nOffRes(); i++)
+			for (size_t i = 0; i < nOffRes(); i++)
 				m_names.emplace_back("f0_" + std::to_string(i));
-			for (int i = 0; i < nPD(); i++)
+			for (size_t i = 0; i < nPD(); i++)
 				m_names.emplace_back("PD_" + std::to_string(i));
 		}
 		
@@ -300,7 +300,7 @@ class mcDESPOT : public DESPOTFunctor {
 			ArrayXd t(values());
 			int index = 0;
 			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
-			for (int i = 0; i < m_info.size(); i++) {
+			for (size_t i = 0; i < m_info.size(); i++) {
 				MagVector M(3, m_info[i].flip().size());
 				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
 					m_info.at(i).f0 = params[nP()];
@@ -382,7 +382,7 @@ class mcFinite : public mcDESPOT {
 			ArrayXd t(values());
 			int index = 0;
 			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
-			for (int i = 0; i < m_info.size(); i++) {
+			for (size_t i = 0; i < m_info.size(); i++) {
 				MagVector M(3, m_info[i].flip().size());
 				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
 					m_info[i].f0 = params[nP()];
@@ -449,9 +449,9 @@ class DESPOT2FM : public DESPOTFunctor {
 		{
 			m_names.resize(inputs());
 			m_names.at(0) = "T2";
-			for (int i = 0; i < nOffRes(); i++)
+			for (size_t i = 0; i < nOffRes(); i++)
 				m_names.at(1 + i) = "f0_" + std::to_string(i);
-			for (int i = 0; i < nPD(); i++)
+			for (size_t i = 0; i < nPD(); i++)
 				m_names.at(1 + nOffRes() + i) = "PD_" + std::to_string(i);
 		}
 		
@@ -463,7 +463,7 @@ class DESPOT2FM : public DESPOTFunctor {
 			
 			ArrayXd t(values());
 			int index = 0;
-			for (int i = 0; i < m_info.size(); i++) {
+			for (size_t i = 0; i < m_info.size(); i++) {
 				MagVector M(3, m_info[i].flip().size());
 				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
 					m_info[i].f0 = params[nP()];
