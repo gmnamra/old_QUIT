@@ -357,8 +357,10 @@ int main(int argc, char **argv)
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << mcType::to_string(components) << " component model." << endl;
 	mcType mcd(components, info, tesla, B0fit, PD);
-	outPrefix = outPrefix + mcType::to_string(components) + "CD_";
-	
+	outPrefix = outPrefix + mcType::to_string(components) + "C_";
+	#ifdef USE_MCFINITE
+	outPrefix = outPrefix + "F_";
+	#endif
 	ArrayXd weights(mcd.values());
 	size_t index = 0;
 	for (size_t i = 0; i < info.size(); i++) {
@@ -390,14 +392,14 @@ int main(int argc, char **argv)
 		}
 	}
 	if (debug)
-		contractFile.open(outPrefix + "_n_contract.nii.gz", Nifti::Modes::Write);
+		contractFile.open(outPrefix + "n_contract.nii.gz", Nifti::Modes::Write);
 	
 	vector<vector<double>> residualData(mcd.values());
 	for (size_t i = 0; i < residualData.size(); i ++)
 		residualData.at(i).resize(voxelsPerVolume);
 	Nifti::File residualFile(templateFile);
 	residualFile.setDim(4, static_cast<int>(mcd.values()));
-	residualFile.open(outPrefix + mcType::to_string(components) + "CD_residuals.nii.gz", Nifti::Modes::Write);
+	residualFile.open(outPrefix + mcType::to_string(components) + "_residuals.nii.gz", Nifti::Modes::Write);
 	
 	ArrayXXd bounds = mcd.defaultBounds();
 	if (prompt && tesla == mcType::FieldStrength::Unknown) {
