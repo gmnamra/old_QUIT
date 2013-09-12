@@ -482,12 +482,12 @@ int main(int argc, char **argv)
 				}
 			}
 			if (debug)
-				contractData.at(sliceOffset + vox) = c;
+				contractData.at(vox) = c;
 			for (size_t p = 0; p < paramsData.size(); p++) {
 				paramsData.at(p).at(vox) = params[p];
 				if (debug) {
-					widthData.at(p).at(sliceOffset + vox) = width(p);
-					midpData.at(p).at(sliceOffset + vox) = midp(p);
+					widthData.at(p).at(vox) = width(p);
+					midpData.at(p).at(vox) = midp(p);
 				}
 			}
 			for (int i = 0; i < residuals.size(); i++) {
