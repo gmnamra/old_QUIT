@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 	for (auto &p : paths) {
 		try {
 			if (p.substr(p.size() - 3) == "fdf") {
-				fdfs.emplace_back(p);
+				fdfs.push_back(p);
 			}
 		} catch (exception &e) {
 			cout << "Could not read file " << p << ", not a valid procpar file." << endl;

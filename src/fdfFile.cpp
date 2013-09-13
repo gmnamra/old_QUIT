@@ -56,14 +56,14 @@ fdfValue::fdfValue() { m_value.i_val = 0; m_type = fdfType::Integer; }
 fdfValue::fdfValue(const int &ival) { m_value.i_val = ival; m_type = fdfType::Integer; }
 fdfValue::fdfValue(const float &fval) { m_value.f_val = fval; m_type = fdfType::Float; }
 fdfValue::fdfValue(const string &sval) { m_value.s_val = new string(sval); m_type = fdfType::String; }
-fdfValue::fdfValue(const fdfValue &other) : m_type(other.m_type) {
+fdfValue::fdfValue(const fdfValue &other) noexcept : m_type(other.m_type) {
 	switch (m_type) {
 		case (fdfType::Integer) : m_value.i_val = other.m_value.i_val; break;
 		case (fdfType::Float)   : m_value.f_val = other.m_value.f_val; break;
 		case (fdfType::String)  : m_value.s_val = new string(*(other.m_value.s_val)); break;
 	}
 }
-fdfValue::fdfValue(fdfValue &&other) : m_type(other.m_type) {
+fdfValue::fdfValue(fdfValue &&other) noexcept : m_type(other.m_type) {
 	switch (m_type) {
 		case (fdfType::Integer) : m_value.i_val = other.m_value.i_val; break;
 		case (fdfType::Float)   : m_value.f_val = other.m_value.f_val; break;
@@ -74,6 +74,25 @@ fdfValue::~fdfValue() {
 	if ((m_type == fdfType::String) && (m_value.s_val != nullptr)) {
 		delete m_value.s_val;
 	}
+}
+
+fdfValue &fdfValue::operator=(const fdfValue &other) {
+	m_type = other.m_type;
+	switch (m_type) {
+		case (fdfType::Integer) : m_value.i_val = other.m_value.i_val; break;
+		case (fdfType::Float)   : m_value.f_val = other.m_value.f_val; break;
+		case (fdfType::String)  : m_value.s_val = new string(*(other.m_value.s_val)); break;
+	}
+	return *this;
+}
+fdfValue &fdfValue::operator=(fdfValue &&other) {
+	m_type = other.m_type;
+	switch (m_type) {
+		case (fdfType::Integer) : m_value.i_val = other.m_value.i_val; break;
+		case (fdfType::Float)   : m_value.f_val = other.m_value.f_val; break;
+		case (fdfType::String)  : m_value.s_val = other.m_value.s_val; other.m_value.s_val = nullptr; break;
+	}
+	return *this;
 }
 
 template <>
@@ -161,6 +180,15 @@ ostream &operator<<(ostream &os, const fdfField &f) {
 //******************
 #pragma mark fdfFile
 //******************
+
+fdfFile::fdfFile(fdfFile &&f) noexcept :
+	m_path(f.m_path),
+	m_dtype(f.m_dtype),
+	m_hdrSize(f.m_hdrSize),
+	m_rank(f.m_rank),
+	m_dims(f.m_dims),
+	m_header(f.m_header)
+{}
 
 fdfFile::fdfFile(const string &path) {
 	open(path);

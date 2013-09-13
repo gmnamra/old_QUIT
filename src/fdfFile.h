@@ -42,9 +42,12 @@ class fdfValue {
 		fdfValue(const int &ival);
 		fdfValue(const float &fval);
 		fdfValue(const string &sval);
-		fdfValue(const fdfValue &other);
-		fdfValue(fdfValue &&other);
+		fdfValue(const fdfValue &other) noexcept;
+		fdfValue(fdfValue &&other) noexcept;
 		~fdfValue();
+		
+		fdfValue &operator=(const fdfValue &other);
+		fdfValue &operator=(fdfValue &&other);
 		
 		template<typename T> const T value() const {
 			switch (m_type) {
@@ -90,9 +93,7 @@ class fdfFile {
 		}
 	
 	public:
-		fdfFile() = default;
-		fdfFile(const fdfFile &f) = default;
-		fdfFile(fdfFile &&f) = default;
+		fdfFile(fdfFile &&f) noexcept;
 		fdfFile(const string &path);
 		
 		void open(const string &path);
