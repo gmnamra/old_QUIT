@@ -11,6 +11,7 @@
 
 #include <string>
 #include <vector>
+#include <array>
 #include <map>
 #include <iostream>
 #include <fstream>
@@ -77,7 +78,8 @@ class fdfFile {
 	protected:
 		ifstream m_file;
 		string m_path, m_dtype;
-		size_t m_hdrSize, m_rank, m_dims[3];
+		size_t m_hdrSize, m_rank;
+		array<size_t, 3> m_dims;
 		map<string, fdfField> m_header;
 		template<typename T> const T headerValue(const string &n, const size_t i = 0) {
 			auto field = m_header.find(n);
@@ -88,9 +90,9 @@ class fdfFile {
 		}
 	
 	public:
-		fdfFile() = delete;
-		//fdfFile(const fdfFile &f) = delete;
-		//fdfFile(fdfFile &&f) = delete;
+		fdfFile() = default;
+		fdfFile(const fdfFile &f) = default;
+		fdfFile(fdfFile &&f) = default;
 		fdfFile(const string &path);
 		
 		void open(const string &path);
@@ -104,6 +106,9 @@ class fdfFile {
 		template<typename T> vector<T>readData() {
 			m_file.open(m_path, ios::in);
 			m_file.seekg(m_hdrSize, ios::beg);
+			if (!m_file) {
+				throw(runtime_error("Error while opening fdf file: " + m_path));
+			}
 			vector<T> Tbuffer(dataSize());
 			if (m_dtype == "float") {
 				vector<float> floatBuffer(dataSize());
