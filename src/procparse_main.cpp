@@ -36,7 +36,7 @@ then the whole file will be listed.\n\
 Options:\n\
  -f, --full:       Print the full parameter information, not a shortened version.\n\
  -p, --partial:    Print parameters that are partial matches.\n\
- -i, --in file:    Check additional procpar files (can be more than 1).\n\
+ -i, --in file:    Check additional procpar files (can specify more than once).\n\
  -v, --verbose:    Print more information.\n"
 };
 

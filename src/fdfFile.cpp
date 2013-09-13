@@ -206,6 +206,7 @@ void fdfFile::close() {
 	m_file.close();
 }
 
+const string &fdfFile::path() const { return m_path; }
 const size_t fdfFile::rank() const { return m_rank; }
 const size_t fdfFile::dim(const size_t d) const {
 	if (d > 2) {
@@ -217,5 +218,5 @@ const size_t fdfFile::dim(const size_t d) const {
 const size_t fdfFile::dataSize() const {
 	return m_dims[0] * m_dims[1] * m_dims[2];
 }
-
+const map<string, fdfField> &fdfFile::header() const { return m_header; }
 } // End namespace Agilent

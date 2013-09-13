@@ -89,15 +89,17 @@ class fdfFile {
 	
 	public:
 		fdfFile() = delete;
-		fdfFile(const fdfFile &f) = delete;
-		fdfFile(fdfFile &&f) = delete;
+		//fdfFile(const fdfFile &f) = delete;
+		//fdfFile(fdfFile &&f) = delete;
 		fdfFile(const string &path);
 		
 		void open(const string &path);
 		void close();
+		const string &path() const;
 		const size_t rank() const;
 		const size_t dim(const size_t d) const;
 		const size_t dataSize() const;
+		const map<string, fdfField> &header() const;
 		
 		template<typename T> vector<T>readData() {
 			m_file.open(m_path, ios::in);
