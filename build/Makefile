@@ -15,7 +15,7 @@ INSTALL_INC = $(INSTALL_DIR)/include
 INSTALL_LIB = $(INSTALL_DIR)/lib
 LIBCPP = /software/system/gcc/gcc-4.8.0/lib64
 EIGEN = /home/k1078535/Code/eigen
-TARGETS = libAgilent.a procparse fdf2nii
+TARGETS = libAgilent.a procparse fdf2nii fdfhdr
 
 # Top level build rules
 .PHONY : all install clean
@@ -49,7 +49,7 @@ libAgilent.a : $(AG_OBJ) | $(OBJ_DIR)
 	$(AR) libAgilent.a $(AG_OBJ)
 
 install : | $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB)
-	cp procparse fdf2nii $(PYTHON_DIR)/fdf2nii.py $(INSTALL_BIN)/
+	cp procparse fdf2nii fdfhdr $(PYTHON_DIR)/fdf2nii.py $(INSTALL_BIN)/
 	cp libAgilent.a $(INSTALL_LIB)/
 	cp $(AG_HDR) $(INSTALL_INC)/
 
