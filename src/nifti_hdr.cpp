@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
 	for (auto& im: images) {
 		if (printDims) cout << im.dims().transpose() << endl;
 		if (printVoxdims) cout << voxMessage(im) << endl;
-		if (printTransform) cout << im.ijk_to_xyz() << endl;
+		if (printTransform) cout << im.transform().matrix() << endl;
 		if (printSize) cout << sizeMessage(im) << endl;
 		if (printData) cout << dataMessage(im) << endl;
 		
@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
 			cout << "Short Nifti Header for file: " << im.imagePath() << endl;
 			cout << "Dimensions:  " << im.dims().transpose() << endl;
 			cout << voxMessage(im) << endl;
-			cout << "Transform matrix: " << endl << im.ijk_to_xyz() << endl;
+			cout << "Transform matrix: " << endl << im.transform().matrix() << endl;
 			cout << "Number of extensions: " << im.extensions().size() << endl;
 		} else if (mode == Full) {
 			cout << "Full Nifti Header for file: " << im.imagePath() << endl;
@@ -152,9 +152,9 @@ int main(int argc, char **argv) {
 			cout << "Description: " << im.description << endl;
 			cout << "Aux File:    " << im.aux_file << endl;
 			cout << "QForm: " << im.qformName() << endl;
-			cout << im.qform() << endl;
+			cout << im.qform().matrix() << endl;
 			cout << "SForm: " << im.sformName() << endl;
-			cout << im.sform() << endl;
+			cout << im.sform().matrix() << endl;
 			cout << "Extensions: " << endl;
 			for (auto &e : im.extensions()) {
 				cout << "Extension Code: " << e.code() << endl;
