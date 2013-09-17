@@ -46,8 +46,10 @@ class App:
 		self.out_entry = Tk.Entry(input, width = 64)
 		self.in_entry.grid(row = 0, column = 1)
 		self.out_entry.grid(row = 1, column = 1)
+		self.in_dir = "/data/blinded/OSIRIS/"
 		self.in_button = Tk.Button(input, text = "...", command = self.find_in)
 		self.in_button.grid(row = 0, column = 2)
+		self.out_dir = "~"
 		self.out_button = Tk.Button(input, text = "...", command = self.find_out)
 		self.out_button.grid(row = 1, column = 2)
 		
@@ -94,11 +96,13 @@ class App:
 		
 	def find_in(self):
 		self.in_entry.delete(0, Tk.END)
-		self.in_entry.insert(0, tkFileDialog.askdirectory(initialdir = "/data/blinded/OSIRIS/", mustexist = True))
+		self.in_dir = tkFileDialog.askdirectory(initialdir = self.in_dir, mustexist = True)
+		self.in_entry.insert(0, self.in_dir)
 	
 	def find_out(self):
 		self.out_entry.delete(0, Tk.END)
-		self.out_entry.insert(0, tkFileDialog.askdirectory(initialdir = "~", mustexist = True))
+		self.out_dir = tkFileDialog.askdirectory(initialdir = self.out_dir, mustexist = True)
+		self.out_entry.insert(0, self.out_dir)
 
 	def go(self):
 		(inpath, inext) = os.path.splitext(os.path.normpath(self.in_entry.get()))
