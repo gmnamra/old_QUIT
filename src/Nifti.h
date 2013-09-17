@@ -65,9 +65,8 @@ enum class Modes : char
 // but Mac OS is stuck on 1.2.1
 class ZipFile {
 	private:
-		FILE *_unzipped;
-		gzFile _zipped;
-		bool _zip;
+		FILE *m_plainFile;
+		gzFile m_gzipFile;
 		
 	public:
 		ZipFile();

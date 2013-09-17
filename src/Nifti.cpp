@@ -5,28 +5,33 @@ namespace Nifti {
 #pragma mark Methods for ZipFile
 //******************************
 ZipFile::ZipFile() :
-	_unzipped(nullptr), _zipped(nullptr), _zip(nullptr)
+	m_plainFile(nullptr), m_gzipFile(nullptr)
 {}
 
 bool ZipFile::open(const string &path, const string &mode, const bool zip) {
-	_zip = zip;
-	if (_zip) {
-		_zipped = gzopen(path.c_str(), mode.c_str());
-	} else {
-		_unzipped = fopen(path.c_str(), mode.c_str());
+	if (m_gzipFile || m_plainFile) {
+		close();
 	}
-	if (!(_zipped || _unzipped)) {
+	
+	if (zip) {
+		m_gzipFile = gzopen(path.c_str(), mode.c_str());
+	} else {
+		m_plainFile = fopen(path.c_str(), mode.c_str());
+	}
+	
+	if (m_gzipFile || m_plainFile) {
+		return true;
+	} else {
 		return false;
 	}
-	return true;
 }
 
 void ZipFile::close() {
-	if (_zip)
-		gzclose(_zipped);
-	else
-		fclose(_unzipped);
-	_zipped = _unzipped = NULL;
+	if (m_gzipFile)
+		gzclose(m_gzipFile);
+	else if (m_plainFile)
+		fclose(m_plainFile);
+	m_gzipFile = m_plainFile = NULL;
 }
 
 /*! Attempts to read the specified number of bytes into the buffer
@@ -36,12 +41,12 @@ void ZipFile::close() {
  *
  */
 size_t ZipFile::read(void *buff, unsigned size) {
-	if (_zip) {
+	if (m_gzipFile) {
 		unsigned remaining = size, totalRead = 0;
 		char *cbuff = (char *)buff;
 		while (remaining > 0) {
 			unsigned chunkSize = (remaining < numeric_limits<int>::max()) ? remaining : numeric_limits<int>::max();
-			int nread = gzread(_zipped, cbuff, static_cast<unsigned int>(chunkSize));
+			int nread = gzread(m_gzipFile, cbuff, static_cast<unsigned int>(chunkSize));
 			if (nread <= 0) {
 				return 0;
 			}
@@ -53,12 +58,14 @@ size_t ZipFile::read(void *buff, unsigned size) {
 			totalRead += nread;
 		}
 		return totalRead;
-	} else {
-		size_t nread = fread(buff, size, 1, _unzipped) * size;
-		if (ferror(_unzipped)) {
+	} else if (m_plainFile) {
+		size_t nread = fread(buff, size, 1, m_plainFile) * size;
+		if (ferror(m_plainFile)) {
 			return 0;
 		}
 		return nread;
+	} else { // Can't read if we don't have a valid file handle open
+		return 0;
 	}
 }
 
@@ -67,12 +74,12 @@ size_t ZipFile::write(const void *buff, int size)
 	if (buff == nullptr) {
 		throw(invalid_argument("Attempted to write data from null pointer."));
 	}
-	if (_zip) {
+	if (m_gzipFile) {
 		unsigned remaining = size, totalWritten = 0;
 		char *chunk = (char *)buff;
 		while(remaining > 0 ) {
 			unsigned chunkSize = (remaining < numeric_limits<int>::max()) ? remaining : numeric_limits<int>::max();
-			int nwritten = gzwrite(_zipped, chunk, chunkSize);
+			int nwritten = gzwrite(m_gzipFile, chunk, chunkSize);
 			if (nwritten == 0) {
 				return 0;
 			}
@@ -84,35 +91,43 @@ size_t ZipFile::write(const void *buff, int size)
 			totalWritten += nwritten;
 		}
 		return totalWritten;
-	} else {
-		size_t nwritten = fwrite(buff, size, 1, _unzipped) * size;
-		if (ferror(_unzipped)) {
+	} else if (m_plainFile) {
+		size_t nwritten = fwrite(buff, size, 1, m_plainFile) * size;
+		if (ferror(m_plainFile)) {
 			return 0;
 		}
 		return nwritten;
+	} else { // Can't write anything to a closed file
+		return 0;
 	}
 }
 
 bool ZipFile::seek(long offset, int whence) {
-	if (_zip) {
-		long int pos = gzseek(_zipped, offset, whence);
+	if (m_gzipFile) {
+		long int pos = gzseek(m_gzipFile, offset, whence);
 		return (pos != -1);
-	} else
-		return (fseek(_unzipped, offset, whence) == 0);
+	} else if (m_plainFile) {
+		return (fseek(m_plainFile, offset, whence) == 0);
+	} else {
+		return false;
+	}
 }
 
 long ZipFile::tell() const {
-	if (_zip)
-		return gztell(_zipped);
-	else
-		return ftell(_unzipped);
+	if (m_gzipFile) {
+		return gztell(m_gzipFile);
+	} else if (m_plainFile) {
+		return ftell(m_plainFile);
+	} else {
+		return 0;
+	}
 }
 
 void ZipFile::flush() {
-	if (_zip)
-		gzflush(_zipped, Z_FINISH);
-	else
-		fflush(_unzipped);
+	if (m_gzipFile)
+		gzflush(m_gzipFile, Z_FINISH);
+	else if (m_plainFile)
+		fflush(m_plainFile);
 }
 
 //*********************************
@@ -1069,28 +1084,27 @@ void File::open(const string &path, const Modes &mode) {
 		throw(logic_error("Attempted to open file: " + path +
 		           " when file: " + imagePath() + " is already open."));
 	} else {
-		m_mode = mode;
-		if ((m_mode == Modes::Read) || (m_mode == Modes::ReadHeader) || (m_mode == Modes::ReadSkipExt)) {
-			if(!m_file.open(headerPath().c_str(), "rb", m_gz)) {
+		if ((mode == Modes::Read) || (mode == Modes::ReadHeader) || (mode == Modes::ReadSkipExt)) {
+			if(!m_file.open(headerPath(), "rb", m_gz)) {
 				throw(runtime_error("Failed to open file: " + headerPath()));
 			}
 			readHeader();
-			if (m_mode != Modes::ReadSkipExt ) {
+			if (mode != Modes::ReadSkipExt ) {
 				readExtensions();
 			}
-		} else if (m_mode == Modes::Write) {
-			if(!m_file.open(headerPath().c_str(), "wb", m_gz)) {
+		} else if (mode == Modes::Write) {
+			if(!m_file.open(headerPath(), "wb", m_gz)) {
 				throw(runtime_error("Failed to open file: " + headerPath()));
 			}
 			writeHeader();
-			if (m_mode == Modes::Write) {
+			if (mode == Modes::Write) {
 				writeExtensions();
 			}
 		} else {
 			throw(invalid_argument("Invalid opening mode for file: " + path));
 		}
 		
-		if (m_mode == Modes::ReadHeader) {
+		if (mode == Modes::ReadHeader) {
 			close();
 		} else {
 			if (!m_nii) {
@@ -1098,9 +1112,9 @@ void File::open(const string &path, const Modes &mode) {
 				m_file.close();
 				bool result;
 				if (mode == Modes::Read)
-					result = m_file.open(imagePath().c_str(), "rb", m_gz);
+					result = m_file.open(imagePath(), "rb", m_gz);
 				else
-					result = m_file.open(imagePath().c_str(), "wb", m_gz);
+					result = m_file.open(imagePath(), "wb", m_gz);
 				if (!result) {
 					throw(runtime_error("Could not open image file: " + imagePath()));
 				}
@@ -1109,6 +1123,10 @@ void File::open(const string &path, const Modes &mode) {
 				throw(runtime_error("Could not seek to voxel offset in file: " + imagePath()));
 			}
 		}
+		// Only set the mode here when we have successfully opened the file and
+		// not thrown any errors. Throwing an error triggers the destructor and
+		// we don't want to be in the wrong state there.
+		m_mode = mode;
 	}
 }
 
