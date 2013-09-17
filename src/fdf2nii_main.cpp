@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 				}
 				output.close();
 			} catch (exception &e) {
-				cerr << "Error, skipping to next input. " << e.what() << outPath << endl;
+				cerr << "Error, skipping to next input. " << e.what() << endl;
 				continue;
 			}
 		} catch (exception &e) {
