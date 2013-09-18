@@ -8,8 +8,6 @@
 
 #include "ZipFile.h"
 
-namespace Nifti {
-
 //******************************
 #pragma mark Methods for ZipFile
 //******************************
@@ -138,5 +136,3 @@ void ZipFile::flush() {
 	else if (m_plainFile)
 		fflush(m_plainFile);
 }
-
-} // End namespace Nifti

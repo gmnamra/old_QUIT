@@ -19,7 +19,7 @@
   *   @param nEl Number of elements (not bytes) expected in the data
   *   @param data std::vector& to converted data in. Will be resized to ensure enough space.
   */
-template<typename T> void File::convertFromBytes(const vector<char> &bytes, const size_t nEl, vector<T> &data) {
+template<typename T> void Nifti::convertFromBytes(const vector<char> &bytes, const size_t nEl, vector<T> &data) {
 	assert(nEl == (bytes.size() / bytesPerVoxel()));
 	data.resize(nEl);
 	for (size_t i = 0; i < nEl; i++) {
@@ -58,7 +58,7 @@ template<typename T> void File::convertFromBytes(const vector<char> &bytes, cons
   *   @param nEl Number of elements (not bytes) expected in the data
   *   @param data std::vector& to converted data in. Will be resized to ensure enough space.
   */
-template<typename T> void File::convertFromBytes(const vector<complex<T>> &bytes, const size_t nEl, vector<T> &data) {
+template<typename T> void Nifti::convertFromBytes(const vector<complex<T>> &bytes, const size_t nEl, vector<T> &data) {
 	assert(nEl == (bytes.size() / bytesPerVoxel()));
 	data.resize(nEl);
 	for (size_t i = 0; i < nEl; i++) {
@@ -91,7 +91,7 @@ template<typename T> void File::convertFromBytes(const vector<complex<T>> &bytes
   *   @param T Desired datatype. Valid (scalar) conversions must exist.
   *   @return std::vector of the data stored in a byte array.
   */
-template<typename T> vector<char> File::convertToBytes(const vector<T> &data) {
+template<typename T> vector<char> Nifti::convertToBytes(const vector<T> &data) {
 	vector<char> bytes(data.size() * bytesPerVoxel());
 	for (size_t i = 0; i < data.size(); i++) {
 		switch (m_datatype.code) {
@@ -115,7 +115,7 @@ template<typename T> vector<char> File::convertToBytes(const vector<T> &data) {
 	return bytes;
 }
 
-template<typename T> vector<char> File::convertToBytes(const vector<complex<T>> &data) {
+template<typename T> vector<char> Nifti::convertToBytes(const vector<complex<T>> &data) {
 	vector<char> bytes(data.size() * bytesPerVoxel());
 	for (int i = 0; i < data.size(); i++) {
 		switch (m_datatype.code) {
@@ -140,26 +140,26 @@ template<typename T> vector<char> File::convertToBytes(const vector<complex<T>> 
 	return bytes;
 }
 
-template<typename T> void File::readVolume(const size_t &vol, vector<T> &buffer) {
+template<typename T> void Nifti::readVolume(const size_t &vol, vector<T> &buffer) {
 	size_t bytesPerVolume = voxelsPerVolume() * bytesPerVoxel();
 	vector<char> raw(bytesPerVolume);
 	readBytes(vol * bytesPerVolume, bytesPerVolume, raw.data());
 	convertFromBytes(raw, voxelsPerVolume(), buffer);
 }
 
-template<typename T> vector<T> File::readVolume(const size_t &vol) {
+template<typename T> vector<T> Nifti::readVolume(const size_t &vol) {
 	vector<T> buffer;
 	readVolume(vol, buffer);
 	return buffer;
 }
 
-template<typename T> void File::readAllVolumes(vector<T> &buffer) {
+template<typename T> void Nifti::readAllVolumes(vector<T> &buffer) {
 	vector<char> raw(voxelsTotal() * bytesPerVoxel());
 	readBytes(0, voxelsTotal() * bytesPerVoxel(), raw.data());
 	return convertFromBytes<T>(raw, voxelsTotal(), buffer);
 }
 
-template<typename T> vector<T> File::readAllVolumes() {
+template<typename T> vector<T> Nifti::readAllVolumes() {
 	vector<T> buffer;
 	readAllVolumes(buffer);
 	return buffer;
@@ -174,7 +174,7 @@ template<typename T> vector<T> File::readAllVolumes() {
   *   @param buffer std::vector to store the data.
   *
   */
-template<typename T> void File::readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
+template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
 										      const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et,
 										      vector<T> &buffer) {
 	size_t lx, ly, lz, lt, total, toRead;
@@ -220,14 +220,14 @@ template<typename T> void File::readSubvolume(const size_t &sx, const size_t &sy
 	convertFromBytes<T>(raw, total, buffer);
 }
 
-template<typename T> void File::readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
+template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
 										const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et) {
 	vector<T> buffer;
 	readSubvolume(sx, sy, sz, st, ex, ey, ez, et, buffer);
 	return buffer;
 }
 
-template<typename T> void File::writeVolume(const size_t vol, const vector<T> &data) {
+template<typename T> void Nifti::writeVolume(const size_t vol, const vector<T> &data) {
 	if (data.size() != voxelsPerVolume()) {
 		throw(std::invalid_argument("Insufficient data to write volume for file: " + imagePath()));
 	}
@@ -235,7 +235,7 @@ template<typename T> void File::writeVolume(const size_t vol, const vector<T> &d
 	writeBytes(vol * voxelsPerVolume() * bytesPerVoxel(), converted.size(), converted.data());
 }
 
-template<typename T> void File::writeAllVolumes(const vector<T> &data) {
+template<typename T> void Nifti::writeAllVolumes(const vector<T> &data) {
 	if (data.size() != voxelsTotal()) {
 		throw(std::invalid_argument("Insufficient data to write all volumes for file: " + imagePath()));
 	}
@@ -252,7 +252,7 @@ template<typename T> void File::writeAllVolumes(const vector<T> &data) {
   *   @param data std::vector of the data.
   *
   */
-template<typename T> void File::writeSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
+template<typename T> void Nifti::writeSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
 										       const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et,
 										       const vector<T> &data) {
 	size_t lx, ly, lz, lt, total, toWrite;

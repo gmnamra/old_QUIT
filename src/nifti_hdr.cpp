@@ -14,7 +14,6 @@
 #include "Nifti.h"
 
 using namespace std;
-using namespace Nifti;
 
 const string usage = "nifti_hdr - A utility for getting information from Nifti headers.\n\
 \n\
@@ -59,7 +58,7 @@ static struct option long_options[] =
 	{0, 0, 0, 0}
 };
 
-string voxMessage(const File &im) {
+string voxMessage(const Nifti &im) {
 	stringstream m;
 	m << "Voxel sizes: " << im.voxDims().transpose() << " " << im.spaceUnits();
 	if (im.voxDims().rows() > 3) {
@@ -68,14 +67,14 @@ string voxMessage(const File &im) {
 	return m.str();
 }
 
-string sizeMessage(const File &im) {
+string sizeMessage(const Nifti &im) {
 	stringstream m;
 	m << "Voxels per slice, per volume, total: "
       << im.voxelsPerSlice() << ", " << im.voxelsPerVolume() << ", " << im.voxelsTotal();
 	return m.str();
 }
 
-string dataMessage(const File &im) {
+string dataMessage(const Nifti &im) {
 	stringstream m;
 	m << "Datatype: " << im.dtypeName() << ", size in bytes: " << im.bytesPerVoxel();
 	return m.str();
@@ -106,10 +105,10 @@ int main(int argc, char **argv) {
 	if (optind == 1) { // No options specified, default is short header
 		mode = Abbreviated;
 	}
-	vector<File> images;
+	vector<Nifti> images;
 	images.reserve(argc - optind); // emplace_back can still trigger copies if the vector has to be resized
 	for (;optind < argc; optind++) {
-		images.emplace_back(argv[optind], Nifti::File::Modes::ReadHeader);
+		images.emplace_back(argv[optind], Nifti::Nifti::Modes::ReadHeader);
 	}
 	
 	if (mode == Compare) { // Compare first image to all others and check headers are compatible

@@ -18,8 +18,6 @@ using std::numeric_limits;
 
 #include <zlib.h>
 
-namespace Nifti {
-
 /*! Utility class that wraps unzipped and zipped files into one object */
 // zlib 1.2.5 and above support a "Transparent" mode that would remove the need for this,
 // but Mac OS is stuck on 1.2.1
@@ -38,7 +36,5 @@ class ZipFile {
 		long tell() const;                        //!< Returns the current position in the file
 		void flush();                             //!< Flushes unwritten buffer contents
 };
-
-} // End namespace Nifti
 
 #endif // NIFTI_ZIPFILE

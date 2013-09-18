@@ -19,9 +19,10 @@
 
 using std::string;
 using std::to_string;
+using std::complex;
 using std::vector;
 using std::list;
-using std::complex;
+using std::map;
 using std::numeric_limits;
 
 #include "Eigen/Core"
@@ -38,12 +39,8 @@ using Eigen::Quaternionf;
 #include "nifti1.h" // NIFTI-1 header specification
 #include "nifti_analyze.h" // NIFTI version of the ANALYZE 7.5 header
 #include "ZipFile.h"
-#include "Extension.h"
 
 typedef Array<size_t, Eigen::Dynamic, 1> ArrayXs;
-
-#pragma mark Start namespace Nifti
-namespace Nifti {
 
 #pragma mark Enums, structs and typedefs
 struct DataType {
@@ -55,7 +52,7 @@ static void printDTypeList();
 typedef map<int, string> StringMap;
 
 #pragma mark NIfTI File Class
-class File {
+class Nifti {
 	public: 
 		/*
 		 *  Used when opening to specify read or write.
@@ -148,19 +145,19 @@ class File {
 		
 	#pragma mark Public Methods
 	public:
-		~File();
-		File();                              //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
-		File(const File &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
-		File &operator=(const File &other);  //!< Assignment. Copies all elements except file handles, and marks destination as Closed.
-		File(File &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
+		~Nifti();
+		Nifti();                              //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
+		Nifti(const Nifti &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
+		Nifti &operator=(const Nifti &other);  //!< Assignment. Copies all elements except file handles, and marks destination as Closed.
+		Nifti(Nifti &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
 		
-		File(const int nx, const int ny, const int nz, const int nt,
-			 const float dx, const float dy, const float dz, const float dt,
-			 const int datatype = NIFTI_TYPE_FLOAT32, const Affine3f &transform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
-		File(const ArrayXs &dim, const ArrayXf &voxdim,
-			 const int datatype = NIFTI_TYPE_FLOAT32, const Affine3f &transform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
-		File(const File &other, const size_t nt, const int datatype = NIFTI_TYPE_FLOAT32);               //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
-		File(const string &filename, const Modes &mode);
+		Nifti(const int nx, const int ny, const int nz, const int nt,
+			  const float dx, const float dy, const float dz, const float dt,
+			  const int datatype = NIFTI_TYPE_FLOAT32, const Affine3f &transform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
+		Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
+			  const int datatype = NIFTI_TYPE_FLOAT32, const Affine3f &transform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
+		Nifti(const Nifti &other, const size_t nt, const int datatype = NIFTI_TYPE_FLOAT32);               //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
+		Nifti(const string &filename, const Modes &mode);
 		
 		void open(const string &filename, const Modes &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
 		void close();                                         //!< Closes the file
@@ -202,8 +199,8 @@ class File {
 		const Affine3f &sform() const;               //!< Return just the sform.
 		int qform_code;
 		int sform_code;
-		bool matchesSpace(const File &other) const;  //!< Check if voxel dimensions, data size and transform match
-		bool matchesVoxels(const File &other) const; //!< Looser check if voxel dimensions and data size match
+		bool matchesSpace(const Nifti &other) const;  //!< Check if voxel dimensions, data size and transform match
+		bool matchesVoxels(const Nifti &other) const; //!< Looser check if voxel dimensions and data size match
 		
 		int freq_dim ;                //!< Index of the frequency encode direction (1-3)
 		int phase_dim;                //!< Index of the phase encode direction (1-3)
@@ -255,5 +252,4 @@ class File {
 
 #include "Nifti-inl.h"
 
-}; // End namespace Nifti
 #endif // NIFTI_IMAGE
