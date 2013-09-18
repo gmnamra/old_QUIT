@@ -1,11 +1,11 @@
-/** \file File.h
+/** \file Nifti.h
  \brief Declaration for File class
  - Written by Tobias Wood, IoP KCL
  - Based on nifti1_io.h (Thanks to Robert Cox et al)
  - This code is released to the public domain. Do with it what you will.
  */
-#ifndef NIFTI_IMAGE
-#define NIFTI_IMAGE
+#ifndef NIFTI_NIFTI
+#define NIFTI_NIFTI
 
 #include <string>
 #include <iostream>
@@ -48,23 +48,22 @@ class Nifti {
 		};
 
 		enum class DataType {
-			UINT8, INT16, INT32, FLOAT32, COMPLEX64, FLOAT64, RGB24,
-			INT8, UINT16, UINT32, INT64, UINT64, FLOAT128, COMPLEX128, COMPLEX256, RGBA32
+			UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64,
+			FLOAT32, FLOAT64, FLOAT128, COMPLEX64, COMPLEX128, COMPLEX256,
+			RGB24, RGBA32
 		};
-
-		enum class XForm {
-			Unknown, ScannerAnatomy, AlignedAnatomy, Talairach, MNI_152
-		};
-		
-		static const XForm XFormForCode(const int code);
-		static const int XFormCode(const XForm t);
-		static const string XFormName(const XForm t);
 		
 		struct DataTypeInfo {
 			DataType type;
 			size_t code, size, swapsize;
 			string name;
 		}; //!< Contains all the information needed to read/write a Nifti datatype
+		static const DataTypeInfo &TypeInfo(const DataType dt);
+		
+		enum class XForm {
+			Unknown, ScannerAnatomy, AlignedAnatomy, Talairach, MNI_152
+		};
+		static const string XFormName(const XForm t);
 		
 		/*
 		 *  Nifti Extension Class.
@@ -95,6 +94,8 @@ class Nifti {
 
 	private:
 		static const DataType DataTypeForCode(const int code);
+		static const XForm XFormForCode(const int code);
+		static const int XFormCode(const XForm t);
 		
 		Array<size_t, 7, 1> m_dim;      //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
 		Array<float, 7, 1> m_voxdim;    //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
@@ -123,7 +124,7 @@ class Nifti {
 		template<typename T> vector<char> convertToBytes(const vector<T> &data);
 		template<typename T> vector<char> convertToBytes(const vector<complex<T>> &data);
 		
-	#pragma mark Public Methods
+	#pragma mark Public Class Methods
 	public:
 		~Nifti();
 		Nifti();                              //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
@@ -163,7 +164,6 @@ class Nifti {
 		const ArrayXf voxDims() const;                          //!< Get all voxel sizes.
 		void setVoxDims(const ArrayXf &newVoxDims);             //!< Set all voxel sizes.
 		
-		static const DataTypeInfo &TypeInfo(const DataType dt);
 		const DataType &datatype() const;
 		void setDatatype(const DataType dt);
 		

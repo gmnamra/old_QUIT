@@ -7,6 +7,9 @@
  - separate the interface from the definition a bit better.
  */
 
+#ifndef NIFTI_NIFTI_INL
+#define NIFTI_NIFTI_INL
+
 /**
   *   Internal function to convert the internal NIfTI data to the desired dataype.
   *
@@ -301,3 +304,5 @@ template<typename T> void Nifti::writeSubvolume(const size_t &sx, const size_t &
 		}
 	}
 }
+
+#endif // NIFTI_NIFTI_INL
