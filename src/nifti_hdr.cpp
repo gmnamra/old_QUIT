@@ -108,9 +108,9 @@ int main(int argc, char **argv) {
 	vector<Nifti> images;
 	images.reserve(argc - optind); // emplace_back can still trigger copies if the vector has to be resized
 	for (;optind < argc; optind++) {
-		images.emplace_back(argv[optind], Nifti::Nifti::Modes::ReadHeader);
+		images.emplace_back(argv[optind], Nifti::Mode::ReadHeader);
 	}
-	
+
 	if (mode == Compare) { // Compare first image to all others and check headers are compatible
 		for (auto im = images.begin() + 1; im != images.end(); im++) {
 			if (!images[0].matchesSpace(*im)) {

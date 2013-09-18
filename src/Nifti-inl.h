@@ -7,6 +7,10 @@
  - separate the interface from the definition a bit better.
  */
 
+enum class Nifti::Mode : char {
+	Closed = 0, Read = 'r', ReadHeader = 'h', ReadSkipExt = 's', Write = 'w', WriteSkipExt = 'x'
+};
+
 /**
   *   Internal function to convert the internal NIfTI data to the desired dataype.
   *

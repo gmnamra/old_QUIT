@@ -1,8 +1,5 @@
 #include "Nifti.h"
 
-//*********************************
-#pragma mark Methods for Nifti
-//********************************
 /*	Internal map of datatype properties
  *
  *  The map is declared here because making it a static member of Nifti was
@@ -10,8 +7,8 @@
  *  ~Nifti. It's possible for C++ to destruct static members even when
  *  objects still exist in another translation unit.
  */
-const DTMap &Nifti::DataTypes() {
-	static const DTMap DT{
+const map<int, Nifti::DataType> &Nifti::DataTypes() {
+	static const map<int, DataType> DT{
 		{NIFTI_TYPE_UINT8,    {NIFTI_TYPE_UINT8, 1, 0, "NIFTI_TYPE_UINT8"} },
 		{NIFTI_TYPE_INT16,    {NIFTI_TYPE_INT16, 2, 2, "NIFTI_TYPE_INT16"} },
 		{NIFTI_TYPE_INT32,    {NIFTI_TYPE_INT32, 4, 4, "NIFTI_TYPE_INT32"} },
@@ -33,30 +30,30 @@ const DTMap &Nifti::DataTypes() {
 }
 
 /*
- * Map for string representations of NIfTI unit codes.
+ * Returns the string representation of a NIfTI space unit code.
  *
  *\sa NIFTI1_UNITS group in nifti1.h
  */
-const string &Nifti::spaceUnits() const
-{
-	static const StringMap Units
-	{
+const string &Nifti::spaceUnits() const {
+	static const map<int, string> Units {
 		{ NIFTI_UNITS_METER,  "m" },
 		{ NIFTI_UNITS_MM,     "mm" },
 		{ NIFTI_UNITS_MICRON, "um" }
 	};
-	
-	static string unknown("Unknown space units code");
-	StringMap::const_iterator it = Units.find(xyz_units);
+	static const string unknown("Unknown space units code");
+	auto it = Units.find(xyz_units);
 	if (it == Units.end())
 		return unknown;
 	else
 		return it->second;
 }
-const string &Nifti::timeUnits() const
-{
-	static const StringMap Units
-	{
+/*
+ * Returns the string description of a NIfTI time unit code.
+ *
+ *\sa NIFTI1_UNITS group in nifti1.h
+ */
+const string &Nifti::timeUnits() const {
+	static const map<int, string> Units {
 		{ NIFTI_UNITS_SEC,    "s" },
 		{ NIFTI_UNITS_MSEC,   "ms" },
 		{ NIFTI_UNITS_USEC,   "us" },
@@ -64,8 +61,8 @@ const string &Nifti::timeUnits() const
 		{ NIFTI_UNITS_PPM,    "ppm" },
 		{ NIFTI_UNITS_RADS,   "rad/s" }
 	};
-	static string unknown("Unknown time units code");
-	StringMap::const_iterator it = Units.find(time_units);
+	static const string unknown("Unknown time units code");
+	auto it = Units.find(time_units);
 	if (it == Units.end())
 		return unknown;
 	else
@@ -73,13 +70,12 @@ const string &Nifti::timeUnits() const
 }
 
 /*
- * Map for string representations of NIfTI intent types.
+ * Returns the string representation of NIfTI intent code.
  *
  *\sa NIFTI1_INTENT_CODES group in nifti1.h
  */
-const string &Nifti::intentName() const
-{
-	static const StringMap Intents {
+const string &Nifti::intentName() const {
+	static const map<int, string> Intents {
 		{ NIFTI_INTENT_CORREL,     "Correlation statistic" },
 		{ NIFTI_INTENT_TTEST,      "T-statistic" },
 		{ NIFTI_INTENT_FTEST,      "F-statistic" },
@@ -101,10 +97,8 @@ const string &Nifti::intentName() const
 		{ NIFTI_INTENT_INVGAUSS,   "Inverse Gaussian distribution" },
 		{ NIFTI_INTENT_EXTVAL,     "Extreme Value distribution" },
 		{ NIFTI_INTENT_PVAL,       "P-value" },
-				
 		{ NIFTI_INTENT_LOGPVAL,    "Log P-value" },
 		{ NIFTI_INTENT_LOG10PVAL,  "Log10 P-value" },
-				
 		{ NIFTI_INTENT_ESTIMATE,   "Estimate" },
 		{ NIFTI_INTENT_LABEL,      "Label index" },
 		{ NIFTI_INTENT_NEURONAME,  "NeuroNames index" },
@@ -115,11 +109,10 @@ const string &Nifti::intentName() const
 		{ NIFTI_INTENT_POINTSET,   "Pointset" },
 		{ NIFTI_INTENT_TRIANGLE,   "Triangle" },
 		{ NIFTI_INTENT_QUATERNION, "Quaternion" },
-				
 		{ NIFTI_INTENT_DIMLESS,    "Dimensionless number" }
 	};
-	static string unknown("Unknown intent code");
-	StringMap::const_iterator it = Intents.find(intent_code);
+	static const string unknown("Unknown intent code");
+	auto it = Intents.find(intent_code);
 	if (it == Intents.end())
 		return unknown;
 	else
@@ -127,21 +120,19 @@ const string &Nifti::intentName() const
 }
 
 /*
- * Map for string representations of NIfTI transform codes.
+ * Returns the string representation of a NIfTI transform code.
  *
  *\sa NIFTI1_XFORM_CODES group in nifti1.h
  */
-const string &Nifti::TransformName(const int code)
-{
-	static const StringMap Transforms
-	{
+const string &Nifti::TransformName(const int code) {
+	static const map<int, string> Transforms {
 		{ NIFTI_XFORM_SCANNER_ANAT, "Scanner Anat" },
 		{ NIFTI_XFORM_ALIGNED_ANAT, "Aligned Anat" },
 		{ NIFTI_XFORM_TALAIRACH,    "Talairach" },
 		{ NIFTI_XFORM_MNI_152,      "MNI_152" }
 	};
-	static string unknown("Unknown transform code");
-	StringMap::const_iterator it = Transforms.find(code);
+	static const string unknown("Unknown transform code");
+	auto it = Transforms.find(code);
 	if (it == Transforms.end())
 		return unknown;
 	else
@@ -151,14 +142,12 @@ const string &Nifti::qformName() const { return TransformName(qform_code); }
 const string &Nifti::sformName() const { return TransformName(sform_code); }
 
 /*
- * Map for string representations of NIfTI slice_codes
+ * Returns the string representation of a NIfTI slice_code
  *
  *\sa NIFTI1_SLICE_ORDER group in nifti1.h
  */
-const string &Nifti::sliceName() const
-{
-	static const StringMap SliceOrders
-	{
+const string &Nifti::sliceName() const {
+	static const map<int, string> SliceOrders {
 		{ NIFTI_SLICE_SEQ_INC,  "sequential_increasing"    },
 		{ NIFTI_SLICE_SEQ_DEC,  "sequential_decreasing"    },
 		{ NIFTI_SLICE_ALT_INC,  "alternating_increasing"   },
@@ -166,8 +155,8 @@ const string &Nifti::sliceName() const
 		{ NIFTI_SLICE_ALT_INC2, "alternating_increasing_2" },
 		{ NIFTI_SLICE_ALT_DEC2, "alternating_decreasing_2" }
 	};
-	static string unknown("Unknown slice order code");
-	StringMap::const_iterator it = SliceOrders.find(slice_code);
+	static const string unknown("Unknown slice order code");
+	auto it = SliceOrders.find(slice_code);
 	if (it == SliceOrders.end())
 		return unknown;
 	else
@@ -296,12 +285,12 @@ void Nifti::SwapAnalyzeHeader(nifti_analyze75 * h)
 
 Nifti::~Nifti()
 {
-	if (m_mode != Modes::Closed)
+	if (m_mode != Mode::Closed)
 		close();
 }
 
 Nifti::Nifti() :
-	m_mode(Modes::Closed), m_gz(false), m_nii(false), m_swap(false), m_voxoffset(0),
+	m_mode(Mode::Closed), m_gz(false), m_nii(false), m_swap(false), m_voxoffset(0),
 	m_dim(Array<size_t, 7, 1>::Ones()), m_voxdim(Array<float, 7, 1>::Ones()),
 	m_basepath(""),
 	scaling_slope(1.), scaling_inter(0.), calibration_min(0.), calibration_max(0.),
@@ -333,10 +322,10 @@ Nifti::Nifti(const Nifti &other) :
 	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file),
 	qform_code(other.qform_code), sform_code(other.sform_code)
 {
-	if ((m_mode == Modes::Read) || (m_mode == Modes::ReadSkipExt)) {
+	if ((m_mode == Mode::Read) || (m_mode == Mode::ReadSkipExt)) {
 		m_file.open(imagePath(), "rb", m_gz);
 		m_file.seek(other.m_file.tell(), SEEK_SET);
-	} else if ((m_mode == Modes::Write) || (m_mode == Modes::WriteSkipExt)) {
+	} else if ((m_mode == Mode::Write) || (m_mode == Mode::WriteSkipExt)) {
 		m_file.open(imagePath(), "wb", m_gz);
 		m_file.seek(other.m_file.tell(), SEEK_SET);
 	}
@@ -369,10 +358,10 @@ Nifti::Nifti(Nifti &&other) noexcept :
 	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file),
 	qform_code(other.qform_code), sform_code(other.sform_code)
 {
-	other.m_mode = Modes::Closed;
+	other.m_mode = Mode::Closed;
 }
 
-Nifti::Nifti(const string &filename, const Modes &mode) :
+Nifti::Nifti(const string &filename, const Mode &mode) :
 	Nifti()
 {
 	open(filename, mode);
@@ -409,7 +398,7 @@ Nifti &Nifti::operator=(const Nifti &other)
 {
 	if (this == &other)
 		return *this;
-	else if (m_mode != Modes::Closed)
+	else if (m_mode != Mode::Closed)
 		close();
 	
 	m_dim = other.m_dim;
@@ -419,7 +408,7 @@ Nifti &Nifti::operator=(const Nifti &other)
 	m_basepath = other.m_basepath;
 	m_gz = other.m_gz;
 	m_nii = other.m_nii;
-	m_mode = Modes::Closed;
+	m_mode = Mode::Closed;
 	m_voxoffset = 0;
 	m_datatype = other.m_datatype;
 	scaling_slope = other.scaling_slope;
@@ -705,7 +694,7 @@ void Nifti::writeHeader() {
 	
 	// Check that m_voxoffset is sensible
 	m_voxoffset = 352;
-	if (m_nii && (m_mode != Modes::WriteSkipExt))
+	if (m_nii && (m_mode != Mode::WriteSkipExt))
 		m_voxoffset += totalExtensionSize();
 	nhdr.vox_offset = m_voxoffset ;
 	nhdr.xyzt_units = SPACE_TIME_TO_XYZT(xyz_units, time_units);
@@ -809,10 +798,10 @@ void Nifti::writeExtensions() {
   *           then will be the same). NULL on fail.
   */
 char *Nifti::readBytes(size_t start, size_t length, char *buffer) {
-	if (m_mode == Modes::Closed) {
+	if (m_mode == Mode::Closed) {
 		throw(std::logic_error("Cannot read from closed file: " + imagePath()));
 	}
-	if (m_mode == Modes::Write) {
+	if (m_mode == Mode::Write) {
 		throw(std::logic_error("Cannot read from a file opened for reading: " + imagePath()));
 	}
 	if (length == 0) {
@@ -841,10 +830,10 @@ char *Nifti::readBytes(size_t start, size_t length, char *buffer) {
   *   @param length Number of bytes to write
   */
 void Nifti::writeBytes(size_t start, size_t length, char *buffer) {
-	if (m_mode == Modes::Closed) {
+	if (m_mode == Mode::Closed) {
 		throw(std::logic_error("Cannot write to closed file: " + imagePath()));
 	}
-	if (m_mode == Modes::Read) {
+	if (m_mode == Mode::Read) {
 		throw(std::logic_error("Cannot write to file opened for writing: " + imagePath()));
 	}
 	if (length == 0) {
@@ -858,7 +847,7 @@ void Nifti::writeBytes(size_t start, size_t length, char *buffer) {
 	}
 }
 
-void Nifti::open(const string &path, const Modes &mode) {
+void Nifti::open(const string &path, const Mode &mode) {
 	size_t lastDot = path.find_last_of(".");
 	string ext;
 	if (path.substr(lastDot + 1) == "gz") {
@@ -879,38 +868,38 @@ void Nifti::open(const string &path, const Modes &mode) {
 		throw(std::invalid_argument("Invalid NIfTI extension for file: " + path));
 	}
 	
-	if (m_mode != Modes::Closed) {
+	if (m_mode != Mode::Closed) {
 		throw(std::logic_error("Attempted to open file: " + path +
 		           " when file: " + imagePath() + " is already open."));
 	} else {
-		if ((mode == Modes::Read) || (mode == Modes::ReadHeader) || (mode == Modes::ReadSkipExt)) {
+		if ((mode == Mode::Read) || (mode == Mode::ReadHeader) || (mode == Mode::ReadSkipExt)) {
 			if(!m_file.open(headerPath(), "rb", m_gz)) {
 				throw(std::runtime_error("Failed to open file: " + headerPath()));
 			}
 			readHeader();
-			if (mode != Modes::ReadSkipExt ) {
+			if (mode != Mode::ReadSkipExt ) {
 				readExtensions();
 			}
-		} else if (mode == Modes::Write) {
+		} else if (mode == Mode::Write) {
 			if(!m_file.open(headerPath(), "wb", m_gz)) {
 				throw(std::runtime_error("Failed to open file: " + headerPath()));
 			}
 			writeHeader();
-			if (mode == Modes::Write) {
+			if (mode == Mode::Write) {
 				writeExtensions();
 			}
 		} else {
 			throw(std::invalid_argument("Invalid opening mode for file: " + path));
 		}
 		
-		if (mode == Modes::ReadHeader) {
+		if (mode == Mode::ReadHeader) {
 			// Don't do anything in this case
 		} else {
 			if (!m_nii) {
 				// Need to close the header and open the image
 				m_file.close();
 				bool result;
-				if (mode == Modes::Read)
+				if (mode == Mode::Read)
 					result = m_file.open(imagePath(), "rb", m_gz);
 				else
 					result = m_file.open(imagePath(), "wb", m_gz);
@@ -930,19 +919,19 @@ void Nifti::open(const string &path, const Modes &mode) {
 }
 
 bool Nifti::isOpen() {
-	if (m_mode == Modes::Closed)
+	if (m_mode == Mode::Closed)
 		return false;
 	else
 		return true;
 }
 void Nifti::close()
 {
-	if (m_mode == Modes::Closed) {
+	if (m_mode == Mode::Closed) {
 		throw(std::logic_error("Cannot close already closed file: " + imagePath()));
-	} else if ((m_mode == Modes::Read) || (m_mode == Modes::ReadHeader)) {
+	} else if ((m_mode == Mode::Read) || (m_mode == Mode::ReadHeader)) {
 		m_file.close();
-		m_mode = Modes::Closed;
-	} else if (m_mode == Modes::Write) {
+		m_mode = Mode::Closed;
+	} else if (m_mode == Mode::Write) {
 		// If we've been writing subvolumes then we may not have written a complete file
 		// Write a single zero-byte at the end to persuade the OS to write a file of the
 		// correct size.
@@ -956,7 +945,7 @@ void Nifti::close()
 		}
 		m_file.flush();
 		m_file.close();
-		m_mode = Modes::Closed;
+		m_mode = Mode::Closed;
 	}
 }
 
@@ -974,7 +963,7 @@ size_t Nifti::dim(const size_t d) const {
 	return m_dim[d - 1];
 }
 void Nifti::setDim(const size_t d, const size_t n) {
-	if (m_mode == Modes::Closed) {
+	if (m_mode == Mode::Closed) {
 		assert((d > 0) && (d < 8));
 		m_dim[d - 1] = n;
 	} else {
@@ -983,7 +972,7 @@ void Nifti::setDim(const size_t d, const size_t n) {
 }
 const ArrayXs Nifti::dims() const { return m_dim.head(dimensions()); }
 void Nifti::setDims(const ArrayXs &n) {
-	if (m_mode == Modes::Closed) {
+	if (m_mode == Mode::Closed) {
 		assert(n.rows() <= m_voxdim.rows());
 		m_dim.head(n.rows()) = n;
 	} else {
@@ -1000,7 +989,7 @@ float Nifti::voxDim(const size_t d) const {
 	return m_voxdim[d - 1];
 }
 void Nifti::setVoxDim(const size_t d, const float f) {
-	if (m_mode == Modes::Closed) {
+	if (m_mode == Mode::Closed) {
 		assert((d > 0) && (d <= m_voxdim.rows()));
 		m_voxdim[d] = f;
 	} else
@@ -1008,7 +997,7 @@ void Nifti::setVoxDim(const size_t d, const float f) {
 }
 const ArrayXf Nifti::voxDims() const { return m_voxdim; }
 void Nifti::setVoxDims(const ArrayXf &n) {
-	if (m_mode == Modes::Closed) {
+	if (m_mode == Mode::Closed) {
 		assert(n.rows() <= m_voxdim.rows());
 		m_voxdim.head(n.rows()) = n;
 	} else
@@ -1018,13 +1007,12 @@ void Nifti::setVoxDims(const ArrayXf &n) {
 const int &Nifti::datatype() const { return m_datatype.code; }
 const string &Nifti::dtypeName() const { return m_datatype.name; }
 const int &Nifti::bytesPerVoxel() const { return m_datatype.size; }
-void Nifti::setDatatype(const int dt)
-{
-	if (m_mode != Modes::Closed) {
+void Nifti::setDatatype(const int dt) {
+	if (m_mode != Mode::Closed) {
 		throw(std::logic_error("Cannot set the datatype of open file: " + imagePath()));
 		return;
 	}
-    DTMap::const_iterator it = DataTypes().find(dt);
+    auto it = DataTypes().find(dt);
 	if (it == DataTypes().end())
 		throw(std::invalid_argument("Attempted to set invalid datatype for file: " + imagePath()));
 	else

@@ -42,24 +42,6 @@ using Eigen::Quaternionf;
 
 typedef Array<size_t, Eigen::Dynamic, 1> ArrayXs;
 
-#pragma mark Enums, structs and typedefs
-struct DataType {
-	int code, size, swapsize;
-	string name;
-};
-typedef map<int, DataType> DTMap;
-static void printDTypeList();
-typedef map<int, string> StringMap;
-
-#pragma mark NIfTI File Class
-class Nifti {
-	public: 
-		/*
-		 *  Used when opening to specify read or write.
-		 */
-		enum class Modes : char {
-			Closed = 0, Read = 'r', ReadHeader = 'h', ReadSkipExt = 's', Write = 'w', WriteSkipExt = 'x'
-		};
 #pragma mark Extension Codes
 /* NIfTI-1.1 extension codes: see http://nifti.nimh.nih.gov/nifti-1/documentation/faq#Q21 */
 
@@ -83,7 +65,22 @@ class Nifti {
 #define NIFTI_MAX_ECODE             30  /******* maximum extension code *******/
 #define LNI_MAX_NIA_EXT_LEN 100000  /* consider a longer extension invalid */
 
-		#pragma mark Extension Class
+#pragma mark NIfTI File Class
+class Nifti {
+	public:
+		enum class Mode : char; //!< Used when opening to specify read or write. Definition in Nifti-inl.h
+		
+		struct DataType {
+			int code, size, swapsize;
+			string name;
+		}; //!< Contains all the information needed to read/write a Nifti datatype
+		
+		/*
+		 *  Nifti Extension Class.
+		 *
+		 *  Provides a minimal way to read and write Nifti extensions as
+		 *  vectors of bytes.
+		 */
 		class Extension {
 			private:
 				int m_code;          //!< Extension code, one of the NIFTI_ECODE_ values
@@ -104,10 +101,9 @@ class Nifti {
 				const vector<char> &data() const;
 				void setData(const vector<char> &data);
 		};
-		
 
 	private:		
-		static const DTMap &DataTypes();
+		static const map<int, DataType> &DataTypes();
 		
 		Array<size_t, 7, 1> m_dim;   //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
 		Array<float, 7, 1> m_voxdim; //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
@@ -115,7 +111,7 @@ class Nifti {
 		
 		string m_basepath;            //!< Path to file without extension.
 		bool m_nii, m_gz;
-		Modes m_mode;                 //!< Whether the file is closed or open for reading/writing.
+		Mode m_mode;                 //!< Whether the file is closed or open for reading/writing.
 		ZipFile m_file;
 		DataType m_datatype;          //!< Datatype on disk.
 		int m_voxoffset;              //!< Offset to start of voxel data.
@@ -157,9 +153,9 @@ class Nifti {
 		Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
 			  const int datatype = NIFTI_TYPE_FLOAT32, const Affine3f &transform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
 		Nifti(const Nifti &other, const size_t nt, const int datatype = NIFTI_TYPE_FLOAT32);               //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
-		Nifti(const string &filename, const Modes &mode);
+		Nifti(const string &filename, const Mode &mode);
 		
-		void open(const string &filename, const Modes &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
+		void open(const string &filename, const Mode &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
 		void close();                                         //!< Closes the file
 		bool isOpen();                                        //!< Returns true if file is currently open for reading or writing.
 		
