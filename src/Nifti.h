@@ -7,11 +7,8 @@
 #ifndef NIFTI_IMAGE
 #define NIFTI_IMAGE
 
-#include <zlib.h>
-
 #include <string>
 #include <iostream>
-#include <cstdio>
 #include <algorithm>
 #include <complex>
 #include <vector>
@@ -24,6 +21,7 @@
 
 #include "nifti1.h" // NIFTI-1 header specification
 #include "nifti_analyze.h" // NIFTI version of the ANALYZE 7.5 header
+#include "ZipFile.h"
 #include "Extension.h"
 
 using namespace std;
@@ -56,28 +54,6 @@ enum class Modes : char
 	ReadSkipExt = 's',
 	Write = 'w',
 	WriteSkipExt = 'x'
-};
-
-
-
-#pragma mark ZipFile
-/*! Utility class that wraps unzipped and zipped files into one object */
-// zlib 1.2.5 and above support a "Transparent" mode that would remove the need for this,
-// but Mac OS is stuck on 1.2.1
-class ZipFile {
-	private:
-		FILE *m_plainFile;
-		gzFile m_gzipFile;
-		
-	public:
-		ZipFile();
-		bool open(const string &path, const string &mode, const bool zip);
-		void close();
-		size_t read(void *buff, unsigned size);   //!< Attempts to reads size bytes from the image file to buff. Returns actual number read.
-		size_t write(const void *buff, int size); //!< Attempts to write size bytes from buff to the image file. Returns actual number written.
-		bool seek(long offset, int whence);       //!< Seeks to the specified position in the file. Returns true if successful.
-		long tell() const;                        //!< Returns the current position in the file
-		void flush();                             //!< Flushes unwritten buffer contents
 };
 
 #pragma mark NIfTI File Class

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		F60A233B17E9C51D00CACC28 /* Extension.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F60A233917E9C51D00CACC28 /* Extension.cpp */; };
+		F60A233E17E9C87F00CACC28 /* ZipFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F60A233C17E9C87F00CACC28 /* ZipFile.cpp */; };
 		F67F75911792191A00A278B6 /* Nifti.h in Headers */ = {isa = PBXBuildFile; fileRef = F6C4AF17160B156C00254B6C /* Nifti.h */; settings = {ATTRIBUTES = (); }; };
 		F67FA0C317CEA8E300B4FA63 /* nifti1.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E9DAAC16022D06005D73E3 /* nifti1.h */; settings = {ATTRIBUTES = (); }; };
 		F67FA0C717CEAAAC00B4FA63 /* nifti_analyze.h in Headers */ = {isa = PBXBuildFile; fileRef = F6B0AB6B178CB9510098443E /* nifti_analyze.h */; settings = {ATTRIBUTES = (); }; };
@@ -33,6 +34,8 @@
 /* Begin PBXFileReference section */
 		F60A233917E9C51D00CACC28 /* Extension.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Extension.cpp; path = src/Extension.cpp; sourceTree = "<group>"; };
 		F60A233A17E9C51D00CACC28 /* Extension.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Extension.h; path = src/Extension.h; sourceTree = "<group>"; };
+		F60A233C17E9C87F00CACC28 /* ZipFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZipFile.cpp; path = src/ZipFile.cpp; sourceTree = "<group>"; };
+		F60A233D17E9C87F00CACC28 /* ZipFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZipFile.h; path = src/ZipFile.h; sourceTree = "<group>"; };
 		F64D55DB178B0C3B005BF1A8 /* nifti_hdr.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = nifti_hdr.cpp; path = src/nifti_hdr.cpp; sourceTree = "<group>"; };
 		F6980B2717E1D10200F7DBD3 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/lib/libz.dylib; sourceTree = DEVELOPER_DIR; };
 		F6B0AB6B178CB9510098443E /* nifti_analyze.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = nifti_analyze.h; path = src/nifti_analyze.h; sourceTree = "<group>"; };
@@ -84,6 +87,8 @@
 				F6B0AB6B178CB9510098443E /* nifti_analyze.h */,
 				F60A233917E9C51D00CACC28 /* Extension.cpp */,
 				F60A233A17E9C51D00CACC28 /* Extension.h */,
+				F60A233C17E9C87F00CACC28 /* ZipFile.cpp */,
+				F60A233D17E9C87F00CACC28 /* ZipFile.h */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -172,6 +177,7 @@
 			files = (
 				F6BADCE6178B75DD00DCD475 /* nifti_hdr.cpp in Sources */,
 				F60A233B17E9C51D00CACC28 /* Extension.cpp in Sources */,
+				F60A233E17E9C87F00CACC28 /* ZipFile.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
