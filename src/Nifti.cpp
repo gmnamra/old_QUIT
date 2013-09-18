@@ -450,10 +450,7 @@ File &File::operator=(const File &other)
 	return *this;
 }
 
-const string File::basePath() const {
-	return m_basepath;
-}
-
+const string File::basePath() const { return m_basepath; }
 const string File::imagePath() const {
 	string path(m_basepath);
 	if (m_nii) {
@@ -466,7 +463,6 @@ const string File::imagePath() const {
 	
 	return path;
 }
-
 const string File::headerPath() const {
 	string path(m_basepath);
 	if (m_nii) {
@@ -910,7 +906,7 @@ void File::open(const string &path, const Modes &mode) {
 		}
 		
 		if (mode == Modes::ReadHeader) {
-			close();
+			// Don't do anything in this case
 		} else {
 			if (!m_nii) {
 				// Need to close the header and open the image
@@ -927,11 +923,11 @@ void File::open(const string &path, const Modes &mode) {
 			if (!m_file.seek(m_voxoffset, SEEK_SET)) {
 				throw(runtime_error("Could not seek to voxel offset in file: " + imagePath()));
 			}
+			// Only set the mode here when we have successfully opened the file and
+			// not thrown any errors. Throwing an error triggers the destructor and
+			// we don't want to be in the wrong state there.
+			m_mode = mode;
 		}
-		// Only set the mode here when we have successfully opened the file and
-		// not thrown any errors. Throwing an error triggers the destructor and
-		// we don't want to be in the wrong state there.
-		m_mode = mode;
 	}
 }
 
