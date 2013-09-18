@@ -44,7 +44,8 @@ Options:\n\
  -e, --echo N:  Choose echo N in a multiple echo file. Valid values for N are:\n\
                 0..max echo   Write out just this echo\n\
 				-1 (default)  Write out all echoes as individual images.\n\
-				-2            Average echoes\n\
+				-2            Sum echoes\n\
+				-3            Average echoes\n\
 				If an echo is chosen beyond the maximum nothing is written.\n\
  -p, --procpar: Embed procpar in the nifti header.\n\
  -v, --verbose: Print out extra info (e.g. after each volume is written).\n"
@@ -58,7 +59,12 @@ int main(int argc, char **argv) {
 			case 's': scale = atof(optarg); break;
 			case 'o': outPrefix = string(optarg); break;
 			case 'z': zip = true; break;
-			case 'e': echoMode = atoi(optarg); break;
+			case 'e':
+				echoMode = atoi(optarg);
+				if (echoMode < -3) {
+					throw (invalid_argument("Invalid echo mode: " + to_string(echoMode)));
+				}
+				break;
 			case 'p': procpar = true; break;
 			case 'v': verbose = true; break;
 			default: cout << "Unknown option " << optarg << endl;
@@ -115,11 +121,14 @@ int main(int argc, char **argv) {
 						for (size_t e = 0; e < input.dim(4); e++) {
 							output.writeVolume<float>(outVol++, input.readVolume<float>(inVol, e));
 						}
-					} else if (echoMode == -2) {
+					} else {
 						vector<float> sum = input.readVolume<float>(inVol, 0);
 						for (size_t e = 1; e < input.dim(4); e++) {
 							vector<float> data = input.readVolume<float>(inVol, e);
 							transform(sum.begin(), sum.end(), data.begin(), sum.begin(), plus<float>());
+						}
+						if (echoMode == -3) {
+							transform(sum.begin(), sum.end(), sum.begin(), [&](float &f) { return f / input.dim(4); });
 						}
 						output.writeVolume<float>(outVol++, sum);
 					}

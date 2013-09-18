@@ -726,6 +726,7 @@
 				F62275C317E2208200523AC0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F6CF0ADD17CFEFBC000B56BA /* Build configuration list for PBXNativeTarget "fdf2nii" */ = {
 			isa = XCConfigurationList;
