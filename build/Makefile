@@ -6,7 +6,8 @@
 ###################################################
 
 # Set up Paths
-SRC_DIR = ../src
+SRC_DIR = ../src/Nifti
+INC_DIR = ../src
 OBJ_DIR := obj
 INSTALL_DIR := ~/Code
 INSTALL_BIN = $(INSTALL_DIR)/bin
@@ -24,7 +25,7 @@ CXX = LD_RUN_PATH=$(LIBCPP) /software/system/gcc/gcc-4.8.0/bin/gcc
 CXX_FLAGS = -std=c++11 -lstdc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors $(DEBUG)
 AR = LD_RUN_PATH=$(LIBCPP) ar rcs
 LD_FLAGS = -std=c++11 -lstdc++ -O3 -pthread -L$(OBJ_DIR) -L.
-INCLUDE = -I$(SRC_DIR) -I$(EIGEN)
+INCLUDE = -I$(INC_DIR) -I$(EIGEN)
 
 # Source files for libNifti
 
@@ -51,7 +52,8 @@ TARGETS = libNifti.a nifti_hdr
 all     : $(TARGETS)
 
 install : | $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB)
-	cp $(NIFTI_HDR) $(INSTALL_INC)/
+	mkdir $(INSTALL_INC)/Nifti
+	cp $(NIFTI_HDR) $(INSTALL_INC)/Nifti/
 	cp libNifti.a $(INSTALL_LIB)/
 	cp nifti_hdr $(INSTALL_BIN)/
 
