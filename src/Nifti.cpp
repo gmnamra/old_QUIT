@@ -653,11 +653,11 @@ void File::addExtension(const int code, const vector<char> &data) {
 	m_extensions.emplace_back(code, data);
 }
 
-void File::addExtension(const Extension &e) {
+void File::addExtension(const File::Extension &e) {
 	m_extensions.push_back(e);
 }
 
-const list<Extension> &File::extensions() const {
+const list<File::Extension> &File::extensions() const {
 	return m_extensions;
 }
 
