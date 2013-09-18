@@ -7,6 +7,7 @@
 //
 
 #include "Nifti/Nifti.h"
+#include "Nifti/ExtensionCodes.h"
 
 //*********************************
 #pragma mark Methods for Extension
