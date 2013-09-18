@@ -24,7 +24,7 @@ Abbreviated, full and compare modes are mutually exclusive.\n\
 Options:\n\
 	-d, --dims :  Print the size of each dimension for each file.\n\
 	-v, --vox :   Print the voxel sizes for each file (with units). \n\
-	-t, --trans : Print the transform to physical space with precedence.\n\
+	-t, --trans : Print the XForm to physical space with precedence.\n\
 	-a, --abbrev: Print the abbreviated header.\n\
 	-f, --full:   Print the entire header.\n\
 	-c, --comp:   Compare first file to all others and print message if the.\n\
@@ -76,7 +76,7 @@ string sizeMessage(const Nifti &im) {
 
 string dataMessage(const Nifti &im) {
 	stringstream m;
-	m << "Datatype: " << im.dtypeName() << ", size in bytes: " << im.bytesPerVoxel();
+	m << "Datatype: " << Nifti::TypeInfo(im.datatype()).name << ", size in bytes: " << Nifti::TypeInfo(im.datatype()).size;
 	return m.str();
 }
 
@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
 			cout << "Short Nifti Header for file: " << im.imagePath() << endl;
 			cout << "Dimensions:  " << im.dims().transpose() << endl;
 			cout << voxMessage(im) << endl;
-			cout << "Transform matrix: " << endl << im.transform().matrix() << endl;
+			cout << "XForm matrix: " << endl << im.transform().matrix() << endl;
 			cout << "Number of extensions: " << im.extensions().size() << endl;
 		} else if (mode == Full) {
 			cout << "Full Nifti Header for file: " << im.imagePath() << endl;
@@ -150,9 +150,9 @@ int main(int argc, char **argv) {
 			cout << "Intent params: " << im.intent_p1 << ", " << im.intent_p2 << ", " << im.intent_p3 << endl;
 			cout << "Description: " << im.description << endl;
 			cout << "Aux File:    " << im.aux_file << endl;
-			cout << "QForm: " << im.qformName() << endl;
+			cout << "QForm: " << Nifti::XFormName(im.qcode()) << endl;
 			cout << im.qform().matrix() << endl;
-			cout << "SForm: " << im.sformName() << endl;
+			cout << "SForm: " << Nifti::XFormName(im.scode()) << endl;
 			cout << im.sform().matrix() << endl;
 			cout << "Extensions: " << endl;
 			for (auto &e : im.extensions()) {

@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		F60A233B17E9C51D00CACC28 /* Extension.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F60A233917E9C51D00CACC28 /* Extension.cpp */; };
 		F60A233E17E9C87F00CACC28 /* ZipFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F60A233C17E9C87F00CACC28 /* ZipFile.cpp */; };
-		F60A234117EA019600CACC28 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = F60A234017EA019600CACC28 /* Makefile */; };
 		F67F75911792191A00A278B6 /* Nifti.h in Headers */ = {isa = PBXBuildFile; fileRef = F6C4AF17160B156C00254B6C /* Nifti.h */; settings = {ATTRIBUTES = (); }; };
 		F67FA0C317CEA8E300B4FA63 /* nifti1.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E9DAAC16022D06005D73E3 /* nifti1.h */; settings = {ATTRIBUTES = (); }; };
 		F67FA0C717CEAAAC00B4FA63 /* nifti_analyze.h in Headers */ = {isa = PBXBuildFile; fileRef = F6B0AB6B178CB9510098443E /* nifti_analyze.h */; settings = {ATTRIBUTES = (); }; };
@@ -181,7 +180,6 @@
 				F6BADCE6178B75DD00DCD475 /* nifti_hdr.cpp in Sources */,
 				F60A233B17E9C51D00CACC28 /* Extension.cpp in Sources */,
 				F60A233E17E9C87F00CACC28 /* ZipFile.cpp in Sources */,
-				F60A234117EA019600CACC28 /* Makefile in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -241,7 +239,6 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
@@ -266,7 +263,6 @@
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;

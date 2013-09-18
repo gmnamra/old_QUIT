@@ -36,8 +36,6 @@ using Eigen::Scaling;
 using Eigen::Translation3f;
 using Eigen::Quaternionf;
 
-#include "nifti1.h" // NIFTI-1 header specification
-#include "nifti_analyze.h" // NIFTI version of the ANALYZE 7.5 header
 #include "ZipFile.h"
 
 typedef Array<size_t, Eigen::Dynamic, 1> ArrayXs;
@@ -68,10 +66,26 @@ typedef Array<size_t, Eigen::Dynamic, 1> ArrayXs;
 #pragma mark NIfTI File Class
 class Nifti {
 	public:
-		enum class Mode : char; //!< Used when opening to specify read or write. Definition in Nifti-inl.h
+		enum class Mode : char {
+			Closed = 0, Read = 'r', ReadHeader = 'h', ReadSkipExt = 's', Write = 'w', WriteSkipExt = 'x'
+		};
+
+		enum class DataType {
+			UINT8, INT16, INT32, FLOAT32, COMPLEX64, FLOAT64, RGB24,
+			INT8, UINT16, UINT32, INT64, UINT64, FLOAT128, COMPLEX128, COMPLEX256, RGBA32
+		};
+
+		enum class XForm {
+			Unknown, ScannerAnatomy, AlignedAnatomy, Talairach, MNI_152
+		};
 		
-		struct DataType {
-			int code, size, swapsize;
+		static const XForm XFormForCode(const int code);
+		static const int XFormCode(const XForm t);
+		static const string XFormName(const XForm t);
+		
+		struct DataTypeInfo {
+			DataType type;
+			size_t code, size, swapsize;
 			string name;
 		}; //!< Contains all the information needed to read/write a Nifti datatype
 		
@@ -102,30 +116,23 @@ class Nifti {
 				void setData(const vector<char> &data);
 		};
 
-	private:		
-		static const map<int, DataType> &DataTypes();
+	private:
+		static const DataType DataTypeForCode(const int code);
 		
-		Array<size_t, 7, 1> m_dim;   //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
-		Array<float, 7, 1> m_voxdim; //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
-		Affine3f m_qform, m_sform;   //!< Tranformation matrices from voxel indices to physical co-ords.
-		
-		string m_basepath;            //!< Path to file without extension.
+		Array<size_t, 7, 1> m_dim;      //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
+		Array<float, 7, 1> m_voxdim;    //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
+		Affine3f m_qform, m_sform;      //!< Tranformation matrices from voxel indices to physical co-ords.
+		XForm m_qcode, m_scode; //!< Codes to define what the transformations represent.
+		string m_basepath;              //!< Path to file without extension.
 		bool m_nii, m_gz;
-		Mode m_mode;                 //!< Whether the file is closed or open for reading/writing.
+		Mode m_mode;                    //!< Whether the file is closed or open for reading/writing.
 		ZipFile m_file;
-		DataType m_datatype;          //!< Datatype on disk.
-		int m_voxoffset;              //!< Offset to start of voxel data.
-		int m_swap;                   //!< True if byte order on disk is different to CPU.
+		DataType m_datatype;            //!< Datatype on disk.
+		int m_voxoffset;                //!< Offset to start of voxel data.
+		int m_swap;                     //!< True if byte order on disk is different to CPU.
 		
 		list<Extension> m_extensions;
-		
-		static int needs_swap(short dim0, int hdrsize); //!< Check if file endianism matches host endianism.
-		static float fixFloat(const float f); //!< Converts invalid floats to 0 to ensure a marginally sane header
-		
-		static void SwapBytes(size_t n, int siz, void *ar);
-		static void SwapNiftiHeader(struct nifti_1_header *h);
-		static void SwapAnalyzeHeader(nifti_analyze75 *h);
-		
+				
 		void readHeader();      //!< Attempts to read a header structure from the currently open file.
 		void readExtensions();  //!< Attempts to read any extensions
 		void writeHeader();     //!< Attempts to write a header structure to the currently open file.
@@ -149,10 +156,10 @@ class Nifti {
 		
 		Nifti(const int nx, const int ny, const int nz, const int nt,
 			  const float dx, const float dy, const float dz, const float dt,
-			  const int datatype = NIFTI_TYPE_FLOAT32, const Affine3f &transform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
+			  const DataType dtype = DataType::FLOAT32, const Affine3f &xform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
 		Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
-			  const int datatype = NIFTI_TYPE_FLOAT32, const Affine3f &transform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
-		Nifti(const Nifti &other, const size_t nt, const int datatype = NIFTI_TYPE_FLOAT32);               //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
+			  const DataType dtype = DataType::FLOAT32, const Affine3f &xform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
+		Nifti(const Nifti &other, const size_t nt, const DataType dtype = DataType::FLOAT32);               //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
 		Nifti(const string &filename, const Mode &mode);
 		
 		void open(const string &filename, const Mode &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
@@ -179,23 +186,23 @@ class Nifti {
 		const ArrayXf voxDims() const;                          //!< Get all voxel sizes.
 		void setVoxDims(const ArrayXf &newVoxDims);             //!< Set all voxel sizes.
 		
-		const int &datatype() const;
-		const string &dtypeName() const;
-		const int &bytesPerVoxel() const;
-		void setDatatype(const int dt);
+		static const DataTypeInfo &TypeInfo(const DataType dt);
+		const DataType &datatype() const;
+		void setDatatype(const DataType dt);
 		
 		float scaling_slope;
 		float scaling_inter;
 		float calibration_min;
 		float calibration_max;
 		
-		void setTransform(const Affine3f &t, const int transform_code = NIFTI_XFORM_SCANNER_ANAT); //!< Set the qform and sform from a 4x4 general matrix. The qform will be set to closest matching linear transform, the sform will be an exact copy.
-		const Affine3f &transform() const;           //!< Return the transform with the highest priority.
-		const Affine3f &qform() const;               //!< Return just the qform.
-		const Affine3f &sform() const;               //!< Return just the sform.
-		int qform_code;
-		int sform_code;
-		bool matchesSpace(const Nifti &other) const;  //!< Check if voxel dimensions, data size and transform match
+		void setTransform(const Affine3f &t, const XForm tc = XForm::ScannerAnatomy); //!< Set the qform and sform from a 4x4 general matrix. The qform will be set to closest matching linear XForm, the sform will be an exact copy.
+		const Affine3f &transform() const;            //!< Return the XForm with the highest priority.
+		const Affine3f &qform() const;                //!< Return just the qform.
+		const Affine3f &sform() const;                //!< Return just the sform.
+		const XForm qcode() const;               //!< Find out what transformation the qform represents.
+		const XForm scode() const;               //!< Find out what transformation the sform represents.
+		
+		bool matchesSpace(const Nifti &other) const;  //!< Check if voxel dimensions, data size and XForm match
 		bool matchesVoxels(const Nifti &other) const; //!< Looser check if voxel dimensions and data size match
 		
 		int freq_dim ;                //!< Index of the frequency encode direction (1-3)
@@ -218,9 +225,6 @@ class Nifti {
 		string description;           //!< optional text to describe dataset
 		string aux_file;              //!< auxiliary filename
 		
-		static const string &TransformName(const int code);
-		const string &qformName() const;
-		const string &sformName() const;
 		const string &spaceUnits() const;
 		const string &timeUnits() const;
 		const string &intentName() const;

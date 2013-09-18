@@ -1,4 +1,167 @@
 #include "Nifti/Nifti.h"
+#include "nifti1.h" // NIFTI-1 header specification
+#include "nifti_analyze.h" // NIFTI version of the ANALYZE 7.5 header
+
+static int needs_swap(short dim0, int hdrsize); //!< Check if file endianism matches host endianism.
+static float fixFloat(const float f); //!< Converts invalid floats to 0 to ensure a marginally sane header
+inline float fixFloat(const float f) {
+	if (isfinite(f))
+		return f;
+	else
+		return 0.;
+}
+
+static void SwapBytes(size_t n, int siz, void *ar);
+static void SwapNiftiHeader(struct nifti_1_header *h);
+static void SwapAnalyzeHeader(nifti_analyze75 *h);
+
+
+/*! Swap size bytes at a time from the given array of n sets of bytes
+ *
+ *  Declared void * so that the fields from the headers can be passed through
+ *  without casting.
+ */
+void SwapBytes(size_t n, int size, void *bytes)
+{
+	size_t i;
+	char *cp0 = (char *)bytes, *cp1, *cp2;
+	char swap;
+	
+	for(i=0; i < n; i++) {
+		cp1 = cp0;
+		cp2 = cp0 + (size-1);
+		while (cp2 > cp1) {
+			swap = *cp1; *cp1 = *cp2; *cp2 = swap;
+			cp1++; cp2--;
+		}
+		cp0 += size;
+	}
+}
+
+/*
+ *  Byte swap the individual fields of a NIFTI-1 header struct.
+ */
+void SwapNiftiHeader(struct nifti_1_header *h)
+{
+	SwapBytes(1, 4, &h->sizeof_hdr);
+	SwapBytes(1, 4, &h->extents);
+	SwapBytes(1, 2, &h->session_error);
+	
+	SwapBytes(8, 2, h->dim);
+	SwapBytes(1, 4, &h->intent_p1);
+	SwapBytes(1, 4, &h->intent_p2);
+	SwapBytes(1, 4, &h->intent_p3);
+	
+	SwapBytes(1, 2, &h->intent_code);
+	SwapBytes(1, 2, &h->datatype);
+	SwapBytes(1, 2, &h->bitpix);
+	SwapBytes(1, 2, &h->slice_start);
+	
+	SwapBytes(8, 4, h->pixdim);
+	
+	SwapBytes(1, 4, &h->vox_offset);
+	SwapBytes(1, 4, &h->scl_slope);
+	SwapBytes(1, 4, &h->scl_inter);
+	SwapBytes(1, 2, &h->slice_end);
+	
+	SwapBytes(1, 4, &h->cal_max);
+	SwapBytes(1, 4, &h->cal_min);
+	SwapBytes(1, 4, &h->slice_duration);
+	SwapBytes(1, 4, &h->toffset);
+	SwapBytes(1, 4, &h->glmax);
+	SwapBytes(1, 4, &h->glmin);
+	
+	SwapBytes(1, 2, &h->qform_code);
+	SwapBytes(1, 2, &h->sform_code);
+	
+	SwapBytes(1, 4, &h->quatern_b);
+	SwapBytes(1, 4, &h->quatern_c);
+	SwapBytes(1, 4, &h->quatern_d);
+	SwapBytes(1, 4, &h->qoffset_x);
+	SwapBytes(1, 4, &h->qoffset_y);
+	SwapBytes(1, 4, &h->qoffset_z);
+	
+	SwapBytes(4, 4, h->srow_x);
+	SwapBytes(4, 4, h->srow_y);
+	SwapBytes(4, 4, h->srow_z);
+	
+	return ;
+}
+
+/*
+ *! Byte swap as an ANALYZE 7.5 header
+ */
+void SwapAnalyzeHeader(nifti_analyze75 * h)
+{
+	SwapBytes(1, 4, &h->sizeof_hdr);
+	SwapBytes(1, 4, &h->extents);
+	SwapBytes(1, 2, &h->session_error);
+	
+	SwapBytes(8, 2, h->dim);
+	SwapBytes(1, 2, &h->unused8);
+	SwapBytes(1, 2, &h->unused9);
+	SwapBytes(1, 2, &h->unused10);
+	SwapBytes(1, 2, &h->unused11);
+	SwapBytes(1, 2, &h->unused12);
+	SwapBytes(1, 2, &h->unused13);
+	SwapBytes(1, 2, &h->unused14);
+	
+	SwapBytes(1, 2, &h->datatype);
+	SwapBytes(1, 2, &h->bitpix);
+	SwapBytes(1, 2, &h->dim_un0);
+	
+	SwapBytes(8, 4, h->pixdim);
+	
+	SwapBytes(1, 4, &h->vox_offset);
+	SwapBytes(1, 4, &h->funused1);
+	SwapBytes(1, 4, &h->funused2);
+	SwapBytes(1, 4, &h->funused3);
+	
+	SwapBytes(1, 4, &h->cal_max);
+	SwapBytes(1, 4, &h->cal_min);
+	SwapBytes(1, 4, &h->compressed);
+	SwapBytes(1, 4, &h->verified);
+	
+	SwapBytes(1, 4, &h->glmax);
+	SwapBytes(1, 4, &h->glmin);
+	
+	SwapBytes(1, 4, &h->views);
+	SwapBytes(1, 4, &h->vols_added);
+	SwapBytes(1, 4, &h->start_field);
+	SwapBytes(1, 4, &h->field_skip);
+	
+	SwapBytes(1, 4, &h->omax);
+	SwapBytes(1, 4, &h->omin);
+	SwapBytes(1, 4, &h->smax);
+	SwapBytes(1, 4, &h->smin);
+}
+
+const Nifti::DataType Nifti::DataTypeForCode(const int code) {
+	static const map<int, DataType> c2dt{
+		{NIFTI_TYPE_UINT8, DataType::UINT8},
+		{NIFTI_TYPE_UINT16, DataType::UINT16},
+		{NIFTI_TYPE_UINT32, DataType::UINT32},
+		{NIFTI_TYPE_UINT64, DataType::UINT64},
+		{NIFTI_TYPE_INT8, DataType::INT8},
+		{NIFTI_TYPE_INT16, DataType::INT16},
+		{NIFTI_TYPE_INT32, DataType::INT32},
+		{NIFTI_TYPE_INT64, DataType::INT64},
+		{NIFTI_TYPE_FLOAT32, DataType::FLOAT32},
+		{NIFTI_TYPE_FLOAT64, DataType::FLOAT64},
+		{NIFTI_TYPE_FLOAT128, DataType::FLOAT128},
+		{NIFTI_TYPE_COMPLEX64, DataType::COMPLEX64},
+		{NIFTI_TYPE_COMPLEX128, DataType::COMPLEX128},
+		{NIFTI_TYPE_COMPLEX256, DataType::COMPLEX256},
+		{NIFTI_TYPE_RGB24, DataType::RGB24},
+		{NIFTI_TYPE_RGBA32, DataType::RGBA32},
+	};
+	auto dt = c2dt.find(code);
+	if (dt != c2dt.end())
+		return dt->second;
+	else
+		throw(std::invalid_argument("Unsupported data format code: " + to_string(code)));
+}
+	
 
 /*	Internal map of datatype properties
  *
@@ -7,26 +170,30 @@
  *  ~Nifti. It's possible for C++ to destruct static members even when
  *  objects still exist in another translation unit.
  */
-const map<int, Nifti::DataType> &Nifti::DataTypes() {
-	static const map<int, DataType> DT{
-		{NIFTI_TYPE_UINT8,    {NIFTI_TYPE_UINT8, 1, 0, "NIFTI_TYPE_UINT8"} },
-		{NIFTI_TYPE_INT16,    {NIFTI_TYPE_INT16, 2, 2, "NIFTI_TYPE_INT16"} },
-		{NIFTI_TYPE_INT32,    {NIFTI_TYPE_INT32, 4, 4, "NIFTI_TYPE_INT32"} },
-		{NIFTI_TYPE_FLOAT32,   {NIFTI_TYPE_FLOAT32, 4, 4, "NIFTI_TYPE_FLOAT32"} },
-		{NIFTI_TYPE_COMPLEX64,   {NIFTI_TYPE_COMPLEX64, 8, 4, "NIFTI_TYPE_COMPLEX64"} },
-		{NIFTI_TYPE_FLOAT64,   {NIFTI_TYPE_FLOAT64, 8, 8, "NIFTI_TYPE_FLOAT64"} },
-		{NIFTI_TYPE_RGB24,  {NIFTI_TYPE_RGB24, 3, 0, "NIFTI_TYPE_RGB24"} },
-		{NIFTI_TYPE_INT8,  {NIFTI_TYPE_INT8, 1, 0, "NIFTI_TYPE_INT8"} },
-		{NIFTI_TYPE_UINT16,  {NIFTI_TYPE_UINT16, 2, 2, "NIFTI_TYPE_UINT16"} },
-		{NIFTI_TYPE_UINT32,  {NIFTI_TYPE_UINT32, 4, 4, "NIFTI_TYPE_UINT32"} },
-		{NIFTI_TYPE_INT64, {NIFTI_TYPE_INT64, 8, 8, "NIFTI_TYPE_INT64"} },
-		{NIFTI_TYPE_UINT64, {NIFTI_TYPE_UINT64, 8, 8, "NIFTI_TYPE_UINT64"} },
-		{NIFTI_TYPE_FLOAT128, {NIFTI_TYPE_FLOAT128, 16, 16, "NIFTI_TYPE_FLOAT128"} },
-		{NIFTI_TYPE_COMPLEX128, {NIFTI_TYPE_COMPLEX128, 16,  8, "NIFTI_TYPE_COMPLEX128"} },
-		{NIFTI_TYPE_COMPLEX256, {NIFTI_TYPE_COMPLEX256, 32, 16, "NIFTI_TYPE_COMPLEX256"} },
-		{NIFTI_TYPE_RGBA32, {NIFTI_TYPE_RGBA32, 4,   0, "NIFTI_TYPE_RGBA32"} }
+const Nifti::DataTypeInfo &Nifti::TypeInfo(const DataType dt) {
+	static const map<DataType, DataTypeInfo> DTInfo{
+		{DataType::UINT8,      {DataType::UINT8, NIFTI_TYPE_UINT8, 1, 0, "NIFTI_TYPE_UINT8"} },
+		{DataType::UINT16,     {DataType::UINT16, NIFTI_TYPE_UINT16, 2, 2, "NIFTI_TYPE_UINT16"} },
+		{DataType::UINT32,     {DataType::UINT32, NIFTI_TYPE_UINT32, 4, 4, "NIFTI_TYPE_UINT32"} },
+		{DataType::UINT64,     {DataType::UINT64, NIFTI_TYPE_UINT64, 8, 8, "NIFTI_TYPE_UINT64"} },
+		{DataType::INT8,       {DataType::INT8, NIFTI_TYPE_INT8, 1, 0, "NIFTI_TYPE_INT8"} },
+		{DataType::INT16,      {DataType::INT16, NIFTI_TYPE_INT16, 2, 2, "NIFTI_TYPE_INT16"} },
+		{DataType::INT32,      {DataType::INT32, NIFTI_TYPE_INT32, 4, 4, "NIFTI_TYPE_INT32"} },
+		{DataType::INT64,      {DataType::INT64, NIFTI_TYPE_INT64, 8, 8, "NIFTI_TYPE_INT64"} },
+		{DataType::FLOAT32,    {DataType::FLOAT32, NIFTI_TYPE_FLOAT32, 4, 4, "NIFTI_TYPE_FLOAT32"} },
+		{DataType::FLOAT64,    {DataType::FLOAT64, NIFTI_TYPE_FLOAT64, 8, 8, "NIFTI_TYPE_FLOAT64"} },
+		{DataType::FLOAT128,   {DataType::FLOAT128, NIFTI_TYPE_FLOAT128, 16, 16, "NIFTI_TYPE_FLOAT128"} },
+		{DataType::COMPLEX64,  {DataType::COMPLEX64, NIFTI_TYPE_COMPLEX64, 8, 4, "NIFTI_TYPE_COMPLEX64"} },
+		{DataType::COMPLEX128, {DataType::COMPLEX128, NIFTI_TYPE_COMPLEX128, 16,  8, "NIFTI_TYPE_COMPLEX128"} },
+		{DataType::COMPLEX256, {DataType::COMPLEX256, NIFTI_TYPE_COMPLEX256, 32, 16, "NIFTI_TYPE_COMPLEX256"} },
+		{DataType::RGB24,      {DataType::RGB24, NIFTI_TYPE_RGB24, 3, 0, "NIFTI_TYPE_RGB24"} },
+		{DataType::RGBA32,     {DataType::RGBA32, NIFTI_TYPE_RGBA32, 4,   0, "NIFTI_TYPE_RGBA32"} }
 	};
-	return DT;
+	auto info = DTInfo.find(dt);
+	if (info != DTInfo.end())
+		return info->second;
+	else
+		throw(std::invalid_argument("Missing type information, contact libNifti author."));
 }
 
 /*
@@ -124,22 +291,35 @@ const string &Nifti::intentName() const {
  *
  *\sa NIFTI1_XFORM_CODES group in nifti1.h
  */
-const string &Nifti::TransformName(const int code) {
-	static const map<int, string> Transforms {
-		{ NIFTI_XFORM_SCANNER_ANAT, "Scanner Anat" },
-		{ NIFTI_XFORM_ALIGNED_ANAT, "Aligned Anat" },
-		{ NIFTI_XFORM_TALAIRACH,    "Talairach" },
-		{ NIFTI_XFORM_MNI_152,      "MNI_152" }
-	};
-	static const string unknown("Unknown transform code");
-	auto it = Transforms.find(code);
-	if (it == Transforms.end())
-		return unknown;
-	else
-		return it->second;
+const string Nifti::XFormName(const Nifti::XForm c) {
+	switch (c) {
+		case XForm::Unknown: return "Unknown"; break;
+		case XForm::ScannerAnatomy: return "Scanner Anatomy"; break;
+		case XForm::AlignedAnatomy: return "Aligned Anatomy"; break;
+		case XForm::Talairach: return "Talairach"; break;
+		case XForm::MNI_152: return "MNI 152"; break;
+	}
 }
-const string &Nifti::qformName() const { return TransformName(qform_code); }
-const string &Nifti::sformName() const { return TransformName(sform_code); }
+const int Nifti::XFormCode(const Nifti::XForm c) {
+	switch (c) {
+		case XForm::Unknown: return NIFTI_XFORM_UNKNOWN; break;
+		case XForm::ScannerAnatomy: return NIFTI_XFORM_SCANNER_ANAT; break;
+		case XForm::AlignedAnatomy: return NIFTI_XFORM_ALIGNED_ANAT; break;
+		case XForm::Talairach: return NIFTI_XFORM_TALAIRACH; break;
+		case XForm::MNI_152: return NIFTI_XFORM_MNI_152; break;
+	}
+}
+const Nifti::XForm Nifti::XFormForCode(const int c) {
+	switch (c) {
+		case NIFTI_XFORM_UNKNOWN: return XForm::Unknown; break;
+		case NIFTI_XFORM_SCANNER_ANAT: return XForm::ScannerAnatomy; break;
+		case NIFTI_XFORM_ALIGNED_ANAT: return XForm::AlignedAnatomy; break;
+		case NIFTI_XFORM_TALAIRACH: return XForm::Talairach; break;
+		case NIFTI_XFORM_MNI_152: return XForm::MNI_152; break;
+		default:
+			throw(std::invalid_argument("Invalid transform code: " + to_string(c)));
+	}
+}
 
 /*
  * Returns the string representation of a NIfTI slice_code
@@ -163,126 +343,6 @@ const string &Nifti::sliceName() const {
 		return it->second;
 }
 
-/*! Swap size bytes at a time from the given array of n sets of bytes
- *
- *  Declared void * so that the fields from the headers can be passed through
- *  without casting.
- */
-void Nifti::SwapBytes(size_t n, int size, void *bytes)
-{
-	size_t i;
-	char *cp0 = (char *)bytes, *cp1, *cp2;
-	char swap;
-	
-	for(i=0; i < n; i++) {
-		cp1 = cp0;
-		cp2 = cp0 + (size-1);
-		while (cp2 > cp1) {
-			swap = *cp1; *cp1 = *cp2; *cp2 = swap;
-			cp1++; cp2--;
-		}
-		cp0 += size;
-	}
-}
-
-/*
- *  Byte swap the individual fields of a NIFTI-1 header struct.
- */
-void Nifti::SwapNiftiHeader(struct nifti_1_header *h)
-{
-	SwapBytes(1, 4, &h->sizeof_hdr);
-	SwapBytes(1, 4, &h->extents);
-	SwapBytes(1, 2, &h->session_error);
-	
-	SwapBytes(8, 2, h->dim);
-	SwapBytes(1, 4, &h->intent_p1);
-	SwapBytes(1, 4, &h->intent_p2);
-	SwapBytes(1, 4, &h->intent_p3);
-	
-	SwapBytes(1, 2, &h->intent_code);
-	SwapBytes(1, 2, &h->datatype);
-	SwapBytes(1, 2, &h->bitpix);
-	SwapBytes(1, 2, &h->slice_start);
-	
-	SwapBytes(8, 4, h->pixdim);
-	
-	SwapBytes(1, 4, &h->vox_offset);
-	SwapBytes(1, 4, &h->scl_slope);
-	SwapBytes(1, 4, &h->scl_inter);
-	SwapBytes(1, 2, &h->slice_end);
-	
-	SwapBytes(1, 4, &h->cal_max);
-	SwapBytes(1, 4, &h->cal_min);
-	SwapBytes(1, 4, &h->slice_duration);
-	SwapBytes(1, 4, &h->toffset);
-	SwapBytes(1, 4, &h->glmax);
-	SwapBytes(1, 4, &h->glmin);
-	
-	SwapBytes(1, 2, &h->qform_code);
-	SwapBytes(1, 2, &h->sform_code);
-	
-	SwapBytes(1, 4, &h->quatern_b);
-	SwapBytes(1, 4, &h->quatern_c);
-	SwapBytes(1, 4, &h->quatern_d);
-	SwapBytes(1, 4, &h->qoffset_x);
-	SwapBytes(1, 4, &h->qoffset_y);
-	SwapBytes(1, 4, &h->qoffset_z);
-	
-	SwapBytes(4, 4, h->srow_x);
-	SwapBytes(4, 4, h->srow_y);
-	SwapBytes(4, 4, h->srow_z);
-	
-	return ;
-}
-
-/*
- *! Byte swap as an ANALYZE 7.5 header
- */
-void Nifti::SwapAnalyzeHeader(nifti_analyze75 * h)
-{
-	SwapBytes(1, 4, &h->sizeof_hdr);
-	SwapBytes(1, 4, &h->extents);
-	SwapBytes(1, 2, &h->session_error);
-	
-	SwapBytes(8, 2, h->dim);
-	SwapBytes(1, 2, &h->unused8);
-	SwapBytes(1, 2, &h->unused9);
-	SwapBytes(1, 2, &h->unused10);
-	SwapBytes(1, 2, &h->unused11);
-	SwapBytes(1, 2, &h->unused12);
-	SwapBytes(1, 2, &h->unused13);
-	SwapBytes(1, 2, &h->unused14);
-	
-	SwapBytes(1, 2, &h->datatype);
-	SwapBytes(1, 2, &h->bitpix);
-	SwapBytes(1, 2, &h->dim_un0);
-	
-	SwapBytes(8, 4, h->pixdim);
-	
-	SwapBytes(1, 4, &h->vox_offset);
-	SwapBytes(1, 4, &h->funused1);
-	SwapBytes(1, 4, &h->funused2);
-	SwapBytes(1, 4, &h->funused3);
-	
-	SwapBytes(1, 4, &h->cal_max);
-	SwapBytes(1, 4, &h->cal_min);
-	SwapBytes(1, 4, &h->compressed);
-	SwapBytes(1, 4, &h->verified);
-	
-	SwapBytes(1, 4, &h->glmax);
-	SwapBytes(1, 4, &h->glmin);
-	
-	SwapBytes(1, 4, &h->views);
-	SwapBytes(1, 4, &h->vols_added);
-	SwapBytes(1, 4, &h->start_field);
-	SwapBytes(1, 4, &h->field_skip);
-	
-	SwapBytes(1, 4, &h->omax);
-	SwapBytes(1, 4, &h->omin);
-	SwapBytes(1, 4, &h->smax);
-	SwapBytes(1, 4, &h->smin);
-}
-
 Nifti::~Nifti()
 {
 	if (m_mode != Mode::Closed)
@@ -292,25 +352,25 @@ Nifti::~Nifti()
 Nifti::Nifti() :
 	m_mode(Mode::Closed), m_gz(false), m_nii(false), m_swap(false), m_voxoffset(0),
 	m_dim(Array<size_t, 7, 1>::Ones()), m_voxdim(Array<float, 7, 1>::Ones()),
-	m_basepath(""),
+	m_basepath(""), m_datatype(DataType::FLOAT32),
+	m_qcode(XForm::Unknown), m_scode(XForm::Unknown),
 	scaling_slope(1.), scaling_inter(0.), calibration_min(0.), calibration_max(0.),
 	freq_dim(0), phase_dim(0), slice_dim(0),
 	slice_code(0), slice_start(0), slice_end(0), slice_duration(0),
 	toffset(0), xyz_units(NIFTI_UNITS_MM), time_units(NIFTI_UNITS_SEC),
 	intent_code(NIFTI_INTENT_NONE), intent_p1(0), intent_p2(0), intent_p3(0),
-	intent_name(""), description(""), aux_file(""),
-	qform_code(NIFTI_XFORM_UNKNOWN), sform_code(NIFTI_XFORM_UNKNOWN)
+	intent_name(""), description(""), aux_file("")
 {
 	m_qform.setIdentity(); m_sform.setIdentity();
-	m_datatype = DataTypes().find(DT_FLOAT32)->second;
 }
 
 Nifti::Nifti(const Nifti &other) :
 	m_mode(other.m_mode), m_gz(other.m_gz), m_nii(other.m_nii),
 	m_swap(other.m_swap), m_voxoffset(other.m_voxoffset),
 	m_dim(other.m_dim), m_voxdim(other.m_voxdim),
-	m_sform(other.m_sform), m_qform(other.m_qform), m_datatype(other.m_datatype),
-	m_file(), m_basepath(other.m_basepath),
+	m_qform(other.m_qform), m_sform(other.m_sform),
+	m_qcode(other.m_qcode), m_scode(other.m_scode),
+	m_datatype(other.m_datatype), m_basepath(other.m_basepath), m_file(),
 	m_extensions(other.m_extensions),
 	scaling_slope(other.scaling_slope), scaling_inter(other.scaling_inter),
 	calibration_min(other.calibration_min), calibration_max(other.calibration_max),
@@ -319,8 +379,7 @@ Nifti::Nifti(const Nifti &other) :
 	slice_end(other.slice_end), slice_duration(other.slice_duration),
 	toffset(other.toffset), xyz_units(other.xyz_units), time_units(other.time_units),
 	intent_code(other.intent_code), intent_p1(other.intent_p1), intent_p2(other.intent_p2), intent_p3(other.intent_p3),
-	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file),
-	qform_code(other.qform_code), sform_code(other.sform_code)
+	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file)
 {
 	if ((m_mode == Mode::Read) || (m_mode == Mode::ReadSkipExt)) {
 		m_file.open(imagePath(), "rb", m_gz);
@@ -331,22 +390,23 @@ Nifti::Nifti(const Nifti &other) :
 	}
 }
 
-Nifti::Nifti(const Nifti &other, const size_t nt, const int datatype) : Nifti() {
+Nifti::Nifti(const Nifti &other, const size_t nt, const DataType dtype) : Nifti() {
 	m_dim.head(3) = other.m_dim.head(3);
 	setDim(4, nt);
 	m_voxdim.head(3) = other.m_voxdim.head(3);
 	m_qform = other.m_qform; m_sform = other.m_sform;
-	qform_code = other.qform_code; sform_code = other.sform_code;
+	m_qcode = other.m_qcode; m_scode = other.m_scode;
 	xyz_units = other.xyz_units;
-	m_datatype = DataTypes().find(datatype)->second;
+	m_datatype = dtype;
 }
 
 Nifti::Nifti(Nifti &&other) noexcept :
 	m_mode(other.m_mode), m_gz(other.m_gz), m_nii(other.m_nii),
 	m_swap(other.m_swap), m_voxoffset(other.m_voxoffset),
 	m_dim(other.m_dim), m_voxdim(other.m_voxdim),
-	m_sform(other.m_sform), m_qform(other.m_qform), m_datatype(other.m_datatype),
-	m_file(other.m_file), m_basepath(other.m_basepath),
+	m_qform(other.m_qform), m_sform(other.m_sform),
+	m_qcode(other.m_qcode), m_scode(other.m_scode),
+	m_datatype(other.m_datatype), m_basepath(other.m_basepath), m_file(other.m_file),
 	m_extensions(other.m_extensions),
 	scaling_slope(other.scaling_slope), scaling_inter(other.scaling_inter),
 	calibration_min(other.calibration_min), calibration_max(other.calibration_max),
@@ -355,8 +415,7 @@ Nifti::Nifti(Nifti &&other) noexcept :
 	slice_end(other.slice_end), slice_duration(other.slice_duration),
 	toffset(other.toffset), xyz_units(other.xyz_units), time_units(other.time_units),
 	intent_code(other.intent_code), intent_p1(other.intent_p1), intent_p2(other.intent_p2), intent_p3(other.intent_p3),
-	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file),
-	qform_code(other.qform_code), sform_code(other.sform_code)
+	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file)
 {
 	other.m_mode = Mode::Closed;
 }
@@ -368,11 +427,11 @@ Nifti::Nifti(const string &filename, const Mode &mode) :
 }
 
 Nifti::Nifti(const int nx, const int ny, const int nz, const int nt,
-		   const float dx, const float dy, const float dz, const float dt,
-		   const int datatype, const Affine3f &xform) :
+		     const float dx, const float dy, const float dz, const float dt,
+			 const DataType dtype, const Affine3f &xform) :
 	Nifti()
 {
-	m_datatype = DataTypes().find(datatype)->second;
+	m_datatype = dtype;
 	m_dim[0] = nx < 1 ? 1 : nx;
 	m_dim[1] = ny < 1 ? 1 : ny;
 	m_dim[2] = nz < 1 ? 1 : nz;
@@ -382,7 +441,7 @@ Nifti::Nifti(const int nx, const int ny, const int nz, const int nt,
 }
 
 Nifti::Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
-           const int datatype, const Affine3f &xform) :
+             const DataType dtype, const Affine3f &xform) :
 	Nifti()
 {
 	assert(dim.rows() < 8);
@@ -390,7 +449,7 @@ Nifti::Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
 	
 	m_dim.head(dim.rows()) = dim;
 	m_voxdim.head(voxdim.rows()) = voxdim;
-	m_datatype = DataTypes().find(datatype)->second;
+	m_datatype = dtype;
 	setTransform(xform);
 }
 
@@ -405,6 +464,8 @@ Nifti &Nifti::operator=(const Nifti &other)
 	m_voxdim = other.m_voxdim;
 	m_qform = other.m_qform;
 	m_sform = other.m_sform;
+	m_qcode = other.m_qcode;
+	m_scode = other.m_scode;
 	m_basepath = other.m_basepath;
 	m_gz = other.m_gz;
 	m_nii = other.m_nii;
@@ -415,8 +476,6 @@ Nifti &Nifti::operator=(const Nifti &other)
 	scaling_inter = other.scaling_inter;
 	calibration_min = other.calibration_min;
 	calibration_max = other.calibration_max;
-	qform_code = other.qform_code;
-	sform_code = other.sform_code;
 	freq_dim = other.freq_dim;
 	phase_dim = other.phase_dim;
 	slice_dim = other.slice_dim;
@@ -463,14 +522,6 @@ const string Nifti::headerPath() const {
 	return path;
 }
 
-inline float Nifti::fixFloat(const float f)
-{
-	if (isfinite(f))
-		return f;
-	else
-		return 0.;
-}
-
 void Nifti::readHeader() {
 	struct nifti_1_header nhdr;
 	
@@ -505,7 +556,7 @@ void Nifti::readHeader() {
 	if(nhdr.datatype == DT_BINARY || nhdr.datatype == DT_UNKNOWN  ) {
 		throw(std::runtime_error("Bad datatype in header: " + headerPath()));
 	}
-	m_datatype = DataTypes().find(nhdr.datatype)->second;
+	m_datatype = DataTypeForCode(nhdr.datatype);
 	
 	if(nhdr.dim[1] <= 0) {
 		throw(std::runtime_error("Bad first dimension in header: " + headerPath()));
@@ -523,7 +574,7 @@ void Nifti::readHeader() {
 	if( !is_nifti || nhdr.qform_code <= 0 ) {
 		// If Q-Form not set or ANALYZE then just use voxel scaling
 		m_qform = S.matrix();
-		qform_code = NIFTI_XFORM_UNKNOWN ;
+		m_qcode = XForm::Unknown;
 	} else {
 		float b = fixFloat(nhdr.quatern_b);
 		float c = fixFloat(nhdr.quatern_c);
@@ -541,11 +592,12 @@ void Nifti::readHeader() {
 		// Fix left-handed co-ords in a very dumb way (see writeHeader())
 		if (nhdr.pixdim[0] < 0.)
 			m_qform.matrix().block(0, 2, 3, 1) *= -1.;
-		qform_code = nhdr.qform_code;
+		m_qcode = XFormForCode(nhdr.qform_code);
 	}
 	// Load S-Form
 	if( !is_nifti || nhdr.sform_code <= 0 ) {
-		sform_code = NIFTI_XFORM_UNKNOWN ;
+		m_sform = S.matrix();
+		m_scode = XForm::Unknown;
 	} else {
 		m_sform.setIdentity();
 		for (int i = 0; i < 4; i++) {
@@ -553,7 +605,7 @@ void Nifti::readHeader() {
 			m_sform(1, i) = nhdr.srow_y[i];
 			m_sform(2, i) = nhdr.srow_z[i];
 		}
-		sform_code = nhdr.sform_code ;
+		m_scode = XFormForCode(nhdr.sform_code);
 	}
 	
 	if (is_nifti) {
@@ -664,8 +716,8 @@ void Nifti::writeHeader() {
 		nhdr.pixdim[i + 1] = m_voxdim[i];
 	}
 	
-	nhdr.datatype = m_datatype.code;
-	nhdr.bitpix   = 8 * m_datatype.size;
+	nhdr.datatype = TypeInfo(m_datatype).code;
+	nhdr.bitpix   = 8 * TypeInfo(m_datatype).size;
 	
 	if(calibration_max > calibration_min) {
 		nhdr.cal_max = calibration_max;
@@ -700,7 +752,7 @@ void Nifti::writeHeader() {
 	nhdr.xyzt_units = SPACE_TIME_TO_XYZT(xyz_units, time_units);
 	nhdr.toffset    = toffset ;
 	
-	nhdr.qform_code = qform_code;
+	nhdr.qform_code = XFormCode(m_qcode);
 	Quaternionf Q(m_qform.rotation());
 	Translation3f T(m_qform.translation());
 	// Fix left-handed co-ord systems in an incredibly dumb manner.
@@ -727,7 +779,7 @@ void Nifti::writeHeader() {
 	nhdr.qoffset_y  = T.y();
 	nhdr.qoffset_z  = T.z();
 	
-	nhdr.sform_code = sform_code;
+	nhdr.sform_code = XFormCode(m_scode);
 	for (int i = 0; i < 4; i++) {
 		nhdr.srow_x[i]  = m_sform(0, i);
 		nhdr.srow_y[i]  = m_sform(1, i);
@@ -816,8 +868,8 @@ char *Nifti::readBytes(size_t start, size_t length, char *buffer) {
 	if (m_file.read(buffer, static_cast<unsigned int>(length)) != length) {
 		throw(std::runtime_error("Read wrong number of bytes from file: " + imagePath()));
 	}
-	if (m_datatype.swapsize > 1 && m_swap)
-		SwapBytes(length / m_datatype.swapsize, m_datatype.swapsize, buffer);
+	if (TypeInfo(m_datatype).swapsize > 1 && m_swap)
+		SwapBytes(length / TypeInfo(m_datatype).swapsize, TypeInfo(m_datatype).swapsize, buffer);
 	return buffer;
 }
 
@@ -936,7 +988,7 @@ void Nifti::close()
 		// Write a single zero-byte at the end to persuade the OS to write a file of the
 		// correct size.
 		m_file.seek(0, SEEK_END);
-		long correctEnd = (voxelsTotal() * bytesPerVoxel() + m_voxoffset);
+		long correctEnd = (voxelsTotal() * TypeInfo(m_datatype).size + m_voxoffset);
 		char zero{0};
 		long pos = m_file.tell();
 		if (pos < correctEnd) {
@@ -1004,19 +1056,13 @@ void Nifti::setVoxDims(const ArrayXf &n) {
 		throw(std::logic_error("Cannot change voxel sizes for open file: " + imagePath()));
 }
 
-const int &Nifti::datatype() const { return m_datatype.code; }
-const string &Nifti::dtypeName() const { return m_datatype.name; }
-const int &Nifti::bytesPerVoxel() const { return m_datatype.size; }
-void Nifti::setDatatype(const int dt) {
+const Nifti::DataType &Nifti::datatype() const { return m_datatype; }
+void Nifti::setDatatype(const Nifti::DataType dt) {
 	if (m_mode != Mode::Closed) {
 		throw(std::logic_error("Cannot set the datatype of open file: " + imagePath()));
 		return;
 	}
-    auto it = DataTypes().find(dt);
-	if (it == DataTypes().end())
-		throw(std::invalid_argument("Attempted to set invalid datatype for file: " + imagePath()));
-	else
-		m_datatype = it->second;
+    m_datatype = dt;
 }
 
 bool Nifti::matchesVoxels(const Nifti &other) const {
@@ -1036,15 +1082,17 @@ bool Nifti::matchesSpace(const Nifti &other) const {
 
 const Affine3f &Nifti::qform() const { return m_qform; }
 const Affine3f &Nifti::sform() const { return m_sform; }
+const Nifti::XForm Nifti::qcode() const { return m_qcode; }
+const Nifti::XForm Nifti::scode() const { return m_scode; }
 const Affine3f &Nifti::transform() const {
-	if ((sform_code > 0) && (sform_code >= qform_code))
+	if ((m_scode > XForm::Unknown) && (m_scode >= m_qcode))
 		return m_sform;
 	else // There is always a m_qform matrix
 		return m_qform;
 }
-void Nifti::setTransform(const Affine3f &t, const int transform_code) {
+void Nifti::setTransform(const Affine3f &t, const XForm tc) {
 	m_qform = t.linear();
 	m_sform = t;
-	qform_code = transform_code;
-	sform_code = transform_code;
+	m_qcode = tc;
+	m_scode = tc;
 }
