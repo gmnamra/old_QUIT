@@ -81,7 +81,7 @@ size_t ZipFile::read(void *buff, unsigned size) {
 size_t ZipFile::write(const void *buff, int size)
 {
 	if (buff == nullptr) {
-		throw(invalid_argument("Attempted to write data from null pointer."));
+		throw(std::invalid_argument("Attempted to write data from null pointer."));
 	}
 	if (m_gzipFile) {
 		unsigned remaining = size, totalWritten = 0;

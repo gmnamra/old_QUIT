@@ -17,15 +17,30 @@
 #include <limits>
 #include <exception>
 
+using std::string;
+using std::to_string;
+using std::vector;
+using std::list;
+using std::complex;
+using std::numeric_limits;
+
+#include "Eigen/Core"
 #include "Eigen/Geometry"
+
+using Eigen::Matrix;
+using Eigen::Array;
+using Eigen::ArrayXf;
+using Eigen::Affine3f;
+using Eigen::Scaling;
+using Eigen::Translation3f;
+using Eigen::Quaternionf;
 
 #include "nifti1.h" // NIFTI-1 header specification
 #include "nifti_analyze.h" // NIFTI version of the ANALYZE 7.5 header
 #include "ZipFile.h"
 #include "Extension.h"
 
-using namespace std;
-using namespace Eigen;
+typedef Array<size_t, Eigen::Dynamic, 1> ArrayXs;
 
 #pragma mark Start namespace Nifti
 namespace Nifti {
@@ -105,7 +120,7 @@ class File {
 		File(const int nx, const int ny, const int nz, const int nt,
 			 const float dx, const float dy, const float dz, const float dt,
 			 const int datatype = NIFTI_TYPE_FLOAT32, const Affine3f &transform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
-		File(const Array<size_t, Dynamic, 1> &dim, const ArrayXf &voxdim,
+		File(const ArrayXs &dim, const ArrayXf &voxdim,
 			 const int datatype = NIFTI_TYPE_FLOAT32, const Affine3f &transform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
 		File(const File &other, const size_t nt, const int datatype = NIFTI_TYPE_FLOAT32);               //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
 		File(const string &filename, const Modes &mode);
@@ -123,8 +138,8 @@ class File {
 		size_t dimensions() const;                              //!< Get the number of dimensions (rank) of this image.
 		size_t dim(const size_t d) const;                       //!< Get the size (voxel count) of a dimension. Valid dimensions are 1-7.
 		void setDim(const size_t d, const size_t n);            //!< Set the size (voxel count) of a dimension. Valid dimensions are 1-7.
-		const Array<size_t, Dynamic, 1> dims() const;           //!< Get all dimension sizes.
-		void setDims(const Array<size_t, Dynamic, 1> &newDims); //!< Set all dimension sizes.
+		const ArrayXs dims() const;           //!< Get all dimension sizes.
+		void setDims(const ArrayXs &newDims); //!< Set all dimension sizes.
 		size_t voxelsPerSlice() const;                          //!< Voxel count for a whole slice (dim1 x dim2).
 		size_t voxelsPerVolume() const;                         //!< Voxel count for a volume (dim1 x dim2 x dim3).
 		size_t voxelsTotal() const;                             //!< Voxel count for whole image (all dimensions).

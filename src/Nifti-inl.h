@@ -41,7 +41,7 @@ template<typename T> void File::convertFromBytes(const vector<char> &bytes, cons
 			case NIFTI_TYPE_COMPLEX128: data[i] = static_cast<T>(abs(reinterpret_cast<const complex<double> *>(bytes.data())[i])); break;
 			case NIFTI_TYPE_COMPLEX256: data[i] = static_cast<T>(abs(reinterpret_cast<const complex<long double> *>(bytes.data())[i])); break;
 			case NIFTI_TYPE_RGB24: case NIFTI_TYPE_RGBA32:
-				throw(runtime_error("RGB/RGBA datatypes not supported.")); break;
+				throw(std::runtime_error("RGB/RGBA datatypes not supported.")); break;
 		}
 	}
 }
@@ -78,7 +78,7 @@ template<typename T> void File::convertFromBytes(const vector<complex<T>> &bytes
 			case NIFTI_TYPE_COMPLEX128: data[i] = static_cast<complex<T> >(reinterpret_cast<const complex<double> *>(bytes.data())[i]); break;
 			case NIFTI_TYPE_COMPLEX256: data[i] = static_cast<complex<T> >(reinterpret_cast<const complex<long double> *>(bytes.data())[i]); break;
 			case NIFTI_TYPE_RGB24: case NIFTI_TYPE_RGBA32:
-				throw(runtime_error("RGB/RGBA datatypes not supported.")); break;
+				throw(std::runtime_error("RGB/RGBA datatypes not supported.")); break;
 		}
 	}
 }
@@ -110,7 +110,7 @@ template<typename T> vector<char> File::convertToBytes(const vector<T> &data) {
 			case NIFTI_TYPE_COMPLEX128: reinterpret_cast<complex<double> *>(bytes.data())[i] = complex<double>(static_cast<double>(data[i])); break;
 			case NIFTI_TYPE_COMPLEX256: reinterpret_cast<complex<long double> *>(bytes.data())[i] = complex<long double>(static_cast<long double>(data[i])); break;
 			case NIFTI_TYPE_RGB24: case NIFTI_TYPE_RGBA32:
-				throw(runtime_error("RGB/RGBA datatypes not supported.")); break;				}
+				throw(std::runtime_error("RGB/RGBA datatypes not supported.")); break;				}
 	}
 	return bytes;
 }
@@ -134,7 +134,7 @@ template<typename T> vector<char> File::convertToBytes(const vector<complex<T>> 
 			case NIFTI_TYPE_COMPLEX128: reinterpret_cast<complex<double> *>(bytes.data())[i] = static_cast<complex<double> >(data[i]); break;
 			case NIFTI_TYPE_COMPLEX256: reinterpret_cast<complex<long double> *>(bytes.data())[i] = static_cast<complex<long double> >(data[i]); break;
 			case NIFTI_TYPE_RGB24: case NIFTI_TYPE_RGBA32:
-				throw(runtime_error("RGB/RGBA datatypes not supported.")); break;
+				throw(std::runtime_error("RGB/RGBA datatypes not supported.")); break;
 		}
 	}
 	return bytes;
@@ -185,7 +185,7 @@ template<typename T> void File::readSubvolume(const size_t &sx, const size_t &sy
 	total = lx * ly * lz * lt;
 	
 	if (lx < 1 || ly < 1 || lz < 1 || lt < 1) { // There is nothing to write
-		throw(out_of_range("Invalid subvolume read dimensions: " + imagePath()));
+		throw(std::out_of_range("Invalid subvolume read dimensions: " + imagePath()));
 	}
 	
 	// Collapse successive full dimensions into a single compressed read
@@ -229,7 +229,7 @@ template<typename T> void File::readSubvolume(const size_t &sx, const size_t &sy
 
 template<typename T> void File::writeVolume(const size_t vol, const vector<T> &data) {
 	if (data.size() != voxelsPerVolume()) {
-		throw(invalid_argument("Insufficient data to write volume for file: " + imagePath()));
+		throw(std::invalid_argument("Insufficient data to write volume for file: " + imagePath()));
 	}
 	vector<char> converted = convertToBytes(data);
 	writeBytes(vol * voxelsPerVolume() * bytesPerVoxel(), converted.size(), converted.data());
@@ -237,7 +237,7 @@ template<typename T> void File::writeVolume(const size_t vol, const vector<T> &d
 
 template<typename T> void File::writeAllVolumes(const vector<T> &data) {
 	if (data.size() != voxelsTotal()) {
-		throw(invalid_argument("Insufficient data to write all volumes for file: " + imagePath()));
+		throw(std::invalid_argument("Insufficient data to write all volumes for file: " + imagePath()));
 	}
 	vector<char> converted = convertToBytes(data);
 	writeBytes(0, converted.size(), converted.data());
@@ -263,7 +263,7 @@ template<typename T> void File::writeSubvolume(const size_t &sx, const size_t &s
 	total = lx * ly * lz * lt;
 	
 	if (lx < 1 || ly < 1 || lz < 1 || lt < 1) { // There is nothing to write
-		throw(out_of_range("Invalid subvolume read dimensions: " + imagePath()));
+		throw(std::out_of_range("Invalid subvolume read dimensions: " + imagePath()));
 	}
 	
 	// Collapse successive full dimensions into a single write
@@ -282,7 +282,7 @@ template<typename T> void File::writeSubvolume(const size_t &sx, const size_t &s
 		ly = 1;
 	}
 	if (toWrite != data.size()) {
-		throw(invalid_argument("Insufficient data to write subvolume for file: " + imagePath()));
+		throw(std::invalid_argument("Insufficient data to write subvolume for file: " + imagePath()));
 	}
 	toWrite *= bytesPerVoxel();
 	

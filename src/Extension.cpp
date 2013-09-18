@@ -68,7 +68,7 @@ void Extension::setCode(int code) {
 	if ((code > NIFTI_ECODE_IGNORE) && (code < NIFTI_MAX_ECODE) && !(code & 1 ))
 		m_code = code;
 	else
-		throw(invalid_argument("Invalid extension code."));
+		throw(std::invalid_argument("Invalid extension code."));
 }
 
 const vector<char> &Extension::data() const { return m_data; };

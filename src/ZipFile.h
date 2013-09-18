@@ -11,9 +11,12 @@
 
 #include <cstdio>
 #include <string>
-#include <zlib.h>
+#include <limits>
 
-using namespace std;
+using std::string;
+using std::numeric_limits;
+
+#include <zlib.h>
 
 namespace Nifti {
 
