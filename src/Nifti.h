@@ -201,7 +201,7 @@ class File {
 												 const vector<T> &data);
 };
 
-#include "NiftiTemplate.h"
+#include "Nifti-inl.h"
 
 }; // End namespace Nifti
 #endif // NIFTI_IMAGE
