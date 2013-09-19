@@ -79,7 +79,7 @@ static auto components = mcType::Components::Two;
 static auto tesla = mcType::FieldStrength::Three;
 static auto PD = mcType::PDMode::Normalise;
 static size_t start_slice = 0, end_slice = numeric_limits<size_t>::max();
-static int verbose = false, prompt = true, debug = false,
+static int verbose = false, prompt = true, debug = false, converge_f = false,
 		   samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
 static double expand = 0., weighting = 1.0;
@@ -95,6 +95,7 @@ static struct option long_options[] =
 	{"PD", required_argument, 0, 'P'},
 	{"tesla", required_argument, 0, 't'},
 	{"B0", required_argument, 0, 'b'},
+	{"cnv", no_argument, 0, 'C'},
 	{"samples", required_argument, 0, 's'},
 	{"retain", required_argument, 0, 'r'},
 	{"contract", required_argument, 0, 'c'},
@@ -252,11 +253,12 @@ int main(int argc, char **argv)
 	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "123hvpt:b:m:o:P:w:s:r:c:e:i:j:d", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "123hvpCt:b:m:o:P:w:s:r:c:e:i:j:d", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case '1': components = mcType::Components::One; break;
 			case '2': components = mcType::Components::Two; break;
 			case '3': components = mcType::Components::Three; break;
+			case 'C': converge_f = true; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
 			case 'm':
@@ -362,6 +364,9 @@ int main(int argc, char **argv)
 	outPrefix = outPrefix + "F_";
 	#endif
 	ArrayXd weights(mcd.values());
+	ArrayXd threshes(mcd.inputs()); threshes.setOnes();
+	if (converge_f)
+		threshes = mcd.defaultThresholds();
 	size_t index = 0;
 	for (size_t i = 0; i < info.size(); i++) {
 		if (info.at(i).spoil)
@@ -473,8 +478,8 @@ int main(int argc, char **argv)
 				}
 				// Add the voxel number to the time to get a decent random seed
 				size_t rSeed = time(NULL) + vox;
-				RegionContraction<mcType> rc(localf, localBounds, weights,
-											 samples, retain, contract, 0.05, expand);
+				RegionContraction<mcType> rc(localf, localBounds, weights, threshes,
+											 samples, retain, contract, expand);
 				rc.optimise(params, rSeed);
 				residuals = rc.residuals();
 				if (debug) {

@@ -23,7 +23,7 @@
 using namespace std;
 using namespace Eigen;
 
-typedef Array<bool, Dynamic, Dynamic> ArrayXb;
+typedef Array<bool, Dynamic, 1> ArrayXb;
 
 vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, size_t N);
 vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, size_t N)
@@ -52,25 +52,30 @@ class RegionContraction {
 	private:
 		Functor_t &m_f;
 		ArrayXXd m_startBounds, m_currentBounds;
-		ArrayXd m_weights, m_residuals;
+		ArrayXd m_weights, m_residuals, m_threshes;
 		size_t m_nS, m_nR, m_maxContractions, m_contractions;
-		double m_thresh, m_expand;
+		double m_expand;
 		Status m_status;
 		bool m_debug;
 	
 	public:
 	
-		RegionContraction(Functor_t &f, const Ref<ArrayXXd> &startBounds, const Ref<ArrayXd> &weights,
+		RegionContraction(Functor_t &f, const Ref<ArrayXXd> &startBounds,
+						  const Ref<ArrayXd> &weights, const Ref<ArrayXd> &thresh,
 						  const int nS = 5000, const int nR = 50, const int maxContractions = 10,
-						  const double thresh = 0.05, const double expand = 0., const bool debug = false) :
+						  const double expand = 0., const bool debug = false) :
 				m_f(f), m_startBounds(startBounds), m_currentBounds(startBounds),
 				m_nS(nS), m_nR(nR), m_maxContractions(maxContractions),
-				m_thresh(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0),
+				m_threshes(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0),
 				m_status(Status::NotStarted), m_weights(weights), m_debug(debug)
 		{
 			eigen_assert(f.inputs() == startBounds.rows());
 			eigen_assert(startBounds.cols() == 2);
 			eigen_assert(weights.rows() == f.values());
+			eigen_assert(thresh.rows() == f.inputs());
+			eigen_assert((thresh >= 0.).all() && (thresh <= 1.).all());
+			eigen_assert((startBounds == startBounds).all()); // Check for nonsense bounds
+			eigen_assert((startBounds < numeric_limits<double>::infinity()).all());
 		}
 		
 		const ArrayXXd &startBounds() const { return m_startBounds; }
@@ -84,10 +89,17 @@ class RegionContraction {
 			eigen_assert(w.rows() == m_f.values());
 			m_weights = w;
 		}
+		const ArrayXb &thresholds() const { return m_threshes; }
+		void setThresholds(const Ref<ArrayXd> &t) {
+			eigen_assert(t.rows() == m_f.inputs());
+			eigen_assert((t >= 0.).all() && (t <= 1.).all());
+			m_threshes = t;
+		}
 		const ArrayXd &residuals() const { return m_residuals; }
 		const size_t contractions() const { return m_contractions; }
 		const Status status() const { return m_status; }
 		const ArrayXXd &currentBounds() const { return m_currentBounds; }
+		const ArrayXd startWidth() const { return m_startBounds.col(1) - m_startBounds.col(0); }
 		const ArrayXd width() const { return m_currentBounds.col(1) - m_currentBounds.col(0); }
 		const ArrayXd midPoint() const { return (m_currentBounds.rowwise().sum() / 2.); }
 		
@@ -165,25 +177,26 @@ class RegionContraction {
 				// Find the min and max for each parameter in the top nR samples
 				if (m_debug) {
 					cout << "RES Min: " << toSort.minCoeff() << " Max: " << toSort.maxCoeff() << endl;
-					cout << "Before search MID: " << midPoint().transpose() << " WIDTH: " << width().transpose() << endl;
 				}
 				m_currentBounds.col(0) = retained.rowwise().minCoeff();
 				m_currentBounds.col(1) = retained.rowwise().maxCoeff();
-				// Terminate if ALL the distances between bounds are under the threshold
-				if (((width() / midPoint()).abs() < m_thresh).all()) {
+				// Terminate if all the desired parameters have converged
+				if (m_debug) {
+					cout << "width:          " << width().transpose() << endl;
+					cout << "threshold:      " << (m_threshes * startWidth()).transpose() << endl;
+					cout << "width < thresh: " << (width() < m_threshes * startWidth()).transpose() << endl;
+					cout << "Converged:      " << (width() < m_threshes * startWidth()).all() << endl;
+				}
+				if ((width() < m_threshes * startWidth()).all()) {
 					m_status = Status::Converged;
 					break;
 				}
 				
 				// Expand the boundaries back out in case we just missed a minima,
 				// but don't go past initial boundaries
-				if (m_debug)
-					cout << "After search MID: " << midPoint().transpose() << " WIDTH: " << width().transpose() << endl;
 				ArrayXd tempW = width(); // Because altering .col(0) will change width
 				m_currentBounds.col(0) = (m_currentBounds.col(0) - tempW * m_expand).max(m_startBounds.col(0));
 				m_currentBounds.col(1) = (m_currentBounds.col(1) + tempW * m_expand).min(m_startBounds.col(1));
-				if (m_debug)
-					cout << "After expand MID: " << midPoint().transpose() << " WIDTH: " << width().transpose() << endl;
 			}
 			// Return the best evaluated solution so far
 			params = retained.col(0);

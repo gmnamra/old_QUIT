@@ -39,7 +39,7 @@ bool ReadPP(const Nifti &nii, Agilent::ProcPar &pp) {
 		}
 	}
 	// If we got to here there are no procpar extensions, try the old method
-	string path = nii.imagePath().substr(0, nii.imagePath().find_last_of(".")) + ".procpar";
+	string path = nii.basePath() + ".procpar";
 	ifstream pp_file(path);
 	if (pp_file) {
 		pp_file >> pp;

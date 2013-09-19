@@ -125,7 +125,7 @@ class DESPOTFunctor : public Functor<double> {
 		}
 		
 		virtual const ArrayXXd defaultBounds() = 0;
-	
+		
 	public:
 		const size_t nOffRes() const {
 			switch (m_offRes) {
@@ -248,7 +248,19 @@ class mcDESPOT : public DESPOTFunctor {
 			b.block(nP() + nOffRes(), 0, nPD(), 2) = PDBounds();
 			return b;
 		}
-	
+		
+		const ArrayXd defaultThresholds() {
+			ArrayXd m(inputs());
+			switch (m_components) {
+				case Components::One: m.head(nP()) << 0.05, 0.05; break;
+				case Components::Two: m.head(nP()) << 0.5, 0.5, 0.5, 0.5, 0.5, 0.05; break;
+				case Components::Three: m.head(nP()) << 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.05, 0.05; break;
+			}
+			m.segment(nP(), nOffRes()).setConstant(0.1);
+			m.tail(nPD()).setConstant(0.1);
+			return m;
+		}
+		
 		mcDESPOT(const Components &c, vector<Info> &data,
 				 const FieldStrength &tesla, const OffResMode &offRes, const PDMode &PD = PDMode::Normalise,
 				 const bool &debug = false) :
@@ -368,6 +380,18 @@ class mcFinite : public mcDESPOT {
 			b.block(nP(), 0, nOffRes(), 2) = offResBounds();
 			b.block(nP() + nOffRes(), 0, nPD(), 2) = PDBounds();
 			return b;
+		}
+		
+		const ArrayXd defaultThresholds() {
+			ArrayXd m(inputs());
+			switch (m_components) {
+				case Components::One: m.head(nP()) << 0.05, 0.05, 1.0; break;
+				case Components::Two: m.head(nP()) << 0.5, 0.5, 0.5, 0.5, 0.5, 0.05, 1.0; break;
+				case Components::Three: m.head(nP()) << 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.5, 0.05, 0.05, 1.0; break;
+			}
+			m.segment(nP(), nOffRes()).setConstant(0.1);
+			m.tail(nPD()).setConstant(0.1);
+			return m;
 		}
 		
 		mcFinite(const Components &c, vector<Info> &data,
