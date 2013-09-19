@@ -11,11 +11,14 @@
 #include <algorithm>
 #include <getopt.h>
 
+#include "Eigen/Geometry"
+
 #include "fdf.h"
 #include "Nifti/Nifti.h"
 #include "Nifti/ExtensionCodes.h"
 
 using namespace std;
+using namespace Eigen;
 
 static bool zip = false, procpar = false, verbose = false;
 static int echoMode = -1;
@@ -99,8 +102,12 @@ int main(int argc, char **argv) {
 			} else if ((echoMode >= 0) && (echoMode >= static_cast<int>(input.dim(4)))) {
 				throw(invalid_argument("Selected echo was above the maximum."));
 			}
+			auto outVoxDims = (input.voxdims() * scale).cast<float>();
+			Affine3d scaleXForm; scaleXForm = Scaling(scale, scale, scale);
+			Affine3d outTransform = (scaleXForm * input.transform());
+			
 			try {
-				Nifti output(input.dims(), (input.voxdims() * scale).cast<float>(), Nifti::DataType::FLOAT32, input.transform().cast<float>());
+				Nifti output(input.dims(), outVoxDims.cast<float>(), Nifti::DataType::FLOAT32, outTransform.cast<float>());
 				output.setDim(4, nOutImages);
 				if (procpar) {
 					ifstream pp_file(inPath + "/procpar", ios::binary);
