@@ -24,9 +24,8 @@
 
 #pragma mark NIfTI File Class
 class Nifti {
-	typedef Eigen::Array<size_t, Eigen::Dynamic, 1> ArrayXs;
-	
 	public:
+		typedef Eigen::Array<size_t, Eigen::Dynamic, 1> ArrayXs;
 		enum class Mode : char {
 			Closed = 0, Read = 'r', ReadHeader = 'h', ReadSkipExt = 's', Write = 'w', WriteSkipExt = 'x'
 		};
@@ -102,6 +101,7 @@ class Nifti {
 		void writeExtensions(); //!< Attempts to write extensions
 		int totalExtensionSize(); //!< Counts the total number of bytes for all extensions.
 		char *readBytes(size_t start, size_t length, char *buffer);
+		char *readBytes(size_t length, char *buffer);
 		void writeBytes(size_t start, size_t length, char *buffer);
 		void calcStrides();
 		void seekToVoxel(const ArrayXs &target);
@@ -198,6 +198,7 @@ class Nifti {
 		void addExtension(const Extension &e);
 		const std::list<Extension> &extensions() const;
 		
+		template<typename T> void readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data);
 		template<typename T> void readVolume(const size_t &vol, std::vector<T> &buffer);
 		template<typename T> std::vector<T> readVolume(const size_t &vol);
 		template<typename T> void readAllVolumes(std::vector<T> &buffer);

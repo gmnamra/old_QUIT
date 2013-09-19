@@ -168,7 +168,45 @@ template<typename T> std::vector<T> Nifti::readAllVolumes() {
 	readAllVolumes(buffer);
 	return buffer;
 }
-
+using namespace std;
+template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data) {
+	if (start.rows() != size.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
+	if (start.rows() > m_dim.rows()) throw(std::out_of_range("Too many read dimensions specified in image: " + imagePath()));
+	if ((size == 0).any()) throw(std::out_of_range("Requested a zero-length read in 1 or more dimensions of image: " + imagePath()));
+	if (((start + size) > m_dim.head(start.rows())).any()) throw(std::out_of_range("Requested read was larger than image dimensions: " + imagePath()));
+	
+	size_t totalVoxels = size.prod();
+	size_t firstDim = 0; // We can always collapse the read of dim 0
+	size_t blockSize = size(firstDim) * m_typeinfo.size;
+	while ((size(firstDim) == m_dim(firstDim)) && (firstDim < size.rows() - 1)) {
+		firstDim++;
+		blockSize *= size(firstDim);
+	}
+	
+	std::vector<char> raw(totalVoxels * m_typeinfo.size);
+	char *nextRead = raw.data();
+	ArrayXs target = start;
+	std::function<void (const size_t dim)> doDim;
+	doDim = [&] (const size_t dim) {
+		if (dim == firstDim) {
+			//cout << "target " << target.transpose() << endl;
+			seekToVoxel(target);
+			if (m_mode == Nifti::Mode::Read) {
+				readBytes(blockSize, nextRead);
+				nextRead += blockSize;
+			}
+		} else {
+			//cout << "dim " << dim << " start " << start(dim) << " end " << start(dim) + size(dim) << endl;
+			for (size_t v = start(dim); v < start(dim) + size(dim); v++) {
+				target(dim) = v;
+				doDim(dim - 1);
+			}
+		}
+	};
+	
+	doDim(start.rows() - 1);
+	convertFromBytes<T>(raw, totalVoxels, data);
+}
 /**
   *   Reads a subvolume
   *
@@ -207,7 +245,6 @@ template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &s
 		}
 		ly = 1;
 	}
-				
 	std::vector<char> raw(total * m_typeinfo.size);
 	char *nextRead = raw.data();
 	for (size_t t = st; t < st+lt; t++) {

@@ -745,11 +745,15 @@ void Nifti::seekToVoxel(const ArrayXs &target) {
 	if ((target > m_dim.head(target.rows())).any()) {
 		throw(std::out_of_range("Target voxel is outside image dimensions."));
 	}
+	//cout << "strides " << m_strides.transpose() << " target " << target.transpose() << endl;
+	//cout << "product " << (target * m_strides.head(target.rows())).transpose() << endl;
 	size_t index = (target * m_strides.head(target.rows())).sum() * m_typeinfo.size + m_voxoffset;
 	size_t current = m_file.tell();
-	if (!m_file.seek(current - index, SEEK_CUR)) {
+	//cout << "index " << index << " current " << current << endl;
+	if (!m_file.seek(index - current, SEEK_CUR)) {
 		throw(std::runtime_error("Failed to seek to index: " + to_string(index) + " in file: " + imagePath()));
 	}
+	//cout << "seek result " << m_file.tell() << endl;
 }
 
 /**
@@ -768,7 +772,7 @@ char *Nifti::readBytes(size_t start, size_t length, char *buffer) {
 		throw(std::logic_error("Cannot read from closed file: " + imagePath()));
 	}
 	if (m_mode == Mode::Write) {
-		throw(std::logic_error("Cannot read from a file opened for reading: " + imagePath()));
+		throw(std::logic_error("Cannot read from a file opened for writing: " + imagePath()));
 	}
 	if (length == 0) {
 		throw(std::invalid_argument("Asked to read 0 bytes from file: " + imagePath()));
@@ -778,6 +782,21 @@ char *Nifti::readBytes(size_t start, size_t length, char *buffer) {
 	}
 	if (!m_file.seek(m_voxoffset + start, SEEK_SET)) {
 		throw(std::runtime_error("Failed seek in file: " + imagePath()));
+	}
+	if (m_file.read(buffer, static_cast<unsigned int>(length)) != length) {
+		throw(std::runtime_error("Read wrong number of bytes from file: " + imagePath()));
+	}
+	if (m_typeinfo.swapsize > 1 && m_swap)
+		swapBytes(length / m_typeinfo.swapsize, m_typeinfo.swapsize, buffer);
+	return buffer;
+}
+
+char *Nifti::readBytes(size_t length, char *buffer) {
+	if (!((m_mode == Mode::Read) || (m_mode == Mode::ReadSkipExt))) {
+		throw(std::logic_error("File not opened for reading: " + imagePath()));
+	}
+	if (length == 0) {
+		throw(std::invalid_argument("Asked to read 0 bytes from file: " + imagePath()));
 	}
 	if (m_file.read(buffer, static_cast<unsigned int>(length)) != length) {
 		throw(std::runtime_error("Read wrong number of bytes from file: " + imagePath()));
@@ -800,7 +819,7 @@ void Nifti::writeBytes(size_t start, size_t length, char *buffer) {
 		throw(std::logic_error("Cannot write to closed file: " + imagePath()));
 	}
 	if (m_mode == Mode::Read) {
-		throw(std::logic_error("Cannot write to file opened for writing: " + imagePath()));
+		throw(std::logic_error("Cannot write to file opened for reading: " + imagePath()));
 	}
 	if (length == 0) {
 		throw(std::invalid_argument("Asked to write 0 bytes to file: " + imagePath()));
