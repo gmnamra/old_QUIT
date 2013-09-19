@@ -59,7 +59,7 @@ template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes
   *   @param nEl Number of elements (not bytes) expected in the data
   *   @param data std::vector& to converted data in. Will be resized to ensure enough space.
   */
-template<typename T> void Nifti::convertFromBytes(const std::vector<std::complex<T>> &bytes, const size_t nEl, std::vector<T> &data, const size_t offset) {
+template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes, const size_t nEl, std::vector<std::complex<T>> &data, const size_t offset) {
 	assert(nEl == (bytes.size() / m_typeinfo.size));
 	data.resize(nEl);
 	for (size_t i = 0; i < nEl; i++) {
@@ -142,6 +142,52 @@ template<typename T> std::vector<char> Nifti::convertToBytes(const std::vector<s
 	return bytes;
 }
 
+template<typename T> void Nifti::convertToBytes(std::vector<char> &bytes, const size_t nEl, std::vector<T> &data, const size_t offset) {
+	for (size_t i = 0; i < nEl; i++) {
+		switch (m_typeinfo.type) {
+			case DataType::INT8:              reinterpret_cast<char *>(bytes.data())[i] = static_cast<char>(data[offset + i]); break;
+			case DataType::UINT8:    reinterpret_cast<unsigned char *>(bytes.data())[i] = static_cast<unsigned char>(data[offset + i]); break;
+			case DataType::INT16:            reinterpret_cast<short *>(bytes.data())[i] = static_cast<short>(data[offset + i]); break;
+			case DataType::UINT16:  reinterpret_cast<unsigned short *>(bytes.data())[i] = static_cast<unsigned short>(data[offset + i]); break;
+			case DataType::INT32:              reinterpret_cast<int *>(bytes.data())[i] = static_cast<int>(data[offset + i]); break;
+			case DataType::UINT32:    reinterpret_cast<unsigned int *>(bytes.data())[i] = static_cast<unsigned int>(data[offset + i]); break;
+			case DataType::FLOAT32:          reinterpret_cast<float *>(bytes.data())[i] = static_cast<float>(data[offset + i]); break;
+			case DataType::FLOAT64:         reinterpret_cast<double *>(bytes.data())[i] = static_cast<double>(data[offset + i]); break;
+			case DataType::INT64:             reinterpret_cast<long *>(bytes.data())[i] = static_cast<long>(data[offset + i]); break;
+			case DataType::UINT64:   reinterpret_cast<unsigned long *>(bytes.data())[i] = static_cast<unsigned long>(data[offset + i]); break;
+			case DataType::FLOAT128:   reinterpret_cast<long double *>(bytes.data())[i] = static_cast<long double>(data[offset + i]); break;
+			case DataType::COMPLEX64:  reinterpret_cast<std::complex<float> *>(bytes.data())[i] = std::complex<float>(static_cast<float>(data[offset + i])); break;
+			case DataType::COMPLEX128: reinterpret_cast<std::complex<double> *>(bytes.data())[i] = std::complex<double>(static_cast<double>(data[offset + i])); break;
+			case DataType::COMPLEX256: reinterpret_cast<std::complex<long double> *>(bytes.data())[i] = std::complex<long double>(static_cast<long double>(data[offset + i])); break;
+			case DataType::RGB24: case DataType::RGBA32:
+				throw(std::runtime_error("Unsupported datatype.")); break;
+		}
+	}
+}
+
+template<typename T> void Nifti::convertToBytes(std::vector<char> &bytes, const size_t nEl, std::vector<std::complex<T>> &data, const size_t offset) {
+	for (int i = 0; i < nEl; i++) {
+		switch (m_typeinfo.type) {
+			case DataType::INT8:              reinterpret_cast<char *>(bytes.data())[i] = static_cast<char>(abs(data[offset + i])); break;
+			case DataType::UINT8:    reinterpret_cast<unsigned char *>(bytes.data())[i] = static_cast<unsigned char>(abs(data[offset + i])); break;
+			case DataType::INT16:            reinterpret_cast<short *>(bytes.data())[i] = static_cast<short>(abs(data[offset + i])); break;
+			case DataType::UINT16:  reinterpret_cast<unsigned short *>(bytes.data())[i] = static_cast<unsigned short>(abs(data[offset + i])); break;
+			case DataType::INT32:              reinterpret_cast<int *>(bytes.data())[i] = static_cast<int>(abs(data[offset + i])); break;
+			case DataType::UINT32:    reinterpret_cast<unsigned int *>(bytes.data())[i] = static_cast<unsigned int>(abs(data[offset + i])); break;
+			case DataType::FLOAT32:          reinterpret_cast<float *>(bytes.data())[i] = static_cast<float>(abs(data[offset + i])); break;
+			case DataType::FLOAT64:         reinterpret_cast<double *>(bytes.data())[i] = static_cast<double>(abs(data[offset + i])); break;
+			case DataType::INT64:             reinterpret_cast<long *>(bytes.data())[i] = static_cast<long>(abs(data[offset + i])); break;
+			case DataType::UINT64:   reinterpret_cast<unsigned long *>(bytes.data())[i] = static_cast<unsigned long>(abs(data[offset + i])); break;
+			case DataType::FLOAT128:   reinterpret_cast<long double *>(bytes.data())[i] = static_cast<long double>(abs(data[offset + i])); break;
+			case DataType::COMPLEX64:  reinterpret_cast<std::complex<float> *>(bytes.data())[i] = static_cast<std::complex<float> >(data[offset + i]); break;
+			case DataType::COMPLEX128: reinterpret_cast<std::complex<double> *>(bytes.data())[i] = static_cast<std::complex<double> >(data[offset + i]); break;
+			case DataType::COMPLEX256: reinterpret_cast<std::complex<long double> *>(bytes.data())[i] = static_cast<std::complex<long double> >(data[offset + i]); break;
+			case DataType::RGB24: case DataType::RGBA32:
+				throw(std::runtime_error("Unsupported datatype.")); break;
+		}
+	}
+}
+
 template<typename T> void Nifti::readVolume(const size_t &vol, std::vector<T> &buffer) {
 	size_t bytesPerVolume = voxelsPerVolume() * m_typeinfo.size;
 	std::vector<char> raw(bytesPerVolume);
@@ -191,8 +237,11 @@ template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &star
 			if (m_mode == Nifti::Mode::Read) {
 				readBytes(raw);
 				convertFromBytes<T>(raw, blockSize, data, offset);
-				offset += blockSize;
+			} else {
+				convertToBytes<T>(raw, blockSize, data, offset);
+				writeBytes(raw);
 			}
+			offset += blockSize;
 		} else {
 			//cout << "dim " << dim << " start " << start(dim) << " end " << start(dim) + size(dim) << endl;
 			for (size_t v = start(dim); v < start(dim) + size(dim); v++) {

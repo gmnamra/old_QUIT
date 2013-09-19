@@ -103,14 +103,17 @@ class Nifti {
 		char *readBytes(size_t start, size_t length, char *buffer);
 		void readBytes(std::vector<char> &data);
 		void writeBytes(size_t start, size_t length, char *buffer);
+		void writeBytes(const std::vector<char> & data);
 		void calcStrides();
 		void seekToVoxel(const ArrayXs &target);
 		
 		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const size_t nEl, std::vector<T> &data, const size_t offset = 0);
-		template<typename T> void convertFromBytes(const std::vector<std::complex<T>> &bytes, const size_t nEl, std::vector<T> &data, const size_t offset = 0);
+		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const size_t nEl, std::vector<std::complex<T>> &data, const size_t offset = 0);
 		template<typename T> std::vector<char> convertToBytes(const std::vector<T> &data);
 		template<typename T> std::vector<char> convertToBytes(const std::vector<std::complex<T>> &data);
-		
+		template<typename T> void convertToBytes(std::vector<char> &bytes, const size_t nEl, std::vector<T> &data, const size_t offset = 0);
+		template<typename T> void convertToBytes(std::vector<char> &bytes, const size_t nEl, std::vector<std::complex<T>> &data, const size_t offset = 0);
+				
 	#pragma mark Public Class Methods
 	public:
 		~Nifti();

@@ -830,6 +830,17 @@ void Nifti::writeBytes(size_t start, size_t length, char *buffer) {
 	}
 }
 
+void Nifti::writeBytes(const std::vector<char> &buffer) {
+	if (!((m_mode == Mode::Write) || (m_mode == Mode::WriteSkipExt))) {
+		throw(std::logic_error("File not opened for writing: " + imagePath()));
+	}
+	if (buffer.size() > 0) {
+		if (m_file.write(buffer.data(), static_cast<unsigned int>(buffer.size())) != buffer.size()) {
+			throw(std::runtime_error("Wrote wrong number of bytes from file: " + imagePath()));
+		}
+	}
+}
+
 void Nifti::open(const string &path, const Mode &mode) {
 	size_t lastDot = path.find_last_of(".");
 	string ext;
