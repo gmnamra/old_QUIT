@@ -17,31 +17,15 @@
 #include <limits>
 #include <exception>
 
-using std::string;
-using std::to_string;
-using std::complex;
-using std::vector;
-using std::list;
-using std::map;
-using std::numeric_limits;
-
 #include "Eigen/Core"
 #include "Eigen/Geometry"
 
-using Eigen::Matrix;
-using Eigen::Array;
-using Eigen::ArrayXf;
-using Eigen::Affine3f;
-using Eigen::Scaling;
-using Eigen::Translation3f;
-using Eigen::Quaternionf;
-
 #include "ZipFile.h"
-
-typedef Array<size_t, Eigen::Dynamic, 1> ArrayXs;
 
 #pragma mark NIfTI File Class
 class Nifti {
+	typedef Eigen::Array<size_t, Eigen::Dynamic, 1> ArrayXs;
+	
 	public:
 		enum class Mode : char {
 			Closed = 0, Read = 'r', ReadHeader = 'h', ReadSkipExt = 's', Write = 'w', WriteSkipExt = 'x'
@@ -74,12 +58,12 @@ class Nifti {
 		class Extension {
 			private:
 				int m_code;          //!< Extension code, one of the NIFTI_ECODE_ values
-				vector<char> m_data; //!< Raw data, with no byte swapping (length is esize-8)
+				std::vector<char> m_data; //!< Raw data, with no byte swapping (length is esize-8)
 			
 			public:
 				static const string &CodeName(const int code);
 				
-				Extension(int code, vector<char> data);
+				Extension(int code, std::vector<char> data);
 				Extension(int size, int code, char *data);
 				const int rawSize() const;
 				const int size() const;
@@ -88,8 +72,8 @@ class Nifti {
 				const string &codeName() const;
 				void setCode(int code);
 				
-				const vector<char> &data() const;
-				void setData(const vector<char> &data);
+				const std::vector<char> &data() const;
+				void setData(const std::vector<char> &data);
 		};
 
 	private:
@@ -97,10 +81,10 @@ class Nifti {
 		static const XForm XFormForCode(const int code);
 		static const int XFormCode(const XForm t);
 		
-		Array<size_t, 7, 1> m_dim;      //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
-		Array<size_t, 7, 1> m_strides;  //!< Strides into the data on disk.
-		Array<float, 7, 1> m_voxdim;    //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
-		Affine3f m_qform, m_sform;      //!< Tranformation matrices from voxel indices to physical co-ords.
+		Eigen::Array<size_t, 7, 1> m_dim;      //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
+		Eigen::Array<size_t, 7, 1> m_strides;  //!< Strides into the data on disk.
+		Eigen::Array<float, 7, 1> m_voxdim;    //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
+		Eigen::Affine3f m_qform, m_sform;      //!< Tranformation matrices from voxel indices to physical co-ords.
 		XForm m_qcode, m_scode; //!< Codes to define what the transformations represent.
 		string m_basepath;              //!< Path to file without extension.
 		bool m_nii, m_gz;
@@ -110,7 +94,7 @@ class Nifti {
 		int m_voxoffset;                //!< Offset to start of voxel data.
 		int m_swap;                     //!< True if byte order on disk is different to CPU.
 		
-		list<Extension> m_extensions;
+		std::list<Extension> m_extensions;
 				
 		void readHeader();      //!< Attempts to read a header structure from the currently open file.
 		void readExtensions();  //!< Attempts to read any extensions
@@ -122,34 +106,34 @@ class Nifti {
 		void calcStrides();
 		void seekToVoxel(const ArrayXs &target);
 		
-		template<typename T> void convertFromBytes(const vector<char> &bytes, const size_t nEl, vector<T> &data);
-		template<typename T> void convertFromBytes(const vector<complex<T>> &bytes, const size_t nEl, vector<T> &data);
-		template<typename T> vector<char> convertToBytes(const vector<T> &data);
-		template<typename T> vector<char> convertToBytes(const vector<complex<T>> &data);
+		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const size_t nEl, std::vector<T> &data);
+		template<typename T> void convertFromBytes(const std::vector<std::complex<T>> &bytes, const size_t nEl, std::vector<T> &data);
+		template<typename T> std::vector<char> convertToBytes(const std::vector<T> &data);
+		template<typename T> std::vector<char> convertToBytes(const std::vector<std::complex<T>> &data);
 		
 	#pragma mark Public Class Methods
 	public:
 		~Nifti();
-		Nifti();                              //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
+		Nifti();                               //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
 		Nifti(const Nifti &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
 		Nifti &operator=(const Nifti &other);  //!< Assignment. Copies all elements except file handles, and marks destination as Closed.
 		Nifti(Nifti &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
 		
 		Nifti(const int nx, const int ny, const int nz, const int nt,
 			  const float dx, const float dy, const float dz, const float dt,
-			  const DataType dtype = DataType::FLOAT32, const Affine3f &xform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
-		Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
-			  const DataType dtype = DataType::FLOAT32, const Affine3f &xform = Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
+			  const DataType dtype = DataType::FLOAT32, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
+		Nifti(const ArrayXs &dim, const Eigen::ArrayXf &voxdim,
+			  const DataType dtype = DataType::FLOAT32, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
 		Nifti(const Nifti &other, const size_t nt, const DataType dtype = DataType::FLOAT32);               //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
-		Nifti(const string &filename, const Mode &mode);
+		Nifti(const std::string &filename, const Mode &mode);
 		
-		void open(const string &filename, const Mode &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
+		void open(const std::string &filename, const Mode &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
 		void close();                                         //!< Closes the file
 		bool isOpen();                                        //!< Returns true if file is currently open for reading or writing.
 		
-		const string basePath() const;
-		const string imagePath() const;
-		const string headerPath() const;
+		const std::string basePath() const;
+		const std::string imagePath() const;
+		const std::string headerPath() const;
 		char *readRawVolume(const int vol);
 		char *readRawAllVolumes();
 		
@@ -164,8 +148,8 @@ class Nifti {
 		
 		float voxDim(const size_t d) const;                     //!< Get the voxel size along dimension d. Valid dimensions are 1-7.
 		void setVoxDim(const size_t d, const float f);          //!< Set the voxel size along dimension d. Valid dimensions are 1-7.
-		const ArrayXf voxDims() const;                          //!< Get all voxel sizes.
-		void setVoxDims(const ArrayXf &newVoxDims);             //!< Set all voxel sizes.
+		const Eigen::ArrayXf voxDims() const;                          //!< Get all voxel sizes.
+		void setVoxDims(const Eigen::ArrayXf &newVoxDims);             //!< Set all voxel sizes.
 		
 		const DataType &datatype() const;
 		void setDatatype(const DataType dt);
@@ -175,10 +159,10 @@ class Nifti {
 		float calibration_min;
 		float calibration_max;
 		
-		void setTransform(const Affine3f &t, const XForm tc = XForm::ScannerAnatomy); //!< Set the qform and sform from a 4x4 general matrix. The qform will be set to closest matching linear XForm, the sform will be an exact copy.
-		const Affine3f &transform() const;            //!< Return the XForm with the highest priority.
-		const Affine3f &qform() const;                //!< Return just the qform.
-		const Affine3f &sform() const;                //!< Return just the sform.
+		void setTransform(const Eigen::Affine3f &t, const XForm tc = XForm::ScannerAnatomy); //!< Set the qform and sform from a 4x4 general matrix. The qform will be set to closest matching linear XForm, the sform will be an exact copy.
+		const Eigen::Affine3f &transform() const;            //!< Return the XForm with the highest priority.
+		const Eigen::Affine3f &qform() const;                //!< Return just the qform.
+		const Eigen::Affine3f &sform() const;                //!< Return just the sform.
 		const XForm qcode() const;               //!< Find out what transformation the qform represents.
 		const XForm scode() const;               //!< Find out what transformation the sform represents.
 		
@@ -201,33 +185,33 @@ class Nifti {
 		float intent_p1 ;             //!< intent parameters
 		float intent_p2 ;             //!< intent parameters
 		float intent_p3 ;             //!< intent parameters
-		string intent_name;           //!< optional description of intent data
-		string description;           //!< optional text to describe dataset
-		string aux_file;              //!< auxiliary filename
+		std::string intent_name;      //!< optional description of intent data
+		std::string description;      //!< optional text to describe dataset
+		std::string aux_file;         //!< auxiliary filename
 		
-		const string &spaceUnits() const;
-		const string &timeUnits() const;
-		const string &intentName() const;
-		const string &sliceName() const;
+		const std::string &spaceUnits() const;
+		const std::string &timeUnits() const;
+		const std::string &intentName() const;
+		const std::string &sliceName() const;
 		
-		void addExtension(const int code, const vector<char> &data);
+		void addExtension(const int code, const std::vector<char> &data);
 		void addExtension(const Extension &e);
-		const list<Extension> &extensions() const;
+		const std::list<Extension> &extensions() const;
 		
-		template<typename T> void readVolume(const size_t &vol, vector<T> &buffer);
-		template<typename T> vector<T> readVolume(const size_t &vol);
-		template<typename T> void readAllVolumes(vector<T> &buffer);
-		template<typename T> vector<T> readAllVolumes();
+		template<typename T> void readVolume(const size_t &vol, std::vector<T> &buffer);
+		template<typename T> std::vector<T> readVolume(const size_t &vol);
+		template<typename T> void readAllVolumes(std::vector<T> &buffer);
+		template<typename T> std::vector<T> readAllVolumes();
 		template<typename T> void readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
 		                                        const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et,
-												vector<T> &buffer);
+												std::vector<T> &buffer);
 		template<typename T> void readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
 		                                        const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et);
-		template<typename T> void writeVolume(const size_t vol, const vector<T> &data);
-		template<typename T> void writeAllVolumes(const vector<T> &data);
+		template<typename T> void writeVolume(const size_t vol, const std::vector<T> &data);
+		template<typename T> void writeAllVolumes(const std::vector<T> &data);
 		template<typename T> void writeSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
 												 const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et,
-												 const vector<T> &data);
+												 const std::vector<T> &data);
 };
 
 #include "Nifti-inl.h"

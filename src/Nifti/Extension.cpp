@@ -9,6 +9,9 @@
 #include "Nifti/Nifti.h"
 #include "Nifti/ExtensionCodes.h"
 
+using std::map;
+using std::vector;
+
 //*********************************
 #pragma mark Methods for Extension
 //*********************************

@@ -22,7 +22,7 @@
   *   @param nEl Number of elements (not bytes) expected in the data
   *   @param data std::vector& to converted data in. Will be resized to ensure enough space.
   */
-template<typename T> void Nifti::convertFromBytes(const vector<char> &bytes, const size_t nEl, vector<T> &data) {
+template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes, const size_t nEl, std::vector<T> &data) {
 	assert(nEl == (bytes.size() / m_typeinfo.size));
 	data.resize(nEl);
 	for (size_t i = 0; i < nEl; i++) {
@@ -40,9 +40,9 @@ template<typename T> void Nifti::convertFromBytes(const vector<char> &bytes, con
 			case DataType::FLOAT128:  data[i] = static_cast<T>(reinterpret_cast<const long double *>(bytes.data())[i]); break;
 			// NOTE: C++11 specifies that C++ 'complex<type>' and C 'type complex'
 			// should be interchangeable even at pointer level
-			case DataType::COMPLEX64:  data[i] = static_cast<T>(abs(reinterpret_cast<const complex<float> *>(bytes.data())[i])); break;
-			case DataType::COMPLEX128: data[i] = static_cast<T>(abs(reinterpret_cast<const complex<double> *>(bytes.data())[i])); break;
-			case DataType::COMPLEX256: data[i] = static_cast<T>(abs(reinterpret_cast<const complex<long double> *>(bytes.data())[i])); break;
+			case DataType::COMPLEX64:  data[i] = static_cast<T>(abs(reinterpret_cast<const std::complex<float> *>(bytes.data())[i])); break;
+			case DataType::COMPLEX128: data[i] = static_cast<T>(abs(reinterpret_cast<const std::complex<double> *>(bytes.data())[i])); break;
+			case DataType::COMPLEX256: data[i] = static_cast<T>(abs(reinterpret_cast<const std::complex<long double> *>(bytes.data())[i])); break;
 			case DataType::RGB24: case DataType::RGBA32:
 				throw(std::runtime_error("Unsupported datatype.")); break;
 		}
@@ -61,25 +61,25 @@ template<typename T> void Nifti::convertFromBytes(const vector<char> &bytes, con
   *   @param nEl Number of elements (not bytes) expected in the data
   *   @param data std::vector& to converted data in. Will be resized to ensure enough space.
   */
-template<typename T> void Nifti::convertFromBytes(const vector<complex<T>> &bytes, const size_t nEl, vector<T> &data) {
+template<typename T> void Nifti::convertFromBytes(const std::vector<std::complex<T>> &bytes, const size_t nEl, std::vector<T> &data) {
 	assert(nEl == (bytes.size() / m_typeinfo.size));
 	data.resize(nEl);
 	for (size_t i = 0; i < nEl; i++) {
 		switch (m_typeinfo.type) {
-			case DataType::INT8:      data[i] = complex<T>(static_cast<T>(reinterpret_cast<const char *>(bytes.data())[i]), 0.); break;
-			case DataType::UINT8:     data[i] = complex<T>(static_cast<T>(reinterpret_cast<const unsigned char *>(bytes.data())[i]), 0.); break;
-			case DataType::INT16:     data[i] = complex<T>(static_cast<T>(reinterpret_cast<const short *>(bytes.data())[i]), 0.); break;
-			case DataType::UINT16:    data[i] = complex<T>(static_cast<T>(reinterpret_cast<const unsigned short *>(bytes.data())[i]), 0.); break;
-			case DataType::INT32:     data[i] = complex<T>(static_cast<T>(reinterpret_cast<const int *>(bytes.data())[i]), 0.); break;
-			case DataType::UINT32:    data[i] = complex<T>(static_cast<T>(reinterpret_cast<const unsigned int *>(bytes.data())[i]), 0.); break;
-			case DataType::FLOAT32:   data[i] = complex<T>(static_cast<T>(reinterpret_cast<const float *>(bytes.data())[i]), 0.); break;
-			case DataType::FLOAT64:   data[i] = complex<T>(static_cast<T>(reinterpret_cast<const double *>(bytes.data())[i]), 0.); break;
-			case DataType::INT64:     data[i] = complex<T>(static_cast<T>(reinterpret_cast<const long *>(bytes.data())[i]), 0.); break;
-			case DataType::UINT64:    data[i] = complex<T>(static_cast<T>(reinterpret_cast<const unsigned long *>(bytes.data())[i]), 0.); break;
-			case DataType::FLOAT128:  data[i] = complex<T>(static_cast<T>(reinterpret_cast<const long double *>(bytes.data())[i]), 0.); break;
-			case DataType::COMPLEX64:  data[i] = static_cast<complex<T> >(reinterpret_cast<const complex<float> *>(bytes.data())[i]); break;
-			case DataType::COMPLEX128: data[i] = static_cast<complex<T> >(reinterpret_cast<const complex<double> *>(bytes.data())[i]); break;
-			case DataType::COMPLEX256: data[i] = static_cast<complex<T> >(reinterpret_cast<const complex<long double> *>(bytes.data())[i]); break;
+			case DataType::INT8:      data[i] = std::complex<T>(static_cast<T>(reinterpret_cast<const char *>(bytes.data())[i]), 0.); break;
+			case DataType::UINT8:     data[i] = std::complex<T>(static_cast<T>(reinterpret_cast<const unsigned char *>(bytes.data())[i]), 0.); break;
+			case DataType::INT16:     data[i] = std::complex<T>(static_cast<T>(reinterpret_cast<const short *>(bytes.data())[i]), 0.); break;
+			case DataType::UINT16:    data[i] = std::complex<T>(static_cast<T>(reinterpret_cast<const unsigned short *>(bytes.data())[i]), 0.); break;
+			case DataType::INT32:     data[i] = std::complex<T>(static_cast<T>(reinterpret_cast<const int *>(bytes.data())[i]), 0.); break;
+			case DataType::UINT32:    data[i] = std::complex<T>(static_cast<T>(reinterpret_cast<const unsigned int *>(bytes.data())[i]), 0.); break;
+			case DataType::FLOAT32:   data[i] = std::complex<T>(static_cast<T>(reinterpret_cast<const float *>(bytes.data())[i]), 0.); break;
+			case DataType::FLOAT64:   data[i] = std::complex<T>(static_cast<T>(reinterpret_cast<const double *>(bytes.data())[i]), 0.); break;
+			case DataType::INT64:     data[i] = std::complex<T>(static_cast<T>(reinterpret_cast<const long *>(bytes.data())[i]), 0.); break;
+			case DataType::UINT64:    data[i] = std::complex<T>(static_cast<T>(reinterpret_cast<const unsigned long *>(bytes.data())[i]), 0.); break;
+			case DataType::FLOAT128:  data[i] = std::complex<T>(static_cast<T>(reinterpret_cast<const long double *>(bytes.data())[i]), 0.); break;
+			case DataType::COMPLEX64:  data[i] = static_cast<std::complex<T> >(reinterpret_cast<const std::complex<float> *>(bytes.data())[i]); break;
+			case DataType::COMPLEX128: data[i] = static_cast<std::complex<T> >(reinterpret_cast<const std::complex<double> *>(bytes.data())[i]); break;
+			case DataType::COMPLEX256: data[i] = static_cast<std::complex<T> >(reinterpret_cast<const std::complex<long double> *>(bytes.data())[i]); break;
 			case DataType::RGB24: case DataType::RGBA32:
 				throw(std::runtime_error("Unsupported datatype.")); break;
 		}
@@ -90,12 +90,12 @@ template<typename T> void Nifti::convertFromBytes(const vector<complex<T>> &byte
   *   Internal function to convert data to the internal NIfTI datatype.
   *
   *   Converts from the templated type to a sequence of bytes suitable for writing to a NIfTI image.
-  *   @param data std::vector of the data.
+  *   @param data std::std::vector of the data.
   *   @param T Desired datatype. Valid (scalar) conversions must exist.
-  *   @return std::vector of the data stored in a byte array.
+  *   @return std::std::vector of the data stored in a byte array.
   */
-template<typename T> vector<char> Nifti::convertToBytes(const vector<T> &data) {
-	vector<char> bytes(data.size() * m_typeinfo.size);
+template<typename T> std::vector<char> Nifti::convertToBytes(const std::vector<T> &data) {
+	std::vector<char> bytes(data.size() * m_typeinfo.size);
 	for (size_t i = 0; i < data.size(); i++) {
 		switch (m_typeinfo.type) {
 			case DataType::INT8:              reinterpret_cast<char *>(bytes.data())[i] = static_cast<char>(data[i]); break;
@@ -109,9 +109,9 @@ template<typename T> vector<char> Nifti::convertToBytes(const vector<T> &data) {
 			case DataType::INT64:             reinterpret_cast<long *>(bytes.data())[i] = static_cast<long>(data[i]); break;
 			case DataType::UINT64:   reinterpret_cast<unsigned long *>(bytes.data())[i] = static_cast<unsigned long>(data[i]); break;
 			case DataType::FLOAT128:   reinterpret_cast<long double *>(bytes.data())[i] = static_cast<long double>(data[i]); break;
-			case DataType::COMPLEX64:  reinterpret_cast<complex<float> *>(bytes.data())[i] = complex<float>(static_cast<float>(data[i])); break;
-			case DataType::COMPLEX128: reinterpret_cast<complex<double> *>(bytes.data())[i] = complex<double>(static_cast<double>(data[i])); break;
-			case DataType::COMPLEX256: reinterpret_cast<complex<long double> *>(bytes.data())[i] = complex<long double>(static_cast<long double>(data[i])); break;
+			case DataType::COMPLEX64:  reinterpret_cast<std::complex<float> *>(bytes.data())[i] = std::complex<float>(static_cast<float>(data[i])); break;
+			case DataType::COMPLEX128: reinterpret_cast<std::complex<double> *>(bytes.data())[i] = std::complex<double>(static_cast<double>(data[i])); break;
+			case DataType::COMPLEX256: reinterpret_cast<std::complex<long double> *>(bytes.data())[i] = std::complex<long double>(static_cast<long double>(data[i])); break;
 			case DataType::RGB24: case DataType::RGBA32:
 				throw(std::runtime_error("Unsupported datatype.")); break;
 		}
@@ -119,8 +119,8 @@ template<typename T> vector<char> Nifti::convertToBytes(const vector<T> &data) {
 	return bytes;
 }
 
-template<typename T> vector<char> Nifti::convertToBytes(const vector<complex<T>> &data) {
-	vector<char> bytes(data.size() * m_typeinfo.size);
+template<typename T> std::vector<char> Nifti::convertToBytes(const std::vector<std::complex<T>> &data) {
+	std::vector<char> bytes(data.size() * m_typeinfo.size);
 	for (int i = 0; i < data.size(); i++) {
 		switch (m_typeinfo.type) {
 			case DataType::INT8:              reinterpret_cast<char *>(bytes.data())[i] = static_cast<char>(abs(data[i])); break;
@@ -134,9 +134,9 @@ template<typename T> vector<char> Nifti::convertToBytes(const vector<complex<T>>
 			case DataType::INT64:             reinterpret_cast<long *>(bytes.data())[i] = static_cast<long>(abs(data[i])); break;
 			case DataType::UINT64:   reinterpret_cast<unsigned long *>(bytes.data())[i] = static_cast<unsigned long>(abs(data[i])); break;
 			case DataType::FLOAT128:   reinterpret_cast<long double *>(bytes.data())[i] = static_cast<long double>(abs(data[i])); break;
-			case DataType::COMPLEX64:  reinterpret_cast<complex<float> *>(bytes.data())[i] = static_cast<complex<float> >(data[i]); break;
-			case DataType::COMPLEX128: reinterpret_cast<complex<double> *>(bytes.data())[i] = static_cast<complex<double> >(data[i]); break;
-			case DataType::COMPLEX256: reinterpret_cast<complex<long double> *>(bytes.data())[i] = static_cast<complex<long double> >(data[i]); break;
+			case DataType::COMPLEX64:  reinterpret_cast<std::complex<float> *>(bytes.data())[i] = static_cast<std::complex<float> >(data[i]); break;
+			case DataType::COMPLEX128: reinterpret_cast<std::complex<double> *>(bytes.data())[i] = static_cast<std::complex<double> >(data[i]); break;
+			case DataType::COMPLEX256: reinterpret_cast<std::complex<long double> *>(bytes.data())[i] = static_cast<std::complex<long double> >(data[i]); break;
 			case DataType::RGB24: case DataType::RGBA32:
 				throw(std::runtime_error("Unsupported datatype.")); break;
 		}
@@ -144,27 +144,27 @@ template<typename T> vector<char> Nifti::convertToBytes(const vector<complex<T>>
 	return bytes;
 }
 
-template<typename T> void Nifti::readVolume(const size_t &vol, vector<T> &buffer) {
+template<typename T> void Nifti::readVolume(const size_t &vol, std::vector<T> &buffer) {
 	size_t bytesPerVolume = voxelsPerVolume() * m_typeinfo.size;
-	vector<char> raw(bytesPerVolume);
+	std::vector<char> raw(bytesPerVolume);
 	readBytes(vol * bytesPerVolume, bytesPerVolume, raw.data());
 	convertFromBytes(raw, voxelsPerVolume(), buffer);
 }
 
-template<typename T> vector<T> Nifti::readVolume(const size_t &vol) {
-	vector<T> buffer;
+template<typename T> std::vector<T> Nifti::readVolume(const size_t &vol) {
+	std::vector<T> buffer;
 	readVolume(vol, buffer);
 	return buffer;
 }
 
-template<typename T> void Nifti::readAllVolumes(vector<T> &buffer) {
-	vector<char> raw(voxelsTotal() * m_typeinfo.size);
+template<typename T> void Nifti::readAllVolumes(std::vector<T> &buffer) {
+	std::vector<char> raw(voxelsTotal() * m_typeinfo.size);
 	readBytes(0, voxelsTotal() * m_typeinfo.size, raw.data());
 	return convertFromBytes<T>(raw, voxelsTotal(), buffer);
 }
 
-template<typename T> vector<T> Nifti::readAllVolumes() {
-	vector<T> buffer;
+template<typename T> std::vector<T> Nifti::readAllVolumes() {
+	std::vector<T> buffer;
 	readAllVolumes(buffer);
 	return buffer;
 }
@@ -175,12 +175,12 @@ template<typename T> vector<T> Nifti::readAllVolumes() {
   *   Converts to the templated type from the NIfTI datatype.
   *   @param sx, sy, sz, st - Start voxels for each dimension.
   *   @param ex, ey, ez, et - End voxels for each dimension. Values are clamped to dimension sizes.
-  *   @param buffer std::vector to store the data.
+  *   @param buffer std::std::vector to store the data.
   *
   */
 template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
 										      const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et,
-										      vector<T> &buffer) {
+										      std::vector<T> &buffer) {
 	size_t lx, ly, lz, lt, total, toRead;
 	lx = ((ex > dim(1)) ? dim(1) : ex) - sx;
 	ly = ((ey > dim(2)) ? dim(2) : ey) - sy;
@@ -208,7 +208,7 @@ template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &s
 		ly = 1;
 	}
 				
-	vector<char> raw(total * m_typeinfo.size);
+	std::vector<char> raw(total * m_typeinfo.size);
 	char *nextRead = raw.data();
 	for (size_t t = st; t < st+lt; t++) {
 		size_t tOff = t * voxelsPerVolume();
@@ -226,24 +226,24 @@ template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &s
 
 template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
 										const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et) {
-	vector<T> buffer;
+	std::vector<T> buffer;
 	readSubvolume(sx, sy, sz, st, ex, ey, ez, et, buffer);
 	return buffer;
 }
 
-template<typename T> void Nifti::writeVolume(const size_t vol, const vector<T> &data) {
+template<typename T> void Nifti::writeVolume(const size_t vol, const std::vector<T> &data) {
 	if (data.size() != voxelsPerVolume()) {
 		throw(std::invalid_argument("Insufficient data to write volume for file: " + imagePath()));
 	}
-	vector<char> converted = convertToBytes(data);
+	std::vector<char> converted = convertToBytes(data);
 	writeBytes(vol * voxelsPerVolume() * m_typeinfo.size, converted.size(), converted.data());
 }
 
-template<typename T> void Nifti::writeAllVolumes(const vector<T> &data) {
+template<typename T> void Nifti::writeAllVolumes(const std::vector<T> &data) {
 	if (data.size() != voxelsTotal()) {
 		throw(std::invalid_argument("Insufficient data to write all volumes for file: " + imagePath()));
 	}
-	vector<char> converted = convertToBytes(data);
+	std::vector<char> converted = convertToBytes(data);
 	writeBytes(0, converted.size(), converted.data());
 }
 
@@ -253,12 +253,12 @@ template<typename T> void Nifti::writeAllVolumes(const vector<T> &data) {
   *   Converts from the templated type to a sequence of bytes suitable for writing to a NIfTI image.
   *   @param sx, sy, sz, st - Start voxels for each dimension.
   *   @param ex, ey, ez, et - End voxels for each dimension. Values are clamped to dimension sizes.
-  *   @param data std::vector of the data.
+  *   @param data std::std::vector of the data.
   *
   */
 template<typename T> void Nifti::writeSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
 										       const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et,
-										       const vector<T> &data) {
+										       const std::vector<T> &data) {
 	size_t lx, ly, lz, lt, total, toWrite;
 	lx = ((ex > dim(1)) ? dim(1) : ex) - sx;
 	ly = ((ey > dim(2)) ? dim(2) : ey) - sy;
@@ -290,7 +290,7 @@ template<typename T> void Nifti::writeSubvolume(const size_t &sx, const size_t &
 	}
 	toWrite *= m_typeinfo.size;
 	
-	vector<char> raw = convertToBytes(data);
+	std::vector<char> raw = convertToBytes(data);
 	char *nextWrite = raw.data();
 	for (size_t t = st; t < st+lt; t++) {
 		size_t tOff = t * voxelsPerVolume();

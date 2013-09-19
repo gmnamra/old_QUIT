@@ -1,6 +1,21 @@
 #include "Nifti/Nifti.h"
 #include "Nifti/Internal.h"
 
+using std::string;
+using std::to_string;
+using std::complex;
+using std::vector;
+using std::list;
+using std::map;
+using std::numeric_limits;
+using Eigen::Matrix;
+using Eigen::Array;
+using Eigen::ArrayXf;
+using Eigen::Affine3f;
+using Eigen::Scaling;
+using Eigen::Translation3f;
+using Eigen::Quaternionf;
+
 const Nifti::DataType Nifti::DataTypeForCode(const int code) {
 	static const map<int, DataType> c2dt{
 		{NIFTI_TYPE_UINT8, DataType::UINT8},
@@ -922,7 +937,7 @@ void Nifti::setDim(const size_t d, const size_t n) {
 		throw(std::logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
 }
-const ArrayXs Nifti::dims() const { return m_dim.head(dimensions()); }
+const Nifti::ArrayXs Nifti::dims() const { return m_dim.head(dimensions()); }
 void Nifti::setDims(const ArrayXs &n) {
 	if (m_mode == Mode::Closed) {
 		assert(n.rows() <= m_voxdim.rows());
