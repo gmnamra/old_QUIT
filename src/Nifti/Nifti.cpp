@@ -1007,7 +1007,7 @@ const Affine3f &Nifti::transform() const {
 		return m_qform;
 }
 void Nifti::setTransform(const Affine3f &t, const XForm tc) {
-	m_qform = t.linear();
+	m_qform = t;
 	m_sform = t;
 	m_qcode = tc;
 	m_scode = tc;
