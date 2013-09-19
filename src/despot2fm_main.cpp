@@ -307,7 +307,8 @@ int main(int argc, char **argv)
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// -ve T1 is non-sensical, no point fitting
 				voxCount++;
-				ArrayXd weights(d2fm.values());
+				ArrayXd weights(locald2.values());
+				ArrayXd thresh = locald2.defaultThresholds();
 				weights.setConstant(1.0);
 				float biggest_signal = 0.;
 				size_t w_start, w_size, index = 0;
@@ -334,8 +335,8 @@ int main(int argc, char **argv)
 				weights.segment(w_start, w_size).setConstant(weighting);
 				// DESPOT2-FM
 				locald2.setT1(T1Data.at(sliceOffset + vox));
-				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights,
-				                                samples, retain, contract, 0.05, expand, (voxI != -1));
+				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights, thresh,
+				                                samples, retain, contract, expand, (voxI != -1));
 				// Add the voxel number to the time to get a decent random seed
 				size_t rSeed = time(NULL) + vox;
 				rc.optimise(params, rSeed);

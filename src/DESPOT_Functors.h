@@ -459,6 +459,14 @@ class DESPOT2FM : public DESPOTFunctor {
 			return b;
 		}
 		
+		const ArrayXd defaultThresholds() {
+			ArrayXd m(inputs());
+			m.head(nP()) << 0.05, 0.05;
+			m.segment(nP(), nOffRes()).setConstant(0.1);
+			m.tail(nPD()).setConstant(0.1);
+			return m;
+		}
+		
 		const bool constraint(const VectorXd &params) const override {
 			if (params[0] < 0.)
 				return false;
