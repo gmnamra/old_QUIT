@@ -12,7 +12,8 @@
 #include <getopt.h>
 
 #include "fdf.h"
-#include "Nifti.h"
+#include "Nifti/Nifti.h"
+#include "Nifti/ExtensionCodes.h"
 
 using namespace std;
 
@@ -99,7 +100,7 @@ int main(int argc, char **argv) {
 				throw(invalid_argument("Selected echo was above the maximum."));
 			}
 			try {
-				Nifti::File output(input.dims(), (input.voxdims() * scale).cast<float>(), DT_FLOAT32, input.transform().cast<float>());
+				Nifti output(input.dims(), (input.voxdims() * scale).cast<float>(), Nifti::DataType::FLOAT32, input.transform().cast<float>());
 				output.setDim(4, nOutImages);
 				if (procpar) {
 					ifstream pp_file(inPath + "/procpar", ios::binary);
@@ -110,7 +111,7 @@ int main(int argc, char **argv) {
 					data.assign(istreambuf_iterator<char>(pp_file), istreambuf_iterator<char>());
 					output.addExtension(NIFTI_ECODE_COMMENT, data);
 				}
-				output.open(outPath, Nifti::Modes::Write);
+				output.open(outPath, Nifti::Mode::Write);
 				size_t outVol = 0;
 				for (size_t inVol = 0; inVol < input.dim(3); inVol++) {
 					if (verbose)

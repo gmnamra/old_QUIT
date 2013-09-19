@@ -12,7 +12,8 @@
 #include <vector>
 #include <getopt.h>
 
-#include "Nifti.h"
+#include "Nifti/Nifti.h"
+#include "Nifti/ExtensionCodes.h"
 #include "procpar.h"
 
 using namespace std;
@@ -73,7 +74,7 @@ int main(int argc, char **argv) {
 				}
 				pps.push_back(pp);
 			} else {
-				Nifti::File nii(p, Nifti::Modes::ReadHeader);
+				Nifti nii(p, Nifti::Mode::ReadHeader);
 				const list<Nifti::Extension> &exts = nii.extensions();
 				for (auto &e : exts) {
 					if (e.code() == NIFTI_ECODE_COMMENT) {

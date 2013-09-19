@@ -59,7 +59,7 @@ int main(int argc, const char * argv[])
 		}
 	}
 	
-	Nifti::File output;
+	Nifti output;
 	output.setDim(1, thisFid.nDim0());
 	output.setDim(2, thisFid.nDim1());
 	output.setDim(3, thisFid.nDim2());
