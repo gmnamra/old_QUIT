@@ -1,5 +1,5 @@
 /** \file Nifti-inl.h
- \brief Definitions of templated IO code for Nifti::File
+ \brief Definitions of templated IO code for Nifti
  - Written by Tobias Wood, IoP KCL
  - Based on nifti1_io.h (Thanks to Robert Cox et al)
  - This code is released to the public domain. Do with it what you will.
