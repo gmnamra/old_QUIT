@@ -101,13 +101,13 @@ class Nifti {
 		void writeExtensions(); //!< Attempts to write extensions
 		int totalExtensionSize(); //!< Counts the total number of bytes for all extensions.
 		char *readBytes(size_t start, size_t length, char *buffer);
-		char *readBytes(size_t length, char *buffer);
+		void readBytes(std::vector<char> &data);
 		void writeBytes(size_t start, size_t length, char *buffer);
 		void calcStrides();
 		void seekToVoxel(const ArrayXs &target);
 		
-		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const size_t nEl, std::vector<T> &data);
-		template<typename T> void convertFromBytes(const std::vector<std::complex<T>> &bytes, const size_t nEl, std::vector<T> &data);
+		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const size_t nEl, std::vector<T> &data, const size_t offset = 0);
+		template<typename T> void convertFromBytes(const std::vector<std::complex<T>> &bytes, const size_t nEl, std::vector<T> &data, const size_t offset = 0);
 		template<typename T> std::vector<char> convertToBytes(const std::vector<T> &data);
 		template<typename T> std::vector<char> convertToBytes(const std::vector<std::complex<T>> &data);
 		

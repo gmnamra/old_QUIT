@@ -791,19 +791,17 @@ char *Nifti::readBytes(size_t start, size_t length, char *buffer) {
 	return buffer;
 }
 
-char *Nifti::readBytes(size_t length, char *buffer) {
+void Nifti::readBytes(std::vector<char> &buffer) {
 	if (!((m_mode == Mode::Read) || (m_mode == Mode::ReadSkipExt))) {
 		throw(std::logic_error("File not opened for reading: " + imagePath()));
 	}
-	if (length == 0) {
-		throw(std::invalid_argument("Asked to read 0 bytes from file: " + imagePath()));
+	if (buffer.size() > 0) {
+		if (m_file.read(buffer.data(), static_cast<unsigned int>(buffer.size())) != buffer.size()) {
+			throw(std::runtime_error("Read wrong number of bytes from file: " + imagePath()));
+		}
+		if (m_typeinfo.swapsize > 1 && m_swap)
+			swapBytes(buffer.size() / m_typeinfo.swapsize, m_typeinfo.swapsize, buffer.data());
 	}
-	if (m_file.read(buffer, static_cast<unsigned int>(length)) != length) {
-		throw(std::runtime_error("Read wrong number of bytes from file: " + imagePath()));
-	}
-	if (m_typeinfo.swapsize > 1 && m_swap)
-		swapBytes(length / m_typeinfo.swapsize, m_typeinfo.swapsize, buffer);
-	return buffer;
 }
 
 /**
