@@ -40,14 +40,14 @@ class Nifti {
 		struct DataTypeInfo {
 			DataType type;
 			size_t code, size, swapsize;
-			string name;
+			std::string name;
 		}; //!< Contains all the information needed to read/write a Nifti datatype
 		static const DataTypeInfo &TypeInfo(const DataType dt);
 		
 		enum class XForm {
 			Unknown, ScannerAnatomy, AlignedAnatomy, Talairach, MNI_152
 		};
-		static const string XFormName(const XForm t);
+		static const std::string XFormName(const XForm t);
 		
 		/*
 		 *  Nifti Extension Class.
@@ -61,7 +61,7 @@ class Nifti {
 				std::vector<char> m_data; //!< Raw data, with no byte swapping (length is esize-8)
 			
 			public:
-				static const string &CodeName(const int code);
+				static const std::string &CodeName(const int code);
 				
 				Extension(int code, std::vector<char> data);
 				Extension(int size, int code, char *data);
@@ -69,7 +69,7 @@ class Nifti {
 				const int size() const;
 				const int padding() const;
 				const int code() const;
-				const string &codeName() const;
+				const std::string &codeName() const;
 				void setCode(int code);
 				
 				const std::vector<char> &data() const;
@@ -85,8 +85,8 @@ class Nifti {
 		Eigen::Array<size_t, 7, 1> m_strides;  //!< Strides into the data on disk.
 		Eigen::Array<float, 7, 1> m_voxdim;    //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
 		Eigen::Affine3f m_qform, m_sform;      //!< Tranformation matrices from voxel indices to physical co-ords.
-		XForm m_qcode, m_scode; //!< Codes to define what the transformations represent.
-		string m_basepath;              //!< Path to file without extension.
+		XForm m_qcode, m_scode;                //!< Codes to define what the transformations represent.
+		std::string m_basepath;                //!< Path to file without extension.
 		bool m_nii, m_gz;
 		Mode m_mode;                    //!< Whether the file is closed or open for reading/writing.
 		ZipFile m_file;

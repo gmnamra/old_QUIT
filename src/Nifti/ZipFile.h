@@ -12,9 +12,7 @@
 #include <cstdio>
 #include <string>
 #include <limits>
-
-using std::string;
-using std::numeric_limits;
+#include <exception>
 
 #include <zlib.h>
 
@@ -28,7 +26,7 @@ class ZipFile {
 		
 	public:
 		ZipFile();
-		bool open(const string &path, const string &mode, const bool zip);
+		bool open(const std::string &path, const std::string &mode, const bool zip);
 		void close();
 		size_t read(void *buff, unsigned size);   //!< Attempts to reads size bytes from the image file to buff. Returns actual number read.
 		size_t write(const void *buff, int size); //!< Attempts to write size bytes from buff to the image file. Returns actual number written.

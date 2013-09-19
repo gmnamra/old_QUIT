@@ -8,6 +8,8 @@
 
 #include "Nifti/ZipFile.h"
 
+using namespace std;
+
 //******************************
 #pragma mark Methods for ZipFile
 //******************************
@@ -79,7 +81,7 @@ size_t ZipFile::read(void *buff, unsigned size) {
 size_t ZipFile::write(const void *buff, int size)
 {
 	if (buff == nullptr) {
-		throw(std::invalid_argument("Attempted to write data from null pointer."));
+		return 0;
 	}
 	if (m_gzipFile) {
 		unsigned remaining = size, totalWritten = 0;

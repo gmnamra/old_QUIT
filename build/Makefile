@@ -29,9 +29,8 @@ INCLUDE = -I$(INC_DIR) -I$(EIGEN)
 
 # Source files for libNifti
 
-NIFTI_BASE = Nifti
+NIFTI_BASE = Nifti Internal ZipFile Extension
 NIFTI_OBJ  = $(patsubst %, $(OBJ_DIR)/%.o, $(NIFTI_BASE))
-NIFTI_HDR  = $(patsubst %, $(SRC_DIR)/%.h, $(NIFTI_BASE)) $(SRC_DIR)/nifti1.h
 
 # General Build Rule
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
@@ -53,7 +52,7 @@ all     : $(TARGETS)
 
 install : | $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB)
 	mkdir $(INSTALL_INC)/Nifti
-	cp $(NIFTI_HDR) $(INSTALL_INC)/Nifti/
+	cp $(SRC_DIR)/Nifti.h $(SRC_DIR)/ExtensionCodes.h $(SRC_DIR)/Nifti-inl.h $(SRC_DIR)/ZipFile.h $(INSTALL_INC)/Nifti/
 	cp libNifti.a $(INSTALL_LIB)/
 	cp nifti_hdr $(INSTALL_BIN)/
 
