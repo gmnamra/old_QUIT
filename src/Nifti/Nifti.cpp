@@ -217,7 +217,7 @@ Nifti::~Nifti()
 Nifti::Nifti() :
 	m_mode(Mode::Closed), m_gz(false), m_nii(false), m_swap(false), m_voxoffset(0),
 	m_dim(Array<size_t, 7, 1>::Ones()), m_voxdim(Array<float, 7, 1>::Ones()),
-	m_basepath(""), m_datatype(DataType::FLOAT32),
+	m_basepath(""), m_typeinfo(TypeInfo(DataType::FLOAT32)),
 	m_qcode(XForm::Unknown), m_scode(XForm::Unknown),
 	scaling_slope(1.), scaling_inter(0.), calibration_min(0.), calibration_max(0.),
 	freq_dim(0), phase_dim(0), slice_dim(0),
@@ -235,7 +235,7 @@ Nifti::Nifti(const Nifti &other) :
 	m_dim(other.m_dim), m_voxdim(other.m_voxdim),
 	m_qform(other.m_qform), m_sform(other.m_sform),
 	m_qcode(other.m_qcode), m_scode(other.m_scode),
-	m_datatype(other.m_datatype), m_basepath(other.m_basepath), m_file(),
+	m_typeinfo(other.m_typeinfo), m_basepath(other.m_basepath), m_file(),
 	m_extensions(other.m_extensions),
 	scaling_slope(other.scaling_slope), scaling_inter(other.scaling_inter),
 	calibration_min(other.calibration_min), calibration_max(other.calibration_max),
@@ -262,7 +262,7 @@ Nifti::Nifti(const Nifti &other, const size_t nt, const DataType dtype) : Nifti(
 	m_qform = other.m_qform; m_sform = other.m_sform;
 	m_qcode = other.m_qcode; m_scode = other.m_scode;
 	xyz_units = other.xyz_units;
-	m_datatype = dtype;
+	m_typeinfo = TypeInfo(dtype);
 }
 
 Nifti::Nifti(Nifti &&other) noexcept :
@@ -271,7 +271,7 @@ Nifti::Nifti(Nifti &&other) noexcept :
 	m_dim(other.m_dim), m_voxdim(other.m_voxdim),
 	m_qform(other.m_qform), m_sform(other.m_sform),
 	m_qcode(other.m_qcode), m_scode(other.m_scode),
-	m_datatype(other.m_datatype), m_basepath(other.m_basepath), m_file(other.m_file),
+	m_typeinfo(other.m_typeinfo), m_basepath(other.m_basepath), m_file(other.m_file),
 	m_extensions(other.m_extensions),
 	scaling_slope(other.scaling_slope), scaling_inter(other.scaling_inter),
 	calibration_min(other.calibration_min), calibration_max(other.calibration_max),
@@ -296,7 +296,7 @@ Nifti::Nifti(const int nx, const int ny, const int nz, const int nt,
 			 const DataType dtype, const Affine3f &xform) :
 	Nifti()
 {
-	m_datatype = dtype;
+	m_typeinfo = TypeInfo(dtype);
 	m_dim[0] = nx < 1 ? 1 : nx;
 	m_dim[1] = ny < 1 ? 1 : ny;
 	m_dim[2] = nz < 1 ? 1 : nz;
@@ -314,7 +314,7 @@ Nifti::Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
 	
 	m_dim.head(dim.rows()) = dim;
 	m_voxdim.head(voxdim.rows()) = voxdim;
-	m_datatype = dtype;
+	m_typeinfo = TypeInfo(dtype);
 	setTransform(xform);
 }
 
@@ -336,7 +336,7 @@ Nifti &Nifti::operator=(const Nifti &other)
 	m_nii = other.m_nii;
 	m_mode = Mode::Closed;
 	m_voxoffset = 0;
-	m_datatype = other.m_datatype;
+	m_typeinfo = other.m_typeinfo;
 	scaling_slope = other.scaling_slope;
 	scaling_inter = other.scaling_inter;
 	calibration_min = other.calibration_min;
@@ -421,7 +421,7 @@ void Nifti::readHeader() {
 	if(nhdr.datatype == DT_BINARY || nhdr.datatype == DT_UNKNOWN  ) {
 		throw(std::runtime_error("Bad datatype in header: " + headerPath()));
 	}
-	m_datatype = DataTypeForCode(nhdr.datatype);
+	m_typeinfo = TypeInfo(DataTypeForCode(nhdr.datatype));
 	
 	if(nhdr.dim[1] <= 0) {
 		throw(std::runtime_error("Bad first dimension in header: " + headerPath()));
@@ -434,6 +434,7 @@ void Nifti::readHeader() {
 		m_dim[i] = 1;
 		m_voxdim[i] = 1.;
 	}
+	calcStrides();
 	// Compute Q-Form
 	Affine3f S; S = Scaling(m_voxdim[0], m_voxdim[1], m_voxdim[2]);
 	if( !is_nifti || nhdr.qform_code <= 0 ) {
@@ -581,8 +582,8 @@ void Nifti::writeHeader() {
 		nhdr.pixdim[i + 1] = m_voxdim[i];
 	}
 	
-	nhdr.datatype = TypeInfo(m_datatype).code;
-	nhdr.bitpix   = 8 * TypeInfo(m_datatype).size;
+	nhdr.datatype = m_typeinfo.code;
+	nhdr.bitpix   = 8 * m_typeinfo.size;
 	
 	if(calibration_max > calibration_min) {
 		nhdr.cal_max = calibration_max;
@@ -704,6 +705,39 @@ void Nifti::writeExtensions() {
 }
 
 /**
+  *   Simple function to calculate the strides into the data on disk. Used for
+  *   subvolume/voxel-wise reads.
+  */
+void Nifti::calcStrides() {
+	m_strides = Array<size_t, 7, 1>::Ones();
+	for (size_t i = 1; i < dimensions(); i++) {
+		m_strides(i) = m_strides(i - 1) * m_dim(i - 1);
+	}
+}
+
+/**
+  * Seeks to a particular voxel on the disk.
+  *
+  * @param target Desired voxel to seek to on disk.
+  *
+  * @throws std::out_of_range if the target is outside the image dimensions.
+  * @throws std::runtime_error if the seek fails.
+  */
+void Nifti::seekToVoxel(const ArrayXs &target) {
+	if (target.rows() > dimensions()) {
+		throw(std::out_of_range("Too many dimensions for seeking."));
+	}
+	if ((target > m_dim.head(target.rows())).any()) {
+		throw(std::out_of_range("Target voxel is outside image dimensions."));
+	}
+	size_t index = (target * m_strides.head(target.rows())).sum() * m_typeinfo.size + m_voxoffset;
+	size_t current = m_file.tell();
+	if (!m_file.seek(current - index, SEEK_CUR)) {
+		throw(std::runtime_error("Failed to seek to index: " + to_string(index) + " in file: " + imagePath()));
+	}
+}
+
+/**
   *   Reads a sequence of bytes from the open NIfTI image.
   *
   *   Internal function to actually read bytes from an image file.
@@ -733,8 +767,8 @@ char *Nifti::readBytes(size_t start, size_t length, char *buffer) {
 	if (m_file.read(buffer, static_cast<unsigned int>(length)) != length) {
 		throw(std::runtime_error("Read wrong number of bytes from file: " + imagePath()));
 	}
-	if (TypeInfo(m_datatype).swapsize > 1 && m_swap)
-		swapBytes(length / TypeInfo(m_datatype).swapsize, TypeInfo(m_datatype).swapsize, buffer);
+	if (m_typeinfo.swapsize > 1 && m_swap)
+		swapBytes(length / m_typeinfo.swapsize, m_typeinfo.swapsize, buffer);
 	return buffer;
 }
 
@@ -853,7 +887,7 @@ void Nifti::close()
 		// Write a single zero-byte at the end to persuade the OS to write a file of the
 		// correct size.
 		m_file.seek(0, SEEK_END);
-		long correctEnd = (voxelsTotal() * TypeInfo(m_datatype).size + m_voxoffset);
+		long correctEnd = (voxelsTotal() * m_typeinfo.size + m_voxoffset);
 		char zero{0};
 		long pos = m_file.tell();
 		if (pos < correctEnd) {
@@ -883,6 +917,7 @@ void Nifti::setDim(const size_t d, const size_t n) {
 	if (m_mode == Mode::Closed) {
 		assert((d > 0) && (d < 8));
 		m_dim[d - 1] = n;
+		calcStrides();
 	} else {
 		throw(std::logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
@@ -892,6 +927,7 @@ void Nifti::setDims(const ArrayXs &n) {
 	if (m_mode == Mode::Closed) {
 		assert(n.rows() <= m_voxdim.rows());
 		m_dim.head(n.rows()) = n;
+		calcStrides();
 	} else {
 		throw(std::logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
@@ -921,13 +957,13 @@ void Nifti::setVoxDims(const ArrayXf &n) {
 		throw(std::logic_error("Cannot change voxel sizes for open file: " + imagePath()));
 }
 
-const Nifti::DataType &Nifti::datatype() const { return m_datatype; }
+const Nifti::DataType &Nifti::datatype() const { return m_typeinfo.type; }
 void Nifti::setDatatype(const Nifti::DataType dt) {
 	if (m_mode != Mode::Closed) {
 		throw(std::logic_error("Cannot set the datatype of open file: " + imagePath()));
 		return;
 	}
-    m_datatype = dt;
+    m_typeinfo = TypeInfo(dt);
 }
 
 bool Nifti::matchesVoxels(const Nifti &other) const {

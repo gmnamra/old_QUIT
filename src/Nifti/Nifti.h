@@ -98,6 +98,7 @@ class Nifti {
 		static const int XFormCode(const XForm t);
 		
 		Array<size_t, 7, 1> m_dim;      //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
+		Array<size_t, 7, 1> m_strides;  //!< Strides into the data on disk.
 		Array<float, 7, 1> m_voxdim;    //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
 		Affine3f m_qform, m_sform;      //!< Tranformation matrices from voxel indices to physical co-ords.
 		XForm m_qcode, m_scode; //!< Codes to define what the transformations represent.
@@ -105,7 +106,7 @@ class Nifti {
 		bool m_nii, m_gz;
 		Mode m_mode;                    //!< Whether the file is closed or open for reading/writing.
 		ZipFile m_file;
-		DataType m_datatype;            //!< Datatype on disk.
+		DataTypeInfo m_typeinfo;        //!< Informatio for datatype on disk.
 		int m_voxoffset;                //!< Offset to start of voxel data.
 		int m_swap;                     //!< True if byte order on disk is different to CPU.
 		
@@ -118,6 +119,8 @@ class Nifti {
 		int totalExtensionSize(); //!< Counts the total number of bytes for all extensions.
 		char *readBytes(size_t start, size_t length, char *buffer);
 		void writeBytes(size_t start, size_t length, char *buffer);
+		void calcStrides();
+		void seekToVoxel(const ArrayXs &target);
 		
 		template<typename T> void convertFromBytes(const vector<char> &bytes, const size_t nEl, vector<T> &data);
 		template<typename T> void convertFromBytes(const vector<complex<T>> &bytes, const size_t nEl, vector<T> &data);

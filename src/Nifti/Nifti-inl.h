@@ -23,10 +23,10 @@
   *   @param data std::vector& to converted data in. Will be resized to ensure enough space.
   */
 template<typename T> void Nifti::convertFromBytes(const vector<char> &bytes, const size_t nEl, vector<T> &data) {
-	assert(nEl == (bytes.size() / TypeInfo(m_datatype).size));
+	assert(nEl == (bytes.size() / m_typeinfo.size));
 	data.resize(nEl);
 	for (size_t i = 0; i < nEl; i++) {
-		switch (m_datatype) {
+		switch (m_typeinfo.type) {
 			case DataType::INT8:      data[i] = static_cast<T>(reinterpret_cast<const char *>(bytes.data())[i]); break;
 			case DataType::UINT8:     data[i] = static_cast<T>(reinterpret_cast<const unsigned char *>(bytes.data())[i]); break;
 			case DataType::INT16:     data[i] = static_cast<T>(reinterpret_cast<const short *>(bytes.data())[i]); break;
@@ -62,10 +62,10 @@ template<typename T> void Nifti::convertFromBytes(const vector<char> &bytes, con
   *   @param data std::vector& to converted data in. Will be resized to ensure enough space.
   */
 template<typename T> void Nifti::convertFromBytes(const vector<complex<T>> &bytes, const size_t nEl, vector<T> &data) {
-	assert(nEl == (bytes.size() / TypeInfo(m_datatype).size));
+	assert(nEl == (bytes.size() / m_typeinfo.size));
 	data.resize(nEl);
 	for (size_t i = 0; i < nEl; i++) {
-		switch (m_datatype) {
+		switch (m_typeinfo.type) {
 			case DataType::INT8:      data[i] = complex<T>(static_cast<T>(reinterpret_cast<const char *>(bytes.data())[i]), 0.); break;
 			case DataType::UINT8:     data[i] = complex<T>(static_cast<T>(reinterpret_cast<const unsigned char *>(bytes.data())[i]), 0.); break;
 			case DataType::INT16:     data[i] = complex<T>(static_cast<T>(reinterpret_cast<const short *>(bytes.data())[i]), 0.); break;
@@ -95,9 +95,9 @@ template<typename T> void Nifti::convertFromBytes(const vector<complex<T>> &byte
   *   @return std::vector of the data stored in a byte array.
   */
 template<typename T> vector<char> Nifti::convertToBytes(const vector<T> &data) {
-	vector<char> bytes(data.size() * TypeInfo(m_datatype).size);
+	vector<char> bytes(data.size() * m_typeinfo.size);
 	for (size_t i = 0; i < data.size(); i++) {
-		switch (m_datatype) {
+		switch (m_typeinfo.type) {
 			case DataType::INT8:              reinterpret_cast<char *>(bytes.data())[i] = static_cast<char>(data[i]); break;
 			case DataType::UINT8:    reinterpret_cast<unsigned char *>(bytes.data())[i] = static_cast<unsigned char>(data[i]); break;
 			case DataType::INT16:            reinterpret_cast<short *>(bytes.data())[i] = static_cast<short>(data[i]); break;
@@ -120,9 +120,9 @@ template<typename T> vector<char> Nifti::convertToBytes(const vector<T> &data) {
 }
 
 template<typename T> vector<char> Nifti::convertToBytes(const vector<complex<T>> &data) {
-	vector<char> bytes(data.size() * TypeInfo(m_datatype).size);
+	vector<char> bytes(data.size() * m_typeinfo.size);
 	for (int i = 0; i < data.size(); i++) {
-		switch (m_datatype) {
+		switch (m_typeinfo.type) {
 			case DataType::INT8:              reinterpret_cast<char *>(bytes.data())[i] = static_cast<char>(abs(data[i])); break;
 			case DataType::UINT8:    reinterpret_cast<unsigned char *>(bytes.data())[i] = static_cast<unsigned char>(abs(data[i])); break;
 			case DataType::INT16:            reinterpret_cast<short *>(bytes.data())[i] = static_cast<short>(abs(data[i])); break;
@@ -145,7 +145,7 @@ template<typename T> vector<char> Nifti::convertToBytes(const vector<complex<T>>
 }
 
 template<typename T> void Nifti::readVolume(const size_t &vol, vector<T> &buffer) {
-	size_t bytesPerVolume = voxelsPerVolume() * TypeInfo(m_datatype).size;
+	size_t bytesPerVolume = voxelsPerVolume() * m_typeinfo.size;
 	vector<char> raw(bytesPerVolume);
 	readBytes(vol * bytesPerVolume, bytesPerVolume, raw.data());
 	convertFromBytes(raw, voxelsPerVolume(), buffer);
@@ -158,8 +158,8 @@ template<typename T> vector<T> Nifti::readVolume(const size_t &vol) {
 }
 
 template<typename T> void Nifti::readAllVolumes(vector<T> &buffer) {
-	vector<char> raw(voxelsTotal() * TypeInfo(m_datatype).size);
-	readBytes(0, voxelsTotal() * TypeInfo(m_datatype).size, raw.data());
+	vector<char> raw(voxelsTotal() * m_typeinfo.size);
+	readBytes(0, voxelsTotal() * m_typeinfo.size, raw.data());
 	return convertFromBytes<T>(raw, voxelsTotal(), buffer);
 }
 
@@ -193,7 +193,7 @@ template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &s
 	}
 	
 	// Collapse successive full dimensions into a single compressed read
-	toRead = lx * TypeInfo(m_datatype).size;
+	toRead = lx * m_typeinfo.size;
 	if (lx == dim(1)) {
 		toRead *= ly;
 		if (ly == dim(2)) {
@@ -208,7 +208,7 @@ template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &s
 		ly = 1;
 	}
 				
-	vector<char> raw(total * TypeInfo(m_datatype).size);
+	vector<char> raw(total * m_typeinfo.size);
 	char *nextRead = raw.data();
 	for (size_t t = st; t < st+lt; t++) {
 		size_t tOff = t * voxelsPerVolume();
@@ -216,7 +216,7 @@ template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &s
 			size_t zOff = z * voxelsPerSlice();
 			for (size_t y = sy; y < sy+ly; y++) {
 				size_t yOff = y * dim(1);
-				if (readBytes((tOff + zOff + yOff) * TypeInfo(m_datatype).size, toRead, nextRead))
+				if (readBytes((tOff + zOff + yOff) * m_typeinfo.size, toRead, nextRead))
 					nextRead += toRead;
 			}
 		}
@@ -236,7 +236,7 @@ template<typename T> void Nifti::writeVolume(const size_t vol, const vector<T> &
 		throw(std::invalid_argument("Insufficient data to write volume for file: " + imagePath()));
 	}
 	vector<char> converted = convertToBytes(data);
-	writeBytes(vol * voxelsPerVolume() * TypeInfo(m_datatype).size, converted.size(), converted.data());
+	writeBytes(vol * voxelsPerVolume() * m_typeinfo.size, converted.size(), converted.data());
 }
 
 template<typename T> void Nifti::writeAllVolumes(const vector<T> &data) {
@@ -288,7 +288,7 @@ template<typename T> void Nifti::writeSubvolume(const size_t &sx, const size_t &
 	if (toWrite != data.size()) {
 		throw(std::invalid_argument("Insufficient data to write subvolume for file: " + imagePath()));
 	}
-	toWrite *= TypeInfo(m_datatype).size;
+	toWrite *= m_typeinfo.size;
 	
 	vector<char> raw = convertToBytes(data);
 	char *nextWrite = raw.data();
@@ -298,7 +298,7 @@ template<typename T> void Nifti::writeSubvolume(const size_t &sx, const size_t &
 			size_t zOff = z * voxelsPerSlice();
 			for (size_t y = sy; y < sy+ly; y++) {
 				size_t yOff = y * dim(1);
-				writeBytes((tOff + zOff + yOff) * TypeInfo(m_datatype).size, toWrite, nextWrite);
+				writeBytes((tOff + zOff + yOff) * m_typeinfo.size, toWrite, nextWrite);
 				nextWrite += toWrite;
 			}
 		}
