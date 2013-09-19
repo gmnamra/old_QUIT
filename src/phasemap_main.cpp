@@ -15,7 +15,7 @@
 
 using namespace std;
 
-#include "Nifti.h"
+#include "Nifti/Nifti.h"
 #ifdef AGILENT
 	#include "procpar.h"
 #endif
@@ -49,12 +49,12 @@ int main(int argc, char** argv)
 	int indexptr = 0, c;
 	double TE1, TE2, deltaTE, phasetime = 0.;
 	vector<double> data1, data2, B0, mask;
-	Nifti::File maskFile, inFile;
+	Nifti maskFile, inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
 				cout << "Reading mask from " << optarg << endl;
-				maskFile.open(optarg, Nifti::Modes::Read);
+				maskFile.open(optarg, Nifti::Mode::Read);
 				mask = maskFile.readVolume<double>(0);
 				break;
 			case 'p':
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	}
 	if ((argc - optind) == 2) {
 		cout << "Opening input file " << argv[optind] << "." << endl;
-		inFile.open(argv[optind], Nifti::Modes::Read);
+		inFile.open(argv[optind], Nifti::Mode::Read);
 		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
@@ -85,7 +85,7 @@ int main(int argc, char** argv)
 		inFile.close();
 	} else if ((argc - optind) == 3) {
 		cout << "Opening input file 1" << argv[optind] << "." << endl;
-		inFile.open(argv[optind], Nifti::Modes::Read);
+		inFile.open(argv[optind], Nifti::Mode::Read);
 		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 		data1 = inFile.readVolume<double>(0);
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
-		inFile.open(argv[optind], Nifti::Modes::Read);
+		inFile.open(argv[optind], Nifti::Mode::Read);
 		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
@@ -150,8 +150,8 @@ int main(int argc, char** argv)
 	cout << "Writing off-resonance map (in Hz)." << endl;
 	string outPath = outPrefix + "f0.nii.gz";
 	
-	Nifti::File outFile(inFile, 1);
-	outFile.open(outPath, Nifti::Modes::Write);
+	Nifti outFile(inFile, 1);
+	outFile.open(outPath, Nifti::Mode::Write);
 	outFile.writeVolume(0, B0);
 	outFile.close();
 	cout << "Finished." << endl;

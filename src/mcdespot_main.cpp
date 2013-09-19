@@ -17,7 +17,7 @@
 #include <time.h>
 #include <Eigen/Dense>
 
-#include "Nifti.h"
+#include "Nifti/Nifti.h"
 #include "DESPOT_Functors.h"
 #include "ThreadPool.h"
 #include "RegionContraction.h"
@@ -122,9 +122,9 @@ void int_handler(int sig)
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
 //Utility function
-Nifti::File openAndCheck(const string &path, const Nifti::File &saved, const string &type);
-Nifti::File openAndCheck(const string &path, const Nifti::File &saved, const string &type) {
-	Nifti::File in(path, Nifti::Modes::Read);
+Nifti openAndCheck(const string &path, const Nifti &saved, const string &type);
+Nifti openAndCheck(const string &path, const Nifti &saved, const string &type) {
+	Nifti in(path, Nifti::Mode::Read);
 	if (!(in.matchesSpace(saved))) {
 		cerr << "Header for " << in.imagePath() << " does not match " << saved.imagePath() << endl;
 		exit(EXIT_FAILURE);
@@ -133,19 +133,19 @@ Nifti::File openAndCheck(const string &path, const Nifti::File &saved, const str
 	return in;
 }
 
-Nifti::File parseInput(vector<Info> &info,
-				       vector<Nifti::File > &signalFiles,
-				       vector<Nifti::File > &B1_files,
-				       vector<Nifti::File > &B0_loFiles,
-					   vector<Nifti::File > &B0_hiFiles,
+Nifti parseInput(vector<Info> &info,
+				       vector<Nifti > &signalFiles,
+				       vector<Nifti > &B1_files,
+				       vector<Nifti > &B0_loFiles,
+					   vector<Nifti > &B0_hiFiles,
 					   const mcDESPOT::OffResMode &B0fit);
-Nifti::File parseInput(vector<Info> &info,
-				       vector<Nifti::File > &signalFiles,
-				       vector<Nifti::File > &B1_files,
-				       vector<Nifti::File > &B0_loFiles,
-					   vector<Nifti::File > &B0_hiFiles,
+Nifti parseInput(vector<Info> &info,
+				       vector<Nifti > &signalFiles,
+				       vector<Nifti > &B1_files,
+				       vector<Nifti > &B0_loFiles,
+					   vector<Nifti > &B0_hiFiles,
 					   const mcDESPOT::OffResMode &B0fit) {
-	Nifti::File templateFile;
+	Nifti templateFile;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
@@ -157,8 +157,8 @@ Nifti::File parseInput(vector<Info> &info,
 		if (prompt) cout << "Enter image path: " << flush;
 		getline(cin, path);
 		if (signalFiles.size() == 0) {
-			signalFiles.emplace_back(path, Nifti::Modes::Read);
-			templateFile = Nifti::File(signalFiles.back(), 1); // Save header info for later
+			signalFiles.emplace_back(path, Nifti::Mode::Read);
+			templateFile = Nifti(signalFiles.back(), 1); // Save header info for later
 		} else {
 			signalFiles.push_back(openAndCheck(path, templateFile, type));
 		}
@@ -208,7 +208,7 @@ Nifti::File parseInput(vector<Info> &info,
 		if ((path != "NONE") && (path != "")) {
 			B1_files.push_back(openAndCheck(path, templateFile, "B1"));
 		} else {
-			B1_files.push_back(Nifti::File());
+			B1_files.push_back(Nifti());
 		}
 		
 		if ((!spoil) && ((B0fit == mcDESPOT::OffResMode::Map) || (B0fit == mcDESPOT::OffResMode::Bounded) || (B0fit == mcDESPOT::OffResMode::MultiBounded))) {
@@ -219,7 +219,7 @@ Nifti::File parseInput(vector<Info> &info,
 			getline(cin, path);
 			B0_loFiles.push_back(openAndCheck(path, templateFile, "B0"));
 		} else {
-			B0_loFiles.push_back(Nifti::File());
+			B0_loFiles.push_back(Nifti());
 		}
 		
 		if ((!spoil) && ((B0fit == mcDESPOT::OffResMode::Bounded) || (B0fit == mcDESPOT::OffResMode::MultiBounded))) {
@@ -227,7 +227,7 @@ Nifti::File parseInput(vector<Info> &info,
 			getline(cin, path);
 			B0_hiFiles.push_back(openAndCheck(path, templateFile, "B0"));
 		} else {
-			B0_hiFiles.push_back(Nifti::File());
+			B0_hiFiles.push_back(Nifti());
 		}
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	Eigen::initParallel();
-	Nifti::File maskFile, templateFile;
+	Nifti maskFile, templateFile;
 	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
 			case 'j': voxJ = atoi(optarg); break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
-				maskFile.open(optarg, Nifti::Modes::Read);
+				maskFile.open(optarg, Nifti::Mode::Read);
 				maskData = maskFile.readVolume<double>(0);
 				maskFile.close();
 				break;
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
 	vector<Info> info;
-	vector<Nifti::File > signalFiles, B1_files, B0_loFiles, B0_hiFiles;
+	vector<Nifti > signalFiles, B1_files, B0_loFiles, B0_hiFiles;
 	templateFile = parseInput(info, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0fit);
 	if ((maskData.size() > 0) && !(maskFile.matchesSpace(templateFile))) {
 		cerr << "Mask file has different dimensions/transform to input data." << endl;
@@ -371,35 +371,35 @@ int main(int argc, char **argv)
 		index += info.at(i).nAngles();
 	}
 	templateFile.setDim(4, 1);
-	templateFile.setDatatype(DT_FLOAT32);
+	templateFile.setDatatype(Nifti::DataType::FLOAT32);
 	
-	vector<Nifti::File> paramsFiles(mcd.inputs(), templateFile);
-	vector<Nifti::File> midpFiles(mcd.inputs(), templateFile);
-	vector<Nifti::File> widthFiles(mcd.inputs(), templateFile);
-	Nifti::File contractFile(templateFile);
+	vector<Nifti> paramsFiles(mcd.inputs(), templateFile);
+	vector<Nifti> midpFiles(mcd.inputs(), templateFile);
+	vector<Nifti> widthFiles(mcd.inputs(), templateFile);
+	Nifti contractFile(templateFile);
 	vector<vector<double>> paramsData(mcd.inputs());
 	vector<vector<double>> midpData(mcd.inputs());
 	vector<vector<double>> widthData(mcd.inputs());
 	vector<size_t> contractData(voxelsPerSlice);
 	for (int i = 0; i < mcd.inputs(); i++) {
 		paramsData.at(i).resize(voxelsPerSlice);
-		paramsFiles.at(i).open(outPrefix + mcd.names()[i] + ".nii.gz", Nifti::Modes::Write);
+		paramsFiles.at(i).open(outPrefix + mcd.names()[i] + ".nii.gz", Nifti::Mode::Write);
 		if (debug) {
 			midpData.at(i).resize(voxelsPerSlice);
-			midpFiles.at(i).open(outPrefix + mcd.names()[i] + "_mid.nii.gz", Nifti::Modes::Write);
+			midpFiles.at(i).open(outPrefix + mcd.names()[i] + "_mid.nii.gz", Nifti::Mode::Write);
 			widthData.at(i).resize(voxelsPerSlice);
-			widthFiles.at(i).open(outPrefix + mcd.names()[i] + "_width.nii.gz", Nifti::Modes::Write);
+			widthFiles.at(i).open(outPrefix + mcd.names()[i] + "_width.nii.gz", Nifti::Mode::Write);
 		}
 	}
 	if (debug)
-		contractFile.open(outPrefix + "n_contract.nii.gz", Nifti::Modes::Write);
+		contractFile.open(outPrefix + "n_contract.nii.gz", Nifti::Mode::Write);
 	
 	vector<vector<double>> residualData(mcd.values());
 	for (size_t i = 0; i < residualData.size(); i ++)
 		residualData.at(i).resize(voxelsPerVolume);
-	Nifti::File residualFile(templateFile);
+	Nifti residualFile(templateFile);
 	residualFile.setDim(4, static_cast<int>(mcd.values()));
-	residualFile.open(outPrefix + mcType::to_string(components) + "_residuals.nii.gz", Nifti::Modes::Write);
+	residualFile.open(outPrefix + mcType::to_string(components) + "_residuals.nii.gz", Nifti::Mode::Write);
 	
 	ArrayXXd bounds = mcd.defaultBounds();
 	if (prompt && tesla == mcType::FieldStrength::Unknown) {

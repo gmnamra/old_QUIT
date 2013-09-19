@@ -18,7 +18,7 @@
 #include <atomic>
 #include <Eigen/Dense>
 
-#include "Nifti.h"
+#include "Nifti/Nifti.h"
 #include "DESPOT.h"
 #include "ThreadPool.h"
 
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	cout << credit << endl;
 	int nSPGR = 0, nIR = 0;
-	Nifti::File maskFile, spgrFile, irFile;
+	Nifti maskFile, spgrFile, irFile;
 	vector<double> maskData;
 	
 	int indexptr = 0, c;
@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
-				maskFile.open(optarg, Nifti::Modes::Read);
+				maskFile.open(optarg, Nifti::Mode::Read);
 				maskData = maskFile.readVolume<double>(0);
 				break;
 			case 'o':
@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
 	#pragma mark Gather SPGR data
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
-	spgrFile.open(argv[optind], Nifti::Modes::Read);
+	spgrFile.open(argv[optind], Nifti::Mode::Read);
 	if (maskFile.isOpen() && !maskFile.matchesSpace(spgrFile)) {
 		cerr << "SPGR file dimensions or transform do not match mask." << endl;
 		exit(EXIT_FAILURE);
@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
 	#pragma mark Gather IR-SPGR data
 	//**************************************************************************	
 	cout << "Opening IR-SPGR file: " << argv[++optind] << endl;
-	irFile.open(argv[optind], Nifti::Modes::Read);
+	irFile.open(argv[optind], Nifti::Mode::Read);
 	if (!irFile.matchesSpace(spgrFile)) {
 		cerr << "Header of " << spgrFile.imagePath() << " does not match " << irFile.imagePath() << endl;
 		exit(EXIT_FAILURE);
@@ -351,12 +351,12 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	#pragma mark Write out data
 	//**************************************************************************
-	Nifti::File outFile(spgrFile, 1);
+	Nifti outFile(spgrFile, 1);
 	for (int r = 0; r < NR; r++) {
 		string outName = outPrefix + names[r] + ".nii.gz";
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
-		outFile.open(outName, Nifti::Modes::Write);
+		outFile.open(outName, Nifti::Mode::Write);
 		outFile.writeVolume<double>(0, resultsData[r]);
 		outFile.close();
 	}

@@ -19,7 +19,8 @@
 #include <Eigen/Geometry>
 
 #ifdef AGILENT
-#include "Nifti.h"
+#include "Nifti/Nifti.h"
+#include "Nifti/ExtensionCodes.h"
 #include "procpar.h"
 #endif
 
@@ -30,7 +31,7 @@ using namespace Eigen;
 #pragma mark Convenience stuff
 //******************************************************************************
 #ifdef AGILENT
-bool ReadPP(const Nifti::File &nii, Agilent::ProcPar &pp);
+bool ReadPP(const Nifti &nii, Agilent::ProcPar &pp);
 #endif
 
 double clamp(double value, double low, double high);

@@ -16,7 +16,7 @@
 #include <atomic>
 #include <Eigen/Dense>
 
-#include "Nifti.h"
+#include "Nifti/Nifti.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	Eigen::initParallel();
-	Nifti::File maskFile, B0File, B1File;
+	Nifti maskFile, B0File, B1File;
 	vector<double> maskData, B0Data, B1Data, T1Data;
 	string procPath;
 	
@@ -106,18 +106,18 @@ int main(int argc, char **argv)
 				break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
-				maskFile.open(optarg, Nifti::Modes::Read);
+				maskFile.open(optarg, Nifti::Mode::Read);
 				maskData = maskFile.readVolume<double>(0);
 				break;
 			case '0':
 				cout << "Reading B0 file: " << optarg << endl;
-				B0File.open(optarg, Nifti::Modes::Read);
+				B0File.open(optarg, Nifti::Mode::Read);
 				B0Data = B0File.readVolume<double>(0);
 				offRes = DESPOT2FM::OffResMode::Map;
 				break;
 			case '1':
 				cout << "Reading B1 file: " << optarg << endl;
-				B1File.open(optarg, Nifti::Modes::Read);
+				B1File.open(optarg, Nifti::Mode::Read);
 				B1Data = B1File.readVolume<double>(0);
 				break;
 			case 't':
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
-	Nifti::File inFile(argv[optind++], Nifti::Modes::Read);
+	Nifti inFile(argv[optind++], Nifti::Mode::Read);
 	T1Data = inFile.readVolume<double>(0);
 	inFile.close();
 	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
-	Nifti::File templateFile(inFile, 1); // Save header data to write out results
+	Nifti templateFile(inFile, 1); // Save header data to write out results
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
@@ -187,7 +187,7 @@ int main(int argc, char **argv)
 	double inTR, inTrf = 0., inPhase;
 	for (size_t p = 0; p < nPhases; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
-		inFile.open(argv[optind], Nifti::Modes::Read);
+		inFile.open(argv[optind], Nifti::Mode::Read);
 		if (!inFile.matchesSpace(templateFile)) {
 			cerr << "Input file dimensions and/or transforms do not match." << endl;
 			exit(EXIT_FAILURE);
@@ -383,27 +383,27 @@ int main(int argc, char **argv)
 	
 	outPrefix = outPrefix + "FM_";
 	for (int p = 0; p < d2fm.inputs(); p++) {
-		templateFile.open(outPrefix + d2fm.names().at(p) + ".nii.gz", Nifti::Modes::Write);
+		templateFile.open(outPrefix + d2fm.names().at(p) + ".nii.gz", Nifti::Mode::Write);
 		templateFile.writeVolume(0, paramsData.at(p));
 		templateFile.close();
 	}
 	templateFile.setDim(4, static_cast<int>(residuals.size()));
-	templateFile.open(outPrefix + "residuals.nii.gz", Nifti::Modes::Write);
+	templateFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
 	for (int i = 0; i < residuals.size(); i++)
 		templateFile.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 	templateFile.close();
 	if (debug) {
 		templateFile.setDim(4, 1);
-		templateFile.setDatatype(DT_INT16);
-		templateFile.open(outPrefix + "n_contract.nii.gz", Nifti::Modes::Write);
+		templateFile.setDatatype(Nifti::DataType::INT16);
+		templateFile.open(outPrefix + "n_contract.nii.gz", Nifti::Mode::Write);
 		templateFile.writeVolume(0, contractData);
 		templateFile.close();
-		templateFile.setDatatype(DT_FLOAT32);
+		templateFile.setDatatype(Nifti::DataType::FLOAT32);
 		for (int p = 0; p < d2fm.inputs(); p++) {
-			templateFile.open(outPrefix + d2fm.names().at(p) + "_width.nii.gz", Nifti::Modes::Write);
+			templateFile.open(outPrefix + d2fm.names().at(p) + "_width.nii.gz", Nifti::Mode::Write);
 			templateFile.writeVolume(0, widthData.at(p));
 			templateFile.close();
-			templateFile.open(outPrefix + d2fm.names().at(p) + "_mid.nii.gz", Nifti::Modes::Write);
+			templateFile.open(outPrefix + d2fm.names().at(p) + "_mid.nii.gz", Nifti::Mode::Write);
 			templateFile.writeVolume(0, midpData.at(p));
 			templateFile.close();
 		}

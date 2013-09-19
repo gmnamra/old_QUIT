@@ -16,7 +16,7 @@
 #include <atomic>
 #include <Eigen/Dense>
 
-#include "Nifti.h"
+#include "Nifti/Nifti.h"
 #include "DESPOT.h"
 #include "ThreadPool.h"
 
@@ -69,19 +69,19 @@ int main(int argc, char **argv)
 	double spgrTR = 0.;
 	int nSPGR;
 	vector<double> B1Data, maskData;
-	Nifti::File spgrFile, B1File, maskFile;
+	Nifti spgrFile, B1File, maskFile;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "m:o:vd", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case '1':
 				cout << "Opening B1 file: " << optarg << endl;
-				B1File.open(optarg, Nifti::Modes::Read);
+				B1File.open(optarg, Nifti::Mode::Read);
 				B1Data = B1File.readVolume<double>(0);
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
-				maskFile.open(optarg, Nifti::Modes::Read);
+				maskFile.open(optarg, Nifti::Mode::Read);
 				maskData = maskFile.readVolume<double>(0);
 				break;
 			case 'o':
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 	#pragma mark Gather SPGR data
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
-	spgrFile.open(argv[optind], Nifti::Modes::Read);
+	spgrFile.open(argv[optind], Nifti::Mode::Read);
 	if ((maskFile.isOpen() && !maskFile.matchesSpace(spgrFile)) ||
 	    (B1File.isOpen() && !B1File.matchesSpace(spgrFile))) {
 		cerr << "Mask or B1 dimensions/transform do not match SPGR file." << endl;
@@ -205,12 +205,12 @@ int main(int argc, char **argv)
 		}
 	}
 	const string names[NR] = { "D1_PD", "D1_T1", "D1_Residual" };
-	Nifti::File outFile(spgrFile, 1);
+	Nifti outFile(spgrFile, 1);
 	for (int r = 0; r < NR; r++) {
 		string outName = outPrefix + names[r] + ".nii.gz";
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
-		outFile.open(outName, Nifti::Modes::Write);
+		outFile.open(outName, Nifti::Mode::Write);
 		outFile.writeVolume<double>(0, resultsData[r]);
 		outFile.close();
 	}

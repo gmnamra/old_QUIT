@@ -16,7 +16,7 @@
 #include <atomic>
 #include <Eigen/Dense>
 
-#include "Nifti.h"
+#include "Nifti/Nifti.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	Eigen::initParallel();
-	Nifti::File maskFile, B0File, B1File;
+	Nifti maskFile, B0File, B1File;
 	vector<double> maskData, B0Data, B1Data, T1Data;
 	string procPath;
 	
@@ -88,17 +88,17 @@ int main(int argc, char **argv)
 				break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
-				maskFile.open(optarg, Nifti::Modes::Read);
+				maskFile.open(optarg, Nifti::Mode::Read);
 				maskData = maskFile.readVolume<double>(0);
 				break;
 			case '0':
 				cout << "Reading B0 file: " << optarg << endl;
-				B0File.open(optarg, Nifti::Modes::Read);
+				B0File.open(optarg, Nifti::Mode::Read);
 				B0Data = B0File.readVolume<double>(0);
 				break;
 			case '1':
 				cout << "Reading B1 file: " << optarg << endl;
-				B1File.open(optarg, Nifti::Modes::Read);
+				B1File.open(optarg, Nifti::Mode::Read);
 				B1Data = B1File.readVolume<double>(0);
 				break;
 			case 'v': verbose = true; break;
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
-	Nifti::File inFile(argv[optind++], Nifti::Modes::Read);
+	Nifti inFile(argv[optind++], Nifti::Mode::Read);
 	T1Data = inFile.readVolume<double>(0);
 	inFile.close();
 	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
-	Nifti::File outFile(inFile, 1); // Save the header data to write out files
+	Nifti outFile(inFile, 1); // Save the header data to write out files
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 	VectorXd inFlip;
 	double inTR;
 	cout << "Reading SSFP header from " << argv[optind] << endl;
-	inFile.open(argv[optind], Nifti::Modes::Read);
+	inFile.open(argv[optind], Nifti::Mode::Read);
 	if (!inFile.matchesSpace(outFile)) {
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
@@ -228,13 +228,13 @@ int main(int argc, char **argv)
 	     << difftime(procEnd, procStart) << " s." << endl;
 	
 	const vector<string> classic_names { "D2_PD", "D2_T2" };
-	outFile.open(outPrefix + "D2_PD.nii.gz", Nifti::Modes::Write);
+	outFile.open(outPrefix + "D2_PD.nii.gz", Nifti::Mode::Write);
 	outFile.writeVolume(0, PDData);
 	outFile.close();
-	outFile.open(outPrefix + "D2_T2.nii.gz", Nifti::Modes::Write);
+	outFile.open(outPrefix + "D2_T2.nii.gz", Nifti::Mode::Write);
 	outFile.writeVolume(0, T2Data);
 	outFile.close();
-	outFile.open(outPrefix + "D2_Residual.nii.gz", Nifti::Modes::Write);
+	outFile.open(outPrefix + "D2_Residual.nii.gz", Nifti::Mode::Write);
 	outFile.writeVolume(0, residualData);
 	outFile.close();
 	cout << "Finished writing data." << endl;

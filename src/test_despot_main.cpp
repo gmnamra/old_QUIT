@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 	alphaSPGR *= 180. / M_PI;
 	alphaSSFP *= 180. / M_PI;
 	phases *= 180. / M_PI;
-	Nifti::File outFile(nx, ny, nz, alphaSPGR.size(),
+	Nifti outFile(nx, ny, nz, alphaSPGR.size(),
 					   volSize / nx, volSize / ny, volSize / nz, spgrTR,
 					   NIFTI_TYPE_FLOAT32);
 	std::string outName;
