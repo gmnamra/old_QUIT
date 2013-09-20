@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
 	vector<Nifti> images;
 	images.reserve(argc - optind); // emplace_back can still trigger copies if the vector has to be resized
 	for (;optind < argc; optind++) {
-		images.emplace_back(argv[optind], Nifti::Mode::ReadHeader);
+		images.emplace_back(argv[optind], Nifti::Mode::Read);
 	}
 
 	if (mode == Compare) { // Compare first image to all others and check headers are compatible
@@ -161,6 +161,14 @@ int main(int argc, char **argv) {
 				cout << out << endl;
 			}
 		}
+		vector<float> data(8);
+		Nifti::ArrayXs start(3); Nifti::ArrayXs size(3);
+		start << 4, 2, 10;
+		size << 4, 2, 1;
+		cout << "Before size: " << data.size() << endl;
+		im.readWriteVoxels(start, size, data);
+		cout << "After size: " << data.size() << endl;
+		for (size_t i = 0; i < 8; i++) cout << data.at(i) << "\t";
 	}
 	
 	return EXIT_SUCCESS;
