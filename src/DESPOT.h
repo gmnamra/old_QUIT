@@ -112,22 +112,22 @@ const void CalcExchange(const double tau_a, const double f_a, const double f_b, 
 #pragma mark One Component Signals
 // Parameters are { T1, T2 }
 //******************************************************************************
-MagVector One_SPGR(const Info &d, const VectorXd &p, const double PD = 1.0);
-MagVector One_SSFP(const Info &d, const VectorXd &p, const double PD = 1.0);
-MagVector One_SSFP_Finite(const Info &d, const VectorXd &p, const double PD = 1.0);
+MagVector One_SPGR(const Info &d, const VectorXd &p);
+MagVector One_SSFP(const Info &d, const VectorXd &p);
+MagVector One_SSFP_Finite(const Info &d, const VectorXd &p);
 //******************************************************************************
 #pragma mark Two Component Signals
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a }
 //******************************************************************************
-MagVector Two_SPGR(const Info &d, const VectorXd &p, const double PD = 1.0);
-MagVector Two_SSFP(const Info &d, const VectorXd &p, const double PD = 1.0);
-MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p, const double PD = 1.0);
+MagVector Two_SPGR(const Info &d, const VectorXd &p);
+MagVector Two_SSFP(const Info &d, const VectorXd &p);
+MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p);
 //******************************************************************************
 #pragma mark Three Component
 // Parameters are { T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
 //******************************************************************************
-MagVector Three_SPGR(const Info &d, const VectorXd &p, const double PD = 1.0);
-MagVector Three_SSFP(const Info &d, const VectorXd &p, const double PD = 1.0);
-MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p, const double PD = 1.0);
+MagVector Three_SPGR(const Info &d, const VectorXd &p);
+MagVector Three_SSFP(const Info &d, const VectorXd &p);
+MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p);
 
 #endif

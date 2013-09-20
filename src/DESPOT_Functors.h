@@ -127,12 +127,12 @@ class DESPOTFunctor : public Functor<double> {
 		
 		virtual const ArrayXXd defaultBounds() = 0;
 		
-		double PD(const Ref<VectorXd> &p, size_t sig) {
+		VectorXd scale(const Ref<VectorXd> &s, const Ref<VectorXd> &p, size_t sig) {
 			switch (m_scaling) {
-				case (Scaling::Global):        return p[nP() + nOffRes()];
-				case (Scaling::PerSignal):     return p[nP() + nOffRes() + sig];
-				case (Scaling::MeanPerSignal): return 1;
-				case (Scaling::MeanPerType):   return 1;
+				case (Scaling::Global):        return s * p[nP() + nOffRes()];
+				case (Scaling::PerSignal):     return s * p[nP() + nOffRes() + sig];
+				case (Scaling::MeanPerSignal): return s / s.mean();
+				case (Scaling::MeanPerType):   return s / s.mean();
 			}
 		}
 		
@@ -331,21 +331,19 @@ class mcDESPOT : public DESPOTFunctor {
 					m_info.at(i).f0 = params[nP() + i];
 				if (m_info[i].spoil == true) {
 					switch (m_components) {
-						case Components::One: M = One_SPGR(m_info[i], params.head(nP()), PD(params, i)); break;
-						case Components::Two: M = Two_SPGR(m_info[i], params.head(nP()), PD(params, i)); break;
-						case Components::Three: M = Three_SPGR(m_info[i], params.head(nP()), PD(params, i)); break;
+						case Components::One: M = One_SPGR(m_info[i], params.head(nP())); break;
+						case Components::Two: M = Two_SPGR(m_info[i], params.head(nP())); break;
+						case Components::Three: M = Three_SPGR(m_info[i], params.head(nP())); break;
 					}
 				} else {
 					switch (m_components) {
-						case Components::One: M = One_SSFP(m_info[i], params.head(nP()), PD(params, i)); break;
-						case Components::Two: M = Two_SSFP(m_info[i], params.head(nP()), PD(params, i)); break;
-						case Components::Three: M = Three_SSFP(m_info[i], params.head(nP()), PD(params, i)); break;
+						case Components::One: M = One_SSFP(m_info[i], params.head(nP())); break;
+						case Components::Two: M = Two_SSFP(m_info[i], params.head(nP())); break;
+						case Components::Three: M = Three_SSFP(m_info[i], params.head(nP())); break;
 					}
 				}
-				ArrayXd theory = SigMag(M);
-				if (m_scaling == Scaling::MeanPerSignal) {
-					theory /= theory.mean();
-				}
+				ArrayXd sm = SigMag(M);
+				ArrayXd theory = scale(sm, params, i);
 				t.segment(index, m_signals.at(i).size()) = theory;
 				if (m_debug) cout << theory.transpose() << endl;
 				index += m_signals.at(i).size();
@@ -418,14 +416,12 @@ class mcFinite : public mcDESPOT {
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
 					m_info[i].f0 = params[nP() + i];
 				switch (m_components) {
-					case Components::One: M = One_SSFP_Finite(m_info[i], params.head(nP()), PD(params, i)); break;
-					case Components::Two: M = Two_SSFP_Finite(m_info[i], params.head(nP()), PD(params, i)); break;
-					case Components::Three: M = Three_SSFP_Finite(m_info[i], params.head(nP()), PD(params, i)); break;
+					case Components::One: M = One_SSFP_Finite(m_info[i], params.head(nP())); break;
+					case Components::Two: M = Two_SSFP_Finite(m_info[i], params.head(nP())); break;
+					case Components::Three: M = Three_SSFP_Finite(m_info[i], params.head(nP())); break;
 				}
-				ArrayXd theory = SigMag(M);
-				if (m_scaling == Scaling::MeanPerSignal) {
-					theory /= theory.mean();
-				}
+				ArrayXd sm = SigMag(M);
+				ArrayXd theory = scale(sm, params, i);
 				t.segment(index, m_signals.at(i).size()) = theory;
 				index += m_signals.at(i).size();
 				if (m_debug) cout << theory.transpose() << endl;
@@ -501,14 +497,12 @@ class DESPOT2FM : public DESPOTFunctor {
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
 					m_info[i].f0 = params[nP() + i];
 				if (m_finite) {
-					M = One_SSFP_Finite(m_info.at(i), T1T2, PD(params, i));
+					M = One_SSFP_Finite(m_info.at(i), T1T2);
 				} else {
-					M = One_SSFP(m_info.at(i), T1T2, PD(params, i));
+					M = One_SSFP(m_info.at(i), T1T2);
 				}
-				ArrayXd theory = SigMag(M);
-				if (m_scaling == Scaling::MeanPerSignal) {
-					theory /= theory.mean();
-				}
+				ArrayXd sm = SigMag(M);
+				ArrayXd theory = scale(sm, params, i);
 				t.segment(index, m_info[i].flip().size()) = theory;
 				index += m_info[i].flip().size();
 			}

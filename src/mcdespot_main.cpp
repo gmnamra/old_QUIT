@@ -77,7 +77,7 @@ Options:\n\
 static auto B0fit = mcType::OffResMode::Single;
 static auto components = mcType::Components::Two;
 static auto tesla = mcType::FieldStrength::Three;
-static auto PD = mcType::PDMode::Normalise;
+static auto scale = mcType::Scaling::MeanPerSignal;
 static size_t start_slice = 0, end_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, debug = false, converge_f = false,
 		   samples = 5000, retain = 50, contract = 10,
@@ -92,11 +92,11 @@ static struct option long_options[] =
 	{"no-prompt", no_argument, 0, 'p'},
 	{"start_slice", required_argument, 0, 'S'},
 	{"end_slice", required_argument, 0, 'E'},
-	{"PD", required_argument, 0, 'P'},
+	{"scaling", required_argument, 0, 's'},
 	{"tesla", required_argument, 0, 't'},
 	{"B0", required_argument, 0, 'b'},
 	{"cnv", no_argument, 0, 'C'},
-	{"samples", required_argument, 0, 's'},
+	{"samples", required_argument, 0, 'm'},
 	{"retain", required_argument, 0, 'r'},
 	{"contract", required_argument, 0, 'c'},
 	{"expand", required_argument, 0, 'e'},
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
 	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "123hvpCt:b:m:o:P:w:s:r:c:e:i:j:d", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "123hvpCt:b:m:o:s:w:n:r:c:e:i:j:d", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case '1': components = mcType::Components::One; break;
 			case '2': components = mcType::Components::Two; break;
@@ -275,18 +275,19 @@ int main(int argc, char **argv)
 			case 'p': prompt = false; break;
 			case 'S': start_slice = atoi(optarg); break;
 			case 'E': end_slice = atoi(optarg); break;
-			case 'P':
+			case 's':
 				switch (*optarg) {
-					case 'n' : PD = mcType::PDMode::Normalise; break;
-					case 'i' : PD = mcType::PDMode::Individual; break;
-					case 'g' : PD = mcType::PDMode::Global; break;
+					case '1' : scale = DESPOT2FM::Scaling::Global; break;
+					case '2' : scale = DESPOT2FM::Scaling::PerSignal; break;
+					case '3' : scale = DESPOT2FM::Scaling::MeanPerSignal; break;
+					case '4' : scale = DESPOT2FM::Scaling::MeanPerType; break;
 					default:
-						cout << "Invalid PD fitting mode." << endl;
+						cout << "Invalid scaling mode." << endl;
 						exit(EXIT_FAILURE);
 						break;
 				} break;
 			case 'w': weighting = atof(optarg); break;
-			case 's': samples  = atoi(optarg); break;
+			case 'n': samples  = atoi(optarg); break;
 			case 'r': retain   = atoi(optarg); break;
 			case 'c': contract = atoi(optarg); break;
 			case 'e': expand   = atof(optarg); break;
@@ -358,7 +359,7 @@ int main(int argc, char **argv)
 	
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << mcType::to_string(components) << " component model." << endl;
-	mcType mcd(components, info, tesla, B0fit, PD);
+	mcType mcd(components, info, tesla, B0fit, scale);
 	outPrefix = outPrefix + mcType::to_string(components) + "C_";
 	#ifdef USE_MCFINITE
 	outPrefix = outPrefix + "F_";
@@ -462,7 +463,7 @@ int main(int argc, char **argv)
 					for (size_t j = 0; j < localf.signal(i).size(); j++) {
 						localf.signal(i)(j) = signalVolumes[i][voxelsPerSlice*j + vox];
 					}
-					if (PD == mcType::PDMode::Normalise) {
+					if (scale == mcType::Scaling::MeanPerSignal) {
 						localf.signal(i) /= localf.signal(i).mean();
 					}
 					if (B0fit == mcType::OffResMode::Map) {

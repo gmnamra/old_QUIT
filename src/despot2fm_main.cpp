@@ -74,7 +74,7 @@ static struct option long_options[] =
 	{"mask", required_argument, 0, 'm'},
 	{"tesla", required_argument, 0, 't'},
 	{"verbose", no_argument, 0, 'v'},
-	{"scale", required_argument, 0, 's'},
+	{"scaling", required_argument, 0, 's'},
 	{"start_slice", required_argument, 0, 'S'},
 	{"end_slice", required_argument, 0, 'E'},
 	{"samples", required_argument, 0, 'm'},
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 					case '3' : scale = DESPOT2FM::Scaling::MeanPerSignal; break;
 					case '4' : scale = DESPOT2FM::Scaling::MeanPerType; break;
 					default:
-						cout << "Invalid PD fitting mode." << endl;
+						cout << "Invalid scaling mode." << endl;
 						exit(EXIT_FAILURE);
 						break;
 				} break;
