@@ -399,7 +399,7 @@ class mcFinite : public mcDESPOT {
 				 const bool &debug = false) :
 			mcDESPOT(c, data, tesla, offRes, PD, debug)
 		{
-			m_names.insert(m_names.begin() + nP(), "delta_f");
+			m_names.insert(m_names.begin() + nP() - 1, "delta_f");
 		}
 		
 		const ArrayXd theory(const VectorXd &params) override {

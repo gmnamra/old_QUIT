@@ -211,6 +211,13 @@
 			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
 			remoteInfo = Agilent;
 		};
+		F6F1971F17EC7F8600FFF863 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F62275BB17E2208200523AC0;
+			remoteInfo = fdfhdr;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -434,6 +441,7 @@
 				F6E41D9517C64F1B0043A338 /* libAgilent.a */,
 				F6E41D9717C64F1B0043A338 /* procparse */,
 				F627EDF017D77961001B3FCA /* fdf2nii */,
+				F6F1972017EC7F8600FFF863 /* fdfhdr */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -740,6 +748,13 @@
 			remoteRef = F6E41D9617C64F1B0043A338 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
+		F6F1972017EC7F8600FFF863 /* fdfhdr */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = fdfhdr;
+			remoteRef = F6F1971F17EC7F8600FFF863 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 /* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -985,7 +1000,10 @@
 		F666E50A17AFFBC800A6BBE2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				OTHER_CFLAGS = "-DUSE_MCFINITE";
+				OTHER_CFLAGS = (
+					"$(inherited)",
+					"-DUSE_MCFINITE",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -993,7 +1011,10 @@
 		F666E50B17AFFBC800A6BBE2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				OTHER_CFLAGS = "-DUSE_MCFINITE";
+				OTHER_CFLAGS = (
+					"$(inherited)",
+					"-DUSE_MCFINITE",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
