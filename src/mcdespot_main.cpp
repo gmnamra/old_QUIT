@@ -407,8 +407,8 @@ int main(int argc, char **argv)
 	residualFile.open(outPrefix + mcType::to_string(components) + "_residuals.nii.gz", Nifti::Mode::Write);
 	
 	ArrayXXd bounds = mcd.defaultBounds();
-	if (prompt && tesla == mcType::FieldStrength::Unknown) {
-		cout << "Enter parameter pairs (low then high)" << endl;
+	if (tesla == mcType::FieldStrength::Unknown) {
+		if (prompt) cout << "Enter parameter pairs (low then high)" << endl;
 		for (size_t i = 0; i < mcd.nP(); i++) {
 			if (prompt) cout << mcd.names()[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);

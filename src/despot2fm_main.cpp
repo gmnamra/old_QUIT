@@ -310,9 +310,9 @@ int main(int argc, char **argv)
 				ArrayXd weights(locald2.values());
 				ArrayXd thresh = locald2.defaultThresholds();
 				weights.setConstant(1.0);
-				float biggest_signal = 0.;
+				double biggest_signal = 0.;
 				size_t w_start, w_size, index = 0;
-				for (int p = 0; p < nPhases; p++) {
+				for (size_t p = 0; p < nPhases; p++) {
 					locald2.info(p).f0 = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
 					locald2.info(p).B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 					for (int i = 0; i < locald2.signal(p).rows(); i++)
