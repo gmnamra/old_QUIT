@@ -75,14 +75,15 @@ class DESPOTFunctor : public Functor<double> {
 				case FieldStrength::Unknown: return "User";
 			}
 		}
-		enum class PDMode {
-			Normalise, Global, Individual
+		enum class Scaling {
+			Global, PerSignal, MeanPerSignal, MeanPerType
 		};
-		static const string to_string(const PDMode &p) {
+		static const string to_string(const Scaling &p) {
 			switch (p) {
-				case PDMode::Normalise: return "normalise";
-				case PDMode::Global: return "global";
-				case PDMode::Individual: return "individual";
+				case Scaling::Global: return "global";
+				case Scaling::PerSignal: return "per signal";
+				case Scaling::MeanPerSignal: return "normalised to per signal mean";
+				case Scaling::MeanPerType: return "normalised to mean for each signal type (SPGR/SSFP)";
 			}
 		}
 		enum class OffResMode {
@@ -92,7 +93,7 @@ class DESPOTFunctor : public Functor<double> {
 	protected:
 		const FieldStrength m_fieldStrength;
 		const OffResMode m_offRes;
-		const PDMode m_PDMode;
+		const Scaling m_scaling;
 		size_t m_nV;
 		vector<Info> m_info;
 		vector<ArrayXd> m_signals;
@@ -138,10 +139,11 @@ class DESPOTFunctor : public Functor<double> {
 		}
 		
 		const size_t nPD() const {
-			switch (m_PDMode) {
-				case PDMode::Normalise: return 0;
-				case PDMode::Global: return 1;
-				case PDMode::Individual: return m_info.size();
+			switch (m_scaling) {
+				case Scaling::Global:        return 1;
+				case Scaling::PerSignal:     return m_info.size();
+				case Scaling::MeanPerSignal: return 0;
+				case Scaling::MeanPerType:   return 0;
 			}
 		}
 		
@@ -153,11 +155,11 @@ class DESPOTFunctor : public Functor<double> {
 		DESPOTFunctor(vector<Info> &info_in,
 					  const FieldStrength &tesla,
 					  const OffResMode &offRes = OffResMode::Single,
-					  const PDMode &PD = PDMode::Normalise,
+					  const Scaling &s = Scaling::MeanPerSignal,
 		              const bool &debug = false) :
 			m_info(info_in),
 			m_fieldStrength(tesla), m_offRes(offRes),
-			m_PDMode(PD), m_debug(debug)
+			m_scaling(s), m_debug(debug)
 		{
 			m_signals.reserve(m_info.size());
 			m_nV = 0;
@@ -262,9 +264,9 @@ class mcDESPOT : public DESPOTFunctor {
 		}
 		
 		mcDESPOT(const Components &c, vector<Info> &data,
-				 const FieldStrength &tesla, const OffResMode &offRes, const PDMode &PD = PDMode::Normalise,
+				 const FieldStrength &tesla, const OffResMode &offRes, const Scaling &s = Scaling::MeanPerSignal,
 				 const bool &debug = false) :
-			DESPOTFunctor(data, tesla, offRes, PD, debug),
+			DESPOTFunctor(data, tesla, offRes, s, debug),
 			m_components(c)
 		{
 			m_names.reserve(inputs());
@@ -319,10 +321,11 @@ class mcDESPOT : public DESPOTFunctor {
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
 					m_info.at(i).f0 = params[nP() + i];
 				double PD;
-				switch (m_PDMode) {
-					case (PDMode::Normalise): PD = 1.; break;
-					case (PDMode::Global): PD = params[nP() + nOffRes()]; break;
-					case (PDMode::Individual): PD = params[nP() + nOffRes() + i]; break;
+				switch (m_scaling) {
+					case (Scaling::Global):        PD = params[nP() + nOffRes()]; break;
+					case (Scaling::PerSignal):     PD = params[nP() + nOffRes() + i]; break;
+					case (Scaling::MeanPerSignal): PD = 1; break;
+					case (Scaling::MeanPerType):   PD = 1; break;
 				}
 				if (m_info[i].spoil == true) {
 					switch (m_components) {
@@ -338,7 +341,7 @@ class mcDESPOT : public DESPOTFunctor {
 					}
 				}
 				ArrayXd theory = SigMag(M);
-				if (m_PDMode == PDMode::Normalise) {
+				if (m_scaling == Scaling::MeanPerSignal) {
 					theory /= theory.mean();
 				}
 				t.segment(index, m_signals.at(i).size()) = theory;
@@ -395,9 +398,9 @@ class mcFinite : public mcDESPOT {
 		}
 		
 		mcFinite(const Components &c, vector<Info> &data,
-				 const FieldStrength &tesla, const OffResMode &offRes, const PDMode &PD = PDMode::Normalise,
+				 const FieldStrength &tesla, const OffResMode &offRes, const Scaling &s = Scaling::MeanPerSignal,
 				 const bool &debug = false) :
-			mcDESPOT(c, data, tesla, offRes, PD, debug)
+			mcDESPOT(c, data, tesla, offRes, s, debug)
 		{
 			m_names.insert(m_names.begin() + nP() - 1, "delta_f");
 		}
@@ -413,10 +416,11 @@ class mcFinite : public mcDESPOT {
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
 					m_info[i].f0 = params[nP() + i];
 				double PD;
-				switch (m_PDMode) {
-					case (PDMode::Normalise): PD = 1.; break;
-					case (PDMode::Global): PD = params[nP() + nOffRes()]; break;
-					case (PDMode::Individual): PD = params[nP() + nOffRes() + i]; break;
+				switch (m_scaling) {
+					case (Scaling::Global):        PD = params[nP() + nOffRes()]; break;
+					case (Scaling::PerSignal):     PD = params[nP() + nOffRes() + i]; break;
+					case (Scaling::MeanPerSignal): PD = 1; break;
+					case (Scaling::MeanPerType):   PD = 1; break;
 				}
 				switch (m_components) {
 					case Components::One: M = One_SSFP_Finite(m_info[i], params.head(nP()), PD); break;
@@ -424,7 +428,7 @@ class mcFinite : public mcDESPOT {
 					case Components::Three: M = Three_SSFP_Finite(m_info[i], params.head(nP()), PD); break;
 				}
 				ArrayXd theory = SigMag(M);
-				if (m_PDMode == PDMode::Normalise) {
+				if (m_scaling == Scaling::MeanPerSignal) {
 					theory /= theory.mean();
 				}
 				t.segment(index, m_signals.at(i).size()) = theory;
@@ -475,9 +479,9 @@ class DESPOT2FM : public DESPOTFunctor {
 		}
 		
 		DESPOT2FM(vector<Info> &data, const double T1,
-				  const FieldStrength& tesla, const OffResMode &offRes, const PDMode &PD = PDMode::Global,
+				  const FieldStrength& tesla, const OffResMode &offRes, const Scaling &s = Scaling::MeanPerSignal,
 				  const bool &finite = false, const bool &debug = false) :
-			DESPOTFunctor(data, tesla, offRes, PD, debug), m_T1(T1), m_finite(finite)
+			DESPOTFunctor(data, tesla, offRes, s, debug), m_T1(T1), m_finite(finite)
 		{
 			m_names.resize(inputs());
 			m_names.at(0) = "T2";
@@ -502,10 +506,11 @@ class DESPOT2FM : public DESPOTFunctor {
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
 					m_info[i].f0 = params[nP() + i];
 				double PD;
-				switch (m_PDMode) {
-					case (PDMode::Normalise): PD = 1.; break;
-					case (PDMode::Global): PD = params[nP() + nOffRes()]; break;
-					case (PDMode::Individual): PD = params[nP() + nOffRes() + i]; break;
+				switch (m_scaling) {
+					case (Scaling::Global):        PD = params[nP() + nOffRes()]; break;
+					case (Scaling::PerSignal):     PD = params[nP() + nOffRes() + i]; break;
+					case (Scaling::MeanPerSignal): PD = 1; break;
+					case (Scaling::MeanPerType):   PD = 1; break;
 				}
 				if (m_finite) {
 					M = One_SSFP_Finite(m_info.at(i), T1T2, PD);
@@ -513,7 +518,7 @@ class DESPOT2FM : public DESPOTFunctor {
 					M = One_SSFP(m_info.at(i), T1T2, PD);
 				}
 				ArrayXd theory = SigMag(M);
-				if (m_PDMode == PDMode::Normalise) {
+				if (m_scaling == Scaling::MeanPerSignal) {
 					theory /= theory.mean();
 				}
 				t.segment(index, m_info[i].flip().size()) = theory;

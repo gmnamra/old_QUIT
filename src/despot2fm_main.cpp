@@ -52,13 +52,13 @@ Options:\n\
 	--tesla, -t 3     : Use boundaries suitable for 3T (default)\n\
 	            7     : Boundaries suitable for 7T\n\
 	            u     : User specified boundaries from stdin.\n\
-	--samples, -s n   : Use n samples for region contraction (Default 5000).\n\
+	--samples, -m n   : Use n samples for region contraction (Default 5000).\n\
 	--retain, -r  n   : Retain n samples for new boundary (Default 50).\n\
 	--contract, -c n  : Contract a maximum of n times (Default 10).\n\
 	--expand, -e n    : Re-expand boundary by percentage n (Default 0).\n"
 };
 
-static auto PD = DESPOT2FM::PDMode::Normalise;
+static auto scale = DESPOT2FM::Scaling::MeanPerSignal;
 static auto tesla = DESPOT2FM::FieldStrength::Three;
 static auto offRes = DESPOT2FM::OffResMode::Single;
 static int verbose = false, debug = false, use_finite = false, start_slice = -1, end_slice = -1,
@@ -74,9 +74,10 @@ static struct option long_options[] =
 	{"mask", required_argument, 0, 'm'},
 	{"tesla", required_argument, 0, 't'},
 	{"verbose", no_argument, 0, 'v'},
+	{"scale", required_argument, 0, 's'},
 	{"start_slice", required_argument, 0, 'S'},
 	{"end_slice", required_argument, 0, 'E'},
-	{"samples", required_argument, 0, 's'},
+	{"samples", required_argument, 0, 'm'},
 	{"retain", required_argument, 0, 'r'},
 	{"contract", required_argument, 0, 'c'},
 	{"expand", required_argument, 0, 'e'},
@@ -98,7 +99,7 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:vt:P:s:r:c:e:i:j:w:fd", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:o:vt:s:n:r:c:e:i:j:w:fd", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;
@@ -130,11 +131,12 @@ int main(int argc, char **argv)
 						exit(EXIT_FAILURE);
 						break;
 				} break;
-			case 'P':
+			case 's':
 				switch (*optarg) {
-					case 'n' : PD = DESPOT2FM::PDMode::Normalise; break;
-					case 'i' : PD = DESPOT2FM::PDMode::Individual; break;
-					case 'g' : PD = DESPOT2FM::PDMode::Global; break;
+					case '1' : scale = DESPOT2FM::Scaling::Global; break;
+					case '2' : scale = DESPOT2FM::Scaling::PerSignal; break;
+					case '3' : scale = DESPOT2FM::Scaling::MeanPerSignal; break;
+					case '4' : scale = DESPOT2FM::Scaling::MeanPerType; break;
 					default:
 						cout << "Invalid PD fitting mode." << endl;
 						exit(EXIT_FAILURE);
@@ -148,7 +150,7 @@ int main(int argc, char **argv)
 			case 'd': debug = true; break;
 			case 'S': start_slice = atoi(optarg); break;
 			case 'E': end_slice = atoi(optarg); break;
-			case 's': samples  = atoi(optarg); break;
+			case 'n': samples  = atoi(optarg); break;
 			case 'r': retain   = atoi(optarg); break;
 			case 'c': contract = atoi(optarg); break;
 			case 'e': expand   = atof(optarg); break;
@@ -241,7 +243,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	DESPOT2FM d2fm(info, 0., tesla, offRes, PD, use_finite);
+	DESPOT2FM d2fm(info, 0., tesla, offRes, scale, use_finite);
 	ArrayXXd bounds = d2fm.defaultBounds();
 	if (tesla == DESPOT2FM::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
@@ -325,7 +327,7 @@ int main(int argc, char **argv)
 					if (voxI != -1) {
 						cout << "Signal " << p << ": " << locald2.signal(p).transpose() << endl;
 					}
-					if (PD == DESPOT2FM::PDMode::Normalise) {
+					if (scale == DESPOT2FM::Scaling::MeanPerSignal) {
 						locald2.signal(p) /= locald2.signal(p).mean();
 						if (voxI != -1) {
 							cout << "Normalised: " << locald2.signal(p).transpose() << endl;

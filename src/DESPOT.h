@@ -58,6 +58,19 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
 // Class that holds a complete set of information needed to process a mcDESPOT
 // dataset, e.g. TR, TE, flip-angles
 //******************************************************************************
+struct Parameters {
+	VectorXd flip;
+	double TR, Trf, f0, B1;
+};
+
+struct SPGRParameters : public Parameters {
+	double TE;
+};
+
+struct SSFPParameters : public Parameters {
+	double phase;
+};
+
 class Info {
 	private:
 		VectorXd m_flip;
