@@ -364,7 +364,7 @@ int main(int argc, char **argv)
 	outPrefix = outPrefix + "F_";
 	#endif
 	ArrayXd weights(mcd.values());
-	ArrayXd threshes(mcd.inputs()); threshes.setOnes();
+	ArrayXd threshes(mcd.inputs()); threshes.setConstant(0.05);
 	if (converge_f)
 		threshes = mcd.defaultThresholds();
 	size_t index = 0;
