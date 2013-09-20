@@ -54,9 +54,9 @@ class Functor
 		virtual const long inputs() const { return m_inputs; }
 		virtual const long values() const { return m_values; }
 		
-		virtual int operator()(const VectorXd &params, Ref<ArrayXd> diffs) = 0;
+		virtual int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) = 0;
 		
-		virtual const ArrayXd theory(const VectorXd &params) = 0;
+		virtual const ArrayXd theory(const Ref<VectorXd> &params) = 0;
 		virtual const ArrayXd signals() const = 0;
 };
 
@@ -127,6 +127,15 @@ class DESPOTFunctor : public Functor<double> {
 		
 		virtual const ArrayXXd defaultBounds() = 0;
 		
+		double PD(const Ref<VectorXd> &p, size_t sig) {
+			switch (m_scaling) {
+				case (Scaling::Global):        return p[nP() + nOffRes()];
+				case (Scaling::PerSignal):     return p[nP() + nOffRes() + sig];
+				case (Scaling::MeanPerSignal): return 1;
+				case (Scaling::MeanPerType):   return 1;
+			}
+		}
+		
 	public:
 		const size_t nOffRes() const {
 			switch (m_offRes) {
@@ -183,7 +192,7 @@ class DESPOTFunctor : public Functor<double> {
 			return v;
 		}
 		
-		int operator()(const VectorXd &params, Ref<ArrayXd> diffs) override {
+		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) override {
 			eigen_assert(diffs.size() == values());
 			ArrayXd t = theory(params);
 			ArrayXd s = signals();
@@ -310,7 +319,7 @@ class mcDESPOT : public DESPOTFunctor {
 				return true;
 		}
 		
-		const ArrayXd theory(const VectorXd &params) override {
+		const ArrayXd theory(const Ref<VectorXd> &params) override {
 			ArrayXd t(values());
 			int index = 0;
 			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
@@ -320,24 +329,17 @@ class mcDESPOT : public DESPOTFunctor {
 					m_info.at(i).f0 = params[nP()];
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
 					m_info.at(i).f0 = params[nP() + i];
-				double PD;
-				switch (m_scaling) {
-					case (Scaling::Global):        PD = params[nP() + nOffRes()]; break;
-					case (Scaling::PerSignal):     PD = params[nP() + nOffRes() + i]; break;
-					case (Scaling::MeanPerSignal): PD = 1; break;
-					case (Scaling::MeanPerType):   PD = 1; break;
-				}
 				if (m_info[i].spoil == true) {
 					switch (m_components) {
-						case Components::One: M = One_SPGR(m_info[i], params.head(nP()), PD); break;
-						case Components::Two: M = Two_SPGR(m_info[i], params.head(nP()), PD); break;
-						case Components::Three: M = Three_SPGR(m_info[i], params.head(nP()), PD); break;
+						case Components::One: M = One_SPGR(m_info[i], params.head(nP()), PD(params, i)); break;
+						case Components::Two: M = Two_SPGR(m_info[i], params.head(nP()), PD(params, i)); break;
+						case Components::Three: M = Three_SPGR(m_info[i], params.head(nP()), PD(params, i)); break;
 					}
 				} else {
 					switch (m_components) {
-						case Components::One: M = One_SSFP(m_info[i], params.head(nP()), PD); break;
-						case Components::Two: M = Two_SSFP(m_info[i], params.head(nP()), PD); break;
-						case Components::Three: M = Three_SSFP(m_info[i], params.head(nP()), PD); break;
+						case Components::One: M = One_SSFP(m_info[i], params.head(nP()), PD(params, i)); break;
+						case Components::Two: M = Two_SSFP(m_info[i], params.head(nP()), PD(params, i)); break;
+						case Components::Three: M = Three_SSFP(m_info[i], params.head(nP()), PD(params, i)); break;
 					}
 				}
 				ArrayXd theory = SigMag(M);
@@ -405,7 +407,7 @@ class mcFinite : public mcDESPOT {
 			m_names.insert(m_names.begin() + nP() - 1, "delta_f");
 		}
 		
-		const ArrayXd theory(const VectorXd &params) override {
+		const ArrayXd theory(const Ref<VectorXd> &params) override {
 			ArrayXd t(values());
 			int index = 0;
 			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
@@ -415,17 +417,10 @@ class mcFinite : public mcDESPOT {
 					m_info[i].f0 = params[nP()];
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
 					m_info[i].f0 = params[nP() + i];
-				double PD;
-				switch (m_scaling) {
-					case (Scaling::Global):        PD = params[nP() + nOffRes()]; break;
-					case (Scaling::PerSignal):     PD = params[nP() + nOffRes() + i]; break;
-					case (Scaling::MeanPerSignal): PD = 1; break;
-					case (Scaling::MeanPerType):   PD = 1; break;
-				}
 				switch (m_components) {
-					case Components::One: M = One_SSFP_Finite(m_info[i], params.head(nP()), PD); break;
-					case Components::Two: M = Two_SSFP_Finite(m_info[i], params.head(nP()), PD); break;
-					case Components::Three: M = Three_SSFP_Finite(m_info[i], params.head(nP()), PD); break;
+					case Components::One: M = One_SSFP_Finite(m_info[i], params.head(nP()), PD(params, i)); break;
+					case Components::Two: M = Two_SSFP_Finite(m_info[i], params.head(nP()), PD(params, i)); break;
+					case Components::Three: M = Three_SSFP_Finite(m_info[i], params.head(nP()), PD(params, i)); break;
 				}
 				ArrayXd theory = SigMag(M);
 				if (m_scaling == Scaling::MeanPerSignal) {
@@ -493,7 +488,7 @@ class DESPOT2FM : public DESPOTFunctor {
 		
 		void setT1(const double T1) { m_T1 = T1; }
 		
-		const ArrayXd theory(const VectorXd &params) override {
+		const ArrayXd theory(const Ref<VectorXd> &params) override {
 			VectorXd T1T2(2);
 			T1T2 << m_T1, params[0];
 			
@@ -505,17 +500,10 @@ class DESPOT2FM : public DESPOTFunctor {
 					m_info[i].f0 = params[nP()];
 				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
 					m_info[i].f0 = params[nP() + i];
-				double PD;
-				switch (m_scaling) {
-					case (Scaling::Global):        PD = params[nP() + nOffRes()]; break;
-					case (Scaling::PerSignal):     PD = params[nP() + nOffRes() + i]; break;
-					case (Scaling::MeanPerSignal): PD = 1; break;
-					case (Scaling::MeanPerType):   PD = 1; break;
-				}
 				if (m_finite) {
-					M = One_SSFP_Finite(m_info.at(i), T1T2, PD);
+					M = One_SSFP_Finite(m_info.at(i), T1T2, PD(params, i));
 				} else {
-					M = One_SSFP(m_info.at(i), T1T2, PD);
+					M = One_SSFP(m_info.at(i), T1T2, PD(params, i));
 				}
 				ArrayXd theory = SigMag(M);
 				if (m_scaling == Scaling::MeanPerSignal) {
