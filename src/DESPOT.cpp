@@ -409,14 +409,13 @@ MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p, const double PD)
 MagVector Three_SPGR(const Info &d, const VectorXd &p, const double PD)
 {
 	VectorXd p_c(2), p_ab(6);
-	double PD_ab = PD * p(7);
+	double PD_ab = PD * (1 - p(8));
 	p_ab.segment(0, 4) = p.segment(0, 4);
 	p_ab(4) = p(6); //tau_a
 	p_ab(5) = p(7) / (1 - p(8)); // Adjust f_a so f_a + f_b = 1 for the 2c calculation
 
 	double PD_c = p(8) * PD;
 	p_c(0) = p(4); p_c(1) = p(5);
-	
 	MagVector m_ab = Two_SPGR(d, p_ab, PD_ab);
 	MagVector m_c  = One_SPGR(d, p_c, PD_c);
 	MagVector r = m_ab + m_c;
@@ -426,7 +425,7 @@ MagVector Three_SPGR(const Info &d, const VectorXd &p, const double PD)
 MagVector Three_SSFP(const Info &d, const VectorXd &p, const double PD)
 {
 	VectorXd p_c(2), p_ab(6);
-	double PD_ab = PD * p(7);
+	double PD_ab = PD * (1 - p(8));
 	p_ab.segment(0, 4) = p.segment(0, 4);
 	p_ab(4) = p(6); //tau_a
 	p_ab(5) = p(7) / (1 - p(8)); // Adjust f_a so f_a + f_b = 1 for the 2c calculation
@@ -444,7 +443,7 @@ MagVector Three_SSFP(const Info &d, const VectorXd &p, const double PD)
 MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p, const double PD)
 {
 	VectorXd p_c(3), p_ab(7);
-	double PD_ab = PD * p(7);
+	double PD_ab = PD * (1 - p(8));
 	p_ab.segment(0, 4) = p.segment(0, 4);
 	p_ab(4) = p(6); //tau_a
 	p_ab(5) = p(7) / (1 - p(8)); // Adjust f_a so f_a + f_b = 1 for the 2c calculation

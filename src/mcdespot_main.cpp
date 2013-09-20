@@ -500,6 +500,9 @@ int main(int argc, char **argv)
 			for (int i = 0; i < residuals.size(); i++) {
 				residualData.at(i).at(slice * voxelsPerSlice + vox) = residuals[i];
 			}
+			if (voxI != -1) {
+				cout << "Final: " << params.transpose() << endl;
+			}
 		};
 		if (voxI == -1)
 			threads.for_loop(processVox, voxelsPerSlice);
