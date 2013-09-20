@@ -107,8 +107,8 @@ class Nifti {
 		void calcStrides();
 		void seekToVoxel(const ArrayXs &target);
 		
-		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const size_t nEl, std::vector<T> &data, const size_t offset = 0);
-		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const size_t nEl, std::vector<std::complex<T>> &data, const size_t offset = 0);
+		template<typename T> void convertFromBytes(const std::vector<char> &bytes, std::vector<T> &data, const size_t offset = 0);
+		template<typename T> void convertFromBytes(const std::vector<char> &bytes, std::vector<std::complex<T>> &data, const size_t offset = 0);
 		template<typename T> std::vector<char> convertToBytes(const std::vector<T> &data);
 		template<typename T> std::vector<char> convertToBytes(const std::vector<std::complex<T>> &data);
 		template<typename T> void convertToBytes(std::vector<char> &bytes, const size_t nEl, std::vector<T> &data, const size_t offset = 0);
@@ -202,15 +202,7 @@ class Nifti {
 		const std::list<Extension> &extensions() const;
 		
 		template<typename T> void readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data);
-		template<typename T> void readVolume(const size_t &vol, std::vector<T> &buffer);
-		template<typename T> std::vector<T> readVolume(const size_t &vol);
-		template<typename T> void readAllVolumes(std::vector<T> &buffer);
-		template<typename T> std::vector<T> readAllVolumes();
-		template<typename T> void readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
-		                                        const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et,
-												std::vector<T> &buffer);
-		template<typename T> void readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
-		                                        const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et);
+		template<typename T> void readVolumes(const size_t first, const size_t nvol, std::vector<T> &data);
 		template<typename T> void writeVolume(const size_t vol, const std::vector<T> &data);
 		template<typename T> void writeAllVolumes(const std::vector<T> &data);
 		template<typename T> void writeSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,

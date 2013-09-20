@@ -22,9 +22,9 @@
   *   @param nEl Number of elements (not bytes) expected in the data
   *   @param data std::vector& to converted data in. Will be resized to ensure enough space.
   */
-template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes, const size_t nEl, std::vector<T> &data, const size_t offset) {
-	assert(nEl == (bytes.size() / m_typeinfo.size));
-	data.resize(nEl);
+template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes, std::vector<T> &data, const size_t offset) {
+	size_t nEl = bytes.size() / m_typeinfo.size;
+	assert((offset + nEl) <= data.size());
 	for (size_t i = 0; i < nEl; i++) {
 		switch (m_typeinfo.type) {
 			case DataType::INT8:      data[offset + i] = static_cast<T>(reinterpret_cast<const char *>(bytes.data())[i]); break;
@@ -59,9 +59,9 @@ template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes
   *   @param nEl Number of elements (not bytes) expected in the data
   *   @param data std::vector& to converted data in. Will be resized to ensure enough space.
   */
-template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes, const size_t nEl, std::vector<std::complex<T>> &data, const size_t offset) {
-	assert(nEl == (bytes.size() / m_typeinfo.size));
-	data.resize(nEl);
+template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes, std::vector<std::complex<T>> &data, const size_t offset) {
+	size_t nEl = bytes.size() / m_typeinfo.size;
+	assert((offset + nEl) <= data.size());
 	for (size_t i = 0; i < nEl; i++) {
 		switch (m_typeinfo.type) {
 			case DataType::INT8:      data[offset + i] = std::complex<T>(static_cast<T>(reinterpret_cast<const char *>(bytes.data())[i]), 0.); break;
@@ -188,31 +188,21 @@ template<typename T> void Nifti::convertToBytes(std::vector<char> &bytes, const 
 	}
 }
 
-template<typename T> void Nifti::readVolume(const size_t &vol, std::vector<T> &buffer) {
-	size_t bytesPerVolume = voxelsPerVolume() * m_typeinfo.size;
-	std::vector<char> raw(bytesPerVolume);
-	readBytes(vol * bytesPerVolume, bytesPerVolume, raw.data());
-	convertFromBytes(raw, voxelsPerVolume(), buffer);
-}
-
-template<typename T> std::vector<T> Nifti::readVolume(const size_t &vol) {
-	std::vector<T> buffer;
-	readVolume(vol, buffer);
-	return buffer;
-}
-
-template<typename T> void Nifti::readAllVolumes(std::vector<T> &buffer) {
-	std::vector<char> raw(voxelsTotal() * m_typeinfo.size);
-	readBytes(0, voxelsTotal() * m_typeinfo.size, raw.data());
-	return convertFromBytes<T>(raw, voxelsTotal(), buffer);
-}
-
-template<typename T> std::vector<T> Nifti::readAllVolumes() {
-	std::vector<T> buffer;
-	readAllVolumes(buffer);
-	return buffer;
-}
 using namespace std;
+
+/*
+ *   Core IO routine. Depending on the mode of the file, reads/writes a
+ *   contiguous subregion of the region and converts to/from the desired datatype.
+ *
+ *   start and size can be short of the full number of dimensions, e.g. if you
+ *   only want a part of the first volume in a multi-volume image, then they
+ *   just be 3D. The only limitation is that they must not have more dimensions
+ *   than the image.
+ *
+ *   @param start The voxel indices of the first desired voxel.
+ *   @param size  The size of the desired subregion.
+ *   @param data  Storage for the data to read/write. Must be sufficiently large.
+ */
 template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data) {
 	if (start.rows() != size.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
 	if (start.rows() > m_dim.rows()) throw(std::out_of_range("Too many read dimensions specified in image: " + imagePath()));
@@ -226,91 +216,41 @@ template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &star
 		firstDim++;
 		blockSize *= size(firstDim);
 	}
-	
-	std::vector<char> raw(blockSize * m_typeinfo.size);
-	ArrayXs target = start;
-	std::function<void (const size_t dim)> doDim;
-	doDim = [&] (const size_t dim) {
+	cout << "firstDim " << firstDim << " blockSize " << blockSize << endl;
+	std::vector<char> block(blockSize * m_typeinfo.size);
+	ArrayXs blockStart = start;
+	std::function<void (const size_t dim)> dimLoop;
+	dimLoop = [&] (const size_t dim) {
 		if (dim == firstDim) {
 			//cout << "target " << target.transpose() << endl;
-			seekToVoxel(target);
+			seekToVoxel(blockStart);
 			if (m_mode == Nifti::Mode::Read) {
-				readBytes(raw);
-				convertFromBytes<T>(raw, blockSize, data, offset);
+				readBytes(block);
+				convertFromBytes<T>(block, data, offset);
 			} else {
-				convertToBytes<T>(raw, blockSize, data, offset);
-				writeBytes(raw);
+				convertToBytes<T>(block, blockSize, data, offset);
+				writeBytes(block);
 			}
 			offset += blockSize;
 		} else {
 			//cout << "dim " << dim << " start " << start(dim) << " end " << start(dim) + size(dim) << endl;
 			for (size_t v = start(dim); v < start(dim) + size(dim); v++) {
-				target(dim) = v;
-				doDim(dim - 1);
+				blockStart(dim) = v;
+				dimLoop(dim - 1);
 			}
 		}
 	};
-	doDim(start.rows() - 1);
-}
-/**
-  *   Reads a subvolume
-  *
-  *   Converts to the templated type from the NIfTI datatype.
-  *   @param sx, sy, sz, st - Start voxels for each dimension.
-  *   @param ex, ey, ez, et - End voxels for each dimension. Values are clamped to dimension sizes.
-  *   @param buffer std::std::vector to store the data.
-  *
-  */
-template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
-										      const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et,
-										      std::vector<T> &buffer) {
-	size_t lx, ly, lz, lt, total, toRead;
-	lx = ((ex > dim(1)) ? dim(1) : ex) - sx;
-	ly = ((ey > dim(2)) ? dim(2) : ey) - sy;
-	lz = ((ez > dim(3)) ? dim(3) : ez) - sz;
-	lt = ((et > dim(4)) ? dim(4) : et) - st;
-	total = lx * ly * lz * lt;
-	
-	if (lx < 1 || ly < 1 || lz < 1 || lt < 1) { // There is nothing to write
-		throw(std::out_of_range("Invalid subvolume read dimensions: " + imagePath()));
-	}
-	
-	// Collapse successive full dimensions into a single compressed read
-	toRead = lx * m_typeinfo.size;
-	if (lx == dim(1)) {
-		toRead *= ly;
-		if (ly == dim(2)) {
-			toRead *= lz;
-			if (lz == dim(3)) {
-				// If we've got to here we're actual reading the whole image
-				toRead *= lt;
-				lt = 1;
-			}
-			lz = 1;
-		}
-		ly = 1;
-	}
-	std::vector<char> raw(total * m_typeinfo.size);
-	char *nextRead = raw.data();
-	for (size_t t = st; t < st+lt; t++) {
-		size_t tOff = t * voxelsPerVolume();
-		for (size_t z = sz; z < sz+lz; z++) {
-			size_t zOff = z * voxelsPerSlice();
-			for (size_t y = sy; y < sy+ly; y++) {
-				size_t yOff = y * dim(1);
-				if (readBytes((tOff + zOff + yOff) * m_typeinfo.size, toRead, nextRead))
-					nextRead += toRead;
-			}
-		}
-	}
-	convertFromBytes<T>(raw, total, buffer);
+	dimLoop(start.rows() - 1);
 }
 
-template<typename T> void Nifti::readSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
-										const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et) {
-	std::vector<T> buffer;
-	readSubvolume(sx, sy, sz, st, ex, ey, ez, et, buffer);
-	return buffer;
+template<typename T> void Nifti::readVolumes(const size_t first, const size_t nvol, std::vector<T> &data) {
+	if (!((m_mode == Mode::Read) || (m_mode == Mode::ReadSkipExt)))
+		throw(std::logic_error("File must be opened for reading: " + basePath()));
+	
+	ArrayXs start, size;
+	start << 0, 0, first;
+	size << dim(1), dim(2), first + nvol;
+	readWriteVoxels(start, size, data);
 }
 
 template<typename T> void Nifti::writeVolume(const size_t vol, const std::vector<T> &data) {
