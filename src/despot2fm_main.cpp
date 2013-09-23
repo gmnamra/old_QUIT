@@ -311,7 +311,7 @@ int main(int argc, char **argv)
 				voxCount++;
 				ArrayXd weights(locald2.values());
 				weights.setConstant(1.0);
-				double biggest_signal = 0.;
+				double biggest_signal = numeric_limits<double>::lowest();
 				size_t w_start, w_size, index = 0;
 				for (size_t p = 0; p < nPhases; p++) {
 					locald2.info(p).f0 = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
@@ -326,6 +326,9 @@ int main(int argc, char **argv)
 					if (voxI != -1) {
 						cout << "Signal " << p << ": " << locald2.signal(p).transpose() << endl;
 					}
+				}
+				if (voxI != -1) {
+					cout << "w_start " << w_start << " w_size " << w_size << endl;
 				}
 				weights.segment(w_start, w_size).setConstant(weighting);
 				// DESPOT2-FM
@@ -343,10 +346,10 @@ int main(int argc, char **argv)
 					midp = rc.midPoint();
 				}
 			}
-			for (size_t p = 0; p < paramsData.size(); p++) {
+			for (size_t p = 0; p < params.size(); p++) {
 				paramsData.at(p).at(sliceOffset + vox) = params(p);
 			}
-			for (size_t i = 0; i < residuals.size(); i++) {
+			for (size_t i = 0; i < resid.size(); i++) {
 				residuals.at(i).at(sliceOffset + vox) = resid(i);
 			}
 			if (debug) {

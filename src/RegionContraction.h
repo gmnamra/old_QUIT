@@ -148,7 +148,7 @@ class RegionContraction {
 						}
 					} while (!m_f.constraint(tempSample));
 					m_f(tempSample, residuals.col(s));
-					if (!isfinite(m_residuals.square().sum())) {
+					if (!isfinite(residuals.col(s).square().sum())) {
 						if (!finiteWarning) {
 							finiteWarning = true;
 							cout << "Warning: Non-finite residual found!" << endl
