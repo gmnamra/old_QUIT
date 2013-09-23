@@ -20,7 +20,7 @@ CXX = LD_RUN_PATH=$(LIBCPP) /software/system/gcc/gcc-4.8.0/bin/g++
 CXX_FLAGS = -std=c++11 -lstdc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -pthread -Wfatal-errors $(DEBUG) -DAGILENT
 INCLUDE = -I$(SRC_DIR) -I$(INSTALL_INC) -I$(EIGEN)
 LD_FLAGS = -std=c++11 -lstdc++ -O3 -pthread -L$(INSTALL_LIB)
-LD_LIBS  = -lrecon -lNifti -lz
+LD_LIBS  = -lAgilent -lNifti -lz
 
 # Top level build rules
 .PHONY : all debug install clean
