@@ -245,6 +245,7 @@ int main(int argc, char **argv)
 	}
 	
 	DESPOT2FM d2fm(info, 0., tesla, offRes, scale, use_finite);
+	ArrayXd thresh = d2fm.defaultThresholds();
 	ArrayXXd bounds = d2fm.defaultBounds();
 	if (tesla == DESPOT2FM::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
@@ -309,7 +310,6 @@ int main(int argc, char **argv)
 			{	// -ve T1 is non-sensical, no point fitting
 				voxCount++;
 				ArrayXd weights(locald2.values());
-				ArrayXd thresh = locald2.defaultThresholds();
 				weights.setConstant(1.0);
 				double biggest_signal = 0.;
 				size_t w_start, w_size, index = 0;
