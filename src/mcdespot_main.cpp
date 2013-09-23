@@ -276,13 +276,13 @@ int main(int argc, char **argv)
 			case 'S': start_slice = atoi(optarg); break;
 			case 'E': end_slice = atoi(optarg); break;
 			case 's':
-				switch (*optarg) {
-					case '1' : scale = DESPOT2FM::Scaling::Global; break;
-					case '2' : scale = DESPOT2FM::Scaling::PerSignal; break;
-					case '3' : scale = DESPOT2FM::Scaling::MeanPerSignal; break;
-					case '4' : scale = DESPOT2FM::Scaling::MeanPerType; break;
+				switch (atoi(optarg)) {
+					case 1 : scale = DESPOT2FM::Scaling::Global; break;
+					case 2 : scale = DESPOT2FM::Scaling::PerSignal; break;
+					case 3 : scale = DESPOT2FM::Scaling::MeanPerSignal; break;
+					case 4 : scale = DESPOT2FM::Scaling::MeanPerType; break;
 					default:
-						cout << "Invalid scaling mode." << endl;
+						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						exit(EXIT_FAILURE);
 						break;
 				} break;

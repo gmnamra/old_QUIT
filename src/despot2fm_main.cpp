@@ -61,9 +61,10 @@ Options:\n\
 static auto scale = DESPOT2FM::Scaling::MeanPerSignal;
 static auto tesla = DESPOT2FM::FieldStrength::Three;
 static auto offRes = DESPOT2FM::OffResMode::Single;
-static int verbose = false, debug = false, use_finite = false, start_slice = -1, end_slice = -1,
+static int verbose = false, debug = false, use_finite = false,
 		   samples = 2000, retain = 20, contract = 10,
            voxI = -1, voxJ = -1;
+static size_t start_slice = 0, end_slice = numeric_limits<size_t>::max();
 static double expand = 0., weighting = 1.0;
 static string outPrefix;
 static struct option long_options[] =
@@ -132,13 +133,13 @@ int main(int argc, char **argv)
 						break;
 				} break;
 			case 's':
-				switch (*optarg) {
-					case '1' : scale = DESPOT2FM::Scaling::Global; break;
-					case '2' : scale = DESPOT2FM::Scaling::PerSignal; break;
-					case '3' : scale = DESPOT2FM::Scaling::MeanPerSignal; break;
-					case '4' : scale = DESPOT2FM::Scaling::MeanPerType; break;
+				switch (atoi(optarg)) {
+					case 1 : scale = DESPOT2FM::Scaling::Global; break;
+					case 2 : scale = DESPOT2FM::Scaling::PerSignal; break;
+					case 3 : scale = DESPOT2FM::Scaling::MeanPerSignal; break;
+					case 4 : scale = DESPOT2FM::Scaling::MeanPerType; break;
 					default:
-						cout << "Invalid scaling mode." << endl;
+						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						exit(EXIT_FAILURE);
 						break;
 				} break;
@@ -261,15 +262,15 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
-	vector<vector<float>> paramsData(d2fm.inputs());
+	vector<vector<double>> paramsData(d2fm.inputs());
 	for (auto &p : paramsData)
 		p.resize(voxelsPerVolume);
-	vector<vector<float>> residuals(d2fm.values());
+	vector<vector<double>> residuals(d2fm.values());
 	for (auto &r : residuals)
 		r.resize(voxelsPerVolume);
 	vector<size_t> contractData;
-	vector<vector<float>> midpData(d2fm.inputs());
-	vector<vector<float>> widthData(d2fm.inputs());
+	vector<vector<double>> midpData(d2fm.inputs());
+	vector<vector<double>> widthData(d2fm.inputs());
 	if (debug) {
 		contractData.resize(voxelsPerVolume);
 		for (auto &m : midpData)
@@ -280,16 +281,14 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	if ((start_slice < 0) || (start_slice >= inFile.dim(3)))
-		start_slice = 0;
-	if ((end_slice < 0) || (end_slice > inFile.dim(3)))
-		end_slice = inFile.dim(3);
+	if (end_slice > templateFile.dim(3))
+		end_slice = templateFile.dim(3);
 	ThreadPool threads;
     time_t procStart = time(NULL);
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
-	for (int slice = start_slice; slice < end_slice; slice++) {
+	for (size_t slice = start_slice; slice < end_slice; slice++) {
 		// Read in data
 		if (verbose)
 			cout << "Starting slice " << slice << "..." << flush;
@@ -349,15 +348,15 @@ int main(int argc, char **argv)
 					midp = rc.midPoint();
 				}
 			}
-			for (int p = 0; p < locald2.inputs(); p++) {
+			for (size_t p = 0; p < paramsData.size(); p++) {
 				paramsData.at(p).at(sliceOffset + vox) = params(p);
 			}
-			for (int i = 0; i < locald2.values(); i++) {
+			for (size_t i = 0; i < residuals.size(); i++) {
 				residuals.at(i).at(sliceOffset + vox) = resid(i);
 			}
 			if (debug) {
 				contractData.at(sliceOffset + vox) = c;
-				for (int i = 0; i < locald2.inputs(); i++) {
+				for (size_t i = 0; i < widthData.size(); i++) {
 					widthData.at(i).at(sliceOffset + vox) = width(i);
 					midpData.at(i).at(sliceOffset + vox) = midp(i);
 				}
@@ -392,7 +391,7 @@ int main(int argc, char **argv)
 	}
 	templateFile.setDim(4, static_cast<int>(residuals.size()));
 	templateFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
-	for (int i = 0; i < residuals.size(); i++)
+	for (size_t i = 0; i < residuals.size(); i++)
 		templateFile.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 	templateFile.close();
 	if (debug) {
