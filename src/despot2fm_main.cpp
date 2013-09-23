@@ -326,15 +326,10 @@ int main(int argc, char **argv)
 					if (voxI != -1) {
 						cout << "Signal " << p << ": " << locald2.signal(p).transpose() << endl;
 					}
-					if (scale == DESPOT2FM::Scaling::MeanPerSignal) {
-						locald2.signal(p) /= locald2.signal(p).mean();
-						if (voxI != -1) {
-							cout << "Normalised: " << locald2.signal(p).transpose() << endl;
-						}
-					}
 				}
 				weights.segment(w_start, w_size).setConstant(weighting);
 				// DESPOT2-FM
+				locald2.rescaleSignals();
 				locald2.setT1(T1Data.at(sliceOffset + vox));
 				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights, thresh,
 				                                samples, retain, contract, expand, (voxI != -1));
