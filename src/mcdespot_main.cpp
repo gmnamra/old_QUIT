@@ -471,6 +471,7 @@ int main(int argc, char **argv)
 					}
 					localf.info(i).B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
+				localf.rescaleSignals();
 				if ((B0fit == mcType::OffResMode::Bounded) || (B0fit == mcType::OffResMode::MultiBounded)) {
 					for (size_t b = 0; b < localf.nOffRes(); b++) {
 						localBounds(localf.nP() + b, 0) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;

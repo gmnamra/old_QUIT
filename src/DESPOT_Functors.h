@@ -96,7 +96,7 @@ class DESPOTFunctor : public Functor<double> {
 		const Scaling m_scaling;
 		size_t m_nV;
 		vector<Info> m_info;
-		vector<ArrayXd> m_signals;
+		vector<ArrayXd> m_signals, m_theory;
 		vector<string> m_names; // Subclasses responsible for initialising this
 		const bool m_debug;
 	
@@ -127,12 +127,37 @@ class DESPOTFunctor : public Functor<double> {
 		
 		virtual const ArrayXXd defaultBounds() = 0;
 		
-		VectorXd scale(const Ref<VectorXd> &s, const Ref<VectorXd> &p, size_t sig) {
+		void rescaleTheory(const Ref<VectorXd> &p) {
 			switch (m_scaling) {
-				case (Scaling::Global):        return s * p[nP() + nOffRes()];
-				case (Scaling::PerSignal):     return s * p[nP() + nOffRes() + sig];
-				case (Scaling::MeanPerSignal): return s / s.mean();
-				case (Scaling::MeanPerType):   return s / s.mean();
+				case (Scaling::Global):
+					for (auto &s: m_theory)
+						s *= p[nP() + nOffRes()];
+					break;
+				case (Scaling::PerSignal):
+					for (size_t i = 0; i < m_theory.size(); i++) {
+						m_theory.at(i) *= p[nP() + nOffRes() + i];
+					}
+					break;
+				case (Scaling::MeanPerSignal):
+					for (auto &s: m_theory) {
+						s /= s.mean();
+					}
+					break;
+				case (Scaling::MeanPerType):
+					double spgrMean = 0, ssfpMean = 0;
+					for (size_t i = 0; i < m_info.size(); i++) {
+						if (m_info.at(i).spoil)
+							spgrMean += m_theory.at(i).mean();
+						else
+							ssfpMean += m_theory.at(i).mean();
+					}
+					for (size_t i = 0; i < m_info.size(); i++) {
+						if (m_info.at(i).spoil)
+							m_theory.at(i) /= spgrMean;
+						else
+							m_theory.at(i) /= ssfpMean;
+					}
+					break;
 			}
 		}
 		
@@ -156,6 +181,32 @@ class DESPOTFunctor : public Functor<double> {
 			}
 		}
 		
+		void rescaleSignals() {
+			switch (m_scaling) {
+				case (Scaling::Global): case (Scaling::PerSignal): break; // Do Nothing
+				case (Scaling::MeanPerSignal):
+					for (auto &s: m_signals) {
+						s /= s.mean();
+					}
+					break;
+				case (Scaling::MeanPerType):
+					double spgrMean = 0, ssfpMean = 0;
+					for (size_t i = 0; i < m_info.size(); i++) {
+						if (m_info.at(i).spoil)
+							spgrMean += m_signals.at(i).mean();
+						else
+							ssfpMean += m_signals.at(i).mean();
+					}
+					for (size_t i = 0; i < m_info.size(); i++) {
+						if (m_info.at(i).spoil)
+							m_signals.at(i) /= spgrMean;
+						else
+							m_signals.at(i) /= ssfpMean;
+					}
+					break;
+			}
+		}
+		
 		virtual const size_t nP() const = 0;
 		virtual const bool constraint(const VectorXd &params) const = 0;
 		const long inputs() const override { return this->nP() + nOffRes() + nPD(); }
@@ -171,9 +222,11 @@ class DESPOTFunctor : public Functor<double> {
 			m_scaling(s), m_debug(debug)
 		{
 			m_signals.reserve(m_info.size());
+			m_theory.reserve(m_info.size());
 			m_nV = 0;
 			for (size_t i = 0; i < m_info.size(); i++) {
 				m_signals.emplace_back(m_info.at(i).nAngles());
+				m_theory.emplace_back(m_info.at(i).nAngles());
 				m_nV += m_info.at(i).nAngles();
 			}
 		}
@@ -321,7 +374,6 @@ class mcDESPOT : public DESPOTFunctor {
 		
 		const ArrayXd theory(const Ref<VectorXd> &params) override {
 			ArrayXd t(values());
-			int index = 0;
 			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
 			for (size_t i = 0; i < m_info.size(); i++) {
 				MagVector M(3, m_info[i].flip().size());
@@ -342,12 +394,17 @@ class mcDESPOT : public DESPOTFunctor {
 						case Components::Three: M = Three_SSFP(m_info[i], params.head(nP())); break;
 					}
 				}
-				ArrayXd sm = SigMag(M);
-				ArrayXd theory = scale(sm, params, i);
-				t.segment(index, m_signals.at(i).size()) = theory;
-				if (m_debug) cout << theory.transpose() << endl;
-				index += m_signals.at(i).size();
+				m_theory.at(i) = SigMag(M);
 			}
+			rescaleTheory(params);
+
+			int index = 0;
+			for (size_t i = 0; i < m_info.size(); i++) {
+				t.segment(index, m_signals.at(i).size()) = m_theory.at(i);
+				if (m_debug) cout << m_theory.at(i).transpose() << endl;
+				index += m_theory.at(i).size();
+			}
+			
 			return t;
 		}
 };
@@ -407,7 +464,6 @@ class mcFinite : public mcDESPOT {
 		
 		const ArrayXd theory(const Ref<VectorXd> &params) override {
 			ArrayXd t(values());
-			int index = 0;
 			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
 			for (size_t i = 0; i < m_info.size(); i++) {
 				MagVector M(3, m_info[i].flip().size());
@@ -420,12 +476,17 @@ class mcFinite : public mcDESPOT {
 					case Components::Two: M = Two_SSFP_Finite(m_info[i], params.head(nP())); break;
 					case Components::Three: M = Three_SSFP_Finite(m_info[i], params.head(nP())); break;
 				}
-				ArrayXd sm = SigMag(M);
-				ArrayXd theory = scale(sm, params, i);
-				t.segment(index, m_signals.at(i).size()) = theory;
-				index += m_signals.at(i).size();
-				if (m_debug) cout << theory.transpose() << endl;
+				m_theory.at(i) = SigMag(M);
 			}
+			rescaleTheory(params);
+
+			int index = 0;
+			for (size_t i = 0; i < m_info.size(); i++) {
+				t.segment(index, m_signals.at(i).size()) = m_theory.at(i);
+				if (m_debug) cout << m_theory.at(i).transpose() << endl;
+				index += m_theory.at(i).size();
+			}
+			
 			return t;
 		}
 };
@@ -489,7 +550,6 @@ class DESPOT2FM : public DESPOTFunctor {
 			T1T2 << m_T1, params[0];
 			
 			ArrayXd t(values());
-			int index = 0;
 			for (size_t i = 0; i < m_info.size(); i++) {
 				MagVector M(3, m_info[i].flip().size());
 				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
@@ -501,11 +561,17 @@ class DESPOT2FM : public DESPOTFunctor {
 				} else {
 					M = One_SSFP(m_info.at(i), T1T2);
 				}
-				ArrayXd sm = SigMag(M);
-				ArrayXd theory = scale(sm, params, i);
-				t.segment(index, m_info[i].flip().size()) = theory;
-				index += m_info[i].flip().size();
+				m_theory.at(i) = SigMag(M);
 			}
+			rescaleTheory(params);
+			
+			int index = 0;
+			for (size_t i = 0; i < m_info.size(); i++) {
+				t.segment(index, m_signals.at(i).size()) = m_theory.at(i);
+				if (m_debug) cout << m_theory.at(i).transpose() << endl;
+				index += m_theory.at(i).size();
+			}
+			
 			return t;
 		}
 };
