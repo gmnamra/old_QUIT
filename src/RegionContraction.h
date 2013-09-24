@@ -203,9 +203,8 @@ class RegionContraction {
 			// Calculate the residuals
 			m_f(params, m_residuals);
 			//diffs /= f.signals();
-			m_contractions++; // Adjust for 0-based looping
 			if (m_debug) {
-				cout << "Finished, contractions = " << m_contractions << endl;
+				cout << "Finished, contractions = " << m_contractions + 1 << endl; // Adjust for 0-based looping
 				cout << "Mid-point: " << midPoint().transpose() << endl;
 				cout << "Width:     " << width().transpose() << endl;
 			}
