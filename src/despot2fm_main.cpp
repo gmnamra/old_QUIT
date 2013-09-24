@@ -58,7 +58,7 @@ Options:\n\
 	--expand, -e n    : Re-expand boundary by percentage n (Default 0).\n"
 };
 
-static auto scale = DESPOT2FM::Scaling::MeanPerSignal;
+static auto scale = DESPOT2FM::Scaling::NormToMean;
 static auto tesla = DESPOT2FM::FieldStrength::Three;
 static auto offRes = DESPOT2FM::OffResMode::SingleSymmetric;
 static int verbose = false, debug = false, use_finite = false,
@@ -139,8 +139,7 @@ int main(int argc, char **argv)
 			case 's':
 				switch (atoi(optarg)) {
 					case 1 : scale = DESPOT2FM::Scaling::Global; break;
-					case 2 : scale = DESPOT2FM::Scaling::PerSignal; break;
-					case 3 : scale = DESPOT2FM::Scaling::MeanPerSignal; break;
+					case 2 : scale = DESPOT2FM::Scaling::NormToMean; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						exit(EXIT_FAILURE);
@@ -286,9 +285,10 @@ int main(int argc, char **argv)
 					locald2.m_B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 					for (int i = 0; i < locald2.actual(p).rows(); i++)
 						locald2.actual(p)(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
+					if (scale == DESPOTFunctor::Scaling::NormToMean)
+						locald2.actual(p) /= locald2.actual(p).mean();
 				}
 				// DESPOT2-FM
-				locald2.rescaleActual();
 				locald2.setT1(T1Data.at(sliceOffset + vox));
 				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights, thresh,
 				                                samples, retain, contract, expand, (voxI != -1));
@@ -302,10 +302,10 @@ int main(int argc, char **argv)
 					midp = rc.midPoint();
 				}
 			}
-			for (size_t p = 0; p < params.size(); p++) {
+			for (ArrayXd::Index p = 0; p < params.size(); p++) {
 				paramsData.at(p).at(sliceOffset + vox) = params(p);
 			}
-			for (size_t i = 0; i < resid.size(); i++) {
+			for (ArrayXd::Index i = 0; i < resid.size(); i++) {
 				residuals.at(i).at(sliceOffset + vox) = resid(i);
 			}
 			if (debug) {

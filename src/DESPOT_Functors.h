@@ -75,13 +75,12 @@ class DESPOTFunctor : public Functor<double> {
 			}
 		}
 		enum class Scaling {
-			Global, PerSignal, MeanPerSignal
+			Global, NormToMean
 		};
 		static const string to_string(const Scaling &p) {
 			switch (p) {
 				case Scaling::Global: return "global";
-				case Scaling::PerSignal: return "per signal";
-				case Scaling::MeanPerSignal: return "normalised to per signal mean";
+				case Scaling::NormToMean: return "normalised to per signal mean";
 			}
 		}
 		enum class OffResMode {
@@ -121,25 +120,6 @@ class DESPOTFunctor : public Functor<double> {
 		
 		virtual const ArrayXXd defaultBounds() = 0;
 		
-		void rescaleTheory(const Ref<VectorXd> &p) {
-			switch (m_scaling) {
-				case (Scaling::Global):
-					for (auto &s: m_theory)
-						s *= p[nP() + nOffRes()];
-					break;
-				case (Scaling::PerSignal):
-					for (size_t i = 0; i < m_theory.size(); i++) {
-						m_theory.at(i) *= p[nP() + nOffRes() + i];
-					}
-					break;
-				case (Scaling::MeanPerSignal):
-					for (auto &s: m_theory) {
-						s /= s.mean();
-					}
-					break;
-			}
-		}
-		
 	public:
 		double m_f0, m_B1;
 		const size_t nOffRes() const {
@@ -152,20 +132,8 @@ class DESPOTFunctor : public Functor<double> {
 		
 		const size_t nPD() const {
 			switch (m_scaling) {
-				case Scaling::Global:        return 1;
-				case Scaling::PerSignal:     return m_signals.size();
-				case Scaling::MeanPerSignal: return 0;
-			}
-		}
-		
-		void rescaleActual() {
-			switch (m_scaling) {
-				case (Scaling::Global): case (Scaling::PerSignal): break; // Do Nothing
-				case (Scaling::MeanPerSignal):
-					for (auto &s: m_actual) {
-						s /= s.mean();
-					}
-					break;
+				case Scaling::Global:     return 1;
+				case Scaling::NormToMean: return 0;
 			}
 		}
 		
@@ -177,7 +145,7 @@ class DESPOTFunctor : public Functor<double> {
 		DESPOTFunctor(vector<shared_ptr<SignalFunctor>> &signals_in,
 					  const FieldStrength &tesla,
 					  const OffResMode &offRes = OffResMode::Single,
-					  const Scaling &s = Scaling::MeanPerSignal,
+					  const Scaling &s = Scaling::NormToMean,
 		              const bool &debug = false) :
 			m_signals(signals_in),
 			m_fieldStrength(tesla), m_offRes(offRes),
@@ -289,7 +257,7 @@ class mcDESPOT : public DESPOTFunctor {
 		}
 		
 		mcDESPOT(const Components &c, vector<shared_ptr<SignalFunctor>> &data,
-				 const FieldStrength &tesla, const OffResMode &offRes, const Scaling &s = Scaling::MeanPerSignal,
+				 const FieldStrength &tesla, const OffResMode &offRes, const Scaling &s = Scaling::NormToMean,
 				 const bool &debug = false) :
 			DESPOTFunctor(data, tesla, offRes, s, debug),
 			m_components(c)
@@ -344,9 +312,12 @@ class mcDESPOT : public DESPOTFunctor {
 					f0 = m_f0;
 				else
 					f0 = params[nP()];
-				m_theory.at(i) = m_signals.at(i)->signal(params, m_B1, f0);
+				ArrayXd sig = m_signals.at(i)->signal(params.head(nP()), m_B1, f0);
+				switch (m_scaling) {
+					case (Scaling::NormToMean) : m_theory.at(i) = sig / sig.mean(); break;
+					case (Scaling::Global)     : m_theory.at(i) = sig * params(nP() + nOffRes()); break;
+				}
 			}
-			rescaleTheory(params);
 
 			int index = 0;
 			for (size_t i = 0; i < m_signals.size(); i++) {
@@ -405,34 +376,11 @@ class mcFinite : public mcDESPOT {
 		}
 		
 		mcFinite(const Components &c, vector<shared_ptr<SignalFunctor>> &data,
-				 const FieldStrength &tesla, const OffResMode &offRes, const Scaling &s = Scaling::MeanPerSignal,
+				 const FieldStrength &tesla, const OffResMode &offRes, const Scaling &s = Scaling::NormToMean,
 				 const bool &debug = false) :
 			mcDESPOT(c, data, tesla, offRes, s, debug)
 		{
 			m_names.insert(m_names.begin() + nP() - 1, "delta_f");
-		}
-		
-		const ArrayXd theory(const Ref<VectorXd> &params) override {
-			ArrayXd t(values());
-			if (m_debug) cout << endl << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
-			for (size_t i = 0; i < m_signals.size(); i++) {
-				double f0;
-				if (m_offRes == OffResMode::Map)
-					f0 = m_f0;
-				else
-					f0 = params[nP()];
-				m_theory.at(i) = m_signals.at(i)->signal(params, m_B1, f0);
-			}
-			rescaleTheory(params);
-
-			int index = 0;
-			for (size_t i = 0; i < m_signals.size(); i++) {
-				t.segment(index, m_actual.at(i).size()) = m_theory.at(i);
-				if (m_debug) cout << m_theory.at(i).transpose() << endl;
-				index += m_theory.at(i).size();
-			}
-			
-			return t;
 		}
 };
 //******************************************************************************
@@ -476,7 +424,7 @@ class DESPOT2FM : public DESPOTFunctor {
 		}
 		
 		DESPOT2FM(vector<shared_ptr<SignalFunctor>> &data, const double T1,
-				  const FieldStrength& tesla, const OffResMode &offRes, const Scaling &s = Scaling::MeanPerSignal,
+				  const FieldStrength& tesla, const OffResMode &offRes, const Scaling &s = Scaling::NormToMean,
 				  const bool &finite = false, const bool &debug = false) :
 			DESPOTFunctor(data, tesla, offRes, s, debug), m_T1(T1), m_finite(finite)
 		{
@@ -500,10 +448,13 @@ class DESPOT2FM : public DESPOTFunctor {
 					f0 = m_f0;
 				else
 					f0 = params[nP()];
-				m_theory.at(i) = m_signals.at(i)->signal(T1T2, m_B1, f0);
+				ArrayXd sig = m_signals.at(i)->signal(T1T2, m_B1, f0);
+				switch (m_scaling) {
+					case (Scaling::NormToMean) : m_theory.at(i) = sig / sig.mean(); break;
+					case (Scaling::Global)     : m_theory.at(i) = sig * params(nP() + nOffRes()); break;
+				}
 				if (m_debug) cout << "m_theory.at(" << i << "): " << m_theory.at(i).transpose() << endl;
 			}
-			rescaleTheory(params);
 			int index = 0;
 			ArrayXd t(values()); t.setZero();
 			for (size_t i = 0; i < m_signals.size(); i++) {
