@@ -388,10 +388,10 @@ class mcFinite : public mcDESPOT {
 //******************************************************************************
 class DESPOT2FM : public DESPOTFunctor {
 	protected:
-		double m_T1;
 		bool m_finite;
 		
 	public:
+		double m_T1;
 		const size_t nP() const override {
 			return 1;
 		}
@@ -435,8 +435,6 @@ class DESPOT2FM : public DESPOTFunctor {
 			for (size_t i = 0; i < nPD(); i++)
 				m_names.at(1 + nOffRes() + i) = "PD_" + std::to_string(i);
 		}
-		
-		void setT1(const double T1) { m_T1 = T1; }
 		
 		const ArrayXd theory(const Ref<VectorXd> &params) override {
 			VectorXd T1T2(2);
