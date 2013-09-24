@@ -8,6 +8,9 @@
 
 #include "procpar.h"
 
+using namespace std;
+using namespace Eigen;
+
 namespace Agilent {
 
 //******************************************************************************
@@ -34,7 +37,7 @@ Parameter::Parameter(const string &name, const SubType &st, const string &val)
 	m_name = name;
 	m_type = Type::String;
 	m_subtype = st;
-	m_stringValues.push_back(val);
+	m_strings.push_back(val);
 }
 
 // The default value of 8 for max is taken from observations of procpar
@@ -61,7 +64,7 @@ Parameter::Parameter(const string &name, const SubType &st,
 	m_name = name;
 	m_subtype = st;
 	m_type = Type::String;
-	m_stringValues = vals;
+	m_strings = vals;
 	m_stringAllowed = allowed;
 }
 
@@ -79,11 +82,11 @@ Parameter::Parameter(const string &name, const SubType &st, const double &val)
 	m_name = name;
 	m_type = Type::Real;
 	m_subtype = st;
-	m_realValues.push_back(val);
+	m_reals.resize(1); m_reals(0) = val;
 }
 
 Parameter::Parameter(const string &name, const SubType &st,
-                     const vector<double> &vals, const vector<double> &allowed = vector<double>(),
+                     const ArrayXd &vals, const ArrayXd &allowed,
 					 const int ggroup = 0, const int dgroup = 0,
 					 const double max = numeric_limits<double>::max(),
 					 const double min = -numeric_limits<double>::max(),
@@ -105,7 +108,7 @@ Parameter::Parameter(const string &name, const SubType &st,
 	m_name = name;
 	m_type = Type::Real;
 	m_subtype = st;
-	m_realValues = vals;
+	m_reals = vals;
 	m_realAllowed = allowed;
 }
 
@@ -116,16 +119,16 @@ Parameter::Parameter(const string &name, const SubType &st, const int n)
 	switch (st) {
 		case SubType::Real: case SubType::Delay: case SubType::Freq: case SubType::Pulse: case SubType::Int:
 			m_type = Type::String;
-			m_stringValues.resize(n);
+			m_strings.resize(n);
 			break;
 		case SubType::String: case SubType::Flag:
 			m_type = Type::Real;
-			m_realValues.resize(n);
+			m_reals.resize(n);
 			break;
 		case SubType::Junk:
 			// Junk subtype, appears to be a string
 			m_type = Type::String;
-			m_stringValues.resize(n);
+			m_strings.resize(n);
 			break;
 	}
 }
@@ -133,59 +136,8 @@ Parameter::Parameter(const string &name, const SubType &st, const int n)
 //******************************************************************************
 #pragma mark Property accessors
 //******************************************************************************
+const Parameter::Type &Parameter::type() const { return m_type; }
 const string &Parameter::name() const { return m_name; }
-
-const size_t Parameter::nvals() const {
-	if (m_type == Type::String)
-		return m_stringValues.size();
-	else
-		return m_realValues.size();
-}
-
-const size_t Parameter::nallowed() const {
-	if (m_type == Type::String)
-		return m_stringAllowed.size();
-	else
-		return m_realAllowed.size();
-}
-
-const string &Parameter::stringValue(const size_t i = 0) const {
-	if (m_type == Type::String) {
-		if (i < m_stringValues.size())
-			return m_stringValues[i];
-		else {
-			throw(range_error("Parameter " + m_name + " has " + to_string(m_stringValues.size()) + " values, tried to access value " + to_string(i)));
-		}
-	}
-	else
-		throw(runtime_error("Tried to read a string value from real parameter " + m_name));
-}
-
-const double &Parameter::realValue(const size_t i = 0) const {
-	if (m_type == Type::Real) {
-		if (i < m_realValues.size())
-			return m_realValues[i];
-		else {
-			throw(range_error("Parameter " + m_name + " has " + to_string(m_stringValues.size()) + " values, tried to access value " + to_string(i)));		}
-	}
-	else
-		throw(runtime_error("Tried to read a real value from string parameter " + m_name));
-}
-
-const vector<string> &Parameter::stringValues() const {
-	if (m_type == Type::String)
-		return m_stringValues;
-	else
-		throw(runtime_error("Tried to read string values from real parameter " + m_name));
-}
-
-const vector<double> &Parameter::realValues() const {
-	if (m_type == Type::Real)
-		return m_realValues;
-	else
-		throw(runtime_error("Tried to read real values from string parameter " + m_name));
-}
-
 const string &Parameter::type_name() const {
 	static const array<const string, 2> types = { "Real", "String" };
 	return types[static_cast<size_t>(m_type)];
@@ -197,35 +149,77 @@ const string &Parameter::subtype_name() const {
 	return subtypes[static_cast<size_t>(m_subtype)];
 }
 
+const size_t Parameter::nvals() const {
+	if (m_type == Type::String)
+		return m_strings.size();
+	else
+		return m_reals.size();
+}
+
+const size_t Parameter::nallowed() const {
+	if (m_type == Type::String)
+		return m_stringAllowed.size();
+	else
+		return m_realAllowed.size();
+}
+
+const string &Parameter::stringValue(const size_t i = 0) const {
+	if (m_type == Type::Real)
+		throw(runtime_error("Tried to read a string value from real parameter " + m_name));
+	return m_strings.at(i);
+}
+const vector<string> &Parameter::strings() const {
+	if (m_type == Type::String)
+		return m_strings;
+	else
+		throw(runtime_error("Tried to read string values from real parameter " + m_name));
+}
+
+const double &Parameter::realValue(const size_t i = 0) const {
+	if (m_type == Type::String)
+		throw(runtime_error("Tried to read a real value from string parameter " + m_name));
+	if (i < m_reals.rows())
+		return m_reals(i);
+	else {
+		throw(out_of_range("Parameter " + m_name + " has " + to_string(m_reals.size()) + " values, tried to access value " + to_string(i)));
+	}
+}
+const ArrayXd &Parameter::reals() const {
+	if (m_type == Type::Real)
+		return m_reals;
+	else
+		throw(runtime_error("Tried to read real values from string parameter " + m_name));
+}
+
 //******************************************************************************
 #pragma mark Output
 //******************************************************************************
 const string Parameter::print_values() const {
-	stringstream s;
+	stringstream ss;
 	
 	if (m_type == Type::Real) {
-		for (vector<double>::const_iterator it = m_realValues.begin(); it < m_realValues.end(); it++)
-			s << *it << " ";
+		for (ArrayXd::Index i = 0; i < m_reals.rows(); i++)
+			ss << m_reals(i) << " ";
 	} else {
-		vector<string>::const_iterator it = m_stringValues.begin();
-		s << "\"" << *it << "\"";
-		for (it++; it < m_stringValues.end(); it++)
-			s << endl << "\"" << *it << "\"";
+		vector<string>::const_iterator it = m_strings.begin();
+		ss << "\"" << *it << "\"";
+		for (it++; it < m_strings.end(); it++)
+			ss << endl << "\"" << *it << "\"";
 	}
-	return s.str();
+	return ss.str();
 }
 
 const string Parameter::print_allowed() const {
-	stringstream s;
+	stringstream ss;
 	
 	if (m_type == Type::Real) {
-		for (vector<double>::const_iterator it = m_realAllowed.begin(); it < m_realAllowed.end(); it++)
-			s << *it;
+		for (ArrayXd::Index i = 0; i < m_realAllowed.rows(); i++)
+			ss << m_realAllowed(i);
 	} else {
-		for (vector<string>::const_iterator it = m_stringAllowed.begin(); it < m_stringAllowed.end(); it++)
-			s << "\"" << *it << "\" ";
+		for (auto &s: m_stringAllowed)
+			ss << "\"" << s << "\" ";
 	}
-	return s.str();
+	return ss.str();
 }
 
 const string Parameter::print() const {
@@ -235,10 +229,10 @@ const string Parameter::print() const {
 	  << m_max << " " << m_min << " " << m_step << " "
 	  << m_ggroup << " " << m_dgroup << " " << m_protection << " " << m_active << " " << m_intptr << endl;
 	if (m_type == Type::Real) {
-		s << m_realValues.size() << " " << print_values() << endl
+		s << m_reals.size() << " " << print_values() << endl
 		  << m_realAllowed.size() << " " << print_allowed();
 	} else {
-		s << m_stringValues.size() << " " << print_values() << endl
+		s << m_strings.size() << " " << print_values() << endl
 		  << m_stringAllowed.size() << " " << print_allowed();
 	}
 	return s.str();
@@ -274,8 +268,8 @@ istream& operator>>(istream &is, Parameter &p) {
 	string name;
 	int subtype_in, type_in, ggroup, dgroup, protection, active, intptr, nvals, nallowed;
 	double max, min, step;
-	vector<double> realVals, realAllowed;
-	vector<string> stringVals, stringAllowed;
+	ArrayXd reals, realAllowed;
+	vector<string> strings, stringAllowed;
 	if (is >> name >> subtype_in >> type_in
 	       >> max >> min >> step
 		   >> ggroup >> dgroup >> protection >> active >> intptr)
@@ -285,13 +279,13 @@ istream& operator>>(istream &is, Parameter &p) {
 		if (!(is >> nvals))
 			throw(runtime_error("Failed while reading number of values for parameter " + name));
 		if (type == Parameter::Type::Real) {
-			realVals.resize(nvals);
+			reals.resize(nvals);
 			for (int i = 0; i < nvals; i++)
-				is >> realVals[i];
+				is >> reals(i);
 		} else if (type == Parameter::Type::String) {
-			stringVals.resize(nvals);
+			strings.resize(nvals);
 			for (int i = 0; i < nvals; i++)
-				stringVals[i] = readQuotedString(is);
+				strings[i] = readQuotedString(is);
 		} else
 			throw(runtime_error("Invalid type value for parameter " + name + ", no values read"));
 		if (!is)
@@ -311,10 +305,10 @@ istream& operator>>(istream &is, Parameter &p) {
 			throw(runtime_error("Failed while reading allowed values for parameter " + name + " from procpar file"));
 		
 		if (type == Parameter::Type::Real)
-			p = Parameter(name, subtype, realVals, realAllowed,
+			p = Parameter(name, subtype, reals, realAllowed,
 			              ggroup, dgroup, max, min, step, protection, active, intptr);
 		else if (type == Parameter::Type::String)
-			p = Parameter(name, subtype, stringVals, stringAllowed,
+			p = Parameter(name, subtype, strings, stringAllowed,
 			              ggroup, dgroup, max, min, step, protection, active, intptr);
 		return is;
 	} else {
@@ -338,15 +332,15 @@ const bool Parameter::operator==(const Parameter &other)
 		return false;
 	
 	if (m_type == Type::String) {
-		if (m_stringValues.size() != other.m_stringValues.size())
+		if (m_strings.size() != other.m_strings.size())
 			return false;
-		for (size_t i = 0; i < m_stringValues.size(); i++)
-			if (m_stringValues[i] != other.m_stringValues[i]) return false;
+		for (size_t i = 0; i < m_strings.size(); i++)
+			if (m_strings[i] != other.m_strings[i]) return false;
 	} else if (m_type == Type::Real) {
-		if (m_realValues.size() != other.m_realValues.size())
+		if (m_reals.size() != other.m_reals.size())
 			return false;
-		for (size_t i = 0; i < m_realValues.size(); i++)
-			if (m_realValues[i] != other.m_realValues[i]) return false;
+		for (size_t i = 0; i < m_reals.size(); i++)
+			if (m_reals[i] != other.m_reals[i]) return false;
 	}
 	return true;
 }
