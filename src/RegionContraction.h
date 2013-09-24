@@ -169,10 +169,10 @@ class RegionContraction {
 				indices = index_partial_sort(toSort, m_nR);
 				for (size_t i = 0; i < m_nR; i++) {
 					retained.col(i) = samples.col(indices[i]);
-					if (m_debug) {
+					/*if (m_debug) {
 						cout << "Sample " << indices[i] << " RES " << residuals.col(indices[i]).square().sum() << "\t PARAMS " << retained.col(i).transpose();
 						cout << "\t " << residuals.col(indices[i]).transpose() << endl;
-					}
+					}*/
 				}
 				// Find the min and max for each parameter in the top nR samples
 				if (m_debug) {
@@ -189,6 +189,7 @@ class RegionContraction {
 				}
 				if ((width() < m_threshes * startWidth()).all()) {
 					m_status = Status::Converged;
+					m_contractions++; // Just to give an accurate contraction count.
 					break;
 				}
 				
@@ -204,9 +205,7 @@ class RegionContraction {
 			m_f(params, m_residuals);
 			//diffs /= f.signals();
 			if (m_debug) {
-				cout << "Finished, contractions = " << m_contractions + 1 << endl; // Adjust for 0-based looping
-				cout << "Mid-point: " << midPoint().transpose() << endl;
-				cout << "Width:     " << width().transpose() << endl;
+				cout << "Finished, contractions = " << m_contractions << endl;
 			}
 		}
 };
