@@ -183,57 +183,20 @@ int main(int argc, char **argv)
 	// Gather SSFP Data
 	//**************************************************************************
 	size_t nPhases = argc - optind;
-	vector<Info> info;
-	size_t voxelsPerSlice, voxelsPerVolume;
+	vector<shared_ptr<SignalFunctor>> sigs;
 	vector<vector<double>> ssfpData(nPhases);
 	VectorXd inFlip;
-	double inTR, inTrf = 0., inPhase;
 	for (size_t p = 0; p < nPhases; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
+		if (p == 0)
+			templateFile = Nifti(inFile, 1);
 		if (!inFile.matchesSpace(templateFile)) {
 			cerr << "Input file dimensions and/or transforms do not match." << endl;
 			exit(EXIT_FAILURE);
 		}
-		if (p == 0) { // Read nFlip, TR and flip angles from first file
-			inFlip.resize(inFile.dim(4));
-			voxelsPerSlice = inFile.voxelsPerSlice();
-			voxelsPerVolume = inFile.voxelsPerVolume();
-			#ifdef AGILENT
-			Agilent::ProcPar pp;
-			if (ReadPP(inFile, pp)) {
-				inTR = pp.realValue("tr");
-				for (int i = 0; i < inFlip.size(); i++)
-					inFlip[i] = pp.realValue("flip1", i);
-				if (use_finite)
-					inTrf = pp.realValue("p1")/1.e6; // p1 is in microseconds
-			} else
-			#endif
-			{
-				cout << "Enter SSFP TR (seconds): " << flush;
-				cin >> inTR;
-				cout << "Enter " << inFlip.size() << " flip angles (degrees): " << flush;
-				for (int i = 0; i < inFlip.size(); i++)
-					cin >> inFlip[i];
-				if (use_finite) {
-					cout << "Enter RF Pulse Length (seconds): " << flush;
-					cin >> inTrf;
-				}
-			}
-			inFlip *= M_PI / 180.;
-		}
-		#ifdef AGILENT
-		Agilent::ProcPar pp;
-		if (ReadPP(inFile, pp)) {
-			inPhase = pp.realValue("rfphase") * M_PI / 180.;
-		} else
-		#endif
-		{
-			cout << "Enter phase-cycling (degrees): " << flush;
-			cin >> inPhase; inPhase *= M_PI / 180.;
-		}
 		cout << "Reading SSFP data..." << endl;
-		info.emplace_back(inFlip, false, inTR, inTrf, 0., inPhase);
+		sigs.emplace_back(parseSSFP(inFile, true, Components::One));
 		ssfpData[p] = inFile.readAllVolumes<double>();
 		inFile.close();
 		optind++;
@@ -244,7 +207,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	DESPOT2FM d2fm(info, 0., tesla, offRes, scale, use_finite);
+	DESPOT2FM d2fm(sigs, 0., tesla, offRes, scale, use_finite);
 	ArrayXd thresh = d2fm.defaultThresholds();
 	ArrayXXd bounds = d2fm.defaultBounds();
 	if (tesla == DESPOT2FM::FieldStrength::Unknown) {
@@ -256,13 +219,15 @@ int main(int argc, char **argv)
 	}
 	
 	if (verbose) {
-		cout << "SSFP Angles (deg): " << info.at(0).flip().transpose() * 180 / M_PI << endl;
+		cout << "SSFP Angles (deg): " << sigs.at(0)->m_flip.transpose() * 180 / M_PI << endl;
 		cout << "Low bounds: " << bounds.col(0).transpose() << endl
 		     << "Hi bounds:  " << bounds.col(1).transpose() << endl;
 	}
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
+	size_t voxelsPerSlice = templateFile.voxelsPerSlice();
+	size_t voxelsPerVolume = templateFile.voxelsPerVolume();
 	vector<vector<double>> paramsData(d2fm.inputs());
 	for (auto &p : paramsData)
 		p.resize(voxelsPerVolume);
@@ -311,28 +276,17 @@ int main(int argc, char **argv)
 				voxCount++;
 				ArrayXd weights(locald2.values());
 				weights.setConstant(1.0);
-				double biggest_signal = numeric_limits<double>::lowest();
-				size_t w_start, w_size, index = 0;
 				for (size_t p = 0; p < nPhases; p++) {
-					locald2.info(p).f0 = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
-					locald2.info(p).B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
-					for (int i = 0; i < locald2.signal(p).rows(); i++)
-						locald2.signal(p)(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
-					if (locald2.signal(p).sum() > biggest_signal) {
-						w_start = index; w_size = locald2.signal(p).rows();
-						biggest_signal = locald2.signal(p).sum();
-					}
-					index += locald2.signal(p).rows();
+					locald2.m_f0 = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
+					locald2.m_B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
+					for (int i = 0; i < locald2.actual(p).rows(); i++)
+						locald2.actual(p)(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
 					if (voxI != -1) {
-						cout << "Signal " << p << ": " << locald2.signal(p).transpose() << endl;
+						cout << "Signal " << p << ": " << locald2.actual(p).transpose() << endl;
 					}
 				}
-				if (voxI != -1) {
-					cout << "w_start " << w_start << " w_size " << w_size << endl;
-				}
-				weights.segment(w_start, w_size).setConstant(weighting);
 				// DESPOT2-FM
-				locald2.rescaleSignals();
+				locald2.rescaleActual();
 				locald2.setT1(T1Data.at(sliceOffset + vox));
 				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights, thresh,
 				                                samples, retain, contract, expand, (voxI != -1));
