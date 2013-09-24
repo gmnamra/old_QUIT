@@ -116,9 +116,9 @@ class RegionContraction {
 			m_residuals.setZero();
 			
 			if (m_debug) {
-				cout << "Starting bounds: " << endl << m_startBounds.transpose() << endl;
-				cout << "Mid-point: " << midPoint().transpose() << endl;
-				cout << "Width:     " << width().transpose() << endl;
+				cout << "Start Midpoint: " << midPoint().transpose() << endl;
+				cout << "Start Width:    " << width().transpose() << endl;
+				cout << "Fitting to data:" << m_f.actual().transpose() << endl;
 			}
 			
 			mt19937_64 twist(seed);
@@ -175,13 +175,13 @@ class RegionContraction {
 					}*/
 				}
 				// Find the min and max for each parameter in the top nR samples
-				if (m_debug) {
-					cout << "RES Min: " << toSort.minCoeff() << " Max: " << toSort.maxCoeff() << endl;
-				}
 				m_currentBounds.col(0) = retained.rowwise().minCoeff();
 				m_currentBounds.col(1) = retained.rowwise().maxCoeff();
 				// Terminate if all the desired parameters have converged
 				if (m_debug) {
+					cout << "Residual Min:   " << toSort.minCoeff() << " Max: " << toSort.maxCoeff() << endl;
+					cout << "best theory:    " << m_f.theory(retained.col(0)).transpose() << endl;
+					cout << "mid:            " << midPoint().transpose() << endl;
 					cout << "width:          " << width().transpose() << endl;
 					cout << "threshold:      " << (m_threshes * startWidth()).transpose() << endl;
 					cout << "width < thresh: " << (width() < m_threshes * startWidth()).transpose() << endl;
