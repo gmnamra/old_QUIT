@@ -146,4 +146,7 @@ class SSFP_Functor : public SignalFunctor {
 		bool spoil() const { return false; }
 };
 
+shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC);
+shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC);
+
 #endif

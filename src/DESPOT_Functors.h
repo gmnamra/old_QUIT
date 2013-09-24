@@ -31,8 +31,7 @@ using namespace Eigen;
 //******************************************************************************
 // From Nonlinear Tests in Eigen 
 template<typename _Scalar, int NX=Dynamic, int NY=Dynamic>
-class Functor
-{
+class Functor {
 	public:
 		typedef _Scalar Scalar;
 		enum {

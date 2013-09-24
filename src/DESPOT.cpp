@@ -469,3 +469,59 @@ ArrayXd SSFP_Functor::signal(const VectorXd &p, const double B1, double f0) {
 		case (Components::Three) : return SigMag(Three_SSFP(p, m_flip, m_TR, m_phase, B1, f0));
 	}
 }
+
+shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC) {
+	double inTR = 0., inTrf = 0., inTE = 0.;
+	ArrayXd inAngles(img.dim(4));
+	#ifdef AGILENT
+	Agilent::ProcPar pp;
+	if (ReadPP(img, pp)) {
+		inTR = pp.realVal("tr");
+		inAngles = pp.realVals("flip1");
+		#ifdef USE_MCFINITE
+		inTE = pp.realValue("te");
+		inTrf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
+		#endif
+	} else
+	#endif
+	{
+		if (prompt) cout << "Enter TR (seconds): " << flush; cin >> inTR;
+		if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
+		for (int i = 0; i < inAngles.size(); i++) cin >> inAngles[i];
+		#ifdef USE_MCFINITE
+		if (prompt) cout << "Enter TE (seconds): " << flush; cin >> inTE;
+		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> inTrf;
+		#endif
+		string temp; getline(cin, temp); // Just to eat the newline
+	}
+	shared_ptr<SignalFunctor> f = make_shared<SPGR_Functor>(inAngles * M_PI / 180., inTR, nC);
+	return f;
+}
+
+shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC) {
+	double inTR = 0., inTrf = 0., inPhase = 0.;
+	ArrayXd inAngles(img.dim(4));
+	#ifdef AGILENT
+	Agilent::ProcPar pp;
+	if (ReadPP(img, pp)) {
+		inTR = pp.realVal("tr");
+		inAngles = pp.realVals("flip1");
+		inPhase = pp.realVal("rfphase");
+		#ifdef USE_MCFINITE
+		inTrf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
+		#endif
+	} else
+	#endif
+	{
+		if (prompt) cout << "Enter TR (seconds): " << flush; cin >> inTR;
+		if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
+		for (int i = 0; i < inAngles.size(); i++) cin >> inAngles[i];
+		if (prompt) cout << "Enter SSFP Phase-Cycling (degrees): " << flush; cin >> inPhase;
+		#ifdef USE_MCFINITE
+		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> inTrf;
+		#endif
+		string temp; getline(cin, temp); // Just to eat the newline
+	}
+	shared_ptr<SignalFunctor> f = make_shared<SSFP_Functor>(inAngles * M_PI / 180., inTR, inPhase * M_PI / 180., nC);
+	return f;
+}
