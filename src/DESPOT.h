@@ -96,25 +96,54 @@ inline const Matrix6d Exchange(const double &k_ab, const double &k_ba);
 const void CalcExchange(const double tau_a, const double f_a, const double f_b, double &k_ab, double &k_ba);
 
 //******************************************************************************
-#pragma mark One Component Signals
+#pragma mark Actual Signal Equations
 // Parameters are { T1, T2 }
 //******************************************************************************
-MagVector One_SPGR(const Info &d, const VectorXd &p);
-MagVector One_SSFP(const Info &d, const VectorXd &p);
+MagVector One_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1);
+MagVector One_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
 MagVector One_SSFP_Finite(const Info &d, const VectorXd &p);
 //******************************************************************************
-#pragma mark Two Component Signals
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a }
 //******************************************************************************
-MagVector Two_SPGR(const Info &d, const VectorXd &p);
-MagVector Two_SSFP(const Info &d, const VectorXd &p);
+MagVector Two_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1);
+MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
 MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p);
 //******************************************************************************
-#pragma mark Three Component
 // Parameters are { T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
 //******************************************************************************
-MagVector Three_SPGR(const Info &d, const VectorXd &p);
-MagVector Three_SSFP(const Info &d, const VectorXd &p);
+MagVector Three_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1);
+MagVector Three_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
 MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p);
+//******************************************************************************
+#pragma mark Signal Functors
+//******************************************************************************
+enum class Components {
+	One, Two, Three
+};
+
+class SignalFunctor {
+	public:
+		Components m_nC;
+		double m_TR, m_phase; // Phase is temporary until I fix symmetricB0
+		ArrayXd m_flip;
+		SignalFunctor(const ArrayXd &flip, const double TR, const double ph, const Components nC);
+		virtual ArrayXd signal(const VectorXd &p, const double B1 = 1., double f0 = 0.) = 0;
+		virtual size_t size() { return m_flip.rows(); }
+		virtual bool spoil() const = 0; // Temporary until I get 0 and 180 in the same file
+};
+
+class SPGR_Functor : public SignalFunctor {
+	public:
+		SPGR_Functor(const ArrayXd &flip, const double TR, const Components nC);
+		ArrayXd signal(const VectorXd &p, const double B1 = 1., double f0 = 0.) override;
+		bool spoil() const { return true; }
+};
+class SSFP_Functor : public SignalFunctor {
+	public:
+		//double m_phase;
+		SSFP_Functor(const ArrayXd &flip, const double TR, const double phase, const Components nC);
+		ArrayXd signal(const VectorXd &p, const double B1 = 1., double f0 = 0.) override;
+		bool spoil() const { return false; }
+};
 
 #endif
