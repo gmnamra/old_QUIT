@@ -447,11 +447,11 @@ MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p) {
 //******************************************************************************
 #pragma mark Signal Functors
 //******************************************************************************
-SignalFunctor::SignalFunctor(const ArrayXd &flip, const double TR, const double ph, const Components nC) :
-	m_flip(flip), m_TR(TR), m_nC(nC), m_phase(ph) {}
+SignalFunctor::SignalFunctor(const ArrayXd &flip, const double TR, const Components nC) :
+	m_flip(flip), m_TR(TR), m_nC(nC) {}
 
 SPGR_Functor::SPGR_Functor(const ArrayXd &flip, const double TR, const Components nC) :
-	SignalFunctor(flip, TR, 0., nC) {}
+	SignalFunctor(flip, TR, nC) {}
 ArrayXd SPGR_Functor::signal(const VectorXd &p, const double B1, double f0) {
 	switch (m_nC) {
 		case (Components::One) : return SigMag(One_SPGR(p, m_flip, m_TR, B1));
@@ -460,14 +460,25 @@ ArrayXd SPGR_Functor::signal(const VectorXd &p, const double B1, double f0) {
 	}
 }
 
-SSFP_Functor::SSFP_Functor(const ArrayXd &flip, const double TR, const double phase, const Components nC) :
-	SignalFunctor(flip, TR, phase, nC) {}
+SSFP_Functor::SSFP_Functor(const ArrayXd &flip, const double TR, const ArrayXd &phases, const Components nC) :
+	SignalFunctor(flip, TR, nC), m_phases(phases) {}
+
+size_t SSFP_Functor::size() const {
+	return m_flip.rows() * m_phases.rows();
+}
+
 ArrayXd SSFP_Functor::signal(const VectorXd &p, const double B1, double f0) {
-	switch (m_nC) {
-		case (Components::One) : return SigMag(One_SSFP(p, m_flip, m_TR, m_phase, B1, f0));
-		case (Components::Two) : return SigMag(Two_SSFP(p, m_flip, m_TR, m_phase, B1, f0));
-		case (Components::Three) : return SigMag(Three_SSFP(p, m_flip, m_TR, m_phase, B1, f0));
+	ArrayXd s(size());
+	ArrayXd::Index start = 0;
+	for (ArrayXd::Index i = 0; i < m_phases.rows(); i++) {
+		switch (m_nC) {
+			case (Components::One) : s.segment(start, m_flip.rows()) = SigMag(One_SSFP(p, m_flip, m_TR, m_phases(i), B1, f0)); break;
+			case (Components::Two) : s.segment(start, m_flip.rows()) = SigMag(Two_SSFP(p, m_flip, m_TR, m_phases(i), B1, f0)); break;
+			case (Components::Three) : s.segment(start, m_flip.rows()) = SigMag(Three_SSFP(p, m_flip, m_TR, m_phases(i), B1, f0)); break;
+		}
+		start += m_flip.rows();
 	}
+	return s;
 }
 
 shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC) {
@@ -500,28 +511,33 @@ shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const C
 
 shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC) {
 	double inTR = 0., inTrf = 0., inPhase = 0.;
-	ArrayXd inAngles(img.dim(4));
+	ArrayXd inPhases, inAngles;
 	#ifdef AGILENT
 	Agilent::ProcPar pp;
 	if (ReadPP(img, pp)) {
+		inPhases = pp.realVals("rfphase");
 		inTR = pp.realVal("tr");
 		inAngles = pp.realVals("flip1");
-		inPhase = pp.realVal("rfphase");
 		#ifdef USE_MCFINITE
 		inTrf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
 		#endif
 	} else
 	#endif
 	{
+		size_t nPhases = 0;
+		if (prompt) cout << "Enter number of phase-cycling patterns: " << flush; cin >> nPhases;
+		inPhases.resize(nPhases);
+		inAngles.resize(img.dim(4) / nPhases);
+		if (prompt) cout << "Enter " << nPhases << " phase-cycles (degrees): " << flush;
+		for (size_t i = 0; i < nPhases; i++) cin >> inPhases(i);
 		if (prompt) cout << "Enter TR (seconds): " << flush; cin >> inTR;
 		if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
-		for (int i = 0; i < inAngles.size(); i++) cin >> inAngles[i];
-		if (prompt) cout << "Enter SSFP Phase-Cycling (degrees): " << flush; cin >> inPhase;
+		for (ArrayXd::Index i = 0; i < inAngles.size(); i++) cin >> inAngles(i);
 		#ifdef USE_MCFINITE
 		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> inTrf;
 		#endif
 		string temp; getline(cin, temp); // Just to eat the newline
 	}
-	shared_ptr<SignalFunctor> f = make_shared<SSFP_Functor>(inAngles * M_PI / 180., inTR, inPhase * M_PI / 180., nC);
+	shared_ptr<SignalFunctor> f = make_shared<SSFP_Functor>(inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., nC);
 	return f;
 }

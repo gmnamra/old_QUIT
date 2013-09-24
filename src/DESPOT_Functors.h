@@ -75,18 +75,17 @@ class DESPOTFunctor : public Functor<double> {
 			}
 		}
 		enum class Scaling {
-			Global, PerSignal, MeanPerSignal, MeanPerType
+			Global, PerSignal, MeanPerSignal
 		};
 		static const string to_string(const Scaling &p) {
 			switch (p) {
 				case Scaling::Global: return "global";
 				case Scaling::PerSignal: return "per signal";
 				case Scaling::MeanPerSignal: return "normalised to per signal mean";
-				case Scaling::MeanPerType: return "normalised to mean for each signal type (SPGR/SSFP)";
 			}
 		}
 		enum class OffResMode {
-			Map = 0, Single, Multi, Bounded, MultiBounded
+			Map = 0, Single, SingleSymmetric
 		};
 	
 	protected:
@@ -101,15 +100,11 @@ class DESPOTFunctor : public Functor<double> {
 	
 		ArrayXXd offResBounds() {
 			ArrayXXd b(nOffRes(), 2);
-			bool symmetricB0 = true;
-			for (auto &s : m_signals) {
-				if (fmod(s->m_phase, M_PI) > numeric_limits<double>::epsilon()) {
-					symmetricB0 = false;
-				}
-			}
 			for (size_t i = 0; i < nOffRes(); i++) {
-				if (symmetricB0) b(i, 0) = 0;
-				else b(i, 0) = -0.5 / m_signals.at(i)->m_TR;
+				if (m_offRes == OffResMode::SingleSymmetric)
+					b(i, 0) = 0;
+				else
+					b(i, 0) = -0.5 / m_signals.at(i)->m_TR;
 				b(i, 1) = 0.5 / m_signals.at(i)->m_TR;
 			}
 			return b;
@@ -142,21 +137,6 @@ class DESPOTFunctor : public Functor<double> {
 						s /= s.mean();
 					}
 					break;
-				case (Scaling::MeanPerType):
-					double spgrMean = 0, ssfpMean = 0;
-					for (size_t i = 0; i < m_signals.size(); i++) {
-						if (m_signals.at(i)->spoil())
-							spgrMean += m_theory.at(i).mean();
-						else
-							ssfpMean += m_theory.at(i).mean();
-					}
-					for (size_t i = 0; i < m_signals.size(); i++) {
-						if (m_signals.at(i)->spoil())
-							m_theory.at(i) /= spgrMean;
-						else
-							m_theory.at(i) /= ssfpMean;
-					}
-					break;
 			}
 		}
 		
@@ -166,9 +146,7 @@ class DESPOTFunctor : public Functor<double> {
 			switch (m_offRes) {
 				case OffResMode::Map: return 0;
 				case OffResMode::Single: return 1;
-				case OffResMode::Multi: return m_signals.size();
-				case OffResMode::Bounded: return 1;
-				case OffResMode::MultiBounded: return m_signals.size();
+				case OffResMode::SingleSymmetric: return 1;
 			}
 		}
 		
@@ -177,7 +155,6 @@ class DESPOTFunctor : public Functor<double> {
 				case Scaling::Global:        return 1;
 				case Scaling::PerSignal:     return m_signals.size();
 				case Scaling::MeanPerSignal: return 0;
-				case Scaling::MeanPerType:   return 0;
 			}
 		}
 		
@@ -187,21 +164,6 @@ class DESPOTFunctor : public Functor<double> {
 				case (Scaling::MeanPerSignal):
 					for (auto &s: m_actual) {
 						s /= s.mean();
-					}
-					break;
-				case (Scaling::MeanPerType):
-					double spgrMean = 0, ssfpMean = 0;
-					for (size_t i = 0; i < m_signals.size(); i++) {
-						if (m_signals.at(i)->spoil())
-							spgrMean += m_actual.at(i).mean();
-						else
-							ssfpMean += m_actual.at(i).mean();
-					}
-					for (size_t i = 0; i < m_signals.size(); i++) {
-						if (m_signals.at(i)->spoil())
-							m_actual.at(i) /= spgrMean;
-						else
-							m_actual.at(i) /= ssfpMean;
 					}
 					break;
 			}
@@ -374,12 +336,10 @@ class mcDESPOT : public DESPOTFunctor {
 			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
 			for (size_t i = 0; i < m_signals.size(); i++) {
 				double f0;
-				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
-					f0 = params[nP()];
-				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
-					f0 = params[nP() + i];
-				else
+				if (m_offRes == OffResMode::Map)
 					f0 = m_f0;
+				else
+					f0 = params[nP()];
 				m_theory.at(i) = m_signals.at(i)->signal(params, m_B1, f0);
 			}
 			rescaleTheory(params);
@@ -453,12 +413,10 @@ class mcFinite : public mcDESPOT {
 			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
 			for (size_t i = 0; i < m_signals.size(); i++) {
 				double f0;
-				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
-					f0 = params[nP()];
-				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
-					f0 = params[nP() + i];
-				else
+				if (m_offRes == OffResMode::Map)
 					f0 = m_f0;
+				else
+					f0 = params[nP()];
 				m_theory.at(i) = m_signals.at(i)->signal(params, m_B1, f0);
 			}
 			rescaleTheory(params);
@@ -535,12 +493,10 @@ class DESPOT2FM : public DESPOTFunctor {
 			ArrayXd t(values());
 			for (size_t i = 0; i < m_signals.size(); i++) {
 				double f0;
-				if ((m_offRes == OffResMode::Single) || (m_offRes == OffResMode::Bounded))
-					f0 = params[nP()];
-				else if ((m_offRes == OffResMode::Multi) || (m_offRes == OffResMode::MultiBounded))
-					f0 = params[nP() + i];
-				else
+				if (m_offRes == OffResMode::Map)
 					f0 = m_f0;
+				else
+					f0 = params[nP()];
 				m_theory.at(i) = m_signals.at(i)->signal(params, m_B1, f0);
 			}
 			rescaleTheory(params);

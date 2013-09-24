@@ -124,26 +124,24 @@ enum class Components {
 class SignalFunctor {
 	public:
 		Components m_nC;
-		double m_TR, m_phase; // Phase is temporary until I fix symmetricB0
+		double m_TR;
 		ArrayXd m_flip;
-		SignalFunctor(const ArrayXd &flip, const double TR, const double ph, const Components nC);
+		SignalFunctor(const ArrayXd &flip, const double TR, const Components nC);
 		virtual ArrayXd signal(const VectorXd &p, const double B1 = 1., double f0 = 0.) = 0;
-		virtual size_t size() { return m_flip.rows(); }
-		virtual bool spoil() const = 0; // Temporary until I get 0 and 180 in the same file
+		virtual size_t size() const { return m_flip.rows(); }
 };
 
 class SPGR_Functor : public SignalFunctor {
 	public:
 		SPGR_Functor(const ArrayXd &flip, const double TR, const Components nC);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., double f0 = 0.) override;
-		bool spoil() const { return true; }
 };
 class SSFP_Functor : public SignalFunctor {
 	public:
-		//double m_phase;
-		SSFP_Functor(const ArrayXd &flip, const double TR, const double phase, const Components nC);
+		ArrayXd m_phases;
+		SSFP_Functor(const ArrayXd &flip, const double TR, const ArrayXd &phases, const Components nC);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., double f0 = 0.) override;
-		bool spoil() const { return false; }
+		size_t size() const;
 };
 
 shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC);

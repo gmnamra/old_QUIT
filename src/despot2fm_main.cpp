@@ -60,7 +60,7 @@ Options:\n\
 
 static auto scale = DESPOT2FM::Scaling::MeanPerSignal;
 static auto tesla = DESPOT2FM::FieldStrength::Three;
-static auto offRes = DESPOT2FM::OffResMode::Single;
+static auto offRes = DESPOT2FM::OffResMode::SingleSymmetric;
 static int verbose = false, debug = false, use_finite = false,
 		   samples = 2000, retain = 20, contract = 10,
            voxI = -1, voxJ = -1;
@@ -112,10 +112,14 @@ int main(int argc, char **argv)
 				maskData = maskFile.readVolume<double>(0);
 				break;
 			case '0':
-				cout << "Reading B0 file: " << optarg << endl;
-				B0File.open(optarg, Nifti::Mode::Read);
-				B0Data = B0File.readVolume<double>(0);
-				offRes = DESPOT2FM::OffResMode::Map;
+				if (string(optarg) == "UNSYM") {
+					offRes == DESPOT2FM::OffResMode::Single;
+				} else {
+					cout << "Reading B0 file: " << optarg << endl;
+					B0File.open(optarg, Nifti::Mode::Read);
+					B0Data = B0File.readVolume<double>(0);
+					offRes = DESPOT2FM::OffResMode::Map;
+				}
 				break;
 			case '1':
 				cout << "Reading B1 file: " << optarg << endl;
@@ -137,7 +141,6 @@ int main(int argc, char **argv)
 					case 1 : scale = DESPOT2FM::Scaling::Global; break;
 					case 2 : scale = DESPOT2FM::Scaling::PerSignal; break;
 					case 3 : scale = DESPOT2FM::Scaling::MeanPerSignal; break;
-					case 4 : scale = DESPOT2FM::Scaling::MeanPerType; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						exit(EXIT_FAILURE);
@@ -219,7 +222,9 @@ int main(int argc, char **argv)
 	}
 	
 	if (verbose) {
-		cout << "SSFP Angles (deg): " << sigs.at(0)->m_flip.transpose() * 180 / M_PI << endl;
+		for (auto &s : sigs) {
+			cout << "SSFP Angles (deg): " << s->m_flip.transpose() * 180 / M_PI << endl;
+		}
 		cout << "Low bounds: " << bounds.col(0).transpose() << endl
 		     << "Hi bounds:  " << bounds.col(1).transpose() << endl;
 	}
@@ -281,9 +286,6 @@ int main(int argc, char **argv)
 					locald2.m_B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 					for (int i = 0; i < locald2.actual(p).rows(); i++)
 						locald2.actual(p)(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
-					if (voxI != -1) {
-						cout << "Signal " << p << ": " << locald2.actual(p).transpose() << endl;
-					}
 				}
 				// DESPOT2-FM
 				locald2.rescaleActual();
