@@ -324,8 +324,7 @@ istream& operator>>(istream &is, Parameter &p) {
 //******************************************************************************
 #pragma mark Equality
 //******************************************************************************
-const bool Parameter::operator==(const Parameter &other)
-{
+const bool Parameter::operator==(const Parameter &other) {
 	if (m_type != other.m_type)
 		return false;
 	if (m_subtype != other.m_subtype)
@@ -339,7 +338,7 @@ const bool Parameter::operator==(const Parameter &other)
 	} else if (m_type == Type::Real) {
 		if (m_reals.size() != other.m_reals.size())
 			return false;
-		for (size_t i = 0; i < m_reals.size(); i++)
+		for (ArrayXd::Index i = 0; i < m_reals.size(); i++)
 			if (m_reals[i] != other.m_reals[i]) return false;
 	}
 	return true;
