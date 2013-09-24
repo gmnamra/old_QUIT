@@ -51,14 +51,14 @@ complex<double> *FID::readKSpace() {
 }
 
 const int FID::nVolumes() const { return 1; }
-const int FID::nDim0() const { return static_cast<int>(m_procpar.realValue("np") / 2); }
-const int FID::nDim1() const { return static_cast<int>(m_procpar.realValue("nv")); }
+const int FID::nDim0() const { return static_cast<int>(m_procpar.realVal("np") / 2); }
+const int FID::nDim1() const { return static_cast<int>(m_procpar.realVal("nv")); }
 const int FID::nDim2() const {
-	string appType = m_procpar.stringValue("apptype");
+	string appType = m_procpar.stringVal("apptype");
 	if (appType == "im2D")
-		return static_cast<int>(m_procpar.realValue("ns"));
+		return static_cast<int>(m_procpar.realVal("ns"));
 	else if (appType == "im3D")
-		return static_cast<int>(m_procpar.realValue("nv2"));
+		return static_cast<int>(m_procpar.realVal("nv2"));
 	else
 		throw(runtime_error("Unknown application type: " + appType));
 }
