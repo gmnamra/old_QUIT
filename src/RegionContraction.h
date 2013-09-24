@@ -119,6 +119,7 @@ class RegionContraction {
 				cout << "Start Midpoint: " << midPoint().transpose() << endl;
 				cout << "Start Width:    " << width().transpose() << endl;
 				cout << "Fitting to data:" << m_f.actual().transpose() << endl;
+				cout << "Weights:        " << m_weights.transpose() << endl;
 			}
 			
 			mt19937_64 twist(seed);
@@ -180,7 +181,9 @@ class RegionContraction {
 				// Terminate if all the desired parameters have converged
 				if (m_debug) {
 					cout << "Residual Min:   " << toSort.minCoeff() << " Max: " << toSort.maxCoeff() << endl;
+					cout << "best params:    " << retained.col(0).transpose() << endl;
 					cout << "best theory:    " << m_f.theory(retained.col(0)).transpose() << endl;
+					cout << "best residual   " << residuals.col(indices[0]).transpose() << endl;
 					cout << "mid:            " << midPoint().transpose() << endl;
 					cout << "width:          " << width().transpose() << endl;
 					cout << "threshold:      " << (m_threshes * startWidth()).transpose() << endl;

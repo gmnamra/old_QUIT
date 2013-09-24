@@ -54,28 +54,6 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
 			   const double &M0, const double &T1);
 
 //******************************************************************************
-#pragma Info
-// Class that holds a complete set of information needed to process a mcDESPOT
-// dataset, e.g. TR, TE, flip-angles
-//******************************************************************************
-class Info {
-	private:
-		VectorXd m_flip;
-	public:
-		// B0 is field-strength in T, f0 is off-resonance in Hz
-		double TR, Trf, TE, phase, f0, B1;
-		bool spoil;
-	
-		Info();
-		Info(const VectorXd &flip, bool inSpoil, double inTR, double inTrf = 0., double inTE = 0., double inPhase = M_PI, double inf0 = 0., double inB1 = 1.);
-		Info(const VectorXd &flip, double inSpoil, double inTR, double inTrf, double inTE, double inPhase, double inf0, double inB1) = delete;
-		
-		const size_t nAngles() const;
-		const VectorXd &flip() const;
-		void setFlip(const VectorXd &inFlip);
-};
-
-//******************************************************************************
 #pragma Magnetisation Evolution Matrices, helper functions etc.
 //******************************************************************************
 typedef Matrix<double, 6, 6> Matrix6d;
@@ -101,19 +79,19 @@ const void CalcExchange(const double tau_a, const double f_a, const double f_b, 
 //******************************************************************************
 MagVector One_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1);
 MagVector One_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
-MagVector One_SSFP_Finite(const Info &d, const VectorXd &p);
+//MagVector One_SSFP_Finite(const Info &d, const VectorXd &p);
 //******************************************************************************
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a }
 //******************************************************************************
 MagVector Two_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1);
 MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
-MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p);
+//MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p);
 //******************************************************************************
 // Parameters are { T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
 //******************************************************************************
 MagVector Three_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1);
 MagVector Three_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
-MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p);
+//MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p);
 //******************************************************************************
 #pragma mark Signal Functors
 //******************************************************************************

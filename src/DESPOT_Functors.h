@@ -203,6 +203,7 @@ class DESPOTFunctor : public Functor<double> {
 			for (size_t i = 0; i < m_actual.size(); i++) {
 				v.segment(index, m_actual.at(i).size()) = m_actual.at(i);
 				index += m_actual.at(i).size();
+				if (m_debug) cout << v.transpose() << endl;
 			}
 			return v;
 		}
@@ -214,6 +215,9 @@ class DESPOTFunctor : public Functor<double> {
 			diffs = t - s;
 			if (m_debug) {
 				cout << endl << __PRETTY_FUNCTION__ << endl;
+				cout << "p:      " << params.transpose() << endl;
+				cout << "t:      " << t.transpose() << endl;
+				cout << "s:      " << s.transpose() << endl;
 				cout << "Diffs:  " << diffs.transpose() << endl;
 				cout << "Sum:    " << diffs.square().sum() << endl;
 			}
@@ -333,7 +337,7 @@ class mcDESPOT : public DESPOTFunctor {
 		
 		const ArrayXd theory(const Ref<VectorXd> &params) override {
 			ArrayXd t(values());
-			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
+			if (m_debug) cout << endl << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
 			for (size_t i = 0; i < m_signals.size(); i++) {
 				double f0;
 				if (m_offRes == OffResMode::Map)
@@ -410,7 +414,7 @@ class mcFinite : public mcDESPOT {
 		
 		const ArrayXd theory(const Ref<VectorXd> &params) override {
 			ArrayXd t(values());
-			if (m_debug) cout << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
+			if (m_debug) cout << endl << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
 			for (size_t i = 0; i < m_signals.size(); i++) {
 				double f0;
 				if (m_offRes == OffResMode::Map)
@@ -489,23 +493,26 @@ class DESPOT2FM : public DESPOTFunctor {
 		const ArrayXd theory(const Ref<VectorXd> &params) override {
 			VectorXd T1T2(2);
 			T1T2 << m_T1, params[0];
-			
-			ArrayXd t(values());
+			if (m_debug) cout << endl << __PRETTY_FUNCTION__ << endl;
 			for (size_t i = 0; i < m_signals.size(); i++) {
 				double f0;
 				if (m_offRes == OffResMode::Map)
 					f0 = m_f0;
 				else
 					f0 = params[nP()];
-				m_theory.at(i) = m_signals.at(i)->signal(params, m_B1, f0);
+				m_theory.at(i) = m_signals.at(i)->signal(T1T2, m_B1, f0);
+				if (m_debug) cout << "m_theory.at(" << i << "): " << m_theory.at(i).transpose() << endl;
 			}
 			rescaleTheory(params);
-			
 			int index = 0;
+			ArrayXd t(values()); t.setZero();
 			for (size_t i = 0; i < m_signals.size(); i++) {
 				t.segment(index, m_actual.at(i).size()) = m_theory.at(i);
-				if (m_debug) cout << m_theory.at(i).transpose() << endl;
 				index += m_theory.at(i).size();
+				if (m_debug) {
+					cout << "m_theory.at(" << i << "): " << m_theory.at(i).transpose() << endl;
+					cout << "t: " << t.transpose() << endl;
+				}
 			}
 			
 			return t;

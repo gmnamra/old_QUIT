@@ -136,27 +136,6 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
 }
 
 //******************************************************************************
-#pragma Info
-// Class that holds a complete set of information needed to process a mcDESPOT
-// dataset
-//******************************************************************************
-Info::Info() : TR(0.), Trf(0.), TE(0.), phase(0.), f0(0.), B1(0.), spoil(false), m_flip()
-{}
-
-Info::Info(const VectorXd &flip, bool inSpoil,
-           double inTR, double inTrf, double inTE,
-	       double inPhase, double inf0, double inB1) :
-	TR(inTR), Trf(inTrf), TE(inTE), phase(inPhase),
-	f0(inf0), B1(inB1), spoil(inSpoil), m_flip(flip)
-{}
-
-const size_t Info::nAngles() const { return m_flip.rows(); }
-const VectorXd &Info::flip() const { return m_flip; }
-void Info::setFlip(const VectorXd &inFlip) {
-	m_flip = inFlip;
-}
-
-//******************************************************************************
 #pragma Magnetisation Evolution Matrices, helper functions etc.
 //******************************************************************************
 typedef Matrix<double, 6, 6> Matrix6d;
@@ -244,8 +223,7 @@ const void CalcExchange(const double tau_a, const double f_a, const double f_b, 
 #pragma mark One Component Signals
 // Parameters are { T1, T2 }
 //******************************************************************************
-MagVector One_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1)
-{
+MagVector One_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1) {
 	MagVector M(3, flip.size()); M.setZero();
 	ArrayXd sa = (flip * B1).sin();
 	ArrayXd ca = (flip * B1).cos();
@@ -254,8 +232,7 @@ MagVector One_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, cons
 	return M;
 }
 
-MagVector One_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double phase, const double B1, const double f0)
-{
+MagVector One_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double phase, const double B1, const double f0) {
 	Vector3d M0, Mobs;
 	M0 << 0., 0., 1.;
 	Matrix3d L = (-(Relax(p[0], p[1]) + OffResonance(f0))*TR).exp();
@@ -270,7 +247,7 @@ MagVector One_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, cons
 }
 
 // Parameters are { T1, T2, delta_f }
-MagVector One_SSFP_Finite(const Info &d, const VectorXd &p)
+/*MagVector One_SSFP_Finite(const Info &d, const VectorXd &p)
 {
 	const Matrix3d I = Matrix3d::Identity();
 	const Matrix3d O = OffResonance(d.f0);
@@ -302,14 +279,13 @@ MagVector One_SSFP_Finite(const Info &d, const VectorXd &p)
 		theory.col(i) = me;
 	}
 	return theory;
-}
+}*/
 
 //******************************************************************************
 #pragma mark Two Component Signals
 //******************************************************************************
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a }
-MagVector Two_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1)
-{
+MagVector Two_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1) {
 	Matrix2d A, eATR;
 	Vector2d M0, Mobs;
 	MagVector signal(3, flip.size()); signal.setZero();
@@ -328,8 +304,7 @@ MagVector Two_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, cons
 	return signal;
 }
 
-MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double phase, const double B1, const double f0)
-{
+MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double phase, const double B1, const double f0) {
 	MagVector signal(3, flip.size());
 	Vector6d M0; M0 << 0., 0., p[5], 0., 0., (1. - p[5]);
 	Matrix6d R = Matrix6d::Zero();
@@ -353,7 +328,7 @@ MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, cons
 }
 
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a, delta_f }
-MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p)
+/*MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p)
 {
 	const Matrix6d I = Matrix6d::Identity();
 	Matrix6d R = Matrix6d::Zero(), C = Matrix6d::Zero();
@@ -400,7 +375,7 @@ MagVector Two_SSFP_Finite(const Info &d, const VectorXd &p)
 		theory.col(i) = SumMC(me);
 	}
 	return theory;
-}
+}*/
 
 //******************************************************************************
 #pragma mark Three Component
@@ -431,7 +406,7 @@ MagVector Three_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, co
 }
 
 // Parameters are { T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c, delta_f }
-MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p) {
+/*MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p) {
 	VectorXd p_ab(7), p_c(3);
 	p_ab.segment(0, 4) = p.segment(0, 4);
 	p_ab(4) = p(6); //tau_a
@@ -443,7 +418,7 @@ MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p) {
 	MagVector m_c  = One_SSFP_Finite(d, p_c);
 	MagVector r = (m_ab * (1. - p(8))) + (m_c * p(8));
 	return r;
-}
+}*/
 //******************************************************************************
 #pragma mark Signal Functors
 //******************************************************************************
