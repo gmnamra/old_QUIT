@@ -74,10 +74,10 @@ Options:\n\
 	            u     : User specified boundaries from stdin.\n"
 };
 
-static auto B0fit = mcType::OffResMode::Single;
+static auto B0fit = mcType::OffResMode::SingleSymmetric;
 static auto components = Components::Two;
 static auto tesla = mcType::FieldStrength::Three;
-static auto scale = mcType::Scaling::MeanPerSignal;
+static auto scale = mcType::Scaling::NormToMean;
 static size_t start_slice = 0, end_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, debug = false, converge_f = false,
 		   samples = 5000, retain = 50, contract = 10,
@@ -136,15 +136,13 @@ Nifti openAndCheck(const string &path, const Nifti &saved, const string &type) {
 
 Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 				       vector<Nifti > &signalFiles,
-				       vector<Nifti > &B1_files,
-				       vector<Nifti > &B0_loFiles,
-					   vector<Nifti > &B0_hiFiles,
+				       vector<Nifti > &B1Files,
+				       vector<Nifti > &B0Files,
 					   const mcDESPOT::OffResMode &B0fit);
 Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 				       vector<Nifti > &signalFiles,
-				       vector<Nifti > &B1_files,
-				       vector<Nifti > &B0_loFiles,
-					   vector<Nifti > &B0_hiFiles,
+				       vector<Nifti > &B1Files,
+				       vector<Nifti > &B0Files,
 					   const mcDESPOT::OffResMode &B0fit) {
 	Nifti templateFile;
 	string type, path;
@@ -170,28 +168,18 @@ Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 		if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
 		getline(cin, path);
 		if ((path != "NONE") && (path != "")) {
-			B1_files.push_back(openAndCheck(path, templateFile, "B1"));
+			B1Files.push_back(openAndCheck(path, templateFile, "B1"));
 		} else {
-			B1_files.push_back(Nifti());
+			B1Files.push_back(Nifti());
 		}
 		
-		if ((type == "SSFP") && ((B0fit == mcDESPOT::OffResMode::Map) || (B0fit == mcDESPOT::OffResMode::Bounded) || (B0fit == mcDESPOT::OffResMode::MultiBounded))) {
-			if (prompt && (B0fit == mcDESPOT::OffResMode::Map))
+		if ((type == "SSFP") && (B0fit == mcDESPOT::OffResMode::Map)) {
+			if (prompt)
 				cout << "Enter path to B0 map: " << flush;
-			else if (prompt)
-				cout << "Enter path to low B0 bound map: " << flush;
 			getline(cin, path);
-			B0_loFiles.push_back(openAndCheck(path, templateFile, "B0"));
+			B0Files.push_back(openAndCheck(path, templateFile, "B0"));
 		} else {
-			B0_loFiles.push_back(Nifti());
-		}
-		
-		if ((type == "SSFP") && ((B0fit == mcDESPOT::OffResMode::Bounded) || (B0fit == mcDESPOT::OffResMode::MultiBounded))) {
-			if (prompt) cout << "Enter path to high B0 bound map: " << flush;
-			getline(cin, path);
-			B0_hiFiles.push_back(openAndCheck(path, templateFile, "B0"));
-		} else {
-			B0_hiFiles.push_back(Nifti());
+			B0Files.push_back(Nifti());
 		}
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
@@ -241,9 +229,7 @@ int main(int argc, char **argv)
 			case 's':
 				switch (atoi(optarg)) {
 					case 1 : scale = DESPOT2FM::Scaling::Global; break;
-					case 2 : scale = DESPOT2FM::Scaling::PerSignal; break;
-					case 3 : scale = DESPOT2FM::Scaling::MeanPerSignal; break;
-					case 4 : scale = DESPOT2FM::Scaling::MeanPerType; break;
+					case 2 : scale = DESPOT2FM::Scaling::NormToMean; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						exit(EXIT_FAILURE);
@@ -258,9 +244,6 @@ int main(int argc, char **argv)
 				switch (*optarg) {
 					case '0' : B0fit = mcType::OffResMode::Map; break;
 					case '1' : B0fit = mcType::OffResMode::Single; break;
-					case '2' : B0fit = mcType::OffResMode::Multi; break;
-					case '3' : B0fit = mcType::OffResMode::Bounded; break;
-					case '4' : B0fit = mcType::OffResMode::MultiBounded; break;
 					default:
 						cout << "Invalid B0 Mode." << endl;
 						exit(EXIT_FAILURE);
@@ -295,8 +278,8 @@ int main(int argc, char **argv)
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
 	vector<shared_ptr<SignalFunctor>> sigs;
-	vector<Nifti > signalFiles, B1_files, B0_loFiles, B0_hiFiles;
-	templateFile = parseInput(sigs, signalFiles, B1_files, B0_loFiles, B0_hiFiles, B0fit);
+	vector<Nifti > signalFiles, B1Files, B0Files;
+	templateFile = parseInput(sigs, signalFiles, B1Files, B0Files, B0fit);
 	if ((maskData.size() > 0) && !(maskFile.matchesSpace(templateFile))) {
 		cerr << "Mask file has different dimensions/transform to input data." << endl;
 		exit(EXIT_FAILURE);
@@ -311,13 +294,11 @@ int main(int argc, char **argv)
 	
 	vector<vector<double>> signalVolumes(signalFiles.size()),
 	                 B1Volumes(signalFiles.size()),
-				     B0LoVolumes(signalFiles.size()),
-					 B0HiVolumes(signalFiles.size());
+				     B0Volumes(signalFiles.size());
 	for (size_t i = 0; i < signalFiles.size(); i++) {
 		signalVolumes[i].resize(voxelsPerSlice * sigs.at(i)->size());
-		if (B1_files[i].isOpen()) B1Volumes[i].resize(voxelsPerSlice);
-		if (B0_loFiles[i].isOpen()) B0LoVolumes[i].resize(voxelsPerSlice);
-		if (B0_hiFiles[i].isOpen()) B0HiVolumes[i].resize(voxelsPerSlice);
+		if (B1Files[i].isOpen()) B1Volumes[i].resize(voxelsPerSlice);
+		if (B0Files[i].isOpen()) B0Volumes[i].resize(voxelsPerSlice);
 	}
 	
 	// Build a Functor here so we can query number of parameters etc.
@@ -327,18 +308,10 @@ int main(int argc, char **argv)
 	#ifdef USE_MCFINITE
 	outPrefix = outPrefix + "F_";
 	#endif
-	ArrayXd weights(mcd.values());
+	ArrayXd weights(mcd.values()); weights.setConstant(1.0);
 	ArrayXd threshes(mcd.inputs()); threshes.setConstant(0.05);
 	if (converge_f)
 		threshes = mcd.defaultThresholds();
-	size_t index = 0;
-	for (size_t i = 0; i < sigs.size(); i++) {
-		if (sigs.at(i)->spoil())
-			weights.segment(index, sigs.at(i)->size()).setConstant(weighting);
-		else
-			weights.segment(index, sigs.at(i)->size()).setConstant(1.0);
-		index += sigs.at(i)->size();
-	}
 	templateFile.setDim(4, 1);
 	templateFile.setDatatype(Nifti::DataType::FLOAT32);
 	
@@ -404,9 +377,8 @@ int main(int argc, char **argv)
 		// Read data for slices
 		for (size_t i = 0; i < signalFiles.size(); i++) {
 			signalFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, signalVolumes[i]);
-			if (B1_files[i].isOpen()) B1_files[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B1Volumes[i]);
-			if (B0_loFiles[i].isOpen()) B0_loFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0LoVolumes[i]);
-			if (B0_hiFiles[i].isOpen()) B0_hiFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0HiVolumes[i]);
+			if (B1Files[i].isOpen()) B1Files[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B1Volumes[i]);
+			if (B0Files[i].isOpen()) B0Files[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0Volumes[i]);
 		}
 		if (verbose) cout << "processing..." << endl;
 		clock_t loopStart = clock();
@@ -420,27 +392,21 @@ int main(int argc, char **argv)
 			if ((maskData.size() == 0) || (maskData[sliceOffset + vox] > 0.)) {
 				voxCount++;
 				vector<VectorXd> signals(signalFiles.size());
-				// Need local copies because of per-voxel changes
-				ArrayXXd localBounds = bounds;
 				for (size_t i = 0; i < signalFiles.size(); i++) {
 					for (size_t j = 0; j < localf.signal(i)->size(); j++) {
 						localf.actual(i)(j) = signalVolumes[i][voxelsPerSlice*j + vox];
 					}
+					if (scale == mcType::Scaling::NormToMean)
+						localf.actual(i) /= localf.actual(i).mean();
+					
 					if (B0fit == mcType::OffResMode::Map) {
-						localf.m_f0 = B0_loFiles[i].isOpen() ? B0LoVolumes[i][vox] : 0.;
+						localf.m_f0 = B0Files[i].isOpen() ? B0Volumes[i][vox] : 0.;
 					}
-					localf.m_B1 = B1_files[i].isOpen() ? B1Volumes[i][vox] : 1.;
-				}
-				localf.rescaleActual();
-				if ((B0fit == mcType::OffResMode::Bounded) || (B0fit == mcType::OffResMode::MultiBounded)) {
-					for (size_t b = 0; b < localf.nOffRes(); b++) {
-						localBounds(localf.nP() + b, 0) = B0_loFiles[b].isOpen() ? B0LoVolumes[b][vox] : 0.;
-						localBounds(localf.nP() + b, 1) = B0_hiFiles[b].isOpen() ? B0HiVolumes[b][vox] : 0.;
-					}
+					localf.m_B1 = B1Files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
 				size_t rSeed = time(NULL) + vox;
-				RegionContraction<mcType> rc(localf, localBounds, weights, threshes,
+				RegionContraction<mcType> rc(localf, bounds, weights, threshes,
 											 samples, retain, contract, expand, (voxI != -1));
 				rc.optimise(params, rSeed);
 				residuals = rc.residuals();
