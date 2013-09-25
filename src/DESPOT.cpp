@@ -462,8 +462,8 @@ shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const C
 	#ifdef AGILENT
 	Agilent::ProcPar pp;
 	if (ReadPP(img, pp)) {
-		inTR = pp.realVal("tr");
-		inAngles = pp.realVals("flip1");
+		inTR = pp.realValue("tr");
+		inAngles = pp.realValues("flip1");
 		#ifdef USE_MCFINITE
 		inTE = pp.realValue("te");
 		inTrf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
@@ -490,9 +490,9 @@ shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const C
 	#ifdef AGILENT
 	Agilent::ProcPar pp;
 	if (ReadPP(img, pp)) {
-		inPhases = pp.realVals("rfphase");
-		inTR = pp.realVal("tr");
-		inAngles = pp.realVals("flip1");
+		inPhases = pp.realValues("rfphase");
+		inTR = pp.realValue("tr");
+		inAngles = pp.realValues("flip1");
 		#ifdef USE_MCFINITE
 		inTrf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
 		#endif
