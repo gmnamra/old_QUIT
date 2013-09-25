@@ -92,37 +92,5 @@ MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, cons
 MagVector Three_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1);
 MagVector Three_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
 //MagVector Three_SSFP_Finite(const Info &d, const VectorXd &p);
-//******************************************************************************
-#pragma mark Signal Functors
-//******************************************************************************
-enum class Components {
-	One, Two, Three
-};
-
-class SignalFunctor {
-	public:
-		Components m_nC;
-		double m_TR;
-		ArrayXd m_flip;
-		SignalFunctor(const ArrayXd &flip, const double TR, const Components nC);
-		virtual ArrayXd signal(const VectorXd &p, const double B1 = 1., double f0 = 0.) = 0;
-		virtual size_t size() const { return m_flip.rows(); }
-};
-
-class SPGR_Functor : public SignalFunctor {
-	public:
-		SPGR_Functor(const ArrayXd &flip, const double TR, const Components nC);
-		ArrayXd signal(const VectorXd &p, const double B1 = 1., double f0 = 0.) override;
-};
-class SSFP_Functor : public SignalFunctor {
-	public:
-		ArrayXd m_phases;
-		SSFP_Functor(const ArrayXd &flip, const double TR, const ArrayXd &phases, const Components nC);
-		ArrayXd signal(const VectorXd &p, const double B1 = 1., double f0 = 0.) override;
-		size_t size() const;
-};
-
-shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC);
-shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC);
 
 #endif
