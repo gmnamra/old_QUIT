@@ -86,12 +86,12 @@ shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const C
 	#endif
 	{
 		if (prompt) cout << "Enter TR (seconds): " << flush; cin >> inTR;
+		if (use_finite) {
+			if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> inTrf;
+			if (prompt) cout << "Enter TE (seconds): " << flush; cin >> inTE;
+		}
 		if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
 		for (int i = 0; i < inAngles.size(); i++) cin >> inAngles[i];
-		if (use_finite) {
-			if (prompt) cout << "Enter TE (seconds): " << flush; cin >> inTE;
-			if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> inTrf;
-		}
 		string temp; getline(cin, temp); // Just to eat the newline
 	}
 	shared_ptr<SignalFunctor> f;
@@ -124,11 +124,11 @@ shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const C
 		if (prompt) cout << "Enter " << nPhases << " phase-cycles (degrees): " << flush;
 		for (size_t i = 0; i < nPhases; i++) cin >> inPhases(i);
 		if (prompt) cout << "Enter TR (seconds): " << flush; cin >> inTR;
-		if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
-		for (ArrayXd::Index i = 0; i < inAngles.size(); i++) cin >> inAngles(i);
 		if (use_finite) {
 			if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> inTrf;
 		}
+		if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
+		for (ArrayXd::Index i = 0; i < inAngles.size(); i++) cin >> inAngles(i);
 		string temp; getline(cin, temp); // Just to eat the newline
 	}
 	shared_ptr<SignalFunctor> f;
