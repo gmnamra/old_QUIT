@@ -26,7 +26,7 @@ LD_LIBS  = -lAgilent -lNifti -lz
 .PHONY : all debug install clean
 .PRECIOUS: $(OBJ_DIR)/%.o # Stop make removing the object files
 
-TARGETS = despot1 despot1hifi despot2 despot2fm mcdespot mcfinite phasemap afi
+TARGETS = despot1 despot1hifi despot2 despot2fm mcdespot phasemap afi
 
 debug   : CXX_FLAGS+=-g
 debug   : LD_FLAGS+=-g
@@ -41,11 +41,8 @@ clean :
 	rm -f $(TARGETS)
 	rm -r $(OBJ_DIR)
 
-%: $(OBJ_DIR)/%_main.o $(OBJ_DIR)/DESPOT.o $(OBJ_DIR)/ThreadPool.o | $(OBJ_DIR)
+%: $(OBJ_DIR)/%_main.o $(OBJ_DIR)/DESPOT.o $(OBJ_DIR)/DESPOT_Functors.o $(OBJ_DIR)/ThreadPool.o | $(OBJ_DIR)
 	$(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS)
-
-$(OBJ_DIR)/mcfinite_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h $(SRC_DIR)/RegionContraction.h | $(OBJ_DIR)
-	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -DUSE_MCFINITE -o $@ $<
 
 $(OBJ_DIR)/mcdespot_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h $(SRC_DIR)/RegionContraction.h | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
