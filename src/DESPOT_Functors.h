@@ -40,25 +40,37 @@ class SignalFunctor {
 		double m_TR;
 		ArrayXd m_flip;
 		SignalFunctor(const ArrayXd &flip, const double TR, const Components nC);
-		virtual ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) = 0;
+		virtual ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const = 0;
 		virtual size_t size() const { return m_flip.rows(); }
 };
 
 class SPGR_Functor : public SignalFunctor {
 	public:
 		SPGR_Functor(const ArrayXd &flip, const double TR, const Components nC);
-		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) override;
+		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
+};
+class SPGR_Finite_Functor : public SignalFunctor {
+	public:
+		double m_Trf, m_TE;
+		SPGR_Finite_Functor(const ArrayXd &flip, const double TR, const double Trf, const double TE, const Components nc);
+		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 };
 class SSFP_Functor : public SignalFunctor {
 	public:
 		ArrayXd m_phases;
 		SSFP_Functor(const ArrayXd &flip, const double TR, const ArrayXd &phases, const Components nC);
-		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) override;
-		size_t size() const;
+		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
+		size_t size() const override;
 };
-
-shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC);
-shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC);
+class SSFP_Finite_Functor : public SSFP_Functor {
+	public:
+		double m_Trf, m_TE;
+		SSFP_Finite_Functor(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases, const Components nC);
+		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
+};
+		
+shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC, const bool finite);
+shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC, const bool finite);
 
 //******************************************************************************
 #pragma mark Optimisation Functor Base Class
