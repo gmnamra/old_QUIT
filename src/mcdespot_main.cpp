@@ -47,34 +47,30 @@ All times (TR) are in SECONDS. All angles are in degrees.\n\
 Options:\n\
 	--help, -h		  : Print this message.\n\
 	--verbose, -v     : Print extra information.\n\
-	--no-prompt, -p   : Don't print prompts for input.\n\
+	--no-prompt, -n   : Don't print prompts for input.\n\
+	--1, --2, --3     : Use 1, 2 or 3 component model (default 3).\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
-	--1, --2, --3     : Use 1, 2 or 3 component model (default 2).\n\
-	--start_slice n   : Only start processing at slice n.\n\
-	--end_slice n     : Finish at slice n-1.\n\
-	--PD, -P n/i/g    : Proton Density mode. Default is n (normalise).\n\
-	--finite, -f      : Use Finite Pulse Length correction.\n\
-	--samples, -s n   : Use n samples for region contraction (Default 5000).\n\
-	--retain, -r  n   : Retain n samples for new boundary (Default 50).\n\
-	--contract, -c n  : Contract a maximum of n times (Default 10).\n\
-	--expand, -e n    : Re-expand boundary by percentage n (Default 0).\n\
-	--B0, -b 0        : Read B0 values from map files.\n\
-	         1        : (Default) Fit one B0 value to all scans.\n\
-	         2        : Fit a B0 value to each scan individually.\n\
-	         3        : Fit one bounded B0 value to all scans.\n\
-	         4        : Fit a bounded B0 value to each scan.\n\
+	--f0, -f 0        : Read f0 values from map files.\n\
+			 1        : (Default) Fit one symmetric f0 value to all scans.\n\
+			 2        : Fit an unsymmetric f0 value to all scans.\n\
+	--start, -s n     : Only start processing at slice n.\n\
+	--stop, -p n      : Finish at slice n-1.\n\
+	--scale, -S 0     : Normalise signals to mean (default).\n\
+	            1     : Fit a scaling factor/proton density.\n\
 	--tesla, -t 3     : Boundaries suitable for 3T (default)\n\
 	            7     : Boundaries suitable for 7T \n\
-	            u     : User specified boundaries from stdin.\n"
+	            u     : User specified boundaries from stdin.\n\
+	--finite, -F      : Use Finite Pulse Length correction.\n\
+	--contract, -c n  : Read contraction settings from stdin (Will prompt).\n"
 };
 
-static auto B0fit = mcDESPOT::OffResMode::SingleSymmetric;
+static auto f0fit = mcDESPOT::OffResMode::SingleSymmetric;
 static auto components = Components::Two;
 static auto tesla = mcDESPOT::FieldStrength::Three;
 static auto scale = mcDESPOT::Scaling::NormToMean;
-static size_t start_slice = 0, end_slice = numeric_limits<size_t>::max();
-static int verbose = false, prompt = true, debug = false, converge_f = false,
+static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
+static int verbose = false, prompt = true, extra = false, early_finish = false,
            use_finite = false,
 		   samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
@@ -82,25 +78,21 @@ static double expand = 0., weighting = 1.0;
 static string outPrefix;
 static struct option long_options[] =
 {
-	{"mask", required_argument, 0, 'm'},
-	{"out", required_argument, 0, 'o'},
+	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"no-prompt", no_argument, 0, 'p'},
-	{"start_slice", required_argument, 0, 'S'},
-	{"end_slice", required_argument, 0, 'E'},
-	{"scaling", required_argument, 0, 's'},
-	{"tesla", required_argument, 0, 't'},
-	{"B0", required_argument, 0, 'b'},
-	{"cnv", no_argument, 0, 'C'},
-	{"finite", no_argument, 0, 'f'},
-	{"samples", required_argument, 0, 'm'},
-	{"retain", required_argument, 0, 'r'},
-	{"contract", required_argument, 0, 'c'},
-	{"expand", required_argument, 0, 'e'},
-	{"help", no_argument, 0, 'h'},
 	{"1", no_argument, 0, '1'},
 	{"2", no_argument, 0, '2'},
 	{"3", no_argument, 0, '3'},
+	{"mask", required_argument, 0, 'm'},
+	{"out", required_argument, 0, 'o'},
+	{"f0", required_argument, 0, 'O'},
+	{"start", required_argument, 0, 'S'},
+	{"stop", required_argument, 0, 'P'},
+	{"scale", required_argument, 0, 's'},
+	{"tesla", required_argument, 0, 't'},
+	{"finite", no_argument, 0, 'f'},
+	{"contract", no_argument, 0, 'c'},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
@@ -134,14 +126,14 @@ Nifti openAndCheck(const string &path, const Nifti &saved, const string &type) {
 Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 				       vector<Nifti > &signalFiles,
 				       vector<Nifti > &B1Files,
-				       vector<Nifti > &B0Files,
-					   const mcDESPOT::OffResMode &B0fit,
+				       vector<Nifti > &f0Files,
+					   const mcDESPOT::OffResMode &f0fit,
 					   const bool &use_finite);
 Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 				       vector<Nifti > &signalFiles,
 				       vector<Nifti > &B1Files,
-				       vector<Nifti > &B0Files,
-					   const mcDESPOT::OffResMode &B0fit,
+				       vector<Nifti > &f0Files,
+					   const mcDESPOT::OffResMode &f0fit,
 					   const bool &use_finite) {
 	Nifti templateFile;
 	string type, path;
@@ -172,13 +164,13 @@ Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 			B1Files.push_back(Nifti());
 		}
 		
-		if ((type == "SSFP") && (B0fit == mcDESPOT::OffResMode::Map)) {
+		if ((type == "SSFP") && (f0fit == mcDESPOT::OffResMode::Map)) {
 			if (prompt)
-				cout << "Enter path to B0 map: " << flush;
+				cout << "Enter path to f0 map: " << flush;
 			getline(cin, path);
-			B0Files.push_back(openAndCheck(path, templateFile, "B0"));
+			f0Files.push_back(openAndCheck(path, templateFile, "f0"));
 		} else {
-			B0Files.push_back(Nifti());
+			f0Files.push_back(Nifti());
 		}
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
@@ -203,15 +195,13 @@ int main(int argc, char **argv)
 	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "123hvpCft:b:m:o:s:w:n:r:c:e:i:j:d", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvn123m:o:f:s:p:S:t:Fceijw", long_options, &indexptr)) != -1) {
 		switch (c) {
+			case 'v': verbose = true; break;
+			case 'n': prompt = false; break;
 			case '1': components = Components::One; break;
 			case '2': components = Components::Two; break;
 			case '3': components = Components::Three; break;
-			case 'C': converge_f = true; break;
-			case 'f': use_finite = true; break;
-			case 'i': voxI = atoi(optarg); break;
-			case 'j': voxJ = atoi(optarg); break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
@@ -222,30 +212,24 @@ int main(int argc, char **argv)
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
-			case 'v': verbose = true; break;
-			case 'p': prompt = false; break;
-			case 'S': start_slice = atoi(optarg); break;
-			case 'E': end_slice = atoi(optarg); break;
-			case 's':
+			case 'f':
+				switch (*optarg) {
+					case '0' : f0fit = mcDESPOT::OffResMode::Map; break;
+					case '1' : f0fit = mcDESPOT::OffResMode::SingleSymmetric; break;
+					case '2' : f0fit = mcDESPOT::OffResMode::Single; break;
+					default:
+						cout << "Invalid Off Resonance Mode." << endl;
+						exit(EXIT_FAILURE);
+						break;
+				} break;
+			case 's': start_slice = atoi(optarg); break;
+			case 'p': stop_slice = atoi(optarg); break;
+			case 'S':
 				switch (atoi(optarg)) {
 					case 1 : scale = DESPOT2FM::Scaling::Global; break;
 					case 2 : scale = DESPOT2FM::Scaling::NormToMean; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
-						exit(EXIT_FAILURE);
-						break;
-				} break;
-			case 'w': weighting = atof(optarg); break;
-			case 'n': samples  = atoi(optarg); break;
-			case 'r': retain   = atoi(optarg); break;
-			case 'c': contract = atoi(optarg); break;
-			case 'e': expand   = atof(optarg); break;
-			case 'b':
-				switch (*optarg) {
-					case '0' : B0fit = mcDESPOT::OffResMode::Map; break;
-					case '1' : B0fit = mcDESPOT::OffResMode::Single; break;
-					default:
-						cout << "Invalid B0 Mode." << endl;
 						exit(EXIT_FAILURE);
 						break;
 				} break;
@@ -259,12 +243,21 @@ int main(int argc, char **argv)
 						exit(EXIT_FAILURE);
 						break;
 				} break;
-			case 0:
-				// Just a flag
+			case 'F': use_finite = true; break;
+			case 'c':
+				cout << "Enter max number of contractions: " << flush; cin >> contract;
+				cout << "Enter number of samples per contraction: " << flush; cin >> samples;
+				cout << "Enter number of samples to retain: " << flush; cin >> retain;
+				cout << "Enter fraction to expand region by: " << flush; cin >> expand;
 				break;
-			case 'd': debug = true; break;
+			case 'e': extra = true; break;
+			case 'E': early_finish = true; break;
+			case 'i': voxI = atoi(optarg); break;
+			case 'j': voxJ = atoi(optarg); break;
+			case 'w': weighting = atof(optarg); break;
 			case 'h':
 			case '?': // getopt will print an error message
+			default:
 				cout << usage << endl;
 				return EXIT_FAILURE;
 		}
@@ -278,8 +271,8 @@ int main(int argc, char **argv)
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
 	vector<shared_ptr<SignalFunctor>> sigs;
-	vector<Nifti > signalFiles, B1Files, B0Files;
-	templateFile = parseInput(sigs, signalFiles, B1Files, B0Files, B0fit, use_finite);
+	vector<Nifti > signalFiles, B1Files, f0Files;
+	templateFile = parseInput(sigs, signalFiles, B1Files, f0Files, f0fit, use_finite);
 	if ((maskData.size() > 0) && !(maskFile.matchesSpace(templateFile))) {
 		cerr << "Mask file has different dimensions/transform to input data." << endl;
 		exit(EXIT_FAILURE);
@@ -287,27 +280,27 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	// Use if files are open to indicate default values should be used -
-	// 0 for B0, 1 for B1
+	// 0 for f0, 1 for B1
 	//**************************************************************************
 	size_t voxelsPerSlice = templateFile.voxelsPerSlice();
 	size_t voxelsPerVolume = templateFile.voxelsPerVolume();
 	
 	vector<vector<double>> signalVolumes(signalFiles.size()),
 	                 B1Volumes(signalFiles.size()),
-				     B0Volumes(signalFiles.size());
+				     f0Volumes(signalFiles.size());
 	for (size_t i = 0; i < signalFiles.size(); i++) {
 		signalVolumes[i].resize(voxelsPerSlice * sigs.at(i)->size());
 		if (B1Files[i].isOpen()) B1Volumes[i].resize(voxelsPerSlice);
-		if (B0Files[i].isOpen()) B0Volumes[i].resize(voxelsPerSlice);
+		if (f0Files[i].isOpen()) f0Volumes[i].resize(voxelsPerSlice);
 	}
 	
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << mcDESPOT::to_string(components) << " component model." << endl;
-	mcDESPOT mcd(components, sigs, tesla, B0fit, scale, use_finite);
+	mcDESPOT mcd(components, sigs, tesla, f0fit, scale, use_finite);
 	outPrefix = outPrefix + mcDESPOT::to_string(components) + "C_";
 	ArrayXd weights(mcd.values()); weights.setConstant(1.0);
 	ArrayXd threshes(mcd.inputs()); threshes.setConstant(0.05);
-	if (converge_f)
+	if (early_finish)
 		threshes = mcd.defaultThresholds();
 	templateFile.setDim(4, 1);
 	templateFile.setDatatype(Nifti::DataType::FLOAT32);
@@ -323,14 +316,14 @@ int main(int argc, char **argv)
 	for (int i = 0; i < mcd.inputs(); i++) {
 		paramsData.at(i).resize(voxelsPerSlice);
 		paramsFiles.at(i).open(outPrefix + mcd.names()[i] + ".nii.gz", Nifti::Mode::Write);
-		if (debug) {
+		if (extra) {
 			midpData.at(i).resize(voxelsPerSlice);
 			midpFiles.at(i).open(outPrefix + mcd.names()[i] + "_mid.nii.gz", Nifti::Mode::Write);
 			widthData.at(i).resize(voxelsPerSlice);
 			widthFiles.at(i).open(outPrefix + mcd.names()[i] + "_width.nii.gz", Nifti::Mode::Write);
 		}
 	}
-	if (debug)
+	if (extra)
 		contractFile.open(outPrefix + "n_contract.nii.gz", Nifti::Mode::Write);
 	
 	vector<vector<double>> residualData(mcd.values());
@@ -356,8 +349,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Do the fitting
 	//**************************************************************************
-	if (end_slice > templateFile.dim(3))
-		end_slice = templateFile.dim(3);
+	if (stop_slice > templateFile.dim(3))
+		stop_slice = templateFile.dim(3);
 	
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	
@@ -365,7 +358,7 @@ int main(int argc, char **argv)
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
-	for (size_t slice = start_slice; slice < end_slice; slice++)
+	for (size_t slice = start_slice; slice < stop_slice; slice++)
 	{
 		if (verbose) cout << "Reading data for slice " << slice << "..." << flush;
 		atomic<int> voxCount{0};
@@ -375,7 +368,7 @@ int main(int argc, char **argv)
 		for (size_t i = 0; i < signalFiles.size(); i++) {
 			signalFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, signalVolumes[i]);
 			if (B1Files[i].isOpen()) B1Files[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B1Volumes[i]);
-			if (B0Files[i].isOpen()) B0Files[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B0Volumes[i]);
+			if (f0Files[i].isOpen()) f0Files[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, f0Volumes[i]);
 		}
 		if (verbose) cout << "processing..." << endl;
 		clock_t loopStart = clock();
@@ -396,8 +389,8 @@ int main(int argc, char **argv)
 					if (scale == mcDESPOT::Scaling::NormToMean)
 						localf.actual(i) /= localf.actual(i).mean();
 					
-					if (B0fit == mcDESPOT::OffResMode::Map) {
-						localf.m_f0 = B0Files[i].isOpen() ? B0Volumes[i][vox] : 0.;
+					if (f0fit == mcDESPOT::OffResMode::Map) {
+						localf.m_f0 = f0Files[i].isOpen() ? f0Volumes[i][vox] : 0.;
 					}
 					localf.m_B1 = B1Files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
@@ -407,17 +400,17 @@ int main(int argc, char **argv)
 											 samples, retain, contract, expand, (voxI != -1));
 				rc.optimise(params, rSeed);
 				residuals = rc.residuals();
-				if (debug) {
+				if (extra) {
 					c = rc.contractions();
 					width = rc.width();
 					midp = rc.midPoint();
 				}
 			}
-			if (debug)
+			if (extra)
 				contractData.at(vox) = c;
 			for (size_t p = 0; p < paramsData.size(); p++) {
 				paramsData.at(p).at(vox) = params[p];
-				if (debug) {
+				if (extra) {
 					widthData.at(p).at(vox) = width(p);
 					midpData.at(p).at(vox) = midp(p);
 				}
@@ -447,12 +440,12 @@ int main(int argc, char **argv)
 		
 		for (size_t p = 0; p < paramsFiles.size(); p++) {
 			paramsFiles.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData.at(p));
-			if (debug) {
+			if (extra) {
 				midpFiles.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, midpData.at(p));
 				widthFiles.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, widthData.at(p));
 			}
 		}
-		if (debug)
+		if (extra)
 			contractFile.writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, contractData);
 		if (interrupt_received)
 			break;

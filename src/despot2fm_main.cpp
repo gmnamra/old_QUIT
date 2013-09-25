@@ -41,47 +41,45 @@ const string usage {
 "Usage is: despot2-fm [options] T1_map ssfp_files\n\
 \
 Options:\n\
-	--help, -h        : Print this message.\n\
-	--mask, -m file   : Mask input with specified file.\n\
-	--out, -o path    : Add a prefix to the output filenames.\n\
-	--B0 file         : B0 Map file.\n\
-	--B1 file         : B1 Map file.\n\
-	--verbose, -v     : Print slice processing times.\n\
-	--start_slice N   : Start processing from slice N.\n\
-	--end_slice   N   : Finish processing at slice N.\n\
-	--tesla, -t 3     : Use boundaries suitable for 3T (default)\n\
-	            7     : Boundaries suitable for 7T\n\
-	            u     : User specified boundaries from stdin.\n\
-	--samples, -m n   : Use n samples for region contraction (Default 5000).\n\
-	--retain, -r  n   : Retain n samples for new boundary (Default 50).\n\
-	--contract, -c n  : Contract a maximum of n times (Default 10).\n\
-	--expand, -e n    : Re-expand boundary by percentage n (Default 0).\n"
+	--help, -h          : Print this message.\n\
+	--verbose, -v       : Print slice processing times.\n\
+	--mask, -m file     : Mask input with specified file.\n\
+	--out, -o path      : Add a prefix to the output filenames.\n\
+	--f0, -f file/ASYM  : f0 Map file in Hertz, or asymmetric fitting.\n\
+	--B1, -b file       : B1 Map file.\n\
+	--start, -s N       : Start processing from slice N.\n\
+	--stop, -p  N       : Stop processing at slice N.\n\
+	--scale, -S 0       : Normalise signals to mean (default).\n\
+	            1       : Fit a scaling factor/proton density.\n\
+	--tesla, -t 3       : Use boundaries suitable for 3T (default)\n\
+	            7       : Boundaries suitable for 7T\n\
+	            u       : User specified boundaries from stdin.\n\
+	--finite, -F        : Use Finite Pulse Length correction.\n\
+	--contract, -c n    : Read contraction settings from stdin (Will prompt).\n"
 };
 
 static auto scale = DESPOT2FM::Scaling::NormToMean;
 static auto tesla = DESPOT2FM::FieldStrength::Three;
 static auto offRes = DESPOT2FM::OffResMode::SingleSymmetric;
-static int verbose = false, debug = false, use_finite = false,
+static int verbose = false, extra = false, use_finite = false,
 		   samples = 2000, retain = 20, contract = 10,
            voxI = -1, voxJ = -1;
-static size_t start_slice = 0, end_slice = numeric_limits<size_t>::max();
+static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static double expand = 0., weighting = 1.0;
 static string outPrefix;
-static struct option long_options[] =
-{
-	{"B0", required_argument, 0, '0'},
-	{"B1", required_argument, 0, '1'},
+static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
-	{"mask", required_argument, 0, 'm'},
-	{"tesla", required_argument, 0, 't'},
 	{"verbose", no_argument, 0, 'v'},
-	{"scaling", required_argument, 0, 's'},
-	{"start_slice", required_argument, 0, 'S'},
-	{"end_slice", required_argument, 0, 'E'},
-	{"samples", required_argument, 0, 'm'},
-	{"retain", required_argument, 0, 'r'},
-	{"contract", required_argument, 0, 'c'},
-	{"expand", required_argument, 0, 'e'},
+	{"mask", required_argument, 0, 'm'},
+	{"out", required_argument, 0, 'o'},
+	{"f0", required_argument, 0, 'f'},
+	{"B1", required_argument, 0, 'b'},
+	{"start", required_argument, 0, 's'},
+	{"stop", required_argument, 0, 'p'},
+	{"scale", required_argument, 0, 'S'},
+	{"tesla", required_argument, 0, 't'},
+	{"finite", no_argument, 0, 'F'},
+	{"contract", no_argument, 0, 'c'},
 	{0, 0, 0, 0}
 };
 
@@ -95,37 +93,49 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	Eigen::initParallel();
-	Nifti maskFile, B0File, B1File;
-	vector<double> maskData, B0Data, B1Data, T1Data;
+	Nifti maskFile, f0File, B1File;
+	vector<double> maskData, f0Data, B1Data, T1Data;
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:vt:s:n:r:c:e:i:j:w:fd", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:Fceijw", long_options, &indexptr)) != -1) {
 		switch (c) {
-			case 'o':
-				outPrefix = optarg;
-				cout << "Output prefix will be: " << outPrefix << endl;
-				break;
+			case 'v': verbose = true; break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
 				maskData = maskFile.readVolume<double>(0);
 				break;
-			case '0':
-				if (string(optarg) == "UNSYM") {
+			case 'o':
+				outPrefix = optarg;
+				cout << "Output prefix will be: " << outPrefix << endl;
+				break;
+			case 'f':
+				if (string(optarg) == "ASYM") {
 					offRes = DESPOT2FM::OffResMode::Single;
 				} else {
-					cout << "Reading B0 file: " << optarg << endl;
-					B0File.open(optarg, Nifti::Mode::Read);
-					B0Data = B0File.readVolume<double>(0);
+					cout << "Reading f0 file: " << optarg << endl;
+					f0File.open(optarg, Nifti::Mode::Read);
+					f0Data = f0File.readVolume<double>(0);
 					offRes = DESPOT2FM::OffResMode::Map;
 				}
 				break;
-			case '1':
+			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
 				B1Data = B1File.readVolume<double>(0);
 				break;
+			case 'S': start_slice = atoi(optarg); break;
+			case 'P': stop_slice = atoi(optarg); break;
+			case 's':
+				switch (atoi(optarg)) {
+					case 0 : scale = DESPOT2FM::Scaling::NormToMean; break;
+					case 1 : scale = DESPOT2FM::Scaling::Global; break;
+					default:
+						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
+						exit(EXIT_FAILURE);
+						break;
+				} break;
 			case 't':
 				switch (*optarg) {
 					case '3': tesla = DESPOT2FM::FieldStrength::Three; break;
@@ -136,34 +146,23 @@ int main(int argc, char **argv)
 						exit(EXIT_FAILURE);
 						break;
 				} break;
-			case 's':
-				switch (atoi(optarg)) {
-					case 1 : scale = DESPOT2FM::Scaling::Global; break;
-					case 2 : scale = DESPOT2FM::Scaling::NormToMean; break;
-					default:
-						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
-						exit(EXIT_FAILURE);
-						break;
-				} break;
+			case 'F': use_finite = true; break;
+			case 'c':
+				cout << "Enter max number of contractions: " << flush; cin >> contract;
+				cout << "Enter number of samples per contraction: " << flush; cin >> samples;
+				cout << "Enter number of samples to retain: " << flush; cin >> retain;
+				cout << "Enter fraction to expand region by: " << flush; cin >> expand;
+				break;
+			case 'e': extra = true; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
 			case 'w': weighting = atof(optarg); break;
-			case 'v': verbose = true; break;
-			case 'f': use_finite = true; break;
-			case 'd': debug = true; break;
-			case 'S': start_slice = atoi(optarg); break;
-			case 'E': end_slice = atoi(optarg); break;
-			case 'n': samples  = atoi(optarg); break;
-			case 'r': retain   = atoi(optarg); break;
-			case 'c': contract = atoi(optarg); break;
-			case 'e': expand   = atof(optarg); break;
-			case 0:
-				// Just a flag
-				break;
 			case '?': // getopt will print an error message
 			case 'h':
-				cout << usage << endl;				
-				return EXIT_FAILURE;
+			default:
+				cout << usage << endl;
+				exit(EXIT_SUCCESS);
+				break;
 		}
 	}
 	if ((argc - optind) < 2) {
@@ -175,7 +174,7 @@ int main(int argc, char **argv)
 	T1Data = inFile.readVolume<double>(0);
 	inFile.close();
 	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
-	    (B0File.isOpen() && !inFile.matchesSpace(B0File)) ||
+	    (f0File.isOpen() && !inFile.matchesSpace(f0File)) ||
 		(B1File.isOpen() && !inFile.matchesSpace(B1File))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
@@ -241,7 +240,7 @@ int main(int argc, char **argv)
 	vector<size_t> contractData;
 	vector<vector<double>> midpData(d2fm.inputs());
 	vector<vector<double>> widthData(d2fm.inputs());
-	if (debug) {
+	if (extra) {
 		contractData.resize(voxelsPerVolume);
 		for (auto &m : midpData)
 			m.resize(voxelsPerVolume);
@@ -251,14 +250,14 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	if (end_slice > templateFile.dim(3))
-		end_slice = templateFile.dim(3);
+	if (stop_slice > templateFile.dim(3))
+		stop_slice = templateFile.dim(3);
 	ThreadPool threads;
     time_t procStart = time(NULL);
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
-	for (size_t slice = start_slice; slice < end_slice; slice++) {
+	for (size_t slice = start_slice; slice < stop_slice; slice++) {
 		// Read in data
 		if (verbose)
 			cout << "Starting slice " << slice << "..." << flush;
@@ -271,7 +270,7 @@ int main(int argc, char **argv)
 			DESPOT2FM locald2(d2fm); // Take a thread local copy of the functor
 			ArrayXd params(locald2.inputs()); params.setZero();
 			ArrayXd resid(locald2.values()); resid.setZero();
-			// Debug stuff
+			// extra stuff
 			size_t c = 0;
 			ArrayXd width(locald2.inputs()); width.setZero();
 			ArrayXd midp(locald2.inputs()); midp.setZero();
@@ -280,7 +279,7 @@ int main(int argc, char **argv)
 				voxCount++;
 				locald2.m_T1 = T1Data.at(sliceOffset + vox);
 				for (size_t p = 0; p < nPhases; p++) {
-					locald2.m_f0 = B0File.isOpen() ? B0Data[sliceOffset + vox] : 0.;
+					locald2.m_f0 = f0File.isOpen() ? f0Data[sliceOffset + vox] : 0.;
 					locald2.m_B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 					for (int i = 0; i < locald2.actual(p).rows(); i++)
 						locald2.actual(p)(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
@@ -295,7 +294,7 @@ int main(int argc, char **argv)
 				size_t rSeed = time(NULL) + vox;
 				rc.optimise(params, rSeed);
 				resid = rc.residuals();
-				if (debug) {
+				if (extra) {
 					c = rc.contractions();
 					width = rc.width();
 					midp = rc.midPoint();
@@ -307,7 +306,7 @@ int main(int argc, char **argv)
 			for (ArrayXd::Index i = 0; i < resid.size(); i++) {
 				residuals.at(i).at(sliceOffset + vox) = resid(i);
 			}
-			if (debug) {
+			if (extra) {
 				contractData.at(sliceOffset + vox) = c;
 				for (size_t i = 0; i < widthData.size(); i++) {
 					widthData.at(i).at(sliceOffset + vox) = width(i);
@@ -347,7 +346,7 @@ int main(int argc, char **argv)
 	for (size_t i = 0; i < residuals.size(); i++)
 		templateFile.writeSubvolume(0, 0, 0, i, -1, -1, -1, i+1, residuals[i]);
 	templateFile.close();
-	if (debug) {
+	if (extra) {
 		templateFile.setDim(4, 1);
 		templateFile.setDatatype(Nifti::DataType::INT16);
 		templateFile.open(outPrefix + "n_contract.nii.gz", Nifti::Mode::Write);
