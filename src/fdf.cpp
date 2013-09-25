@@ -55,8 +55,8 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	closedir(dfd);
 	
 	auto f = m_files.begin();
-	m_slabs = static_cast<size_t>(m_pp.realVal("ns"));
-	m_echoes = static_cast<size_t>(m_pp.realVal("ne"));
+	m_slabs = static_cast<size_t>(m_pp.realValue("ns"));
+	m_echoes = static_cast<size_t>(m_pp.realValue("ne"));
 	m_images = m_files.size() / (m_slabs * m_echoes);
 	m_rank = f->second->rank();
 	m_dim[0] = f->second->dim(0);
@@ -69,8 +69,8 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	// Now we have the joy of calculating a correct orientation field
 	// Get "Euler" angles. These describe how to get to the user frame
 	// from the magnet frame.
-	double psi = m_pp.realVal("psi"), phi = m_pp.realVal("phi"),
-	       tht = m_pp.realVal("theta");
+	double psi = m_pp.realValue("psi"), phi = m_pp.realValue("phi"),
+	       tht = m_pp.realValue("theta");
 	
 	double sinphi = sin(phi*M_PI/180.), cosphi = cos(phi*M_PI/180.);
 	double sintht = sin(tht*M_PI/180.), costht = cos(tht*M_PI/180.);
@@ -78,20 +78,20 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	
 	// Now for the vox dimensions and offsets in the user frame
 	Array3d offset;
-	m_voxdim[0] = m_pp.realVal("lro")/m_dim[0];
-	offset(0)   = m_pp.realVal("pro") - (m_pp.realVal("lro") - m_voxdim[0])/2.;
-	m_voxdim[1] = m_pp.realVal("lpe")/m_dim[1];
-	offset(1)   = m_pp.realVal("ppe") - (m_pp.realVal("lpe") - m_voxdim[1])/2.;
+	m_voxdim[0] = m_pp.realValue("lro")/m_dim[0];
+	offset(0)   = m_pp.realValue("pro") - (m_pp.realValue("lro") - m_voxdim[0])/2.;
+	m_voxdim[1] = m_pp.realValue("lpe")/m_dim[1];
+	offset(1)   = m_pp.realValue("ppe") - (m_pp.realValue("lpe") - m_voxdim[1])/2.;
 	if (m_rank == 2) {
-		m_voxdim[2] = m_pp.realVal("thk")/10. + m_pp.realVal("gap"); // thk seems to be in mm already
-		offset[2]   = m_pp.realVal("pss", 0); // Find the most negative slice center
+		m_voxdim[2] = m_pp.realValue("thk")/10. + m_pp.realValue("gap"); // thk seems to be in mm already
+		offset[2]   = m_pp.realValue("pss", 0); // Find the most negative slice center
 		for (size_t i = 1; i < m_slabs; i++) {
-			if (m_pp.realVal("pss", i) < offset[2])
-				offset[2] = m_pp.realVal("pss", i);
+			if (m_pp.realValue("pss", i) < offset[2])
+				offset[2] = m_pp.realValue("pss", i);
 		}
 	} else {
-		m_voxdim[2] = m_pp.realVal("lpe2")/m_dim[2];
-		offset[2]   = m_pp.realVal("ppe2") - (m_pp.realVal("lpe2") - m_voxdim[2])/2.;
+		m_voxdim[2] = m_pp.realValue("lpe2")/m_dim[2];
+		offset[2]   = m_pp.realValue("ppe2") - (m_pp.realValue("lpe2") - m_voxdim[2])/2.;
 	}
 	// Now build the transform matrix - the 10 is to convert from cm to mm
 	m_voxdim *= 10.;

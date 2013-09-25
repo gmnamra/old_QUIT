@@ -40,8 +40,8 @@ namespace Agilent {
 			SubType m_subtype;
 			double  m_max, m_min, m_step;
 			int  m_ggroup, m_dgroup, m_protection, m_active, m_intptr;
-			std::vector<std::string> m_stringVals, m_stringAllowed;
-			Eigen::ArrayXd m_realVals, m_realAllowed;
+			std::vector<std::string> m_stringValues, m_stringAllowed;
+			Eigen::ArrayXd m_realValues, m_realAllowed;
 			
 		public:
 			Parameter();
@@ -66,10 +66,10 @@ namespace Agilent {
 			const std::string &type_name() const;
 			const std::string &subtype_name() const;
 			
-			const std::string &stringVal(const size_t i) const;
-			const std::vector<std::string> &stringVals() const;
-			const double &realVal(const size_t i) const;
-			const Eigen::ArrayXd &realVals() const;
+			const std::string &stringValue(const size_t i) const;
+			const std::vector<std::string> &stringValues() const;
+			const double &realValue(const size_t i) const;
+			const Eigen::ArrayXd &realValues() const;
 			
 			const std::string print_values() const;
 			const std::string print_allowed() const;
@@ -97,10 +97,10 @@ namespace Agilent {
 			
 			const Parameter &parameter(const std::string &name) const;
 			const std::vector<std::string> names() const;
-			const double realVal(const std::string &name, const size_t index = 0) const;
-			const Eigen::ArrayXd &realVals(const std::string &name) const;
-			const std::string &stringVal(const std::string &name, const size_t index = 0) const;
-			const std::vector<std::string> &stringVals(const std::string &name) const;
+			const double realValue(const std::string &name, const size_t index = 0) const;
+			const Eigen::ArrayXd &realValues(const std::string &name) const;
+			const std::string &stringValue(const std::string &name, const size_t index = 0) const;
+			const std::vector<std::string> &stringValues(const std::string &name) const;
 	};
 } // End namespace Agilent
 
