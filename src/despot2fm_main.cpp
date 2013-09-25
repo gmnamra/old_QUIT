@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 				break;
 			case '0':
 				if (string(optarg) == "UNSYM") {
-					offRes == DESPOT2FM::OffResMode::Single;
+					offRes = DESPOT2FM::OffResMode::Single;
 				} else {
 					cout << "Reading B0 file: " << optarg << endl;
 					B0File.open(optarg, Nifti::Mode::Read);
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 		cout << "Reading SSFP data..." << endl;
-		sigs.emplace_back(parseSSFP(inFile, true, Components::One));
+		sigs.emplace_back(parseSSFP(inFile, true, Components::One, use_finite));
 		ssfpData[p] = inFile.readAllVolumes<double>();
 		inFile.close();
 		optind++;

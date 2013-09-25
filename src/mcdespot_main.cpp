@@ -26,12 +26,6 @@
 	#include "procpar.h"
 #endif
 
-#ifdef USE_MCFINITE
-	#define mcType mcFinite
-#else
-	#define mcType mcDESPOT
-#endif
-
 using namespace std;
 using namespace Eigen;
 
@@ -60,6 +54,7 @@ Options:\n\
 	--start_slice n   : Only start processing at slice n.\n\
 	--end_slice n     : Finish at slice n-1.\n\
 	--PD, -P n/i/g    : Proton Density mode. Default is n (normalise).\n\
+	--finite, -f      : Use Finite Pulse Length correction.\n\
 	--samples, -s n   : Use n samples for region contraction (Default 5000).\n\
 	--retain, -r  n   : Retain n samples for new boundary (Default 50).\n\
 	--contract, -c n  : Contract a maximum of n times (Default 10).\n\
@@ -74,12 +69,13 @@ Options:\n\
 	            u     : User specified boundaries from stdin.\n"
 };
 
-static auto B0fit = mcType::OffResMode::SingleSymmetric;
+static auto B0fit = mcDESPOT::OffResMode::SingleSymmetric;
 static auto components = Components::Two;
-static auto tesla = mcType::FieldStrength::Three;
-static auto scale = mcType::Scaling::NormToMean;
+static auto tesla = mcDESPOT::FieldStrength::Three;
+static auto scale = mcDESPOT::Scaling::NormToMean;
 static size_t start_slice = 0, end_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, debug = false, converge_f = false,
+           use_finite = false,
 		   samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
 static double expand = 0., weighting = 1.0;
@@ -96,6 +92,7 @@ static struct option long_options[] =
 	{"tesla", required_argument, 0, 't'},
 	{"B0", required_argument, 0, 'b'},
 	{"cnv", no_argument, 0, 'C'},
+	{"finite", no_argument, 0, 'f'},
 	{"samples", required_argument, 0, 'm'},
 	{"retain", required_argument, 0, 'r'},
 	{"contract", required_argument, 0, 'c'},
@@ -138,12 +135,14 @@ Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 				       vector<Nifti > &signalFiles,
 				       vector<Nifti > &B1Files,
 				       vector<Nifti > &B0Files,
-					   const mcDESPOT::OffResMode &B0fit);
+					   const mcDESPOT::OffResMode &B0fit,
+					   const bool &use_finite);
 Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 				       vector<Nifti > &signalFiles,
 				       vector<Nifti > &B1Files,
 				       vector<Nifti > &B0Files,
-					   const mcDESPOT::OffResMode &B0fit) {
+					   const mcDESPOT::OffResMode &B0fit,
+					   const bool &use_finite) {
 	Nifti templateFile;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
@@ -161,9 +160,9 @@ Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 			signalFiles.push_back(openAndCheck(path, templateFile, type));
 		}
 		if (type == "SPGR")
-			sigs.emplace_back(parseSPGR(signalFiles.back(), prompt, components));
+			sigs.emplace_back(parseSPGR(signalFiles.back(), prompt, components, use_finite));
 		else
-			sigs.emplace_back(parseSSFP(signalFiles.back(), prompt, components));
+			sigs.emplace_back(parseSSFP(signalFiles.back(), prompt, components, use_finite));
 		
 		if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
 		getline(cin, path);
@@ -204,12 +203,13 @@ int main(int argc, char **argv)
 	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "123hvpCt:b:m:o:s:w:n:r:c:e:i:j:d", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "123hvpCft:b:m:o:s:w:n:r:c:e:i:j:d", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case '1': components = Components::One; break;
 			case '2': components = Components::Two; break;
 			case '3': components = Components::Three; break;
 			case 'C': converge_f = true; break;
+			case 'f': use_finite = true; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
 			case 'm':
@@ -242,8 +242,8 @@ int main(int argc, char **argv)
 			case 'e': expand   = atof(optarg); break;
 			case 'b':
 				switch (*optarg) {
-					case '0' : B0fit = mcType::OffResMode::Map; break;
-					case '1' : B0fit = mcType::OffResMode::Single; break;
+					case '0' : B0fit = mcDESPOT::OffResMode::Map; break;
+					case '1' : B0fit = mcDESPOT::OffResMode::Single; break;
 					default:
 						cout << "Invalid B0 Mode." << endl;
 						exit(EXIT_FAILURE);
@@ -251,9 +251,9 @@ int main(int argc, char **argv)
 				} break;
 			case 't':
 				switch (*optarg) {
-					case '3': tesla = mcType::FieldStrength::Three; break;
-					case '7': tesla = mcType::FieldStrength::Seven; break;
-					case 'u': tesla = mcType::FieldStrength::Unknown; break;
+					case '3': tesla = mcDESPOT::FieldStrength::Three; break;
+					case '7': tesla = mcDESPOT::FieldStrength::Seven; break;
+					case 'u': tesla = mcDESPOT::FieldStrength::Unknown; break;
 					default:
 						cout << "Unknown boundaries type " << optarg << endl;
 						exit(EXIT_FAILURE);
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	vector<shared_ptr<SignalFunctor>> sigs;
 	vector<Nifti > signalFiles, B1Files, B0Files;
-	templateFile = parseInput(sigs, signalFiles, B1Files, B0Files, B0fit);
+	templateFile = parseInput(sigs, signalFiles, B1Files, B0Files, B0fit, use_finite);
 	if ((maskData.size() > 0) && !(maskFile.matchesSpace(templateFile))) {
 		cerr << "Mask file has different dimensions/transform to input data." << endl;
 		exit(EXIT_FAILURE);
@@ -302,12 +302,9 @@ int main(int argc, char **argv)
 	}
 	
 	// Build a Functor here so we can query number of parameters etc.
-	cout << "Using " << mcType::to_string(components) << " component model." << endl;
-	mcType mcd(components, sigs, tesla, B0fit, scale);
-	outPrefix = outPrefix + mcType::to_string(components) + "C_";
-	#ifdef USE_MCFINITE
-	outPrefix = outPrefix + "F_";
-	#endif
+	cout << "Using " << mcDESPOT::to_string(components) << " component model." << endl;
+	mcDESPOT mcd(components, sigs, tesla, B0fit, scale, use_finite);
+	outPrefix = outPrefix + mcDESPOT::to_string(components) + "C_";
 	ArrayXd weights(mcd.values()); weights.setConstant(1.0);
 	ArrayXd threshes(mcd.inputs()); threshes.setConstant(0.05);
 	if (converge_f)
@@ -341,10 +338,10 @@ int main(int argc, char **argv)
 		residualData.at(i).resize(voxelsPerVolume);
 	Nifti residualFile(templateFile);
 	residualFile.setDim(4, static_cast<int>(mcd.values()));
-	residualFile.open(outPrefix + mcType::to_string(components) + "_residuals.nii.gz", Nifti::Mode::Write);
+	residualFile.open(outPrefix + mcDESPOT::to_string(components) + "_residuals.nii.gz", Nifti::Mode::Write);
 	
 	ArrayXXd bounds = mcd.defaultBounds();
-	if (tesla == mcType::FieldStrength::Unknown) {
+	if (tesla == mcDESPOT::FieldStrength::Unknown) {
 		if (prompt) cout << "Enter parameter pairs (low then high)" << endl;
 		for (size_t i = 0; i < mcd.nP(); i++) {
 			if (prompt) cout << mcd.names()[i] << ": " << flush;
@@ -384,7 +381,7 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const size_t&)> processVox = [&] (const size_t &vox)
 		{
-			mcType localf(mcd); // Take a thread local copy so we can change info/signals
+			mcDESPOT localf(mcd); // Take a thread local copy so we can change info/signals
 			ArrayXd params(localf.inputs()), residuals(localf.values()),
 					width(localf.inputs()), midp(localf.inputs());
 			size_t c = 0;
@@ -396,17 +393,17 @@ int main(int argc, char **argv)
 					for (size_t j = 0; j < localf.signal(i)->size(); j++) {
 						localf.actual(i)(j) = signalVolumes[i][voxelsPerSlice*j + vox];
 					}
-					if (scale == mcType::Scaling::NormToMean)
+					if (scale == mcDESPOT::Scaling::NormToMean)
 						localf.actual(i) /= localf.actual(i).mean();
 					
-					if (B0fit == mcType::OffResMode::Map) {
+					if (B0fit == mcDESPOT::OffResMode::Map) {
 						localf.m_f0 = B0Files[i].isOpen() ? B0Volumes[i][vox] : 0.;
 					}
 					localf.m_B1 = B1Files[i].isOpen() ? B1Volumes[i][vox] : 1.;
 				}
 				// Add the voxel number to the time to get a decent random seed
 				size_t rSeed = time(NULL) + vox;
-				RegionContraction<mcType> rc(localf, bounds, weights, threshes,
+				RegionContraction<mcDESPOT> rc(localf, bounds, weights, threshes,
 											 samples, retain, contract, expand, (voxI != -1));
 				rc.optimise(params, rSeed);
 				residuals = rc.residuals();

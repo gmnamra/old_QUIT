@@ -253,14 +253,19 @@ class mcDESPOT : public DESPOTFunctor {
 		};
 	protected:
 		const Components m_components;
+		const bool m_finite;
 	
 	public:
 		const size_t nP() const override {
+			size_t n = 0;
 			switch (m_components) {
-				case Components::One: return 2;
-				case Components::Two: return 6;
-				case Components::Three: return 9;
+				case Components::One: n = 2; break;
+				case Components::Two: n = 6; break;
+				case Components::Three: n = 9; break;
 			}
+			if (m_finite)
+				n += 1;
+			return n;
 		}
 		
 		const ArrayXXd defaultBounds() override {
@@ -285,6 +290,9 @@ class mcDESPOT : public DESPOTFunctor {
 						case Components::Three: b.block(0, 0, 9, 2).setZero(); break;
 					} break;
 			}
+			if (m_finite) {
+				b.block(nP() - 1, 0, 1, 2) << 0., 100.;
+			}
 			b.block(nP(), 0, nOffRes(), 2) = offResBounds();
 			b.block(nP() + nOffRes(), 0, nPD(), 2) = PDBounds();
 			return b;
@@ -297,6 +305,8 @@ class mcDESPOT : public DESPOTFunctor {
 				case Components::Two: m.head(nP()) << 0.5, 0.5, 0.5, 0.5, 0.5, 0.05; break;
 				case Components::Three: m.head(nP()) << 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.05, 0.05; break;
 			}
+			if (m_finite)
+				m.segment(nP() - 1, 1).setConstant(0.2);
 			m.segment(nP(), nOffRes()).setConstant(0.1);
 			m.tail(nPD()).setConstant(0.1);
 			return m;
@@ -304,9 +314,9 @@ class mcDESPOT : public DESPOTFunctor {
 		
 		mcDESPOT(const Components &c, vector<shared_ptr<SignalFunctor>> &data,
 				 const FieldStrength &tesla, const OffResMode &offRes, const Scaling &s = Scaling::NormToMean,
-				 const bool &debug = false) :
+				 const bool &isFinite = false, const bool &debug = false) :
 			DESPOTFunctor(data, tesla, offRes, s, debug),
-			m_components(c)
+			m_components(c), m_finite(isFinite)
 		{
 			m_names.reserve(inputs());
 			switch (c) {
@@ -314,6 +324,8 @@ class mcDESPOT : public DESPOTFunctor {
 				case Components::Two: m_names = {"T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a"}; break;
 				case Components::Three: m_names = {"T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c"}; break;
 			}
+			if (m_finite)
+				m_names.emplace_back("deltaf0_");
 			for (size_t i = 0; i < nOffRes(); i++)
 				m_names.emplace_back("f0_" + std::to_string(i));
 			for (size_t i = 0; i < nPD(); i++)
@@ -373,60 +385,6 @@ class mcDESPOT : public DESPOTFunctor {
 			}
 			
 			return t;
-		}
-};
-
-class mcFinite : public mcDESPOT {
-	public:
-		const size_t nP() const override {
-			return mcDESPOT::nP() + 1;
-		}
-				
-		const ArrayXXd defaultBounds() override {
-			ArrayXXd b(inputs(), 2);
-			switch (m_fieldStrength) {
-				case FieldStrength::Three:
-					switch (m_components) {
-						case Components::One:   b.block(0, 0, 3, 2) << 0.1, 4.0, 0.01, 1.5, 0., 100.; break;
-						case Components::Two:   b.block(0, 0, 7, 2) << 0.1, 0.25, 0.002, 0.03, 0.7, 4.0, 0.075, 0.145, 0.05, 0.3, 0.0, 0.95, 0., 100.; break;
-						case Components::Three: b.block(0, 0, 10, 2) << 0.1, 0.25, 0.002, 0.03, 0.7, 2.0, 0.075, 0.145, 3.5, 4.0, 0.8, 1.5, 0.05, 0.3, 0.001, 0.3, 0.001, 0.95, 0., 100.; break;
-					} break;
-				case FieldStrength::Seven:
-					switch (m_components) {
-						case Components::One:   b.block(0, 0, 3, 2) << 0.1, 4.0, 0.01, 2.0, 0., 100.; break;
-						case Components::Two:   b.block(0, 0, 7, 2) << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 0.01, 0.25, 0.001, 1.0, 0., 100.; break;
-						case Components::Three: b.block(0, 0, 10, 2) << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 3., 4.5, 0.5, 2.0, 0.01, 0.25, 0.001, 0.4, 0.001, 1.0, 0., 100.; break;
-					} break;
-				case FieldStrength::Unknown:
-					switch (m_components) {
-						case Components::One:   b.block(0, 0, 3, 2).setZero(); break;
-						case Components::Two:   b.block(0, 0, 7, 2).setZero(); break;
-						case Components::Three: b.block(0, 0, 10, 2).setZero(); break;
-					} break;
-			}
-			b.block(nP(), 0, nOffRes(), 2) = offResBounds();
-			b.block(nP() + nOffRes(), 0, nPD(), 2) = PDBounds();
-			return b;
-		}
-		
-		const ArrayXd defaultThresholds() {
-			ArrayXd m(inputs());
-			switch (m_components) {
-				case Components::One: m.head(nP()) << 0.05, 0.05, 1.0; break;
-				case Components::Two: m.head(nP()) << 0.5, 0.5, 0.5, 0.5, 0.5, 0.05, 1.0; break;
-				case Components::Three: m.head(nP()) << 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.5, 0.05, 0.05, 1.0; break;
-			}
-			m.segment(nP(), nOffRes()).setConstant(0.1);
-			m.tail(nPD()).setConstant(0.1);
-			return m;
-		}
-		
-		mcFinite(const Components &c, vector<shared_ptr<SignalFunctor>> &data,
-				 const FieldStrength &tesla, const OffResMode &offRes, const Scaling &s = Scaling::NormToMean,
-				 const bool &debug = false) :
-			mcDESPOT(c, data, tesla, offRes, s, debug)
-		{
-			m_names.insert(m_names.begin() + nP() - 1, "delta_f");
 		}
 };
 //******************************************************************************
