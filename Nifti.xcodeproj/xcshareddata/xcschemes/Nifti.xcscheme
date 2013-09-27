@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F6BADCDC178B75CA00DCD475"
-               BuildableName = "nifti_hdr"
-               BlueprintName = "nifti_hdr"
-               ReferencedContainer = "container:NiftiImage.xcodeproj">
+               BlueprintIdentifier = "F6F2E6EE1792164800A4AC8F"
+               BuildableName = "libNifti.a"
+               BlueprintName = "Nifti"
+               ReferencedContainer = "container:Nifti.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -29,45 +29,16 @@
       buildConfiguration = "Debug">
       <Testables>
       </Testables>
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F6BADCDC178B75CA00DCD475"
-            BuildableName = "nifti_hdr"
-            BlueprintName = "nifti_hdr"
-            ReferencedContainer = "container:NiftiImage.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
    </TestAction>
    <LaunchAction
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "/Users/Tobias/Desktop/LDOPA_20130827_02"
+      useCustomWorkingDirectory = "NO"
       buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       allowLocationSimulation = "YES">
-      <BuildableProductRunnable>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F6BADCDC178B75CA00DCD475"
-            BuildableName = "nifti_hdr"
-            BlueprintName = "nifti_hdr"
-            ReferencedContainer = "container:NiftiImage.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "mac_B1.nii.gz"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-f"
-            isEnabled = "YES">
-         </CommandLineArgument>
-      </CommandLineArguments>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>
@@ -77,15 +48,6 @@
       useCustomWorkingDirectory = "NO"
       buildConfiguration = "Release"
       debugDocumentVersioning = "YES">
-      <BuildableProductRunnable>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F6BADCDC178B75CA00DCD475"
-            BuildableName = "nifti_hdr"
-            BlueprintName = "nifti_hdr"
-            ReferencedContainer = "container:NiftiImage.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">
