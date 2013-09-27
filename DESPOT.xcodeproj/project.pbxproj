@@ -10,21 +10,21 @@
 		F627EDEC17D77961001B3FCA /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F627EDF217D77966001B3FCA /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F627EDF517D77BE5001B3FCA /* mcdespot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */; };
+		F628BD6C17F5815300DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
+		F628BD6F17F5815D00DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
+		F628BD7217F5816500DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
+		F628BD7517F5816D00DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
+		F628BD7817F5817600DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
+		F628BD7D17F5818B00DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
+		F628BD8017F5819400DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
 		F660A67017BD12D1008682C3 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F660A67117BD12D1008682C3 /* despot2fm_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F5342317B91A4B0059F82C /* despot2fm_main.cpp */; };
 		F660A67217BD12D1008682C3 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
 		F660A67317BD12DA008682C3 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 		F660A67417BD12DA008682C3 /* despot1hifi_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F61642A715CC1BBB0031F999 /* despot1hifi_main.cpp */; };
 		F660A67517BD12DA008682C3 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
-		F660A67617BD12DF008682C3 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
-		F660A67917BD12E8008682C3 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
 		F66A8FD317A6CB5900E93F5C /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
 		F675C8D615CC120100BA95FC /* afi_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F675C8D515CC120100BA95FC /* afi_main.cpp */; };
-		F67F758C179218CB00A278B6 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
-		F67F758D179218D400A278B6 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
-		F67F758E179218DB00A278B6 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
-		F67F758F179218DF00A278B6 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
-		F67F7590179218E300A278B6 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F67F758B179218BB00A278B6 /* libNifti.a */; };
 		F681257915E23F3A007A3362 /* test_despot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */; };
 		F686F26017AC0A5E00028A55 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
 		F686F26517AC0A6300028A55 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
@@ -60,74 +60,67 @@
 			remoteGlobalIDString = F6CF0AD717CFEFBC000B56BA;
 			remoteInfo = fdf2nii;
 		};
-		F660A67C17BD130B008682C3 /* PBXContainerItemProxy */ = {
+		F628BD6017F580F900DE62AD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F660A68017BD130F008682C3 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F666E51117AFFBE000A6BBE2 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F666E51317AFFBE400A6BBE2 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F666E51517AFFBE800A6BBE2 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F666E51717AFFBEE00A6BBE2 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F666E51917AFFBF100A6BBE2 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F666E51B17AFFBF700A6BBE2 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F67F7588179218BB00A278B6 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = F6BADCDD178B75CA00DCD475;
 			remoteInfo = nifti_hdr;
 		};
-		F67F758A179218BB00A278B6 /* PBXContainerItemProxy */ = {
+		F628BD6217F580F900DE62AD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = F6F2E6EF1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F628BD6A17F5814F00DE62AD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F628BD6D17F5815A00DE62AD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F628BD7017F5816100DE62AD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F628BD7317F5816A00DE62AD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F628BD7617F5817200DE62AD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F628BD7B17F5818800DE62AD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F628BD7E17F5819000DE62AD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
 			remoteInfo = Nifti;
 		};
 		F6E41D9417C64F1B0043A338 /* PBXContainerItemProxy */ = {
@@ -289,7 +282,7 @@
 		F6980B2A17E1D1D000F7DBD3 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		F6A51D9F1732C0D500436441 /* crop_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = crop_main.cpp; path = src/crop_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DESPOT_Functors.cpp; path = src/DESPOT_Functors.cpp; sourceTree = SOURCE_ROOT; };
-		F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = NiftiImage.xcodeproj; path = ../Nifti/NiftiImage.xcodeproj; sourceTree = "<group>"; };
+		F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Nifti.xcodeproj; path = ../Nifti/Nifti.xcodeproj; sourceTree = "<group>"; };
 		F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = phasemap_main.cpp; path = src/phasemap_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E1F90A1591FFD200DA918F /* phasemap */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = phasemap; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Agilent.xcodeproj; path = ../Agilent/Agilent.xcodeproj; sourceTree = "<group>"; };
@@ -313,8 +306,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F628BD7D17F5818B00DE62AD /* libNifti.a in Frameworks */,
 				F6E41DAE17C64FE30043A338 /* libAgilent.a in Frameworks */,
-				F660A67617BD12DF008682C3 /* libNifti.a in Frameworks */,
 				F6980B3117E1D20600F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -323,8 +316,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F628BD8017F5819400DE62AD /* libNifti.a in Frameworks */,
 				F6E41DB117C64FEA0043A338 /* libAgilent.a in Frameworks */,
-				F660A67917BD12E8008682C3 /* libNifti.a in Frameworks */,
 				F6980B3217E1D20D00F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -333,8 +326,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F628BD7817F5817600DE62AD /* libNifti.a in Frameworks */,
 				F6E41DAB17C64FDB0043A338 /* libAgilent.a in Frameworks */,
-				F67F758C179218CB00A278B6 /* libNifti.a in Frameworks */,
 				F6980B3017E1D1FB00F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -343,8 +336,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F628BD7517F5816D00DE62AD /* libNifti.a in Frameworks */,
 				F6E41DA817C64FD40043A338 /* libAgilent.a in Frameworks */,
-				F67F758D179218D400A278B6 /* libNifti.a in Frameworks */,
 				F6980B2F17E1D1F400F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -353,8 +346,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F628BD6C17F5815300DE62AD /* libNifti.a in Frameworks */,
 				F6E41D9C17C64FB80043A338 /* libAgilent.a in Frameworks */,
-				F67F7590179218E300A278B6 /* libNifti.a in Frameworks */,
 				F6980B2C17E1D1DB00F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -363,8 +356,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F628BD6F17F5815D00DE62AD /* libNifti.a in Frameworks */,
 				F6E41D9F17C64FBF0043A338 /* libAgilent.a in Frameworks */,
-				F67F758F179218DF00A278B6 /* libNifti.a in Frameworks */,
 				F6980B2D17E1D1E200F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -373,8 +366,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F628BD7217F5816500DE62AD /* libNifti.a in Frameworks */,
 				F6E41DA217C64FC70043A338 /* libAgilent.a in Frameworks */,
-				F67F758E179218DB00A278B6 /* libNifti.a in Frameworks */,
 				F6980B2E17E1D1EB00F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -389,11 +382,11 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		F67F7584179218BB00A278B6 /* Products */ = {
+		F628BD4817F580F900DE62AD /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F67F7589179218BB00A278B6 /* nifti_hdr */,
-				F67F758B179218BB00A278B6 /* libNifti.a */,
+				F628BD6117F580F900DE62AD /* nifti_hdr */,
+				F628BD6317F580F900DE62AD /* libNifti.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -414,7 +407,7 @@
 			children = (
 				F6980B2A17E1D1D000F7DBD3 /* libz.dylib */,
 				F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */,
-				F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */,
+				F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */,
 				F6E4A2441590D9B000DA4001 /* DESPOT */,
 				F6E4A2421590D9B000DA4001 /* Products */,
 			);
@@ -473,8 +466,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F628BD7C17F5818800DE62AD /* PBXTargetDependency */,
 				F6E41DAD17C64FE00043A338 /* PBXTargetDependency */,
-				F660A68117BD130F008682C3 /* PBXTargetDependency */,
 			);
 			name = despot1hifi;
 			productName = despot1hifi;
@@ -492,8 +485,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F628BD7F17F5819000DE62AD /* PBXTargetDependency */,
 				F6E41DB017C64FE70043A338 /* PBXTargetDependency */,
-				F660A67D17BD130B008682C3 /* PBXTargetDependency */,
 			);
 			name = despot2fm;
 			productName = despot2fm;
@@ -511,8 +504,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F628BD7717F5817200DE62AD /* PBXTargetDependency */,
 				F6E41DAA17C64FD80043A338 /* PBXTargetDependency */,
-				F666E51A17AFFBF100A6BBE2 /* PBXTargetDependency */,
 			);
 			name = afi;
 			productName = afi;
@@ -530,8 +523,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F628BD7417F5816A00DE62AD /* PBXTargetDependency */,
 				F6E41DA717C64FD10043A338 /* PBXTargetDependency */,
-				F666E51817AFFBEE00A6BBE2 /* PBXTargetDependency */,
 			);
 			name = phasemap;
 			productName = phasemap;
@@ -549,8 +542,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F628BD6B17F5814F00DE62AD /* PBXTargetDependency */,
 				F6E41D9B17C64FB10043A338 /* PBXTargetDependency */,
-				F666E51617AFFBE800A6BBE2 /* PBXTargetDependency */,
 			);
 			name = despot1;
 			productName = despot1;
@@ -568,8 +561,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F628BD6E17F5815A00DE62AD /* PBXTargetDependency */,
 				F6E41D9E17C64FBC0043A338 /* PBXTargetDependency */,
-				F666E51417AFFBE400A6BBE2 /* PBXTargetDependency */,
 			);
 			name = despot2;
 			productName = despot2;
@@ -587,8 +580,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F628BD7117F5816100DE62AD /* PBXTargetDependency */,
 				F6E41DA117C64FC30043A338 /* PBXTargetDependency */,
-				F666E51217AFFBE000A6BBE2 /* PBXTargetDependency */,
 			);
 			name = mcdespot;
 			productName = mcdespot;
@@ -606,7 +599,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				F666E51C17AFFBF700A6BBE2 /* PBXTargetDependency */,
 			);
 			name = test_despot;
 			productName = test_despot;
@@ -637,8 +629,8 @@
 					ProjectRef = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
 				},
 				{
-					ProductGroup = F67F7584179218BB00A278B6 /* Products */;
-					ProjectRef = F6B19DFC160B683B009F84C5 /* NiftiImage.xcodeproj */;
+					ProductGroup = F628BD4817F580F900DE62AD /* Products */;
+					ProjectRef = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -663,18 +655,18 @@
 			remoteRef = F627EDEF17D77961001B3FCA /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		F67F7589179218BB00A278B6 /* nifti_hdr */ = {
+		F628BD6117F580F900DE62AD /* nifti_hdr */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = nifti_hdr;
-			remoteRef = F67F7588179218BB00A278B6 /* PBXContainerItemProxy */;
+			remoteRef = F628BD6017F580F900DE62AD /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		F67F758B179218BB00A278B6 /* libNifti.a */ = {
+		F628BD6317F580F900DE62AD /* libNifti.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = libNifti.a;
-			remoteRef = F67F758A179218BB00A278B6 /* PBXContainerItemProxy */;
+			remoteRef = F628BD6217F580F900DE62AD /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		F6E41D9517C64F1B0043A338 /* libAgilent.a */ = {
@@ -782,45 +774,40 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		F660A67D17BD130B008682C3 /* PBXTargetDependency */ = {
+		F628BD6B17F5814F00DE62AD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Nifti;
-			targetProxy = F660A67C17BD130B008682C3 /* PBXContainerItemProxy */;
+			targetProxy = F628BD6A17F5814F00DE62AD /* PBXContainerItemProxy */;
 		};
-		F660A68117BD130F008682C3 /* PBXTargetDependency */ = {
+		F628BD6E17F5815A00DE62AD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Nifti;
-			targetProxy = F660A68017BD130F008682C3 /* PBXContainerItemProxy */;
+			targetProxy = F628BD6D17F5815A00DE62AD /* PBXContainerItemProxy */;
 		};
-		F666E51217AFFBE000A6BBE2 /* PBXTargetDependency */ = {
+		F628BD7117F5816100DE62AD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Nifti;
-			targetProxy = F666E51117AFFBE000A6BBE2 /* PBXContainerItemProxy */;
+			targetProxy = F628BD7017F5816100DE62AD /* PBXContainerItemProxy */;
 		};
-		F666E51417AFFBE400A6BBE2 /* PBXTargetDependency */ = {
+		F628BD7417F5816A00DE62AD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Nifti;
-			targetProxy = F666E51317AFFBE400A6BBE2 /* PBXContainerItemProxy */;
+			targetProxy = F628BD7317F5816A00DE62AD /* PBXContainerItemProxy */;
 		};
-		F666E51617AFFBE800A6BBE2 /* PBXTargetDependency */ = {
+		F628BD7717F5817200DE62AD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Nifti;
-			targetProxy = F666E51517AFFBE800A6BBE2 /* PBXContainerItemProxy */;
+			targetProxy = F628BD7617F5817200DE62AD /* PBXContainerItemProxy */;
 		};
-		F666E51817AFFBEE00A6BBE2 /* PBXTargetDependency */ = {
+		F628BD7C17F5818800DE62AD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Nifti;
-			targetProxy = F666E51717AFFBEE00A6BBE2 /* PBXContainerItemProxy */;
+			targetProxy = F628BD7B17F5818800DE62AD /* PBXContainerItemProxy */;
 		};
-		F666E51A17AFFBF100A6BBE2 /* PBXTargetDependency */ = {
+		F628BD7F17F5819000DE62AD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Nifti;
-			targetProxy = F666E51917AFFBF100A6BBE2 /* PBXContainerItemProxy */;
-		};
-		F666E51C17AFFBF700A6BBE2 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Nifti;
-			targetProxy = F666E51B17AFFBF700A6BBE2 /* PBXContainerItemProxy */;
+			targetProxy = F628BD7E17F5819000DE62AD /* PBXContainerItemProxy */;
 		};
 		F6E41D9B17C64FB10043A338 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
