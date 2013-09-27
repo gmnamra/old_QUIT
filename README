@@ -1,0 +1,87 @@
+********************************************************************************
+ Credit / Blame / Contact
+ Tobias Wood - tobias.wood@kcl.ac.uk
+
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ 
+ If you find it useful the author would love to hear from you.
+
+********************************************************************************
+
+***********************************************
+Readme / Compilation Instructions for DESPOT
+***********************************************
+
+Brief Description:
+A collection of programs for processing DESPOT and mcDESPOT data.
+
+Dependencies:
+1. Eigen, version 3.2 or greater (http://eigen.tuxfamily.org)
+2. libNifti
+3. zlib (As for libNifti)
+4. Optional - libAgilent if you have procpar files
+
+Products:
+despot1, despot2, despot1hifi, despot2fm, mcdespot, phasemap, afi
+
+***********************************************
+Instructions for Mac OS
+***********************************************
+
+1. An XCode 4 Project is provided. Open it in XCode. Unfortunately you will have
+   to alter some settings.
+2. You will need to alter the "Header Search Paths" build setting to point to
+   Eigen and libNifti.
+   Make sure to only enter the path to the "eigen" parent directory, not
+   the "eigen/Eigen" subdirectory. Similarly, enter the path to "Nifti/src", not
+   the "Nifti/src/Nifti" subdirectory.
+   Make sure to do this for the DESPOT project, so the products inherit the
+   settings correctly.
+3. The PAINFUL bit: You will need to reset the link to the Nifti XCode Project.
+   In the Project Navigator the Nifti.xcodeproj will currently be highlighted in
+   red because XCode does not know where to find it. Either delete it and then
+   re-add the Nifti.xcodeproj file, or click on it and use the Utilities
+   (View->Utilities->Show Utilities) to locate the xcodeproj file.
+   
+   Once you have done this, you will need to go through each product in turn
+   and add libNifti.a in the "Link Libraries" build phase. If anyone knows a
+   better way to do this in XCode I am all ears.
+3. You can now build the products. Be warned that a default build (Cmd+B) will
+   build the debug versions which are SLOW. You will need to do an Archive
+   build to turn on optimisations (blame Apple, not me).
+
+***********************************************
+Instructions for Linux
+***********************************************
+
+WARNING - You will require a recent compiler for DESPOT as it uses C++11
+features. GCC 4.8.0 is a MINIMUM as earlier versions do not support C++11
+threads. Clang 3.1 will also work, but is much harder to set up on Linux so is
+not recommended. You can find out the version of your system gcc by running
+"gcc -v".
+
+1. A Makefile is provided in DESPOT/build. You will need to alter at least 3
+   of the Makefile variables to build libNifti.
+2. CPPPATH will need to point to your recent gcc installation. If your system
+   gcc is recent enough set this to "/usr".
+3. You will need to alter the EIGEN setting in the Makefile. EIGEN should point
+   to where you have installed/downloaded Eigen. Make sure you only enter the
+   path to the "eigen" parent directory, not the "eigen/Eigen" subdirectory.
+4. You will need to alter INSTALL_DIR to point to where libNifti was installed.
+5. At this point, you can run "make all" to build the products inside
+   DESPOT/build.
+
+The suggested way to set up the install directories is to use e.g. "~/Code/" and
+install libNifti and DESPOT to this. make will create /bin, /lib and /include
+directories within this and then know where to look. Of course you could install
+into /usr/local if you are very brave (NOT recommended at this point).
+
+***********************************************
+Using DESPOT
+***********************************************
+
+Each product has some basic usage instructions that will be printed with either
+the -h or --help options, e.g. "mcdespot -h". The programs will prompt for
+information when they need it.
