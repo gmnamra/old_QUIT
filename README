@@ -1,0 +1,59 @@
+***********************************************
+Readme / Compilation Instructions for libNifti
+***********************************************
+
+Brief Description:
+A fully C++ Nifti IO class (no dependency on FSL or niftiio). Full support for
+gzipped files and Nifti extensions. Uses templated read/write functions.
+
+Dependencies:
+1. zlib (Already available on Mac OS and Linux)
+2. Eigen, version 3.2 or greater (http://eigen.tuxfamily.org)
+
+Products:
+1. libNifti.a
+2. Nifti.h & Nifti-inl.h, these contain the templated read/write functions.
+3. nifti_hdr - A utility for investigating nifti files. Still under development.
+
+***********************************************
+Instructions for Mac OS
+***********************************************
+
+1. An XCode 4 Project is provided. Open it in XCode.
+2. You will need to alter the "Header Search Paths" build setting to point to
+   Eigen. Make sure to only enter the path to the "eigen" parent directory, not
+   the "eigen/Eigen" subdirectory.
+3. You can now build the products.
+
+***********************************************
+Instructions for Linux
+***********************************************
+
+WARNING - You will require a recent compiler for libNifti as it uses C++11
+features. GCC 4.8.0 is recommended, but GCC 4.6.0 should work (I think). Clang
+3.1 will also work, but is much harder to set up so is not recommended. You can
+find out the version of your system gcc by running "gcc -v".
+
+1. A Makefile is provided in Nifti/build. You will need to alter at least 2
+   of the Makefile variables to build libNifti.
+2. CPPPATH will need to point to your recent gcc installation. If your system
+   gcc is recent enough set this to "/usr".
+2. You will need to alter the EIGEN setting in the Makefile. EIGEN should point
+   to where you have installed/downloaded Eigen. Make sure you only enter the
+   path to the "eigen" parent directory, not the "eigen/Eigen" subdirectory.
+3. At this point, you can run "make all" to build the products inside
+   Nifti/build.
+4. If you wish to install libNifti to somewhere else, edit the INSTALL_DIR
+   variable in Makefile. You could set it to "/usr" if you are brave enough and
+   have permissions. Then run "make install" to copy the products to
+   INSTALL_DIR. The headers will be copied to INSTALL_DIR/include/Nifti/
+
+***********************************************
+Using libNifti
+***********************************************
+
+Some proper documentation has been started with Doxygen, but not finished. The
+basic interface is defined by including "Nifti/Nifti.h". If you use Nifti
+Extensions then you will also need to include "Nifti/ExtensionCodes.h". You do
+not ever need to include "Nifti/Nifti-inl.h", it is included from Nifti.h and
+contains definitions for templated functions.

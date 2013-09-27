@@ -13,7 +13,8 @@ INSTALL_DIR := ~/Code
 INSTALL_BIN = $(INSTALL_DIR)/bin
 INSTALL_INC = $(INSTALL_DIR)/include
 INSTALL_LIB = $(INSTALL_DIR)/lib
-LIBCPP = /software/system/gcc/gcc-4.8.0/lib64
+CPPPATH = /software/system/gcc/gcc-4.8.0
+LIBCPP = $(CPPPATH)/lib64
 EIGEN  = /software/local/k1078535/include/eigen3
 
 # Create directories
@@ -21,7 +22,7 @@ $(OBJ_DIR) $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB):
 	mkdir -p $@
 
 # Set up all our compiler options
-CXX = LD_RUN_PATH=$(LIBCPP) /software/system/gcc/gcc-4.8.0/bin/g++
+CXX = LD_RUN_PATH=$(LIBCPP) $(CPPPATH)/bin/g++
 CXX_FLAGS = -g -std=c++11 -lstdc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors $(DEBUG)
 AR = LD_RUN_PATH=$(LIBCPP) ar rcs
 LD_FLAGS = -g -std=c++11 -lstdc++ -O3 -pthread -L.

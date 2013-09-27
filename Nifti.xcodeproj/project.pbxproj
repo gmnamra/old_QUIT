@@ -42,6 +42,7 @@
 		F60A234417EA57BF00CACC28 /* Internal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Internal.cpp; path = src/Nifti/Internal.cpp; sourceTree = "<group>"; };
 		F60A234517EA57BF00CACC28 /* Internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Internal.h; path = src/Nifti/Internal.h; sourceTree = "<group>"; };
 		F60A234717EA59EA00CACC28 /* Internal-inl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Internal-inl.h"; path = "src/Nifti/Internal-inl.h"; sourceTree = "<group>"; };
+		F628BD8417F5821100DE62AD /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
 		F64D55DB178B0C3B005BF1A8 /* nifti_hdr.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = nifti_hdr.cpp; path = src/Nifti/nifti_hdr.cpp; sourceTree = "<group>"; };
 		F6980B2717E1D10200F7DBD3 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/lib/libz.dylib; sourceTree = DEVELOPER_DIR; };
 		F6A7217317EB130700106190 /* Doxyfile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Doxyfile; sourceTree = "<group>"; };
@@ -77,6 +78,7 @@
 		F6E9DA9716022CD1005D73E3 = {
 			isa = PBXGroup;
 			children = (
+				F628BD8417F5821100DE62AD /* README */,
 				F6A7217317EB130700106190 /* Doxyfile */,
 				F60A234017EA019600CACC28 /* Makefile */,
 				F6980B2717E1D10200F7DBD3 /* libz.dylib */,
