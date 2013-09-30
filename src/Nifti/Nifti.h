@@ -10,6 +10,7 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include <iterator>
 #include <complex>
 #include <vector>
 #include <list>
@@ -107,12 +108,10 @@ class Nifti {
 		void calcStrides();
 		void seekToVoxel(const ArrayXs &target);
 		
-		template<typename T> void convertFromBytes(const std::vector<char> &bytes, std::vector<T> &data, const size_t offset = 0);
-		template<typename T> void convertFromBytes(const std::vector<char> &bytes, std::vector<std::complex<T>> &data, const size_t offset = 0);
-		template<typename T> std::vector<char> convertToBytes(const std::vector<T> &data);
-		template<typename T> std::vector<char> convertToBytes(const std::vector<std::complex<T>> &data);
-		template<typename T> void convertToBytes(std::vector<char> &bytes, const size_t nEl, std::vector<T> &data, const size_t offset = 0);
-		template<typename T> void convertToBytes(std::vector<char> &bytes, const size_t nEl, std::vector<std::complex<T>> &data, const size_t offset = 0);
+		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const typename std::vector<T>::iterator begin, const typename std::vector<T>::iterator end);
+		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const typename std::vector<std::complex<T>>::iterator begin, const typename std::vector<std::complex<T>>::iterator end);
+		template<typename T> void convertToBytes(const typename std::vector<T>::iterator begin, const typename std::vector<T>::iterator end, std::vector<char> &bytes);
+		template<typename T> void convertToBytes(const typename std::vector<std::complex<T>>::iterator begin, const typename std::vector<std::complex<T>>::iterator end, std::vector<char> &bytes);
 				
 	#pragma mark Public Class Methods
 	public:
@@ -131,8 +130,8 @@ class Nifti {
 		Nifti(const std::string &filename, const Mode &mode);
 		
 		void open(const std::string &filename, const Mode &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
-		void close();                                         //!< Closes the file
-		bool isOpen();                                        //!< Returns true if file is currently open for reading or writing.
+		void close();                                             //!< Closes the file
+		bool isOpen();                                            //!< Returns true if file is currently open for reading or writing.
 		
 		const std::string basePath() const;
 		const std::string imagePath() const;
@@ -143,16 +142,16 @@ class Nifti {
 		size_t dimensions() const;                              //!< Get the number of dimensions (rank) of this image.
 		size_t dim(const size_t d) const;                       //!< Get the size (voxel count) of a dimension. Valid dimensions are 1-7.
 		void setDim(const size_t d, const size_t n);            //!< Set the size (voxel count) of a dimension. Valid dimensions are 1-7.
-		const ArrayXs dims() const;           //!< Get all dimension sizes.
-		void setDims(const ArrayXs &newDims); //!< Set all dimension sizes.
+		const ArrayXs dims() const;                             //!< Get all dimension sizes.
+		void setDims(const ArrayXs &newDims);                   //!< Set all dimension sizes.
 		size_t voxelsPerSlice() const;                          //!< Voxel count for a whole slice (dim1 x dim2).
 		size_t voxelsPerVolume() const;                         //!< Voxel count for a volume (dim1 x dim2 x dim3).
 		size_t voxelsTotal() const;                             //!< Voxel count for whole image (all dimensions).
 		
 		float voxDim(const size_t d) const;                     //!< Get the voxel size along dimension d. Valid dimensions are 1-7.
 		void setVoxDim(const size_t d, const float f);          //!< Set the voxel size along dimension d. Valid dimensions are 1-7.
-		const Eigen::ArrayXf voxDims() const;                          //!< Get all voxel sizes.
-		void setVoxDims(const Eigen::ArrayXf &newVoxDims);             //!< Set all voxel sizes.
+		const Eigen::ArrayXf voxDims() const;                   //!< Get all voxel sizes.
+		void setVoxDims(const Eigen::ArrayXf &newVoxDims);      //!< Set all voxel sizes.
 		
 		const DataType &datatype() const;
 		void setDatatype(const DataType dt);
@@ -203,11 +202,7 @@ class Nifti {
 		
 		template<typename T> void readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data);
 		template<typename T> void readVolumes(const size_t first, const size_t nvol, std::vector<T> &data);
-		template<typename T> void writeVolume(const size_t vol, const std::vector<T> &data);
-		template<typename T> void writeAllVolumes(const std::vector<T> &data);
-		template<typename T> void writeSubvolume(const size_t &sx, const size_t &sy, const size_t &sz, const size_t &st,
-												 const size_t &ex, const size_t &ey, const size_t &ez, const size_t &et,
-												 const std::vector<T> &data);
+		template<typename T> void writeVolumes(const size_t vol, const size_t nvol, const std::vector<T> &data);
 };
 
 #include "Nifti-inl.h"
