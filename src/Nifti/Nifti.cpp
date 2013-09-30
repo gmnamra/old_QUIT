@@ -167,41 +167,6 @@ const string &Nifti::intentName() const {
 }
 
 /*
- * Returns the string representation of a NIfTI transform code.
- *
- *\sa NIFTI1_XFORM_CODES group in nifti1.h
- */
-const string Nifti::XFormName(const Nifti::XForm c) {
-	switch (c) {
-		case XForm::Unknown: return "Unknown"; break;
-		case XForm::ScannerAnatomy: return "Scanner Anatomy"; break;
-		case XForm::AlignedAnatomy: return "Aligned Anatomy"; break;
-		case XForm::Talairach: return "Talairach"; break;
-		case XForm::MNI_152: return "MNI 152"; break;
-	}
-}
-const int Nifti::XFormCode(const Nifti::XForm c) {
-	switch (c) {
-		case XForm::Unknown: return NIFTI_XFORM_UNKNOWN; break;
-		case XForm::ScannerAnatomy: return NIFTI_XFORM_SCANNER_ANAT; break;
-		case XForm::AlignedAnatomy: return NIFTI_XFORM_ALIGNED_ANAT; break;
-		case XForm::Talairach: return NIFTI_XFORM_TALAIRACH; break;
-		case XForm::MNI_152: return NIFTI_XFORM_MNI_152; break;
-	}
-}
-const Nifti::XForm Nifti::XFormForCode(const int c) {
-	switch (c) {
-		case NIFTI_XFORM_UNKNOWN: return XForm::Unknown; break;
-		case NIFTI_XFORM_SCANNER_ANAT: return XForm::ScannerAnatomy; break;
-		case NIFTI_XFORM_ALIGNED_ANAT: return XForm::AlignedAnatomy; break;
-		case NIFTI_XFORM_TALAIRACH: return XForm::Talairach; break;
-		case NIFTI_XFORM_MNI_152: return XForm::MNI_152; break;
-		default:
-			throw(std::invalid_argument("Invalid transform code: " + to_string(c)));
-	}
-}
-
-/*
  * Returns the string representation of a NIfTI slice_code
  *
  *\sa NIFTI1_SLICE_ORDER group in nifti1.h
@@ -588,7 +553,7 @@ void Nifti::writeHeader() {
 	nhdr.sizeof_hdr = sizeof(nhdr);
 	nhdr.regular    = 'r';             /* for some stupid reason */
 	
-	nhdr.dim[0] = dimensions(); //pixdim[0] is set later with qform
+	nhdr.dim[0] = rank(); //pixdim[0] is set later with qform
 	for (size_t i = 0; i < 7; i++) { // Convert back to int/float
 		if (m_dim[i] > numeric_limits<short>::max()) {
 			throw(std::runtime_error("Nifti does not support dimensions greater than " + to_string(numeric_limits<short>::max())));
@@ -725,7 +690,7 @@ void Nifti::writeExtensions() {
   */
 void Nifti::calcStrides() {
 	m_strides = Array<size_t, 7, 1>::Ones();
-	for (size_t i = 1; i < dimensions(); i++) {
+	for (size_t i = 1; i < rank(); i++) {
 		m_strides(i) = m_strides(i - 1) * m_dim(i - 1);
 	}
 }
@@ -739,7 +704,7 @@ void Nifti::calcStrides() {
   * @throws std::runtime_error if the seek fails.
   */
 void Nifti::seekToVoxel(const ArrayXs &target) {
-	if (target.rows() > dimensions()) {
+	if (target.rows() > rank()) {
 		throw(std::out_of_range("Too many dimensions for seeking."));
 	}
 	if ((target > m_dim.head(target.rows())).any()) {
@@ -894,7 +859,7 @@ void Nifti::close()
 	}
 }
 
-size_t Nifti::dimensions() const {
+size_t Nifti::rank() const {
 	for (size_t d = m_voxdim.rows(); d > 0; d--) {
 		if (m_dim[d - 1] > 1) {
 			return d;
@@ -916,7 +881,7 @@ void Nifti::setDim(const size_t d, const size_t n) {
 		throw(std::logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
 }
-const Nifti::ArrayXs Nifti::dims() const { return m_dim.head(dimensions()); }
+const Nifti::ArrayXs Nifti::dims() const { return m_dim.head(rank()); }
 void Nifti::setDims(const ArrayXs &n) {
 	if (m_mode == Mode::Closed) {
 		assert(n.rows() <= m_voxdim.rows());
@@ -960,6 +925,60 @@ void Nifti::setDatatype(const Nifti::DataType dt) {
     m_typeinfo = TypeInfo(dt);
 }
 
+#pragma mark Transforms
+/*
+ * Returns the string representation of a NIfTI transform code.
+ *
+ *\sa NIFTI1_XFORM_CODES group in nifti1.h
+ */
+const string Nifti::XFormName(const Nifti::XForm c) {
+	switch (c) {
+		case XForm::Unknown: return "Unknown"; break;
+		case XForm::ScannerAnatomy: return "Scanner Anatomy"; break;
+		case XForm::AlignedAnatomy: return "Aligned Anatomy"; break;
+		case XForm::Talairach: return "Talairach"; break;
+		case XForm::MNI_152: return "MNI 152"; break;
+	}
+}
+const int Nifti::XFormCode(const Nifti::XForm c) {
+	switch (c) {
+		case XForm::Unknown: return NIFTI_XFORM_UNKNOWN; break;
+		case XForm::ScannerAnatomy: return NIFTI_XFORM_SCANNER_ANAT; break;
+		case XForm::AlignedAnatomy: return NIFTI_XFORM_ALIGNED_ANAT; break;
+		case XForm::Talairach: return NIFTI_XFORM_TALAIRACH; break;
+		case XForm::MNI_152: return NIFTI_XFORM_MNI_152; break;
+	}
+}
+const Nifti::XForm Nifti::XFormForCode(const int c) {
+	switch (c) {
+		case NIFTI_XFORM_UNKNOWN: return XForm::Unknown; break;
+		case NIFTI_XFORM_SCANNER_ANAT: return XForm::ScannerAnatomy; break;
+		case NIFTI_XFORM_ALIGNED_ANAT: return XForm::AlignedAnatomy; break;
+		case NIFTI_XFORM_TALAIRACH: return XForm::Talairach; break;
+		case NIFTI_XFORM_MNI_152: return XForm::MNI_152; break;
+		default:
+			throw(std::invalid_argument("Invalid transform code: " + to_string(c)));
+	}
+}
+
+const Affine3f &Nifti::qform() const { return m_qform; }
+const Affine3f &Nifti::sform() const { return m_sform; }
+const Nifti::XForm Nifti::qcode() const { return m_qcode; }
+const Nifti::XForm Nifti::scode() const { return m_scode; }
+const Affine3f &Nifti::transform() const {
+	if ((m_scode > XForm::Unknown) && (m_scode >= m_qcode))
+		return m_sform;
+	else // There is always a m_qform matrix
+		return m_qform;
+}
+
+void Nifti::setTransform(const Affine3f &t, const XForm tc) {
+	m_qform = t;
+	m_sform = t;
+	m_qcode = tc;
+	m_scode = tc;
+}
+
 bool Nifti::matchesVoxels(const Nifti &other) const {
 	// Only check the first 3 dimensions
 	if ((m_dim.head(3) == other.m_dim.head(3)).all() && (m_voxdim.head(3).isApprox(other.m_voxdim.head(3))))
@@ -973,21 +992,4 @@ bool Nifti::matchesSpace(const Nifti &other) const {
 		return true;
 	else
 		return false;	
-}
-
-const Affine3f &Nifti::qform() const { return m_qform; }
-const Affine3f &Nifti::sform() const { return m_sform; }
-const Nifti::XForm Nifti::qcode() const { return m_qcode; }
-const Nifti::XForm Nifti::scode() const { return m_scode; }
-const Affine3f &Nifti::transform() const {
-	if ((m_scode > XForm::Unknown) && (m_scode >= m_qcode))
-		return m_sform;
-	else // There is always a m_qform matrix
-		return m_qform;
-}
-void Nifti::setTransform(const Affine3f &t, const XForm tc) {
-	m_qform = t;
-	m_sform = t;
-	m_qcode = tc;
-	m_scode = tc;
 }

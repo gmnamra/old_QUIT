@@ -135,30 +135,23 @@ class Nifti {
 		const std::string basePath() const;
 		const std::string imagePath() const;
 		const std::string headerPath() const;
-		char *readRawVolume(const int vol);
-		char *readRawAllVolumes();
 		
-		size_t dimensions() const;                              //!< Get the number of dimensions (rank) of this image.
+		const DataType &datatype() const;
+		void setDatatype(const DataType dt);
+		
+		size_t rank() const;                                    //!< Get the rank (number of dimensions) of the image.
 		size_t dim(const size_t d) const;                       //!< Get the size (voxel count) of a dimension. Valid dimensions are 1-7.
-		void setDim(const size_t d, const size_t n);            //!< Set the size (voxel count) of a dimension. Valid dimensions are 1-7.
 		const ArrayXs dims() const;                             //!< Get all dimension sizes.
+		void setDim(const size_t d, const size_t n);            //!< Set the size (voxel count) of a dimension. Valid dimensions are 1-7.
 		void setDims(const ArrayXs &newDims);                   //!< Set all dimension sizes.
 		size_t voxelsPerSlice() const;                          //!< Voxel count for a whole slice (dim1 x dim2).
 		size_t voxelsPerVolume() const;                         //!< Voxel count for a volume (dim1 x dim2 x dim3).
 		size_t voxelsTotal() const;                             //!< Voxel count for whole image (all dimensions).
 		
 		float voxDim(const size_t d) const;                     //!< Get the voxel size along dimension d. Valid dimensions are 1-7.
-		void setVoxDim(const size_t d, const float f);          //!< Set the voxel size along dimension d. Valid dimensions are 1-7.
 		const Eigen::ArrayXf voxDims() const;                   //!< Get all voxel sizes.
+		void setVoxDim(const size_t d, const float f);          //!< Set the voxel size along dimension d. Valid dimensions are 1-7.
 		void setVoxDims(const Eigen::ArrayXf &newVoxDims);      //!< Set all voxel sizes.
-		
-		const DataType &datatype() const;
-		void setDatatype(const DataType dt);
-		
-		float scaling_slope;
-		float scaling_inter;
-		float calibration_min;
-		float calibration_max;
 		
 		void setTransform(const Eigen::Affine3f &t, const XForm tc = XForm::ScannerAnatomy); //!< Set the qform and sform from a 4x4 general matrix. The qform will be set to closest matching linear XForm, the sform will be an exact copy.
 		const Eigen::Affine3f &transform() const;            //!< Return the XForm with the highest priority.
@@ -166,13 +159,26 @@ class Nifti {
 		const Eigen::Affine3f &sform() const;                //!< Return just the sform.
 		const XForm qcode() const;               //!< Find out what transformation the qform represents.
 		const XForm scode() const;               //!< Find out what transformation the sform represents.
-		
 		bool matchesSpace(const Nifti &other) const;  //!< Check if voxel dimensions, data size and XForm match
 		bool matchesVoxels(const Nifti &other) const; //!< Looser check if voxel dimensions and data size match
 		
-		int freq_dim ;                //!< Index of the frequency encode direction (1-3)
-		int phase_dim;                //!< Index of the phase encode direction (1-3)
-		int slice_dim;                //!< Index of the slice direction (1-3)
+		template<typename T> void readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data);
+		template<typename T> void readVolumes(const size_t first, const size_t nvol, std::vector<T> &data);
+		template<typename T> void writeVolumes(const size_t vol, const size_t nvol, const std::vector<T> &data);
+		
+		void addExtension(const int code, const std::vector<char> &data);
+		void addExtension(const Extension &e);
+		const std::list<Extension> &extensions() const;
+		
+		#pragma mark Information bits of the NIfTI header
+		float scaling_slope;          //!< Slope of scaling between data on disk and in memory.
+		float scaling_inter;          //!< Intercept of scaling between data on disk and in memory.
+		float calibration_min;        //!< Suggested minimum for display.
+		float calibration_max;        //!< Suggested maximum for display.
+		
+		int freq_dim ;                //!< Index of the frequency encode direction (1-3).
+		int phase_dim;                //!< Index of the phase encode direction (1-3).
+		int slice_dim;                //!< Index of the slice direction (1-3).
 		
 		int   slice_code;             //!< code for slice timing pattern
 		int   slice_start;            //!< index for start of slices
@@ -194,14 +200,6 @@ class Nifti {
 		const std::string &timeUnits() const;
 		const std::string &intentName() const;
 		const std::string &sliceName() const;
-		
-		void addExtension(const int code, const std::vector<char> &data);
-		void addExtension(const Extension &e);
-		const std::list<Extension> &extensions() const;
-		
-		template<typename T> void readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data);
-		template<typename T> void readVolumes(const size_t first, const size_t nvol, std::vector<T> &data);
-		template<typename T> void writeVolumes(const size_t vol, const size_t nvol, const std::vector<T> &data);
 };
 
 #include "Nifti-inl.h"
