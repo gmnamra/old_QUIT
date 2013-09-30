@@ -757,40 +757,11 @@ void Nifti::seekToVoxel(const ArrayXs &target) {
 }
 
 /**
-  *   Reads a sequence of bytes from the open NIfTI image.
+  *   Fills the allocated byte array with bytes read from the open NIfTI image.
   *
   *   Internal function to actually read bytes from an image file.
-  *   @param start Location in file to start the read
-  *   @param length Number of bytes to read
-  *   @param buffer Location to read bytes to. If none, or NULL, specified,
-  *          memory will be allocated internally and a pointer returned.
-  *   @return On success a pointer to the read bytes (if buffer was specified
-  *           then will be the same). NULL on fail.
+  *   @param buffer Array to store read bytes in.
   */
-char *Nifti::readBytes(size_t start, size_t length, char *buffer) {
-	if (m_mode == Mode::Closed) {
-		throw(std::logic_error("Cannot read from closed file: " + imagePath()));
-	}
-	if (m_mode == Mode::Write) {
-		throw(std::logic_error("Cannot read from a file opened for writing: " + imagePath()));
-	}
-	if (length == 0) {
-		throw(std::invalid_argument("Asked to read 0 bytes from file: " + imagePath()));
-	}
-	if (!buffer) {
-		buffer = new char[length];
-	}
-	if (!m_file.seek(m_voxoffset + start, SEEK_SET)) {
-		throw(std::runtime_error("Failed seek in file: " + imagePath()));
-	}
-	if (m_file.read(buffer, static_cast<unsigned int>(length)) != length) {
-		throw(std::runtime_error("Read wrong number of bytes from file: " + imagePath()));
-	}
-	if (m_typeinfo.swapsize > 1 && m_swap)
-		swapBytes(length / m_typeinfo.swapsize, m_typeinfo.swapsize, buffer);
-	return buffer;
-}
-
 void Nifti::readBytes(std::vector<char> &buffer) {
 	if (!((m_mode == Mode::Read) || (m_mode == Mode::ReadSkipExt))) {
 		throw(std::logic_error("File not opened for reading: " + imagePath()));
@@ -805,31 +776,11 @@ void Nifti::readBytes(std::vector<char> &buffer) {
 }
 
 /**
-  *   Writes a sequence of bytes to the open NIfTI image.
+  *   Writes bytes to the open NIfTI image from the supplied array
   *
   *   Internal function to actually write bytes to an image file.
-  *   @param buffer Buffer to write bytes from.
-  *   @param start Location in file to start the write
-  *   @param length Number of bytes to write
+  *   @param buffer Array of bytes to write
   */
-void Nifti::writeBytes(size_t start, size_t length, char *buffer) {
-	if (m_mode == Mode::Closed) {
-		throw(std::logic_error("Cannot write to closed file: " + imagePath()));
-	}
-	if (m_mode == Mode::Read) {
-		throw(std::logic_error("Cannot write to file opened for reading: " + imagePath()));
-	}
-	if (length == 0) {
-		throw(std::invalid_argument("Asked to write 0 bytes to file: " + imagePath()));
-	}
-	if (!m_file.seek(m_voxoffset + start, SEEK_SET)) {
-		throw(std::runtime_error("Failed seek in file: " + imagePath()));
-	}
-	if (m_file.write(buffer, static_cast<unsigned int>(length)) != length) {
-		throw(std::runtime_error("Wrote wrong number of bytes to file: " + imagePath()));
-	}
-}
-
 void Nifti::writeBytes(const std::vector<char> &buffer) {
 	if (!((m_mode == Mode::Write) || (m_mode == Mode::WriteSkipExt))) {
 		throw(std::logic_error("File not opened for writing: " + imagePath()));

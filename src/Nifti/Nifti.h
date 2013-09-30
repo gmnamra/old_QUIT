@@ -101,18 +101,17 @@ class Nifti {
 		void writeHeader();     //!< Attempts to write a header structure to the currently open file.
 		void writeExtensions(); //!< Attempts to write extensions
 		int totalExtensionSize(); //!< Counts the total number of bytes for all extensions.
-		char *readBytes(size_t start, size_t length, char *buffer);
-		void readBytes(std::vector<char> &data);
-		void writeBytes(size_t start, size_t length, char *buffer);
-		void writeBytes(const std::vector<char> & data);
+
 		void calcStrides();
-		void seekToVoxel(const ArrayXs &target);
 		
+		void seekToVoxel(const ArrayXs &target);
+		void readBytes(std::vector<char> &data);
+		void writeBytes(const std::vector<char> & data);
 		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const typename std::vector<T>::iterator begin, const typename std::vector<T>::iterator end);
 		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const typename std::vector<std::complex<T>>::iterator begin, const typename std::vector<std::complex<T>>::iterator end);
 		template<typename T> void convertToBytes(const typename std::vector<T>::iterator begin, const typename std::vector<T>::iterator end, std::vector<char> &bytes);
 		template<typename T> void convertToBytes(const typename std::vector<std::complex<T>>::iterator begin, const typename std::vector<std::complex<T>>::iterator end, std::vector<char> &bytes);
-				
+		
 	#pragma mark Public Class Methods
 	public:
 		~Nifti();
@@ -126,7 +125,7 @@ class Nifti {
 			  const DataType dtype = DataType::FLOAT32, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
 		Nifti(const ArrayXs &dim, const Eigen::ArrayXf &voxdim,
 			  const DataType dtype = DataType::FLOAT32, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
-		Nifti(const Nifti &other, const size_t nt, const DataType dtype = DataType::FLOAT32);               //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
+		Nifti(const Nifti &other, const size_t nt, const DataType dtype = DataType::FLOAT32);                        //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
 		Nifti(const std::string &filename, const Mode &mode);
 		
 		void open(const std::string &filename, const Mode &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
