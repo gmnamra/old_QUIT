@@ -226,10 +226,10 @@ Nifti::Nifti(const Nifti &other) :
 	intent_code(other.intent_code), intent_p1(other.intent_p1), intent_p2(other.intent_p2), intent_p3(other.intent_p3),
 	intent_name(other.intent_name), description(other.description), aux_file(other.aux_file)
 {
-	if ((m_mode == Mode::Read) || (m_mode == Mode::ReadSkipExt)) {
+	if (m_mode == Mode::Read) {
 		m_file.open(imagePath(), "rb", m_gz);
 		m_file.seek(other.m_file.tell(), SEEK_SET);
-	} else if ((m_mode == Mode::Write) || (m_mode == Mode::WriteSkipExt)) {
+	} else if (m_mode == Mode::Write) {
 		m_file.open(imagePath(), "wb", m_gz);
 		m_file.seek(other.m_file.tell(), SEEK_SET);
 	}
@@ -341,30 +341,98 @@ Nifti &Nifti::operator=(const Nifti &other)
 	return *this;
 }
 
-const string Nifti::basePath() const { return m_basepath; }
-const string Nifti::imagePath() const {
-	string path(m_basepath);
-	if (m_nii) {
-		path += ".nii";
-	} else {
-		path += ".img";
+#pragma mark Open/Header Routines
+
+void Nifti::open(const string &path, const Mode &mode) {
+	switch (mode) {
+		case (Mode::Closed):
+			throw(std::runtime_error("File: " + basePath() + " is already open."));
+		case (Mode::Read): case (Mode::ReadHeader):
+			setPaths(path);
+			if(!m_file.open(headerPath(), "rb", m_gz)) {
+				throw(std::runtime_error("Failed to open file: " + headerPath()));
+			}
+			readHeader();
+			readExtensions();
+			break;
+		case (Mode::Write):
+			setPaths(path);
+			if(!m_file.open(headerPath(), "wb", m_gz)) {
+				throw(std::runtime_error("Failed to open file: " + headerPath()));
+			}
+			writeHeader();
+			writeExtensions();
+		break;
 	}
-	if (m_gz)
-		path += ".gz";
-	
-	return path;
+	m_file.close(); // We have now read or written the header
+	if (mode != Mode::ReadHeader) {
+		bool result;
+		if (mode == Mode::Read)
+			result = m_file.open(imagePath(), "rb", m_gz);
+		else
+			result = m_file.open(imagePath(), "wb", m_gz);
+		if (!result) {
+			throw(std::runtime_error("Could not open image file: " + imagePath()));
+		}
+	}
+	// Only set the mode here when we have successfully opened the file and
+	// not thrown any errors. Throwing an error triggers the destructor and
+	// we don't want to be in the wrong state there.
+	m_mode = mode;
 }
-const string Nifti::headerPath() const {
-	string path(m_basepath);
-	if (m_nii) {
-		path += ".nii";
-	} else {
-		path += ".hdr";
+
+bool Nifti::isOpen() {
+	if (m_mode == Mode::Closed)
+		return false;
+	else
+		return true;
+}
+
+void Nifti::close()
+{
+	if (m_mode == Mode::Closed) {
+		throw(std::logic_error("Cannot close already closed file: " + imagePath()));
+	} else if ((m_mode == Mode::Read) || (m_mode == Mode::ReadHeader)) {
+		m_file.close();
+		m_mode = Mode::Closed;
+	} else if (m_mode == Mode::Write) {
+		// If we've been writing subvolumes then we may not have written a complete file
+		// Write a single zero-byte at the end to persuade the OS to write a file of the
+		// correct size.
+		m_file.seek(0, SEEK_END);
+		long correctEnd = (voxelsTotal() * m_typeinfo.size + m_voxoffset);
+		char zero{0};
+		long pos = m_file.tell();
+		if (pos < correctEnd) {
+			m_file.seek(correctEnd - 1, SEEK_SET);
+			m_file.write(&zero, 1);
+		}
+		m_file.flush();
+		m_file.close();
+		m_mode = Mode::Closed;
 	}
-	if (m_gz)
-		path += ".gz";
-	
-	return path;
+}
+
+void Nifti::setPaths(const string &path) {
+	size_t lastDot = path.find_last_of(".");
+	string ext;
+	if (path.substr(lastDot + 1) == "gz") {
+		m_gz = true;
+		size_t extDot = path.find_last_of(".", lastDot - 1);
+		ext = path.substr(extDot + 1, lastDot - extDot - 1);
+		m_basepath = path.substr(0, extDot);
+	} else {
+		m_gz = false;
+		ext = path.substr(lastDot + 1);
+		m_basepath = path.substr(0, lastDot);
+	}
+	if (ext == "hdr" || ext == "img") {
+		m_nii = false;
+	} else if (ext == "nii") {
+		m_nii = true;
+	} else {
+		throw(std::invalid_argument("Invalid NIfTI extension for file: " + path));
+	}
 }
 
 void Nifti::readHeader() {
@@ -490,62 +558,6 @@ void Nifti::readHeader() {
 	}
 }
 
-void Nifti::readExtensions()
-{
-	long target = m_voxoffset;
-	if (!m_nii) {
-		m_file.seek(0, SEEK_END);
-		target = m_file.tell();
-	}
-	m_file.seek(sizeof(nifti_1_header), SEEK_SET);
-	char extender[4];
-	if (m_file.read(extender, 4) != 4) {
-		throw(std::runtime_error("While checking for extensions hit end of file: " + headerPath()));
-	}
-	if (extender[0] != 1) // There are no extensions
-		return;
-	
-	while (m_file.tell() < target) {		
-		if(m_file.tell() > target - 16 ){
-			throw(std::runtime_error("Insufficient space for remaining extensions in file: " + headerPath()));
-		}
-		
-		int size, code;
-		long bytesRead = m_file.read(&size, 4);
-		bytesRead += m_file.read(&code, 4);
-		if (bytesRead != 8) {
-			throw(std::runtime_error("Error while reading extension size and code in file: " + headerPath()));
-		}
-		
-		if (m_swap) {
-			swapBytes(1, 4, &size);
-			swapBytes(1, 4, &code);
-		}
-		
-		vector<char> dataBytes(size - 8);
-		if (m_file.read(dataBytes.data(), size - 8) < (size - 8)) {
-			throw(std::runtime_error("Could not read extension in file: " + headerPath()));
-		}
-		m_extensions.emplace_back(code, dataBytes);
-
-		if (m_nii && (m_file.tell() > m_voxoffset)) {
-			throw(std::runtime_error("Went past start of voxel data while reading extensions in file: " + headerPath()));
-		}
-	}
-}
-
-void Nifti::addExtension(const int code, const vector<char> &data) {
-	m_extensions.emplace_back(code, data);
-}
-
-void Nifti::addExtension(const Nifti::Extension &e) {
-	m_extensions.push_back(e);
-}
-
-const list<Nifti::Extension> &Nifti::extensions() const {
-	return m_extensions;
-}
-
 void Nifti::writeHeader() {
 	struct nifti_1_header nhdr;
 	memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
@@ -592,7 +604,7 @@ void Nifti::writeHeader() {
 	
 	// Check that m_voxoffset is sensible
 	m_voxoffset = 352;
-	if (m_nii && (m_mode != Mode::WriteSkipExt))
+	if (m_nii)
 		m_voxoffset += totalExtensionSize();
 	nhdr.vox_offset = m_voxoffset ;
 	nhdr.xyzt_units = SPACE_TIME_TO_XYZT(xyz_units, time_units);
@@ -643,12 +655,70 @@ void Nifti::writeHeader() {
 	}
 }
 
+#pragma mark Extensions
+
+void Nifti::addExtension(const int code, const vector<char> &data) {
+	m_extensions.emplace_back(code, data);
+}
+
+void Nifti::addExtension(const Nifti::Extension &e) {
+	m_extensions.push_back(e);
+}
+
+const list<Nifti::Extension> &Nifti::extensions() const {
+	return m_extensions;
+}
+
 int Nifti::totalExtensionSize() {
 	int total = 0;
 	for (auto ext: m_extensions) {
 		total += ext.size();
 	}
 	return total;
+}
+
+void Nifti::readExtensions()
+{
+	long target = m_voxoffset;
+	if (!m_nii) {
+		m_file.seek(0, SEEK_END);
+		target = m_file.tell();
+	}
+	m_file.seek(sizeof(nifti_1_header), SEEK_SET);
+	char extender[4];
+	if (m_file.read(extender, 4) != 4) {
+		throw(std::runtime_error("While checking for extensions hit end of file: " + headerPath()));
+	}
+	if (extender[0] != 1) // There are no extensions
+		return;
+	
+	while (m_file.tell() < target) {		
+		if(m_file.tell() > target - 16 ){
+			throw(std::runtime_error("Insufficient space for remaining extensions in file: " + headerPath()));
+		}
+		
+		int size, code;
+		long bytesRead = m_file.read(&size, 4);
+		bytesRead += m_file.read(&code, 4);
+		if (bytesRead != 8) {
+			throw(std::runtime_error("Error while reading extension size and code in file: " + headerPath()));
+		}
+		
+		if (m_swap) {
+			swapBytes(1, 4, &size);
+			swapBytes(1, 4, &code);
+		}
+		
+		vector<char> dataBytes(size - 8);
+		if (m_file.read(dataBytes.data(), size - 8) < (size - 8)) {
+			throw(std::runtime_error("Could not read extension in file: " + headerPath()));
+		}
+		m_extensions.emplace_back(code, dataBytes);
+
+		if (m_nii && (m_file.tell() > m_voxoffset)) {
+			throw(std::runtime_error("Went past start of voxel data while reading extensions in file: " + headerPath()));
+		}
+	}
 }
 
 void Nifti::writeExtensions() {
@@ -684,180 +754,35 @@ void Nifti::writeExtensions() {
 	}
 }
 
-/**
-  *   Simple function to calculate the strides into the data on disk. Used for
-  *   subvolume/voxel-wise reads.
-  */
-void Nifti::calcStrides() {
-	m_strides = Array<size_t, 7, 1>::Ones();
-	for (size_t i = 1; i < rank(); i++) {
-		m_strides(i) = m_strides(i - 1) * m_dim(i - 1);
-	}
-}
+#pragma mark Path Getters
 
-/**
-  * Seeks to a particular voxel on the disk.
-  *
-  * @param target Desired voxel to seek to on disk.
-  *
-  * @throws std::out_of_range if the target is outside the image dimensions.
-  * @throws std::runtime_error if the seek fails.
-  */
-void Nifti::seekToVoxel(const ArrayXs &target) {
-	if (target.rows() > rank()) {
-		throw(std::out_of_range("Too many dimensions for seeking."));
-	}
-	if ((target > m_dim.head(target.rows())).any()) {
-		throw(std::out_of_range("Target voxel is outside image dimensions."));
-	}
-	//cout << "strides " << m_strides.transpose() << " target " << target.transpose() << endl;
-	//cout << "product " << (target * m_strides.head(target.rows())).transpose() << endl;
-	size_t index = (target * m_strides.head(target.rows())).sum() * m_typeinfo.size + m_voxoffset;
-	size_t current = m_file.tell();
-	//cout << "index " << index << " current " << current << endl;
-	if (!m_file.seek(index - current, SEEK_CUR)) {
-		throw(std::runtime_error("Failed to seek to index: " + to_string(index) + " in file: " + imagePath()));
-	}
-	//cout << "seek result " << m_file.tell() << endl;
-}
-
-/**
-  *   Fills the allocated byte array with bytes read from the open NIfTI image.
-  *
-  *   Internal function to actually read bytes from an image file.
-  *   @param buffer Array to store read bytes in.
-  */
-void Nifti::readBytes(std::vector<char> &buffer) {
-	if (!((m_mode == Mode::Read) || (m_mode == Mode::ReadSkipExt))) {
-		throw(std::logic_error("File not opened for reading: " + imagePath()));
-	}
-	if (buffer.size() > 0) {
-		if (m_file.read(buffer.data(), static_cast<unsigned int>(buffer.size())) != buffer.size()) {
-			throw(std::runtime_error("Read wrong number of bytes from file: " + imagePath()));
-		}
-		if (m_typeinfo.swapsize > 1 && m_swap)
-			swapBytes(buffer.size() / m_typeinfo.swapsize, m_typeinfo.swapsize, buffer.data());
-	}
-}
-
-/**
-  *   Writes bytes to the open NIfTI image from the supplied array
-  *
-  *   Internal function to actually write bytes to an image file.
-  *   @param buffer Array of bytes to write
-  */
-void Nifti::writeBytes(const std::vector<char> &buffer) {
-	if (!((m_mode == Mode::Write) || (m_mode == Mode::WriteSkipExt))) {
-		throw(std::logic_error("File not opened for writing: " + imagePath()));
-	}
-	if (buffer.size() > 0) {
-		if (m_file.write(buffer.data(), static_cast<unsigned int>(buffer.size())) != buffer.size()) {
-			throw(std::runtime_error("Wrote wrong number of bytes from file: " + imagePath()));
-		}
-	}
-}
-
-void Nifti::open(const string &path, const Mode &mode) {
-	size_t lastDot = path.find_last_of(".");
-	string ext;
-	if (path.substr(lastDot + 1) == "gz") {
-		m_gz = true;
-		size_t extDot = path.find_last_of(".", lastDot - 1);
-		ext = path.substr(extDot + 1, lastDot - extDot - 1);
-		m_basepath = path.substr(0, extDot);
+const string Nifti::basePath() const { return m_basepath; }
+const string Nifti::imagePath() const {
+	string path(m_basepath);
+	if (m_nii) {
+		path += ".nii";
 	} else {
-		m_gz = false;
-		ext = path.substr(lastDot + 1);
-		m_basepath = path.substr(0, lastDot);
+		path += ".img";
 	}
-	if (ext == "hdr" || ext == "img") {
-		m_nii = false;
-	} else if (ext == "nii") {
-		m_nii = true;
-	} else {
-		throw(std::invalid_argument("Invalid NIfTI extension for file: " + path));
-	}
+	if (m_gz)
+		path += ".gz";
 	
-	if (m_mode != Mode::Closed) {
-		throw(std::logic_error("Attempted to open file: " + path +
-		           " when file: " + imagePath() + " is already open."));
+	return path;
+}
+const string Nifti::headerPath() const {
+	string path(m_basepath);
+	if (m_nii) {
+		path += ".nii";
 	} else {
-		if ((mode == Mode::Read) || (mode == Mode::ReadHeader) || (mode == Mode::ReadSkipExt)) {
-			if(!m_file.open(headerPath(), "rb", m_gz)) {
-				throw(std::runtime_error("Failed to open file: " + headerPath()));
-			}
-			readHeader();
-			if (mode != Mode::ReadSkipExt ) {
-				readExtensions();
-			}
-		} else if (mode == Mode::Write) {
-			if(!m_file.open(headerPath(), "wb", m_gz)) {
-				throw(std::runtime_error("Failed to open file: " + headerPath()));
-			}
-			writeHeader();
-			if (mode == Mode::Write) {
-				writeExtensions();
-			}
-		} else {
-			throw(std::invalid_argument("Invalid opening mode for file: " + path));
-		}
-		
-		if (mode == Mode::ReadHeader) {
-			// Don't do anything in this case
-		} else {
-			if (!m_nii) {
-				// Need to close the header and open the image
-				m_file.close();
-				bool result;
-				if (mode == Mode::Read)
-					result = m_file.open(imagePath(), "rb", m_gz);
-				else
-					result = m_file.open(imagePath(), "wb", m_gz);
-				if (!result) {
-					throw(std::runtime_error("Could not open image file: " + imagePath()));
-				}
-			}
-			if (!m_file.seek(m_voxoffset, SEEK_SET)) {
-				throw(std::runtime_error("Could not seek to voxel offset in file: " + imagePath()));
-			}
-			// Only set the mode here when we have successfully opened the file and
-			// not thrown any errors. Throwing an error triggers the destructor and
-			// we don't want to be in the wrong state there.
-			m_mode = mode;
-		}
+		path += ".hdr";
 	}
+	if (m_gz)
+		path += ".gz";
+	
+	return path;
 }
 
-bool Nifti::isOpen() {
-	if (m_mode == Mode::Closed)
-		return false;
-	else
-		return true;
-}
-void Nifti::close()
-{
-	if (m_mode == Mode::Closed) {
-		throw(std::logic_error("Cannot close already closed file: " + imagePath()));
-	} else if ((m_mode == Mode::Read) || (m_mode == Mode::ReadHeader)) {
-		m_file.close();
-		m_mode = Mode::Closed;
-	} else if (m_mode == Mode::Write) {
-		// If we've been writing subvolumes then we may not have written a complete file
-		// Write a single zero-byte at the end to persuade the OS to write a file of the
-		// correct size.
-		m_file.seek(0, SEEK_END);
-		long correctEnd = (voxelsTotal() * m_typeinfo.size + m_voxoffset);
-		char zero{0};
-		long pos = m_file.tell();
-		if (pos < correctEnd) {
-			m_file.seek(correctEnd - 1, SEEK_SET);
-			m_file.write(&zero, 1);
-		}
-		m_file.flush();
-		m_file.close();
-		m_mode = Mode::Closed;
-	}
-}
+#pragma mark Dimensions / VoxDims etc.
 
 size_t Nifti::rank() const {
 	for (size_t d = m_voxdim.rows(); d > 0; d--) {
@@ -923,6 +848,81 @@ void Nifti::setDatatype(const Nifti::DataType dt) {
 		return;
 	}
     m_typeinfo = TypeInfo(dt);
+}
+
+/**
+  *   Simple function to calculate the strides into the data on disk. Used for
+  *   subvolume/voxel-wise reads.
+  */
+void Nifti::calcStrides() {
+	m_strides = Array<size_t, 7, 1>::Ones();
+	for (size_t i = 1; i < rank(); i++) {
+		m_strides(i) = m_strides(i - 1) * m_dim(i - 1);
+	}
+}
+
+#pragma mark Seek / Read / Write
+
+/**
+  * Seeks to a particular voxel on the disk.
+  *
+  * @param target Desired voxel to seek to on disk.
+  *
+  * @throws std::out_of_range if the target is outside the image dimensions.
+  * @throws std::runtime_error if the seek fails.
+  */
+void Nifti::seekToVoxel(const ArrayXs &target) {
+	if (target.rows() > rank()) {
+		throw(std::out_of_range("Too many dimensions for seeking."));
+	}
+	if ((target > m_dim.head(target.rows())).any()) {
+		throw(std::out_of_range("Target voxel is outside image dimensions."));
+	}
+	//cout << "strides " << m_strides.transpose() << " target " << target.transpose() << endl;
+	//cout << "product " << (target * m_strides.head(target.rows())).transpose() << endl;
+	size_t index = (target * m_strides.head(target.rows())).sum() * m_typeinfo.size + m_voxoffset;
+	size_t current = m_file.tell();
+	//cout << "index " << index << " current " << current << endl;
+	if (!m_file.seek(index - current, SEEK_CUR)) {
+		throw(std::runtime_error("Failed to seek to index: " + to_string(index) + " in file: " + imagePath()));
+	}
+	//cout << "seek result " << m_file.tell() << endl;
+}
+
+/**
+  *   Fills the allocated byte array with bytes read from the open NIfTI image.
+  *
+  *   Internal function to actually read bytes from an image file.
+  *   @param buffer Array to store read bytes in.
+  */
+void Nifti::readBytes(std::vector<char> &buffer) {
+	if (!(m_mode == Mode::Read)) {
+		throw(std::logic_error("File not opened for reading: " + imagePath()));
+	}
+	if (buffer.size() > 0) {
+		if (m_file.read(buffer.data(), static_cast<unsigned int>(buffer.size())) != buffer.size()) {
+			throw(std::runtime_error("Read wrong number of bytes from file: " + imagePath()));
+		}
+		if (m_typeinfo.swapsize > 1 && m_swap)
+			swapBytes(buffer.size() / m_typeinfo.swapsize, m_typeinfo.swapsize, buffer.data());
+	}
+}
+
+/**
+  *   Writes bytes to the open NIfTI image from the supplied array
+  *
+  *   Internal function to actually write bytes to an image file.
+  *   @param buffer Array of bytes to write
+  */
+void Nifti::writeBytes(const std::vector<char> &buffer) {
+	if (!(m_mode == Mode::Write)) {
+		throw(std::logic_error("File not opened for writing: " + imagePath()));
+	}
+	if (buffer.size() > 0) {
+		if (m_file.write(buffer.data(), static_cast<unsigned int>(buffer.size())) != buffer.size()) {
+			throw(std::runtime_error("Wrote wrong number of bytes from file: " + imagePath()));
+		}
+	}
 }
 
 #pragma mark Transforms

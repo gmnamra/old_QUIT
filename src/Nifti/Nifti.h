@@ -29,7 +29,7 @@ class Nifti {
 	public:
 		typedef Eigen::Array<size_t, Eigen::Dynamic, 1> ArrayXs;
 		enum class Mode : char {
-			Closed = 0, Read = 'r', ReadHeader = 'h', ReadSkipExt = 's', Write = 'w', WriteSkipExt = 'x'
+			Closed = 0, Read = 'r', ReadHeader = 'h', Write = 'w'
 		};
 
 		enum class DataType {
@@ -96,12 +96,13 @@ class Nifti {
 		int m_swap;                     //!< True if byte order on disk is different to CPU.
 		
 		std::list<Extension> m_extensions;
-				
-		void readHeader();      //!< Attempts to read a header structure from the currently open file.
-		void readExtensions();  //!< Attempts to read any extensions
-		void writeHeader();     //!< Attempts to write a header structure to the currently open file.
-		void writeExtensions(); //!< Attempts to write extensions
-		int totalExtensionSize(); //!< Counts the total number of bytes for all extensions.
+		
+		void setPaths(const std::string &path); //!< Works out the basepath and file extensions.
+		void readHeader();                 //!< Attempts to read a header structure from the currently open file.
+		void readExtensions();             //!< Attempts to read any extensions
+		void writeHeader();                //!< Attempts to write a header structure to the currently open file.
+		void writeExtensions();            //!< Attempts to write extensions
+		int totalExtensionSize();          //!< Counts the total number of bytes for all extensions.
 
 		void calcStrides();
 		
