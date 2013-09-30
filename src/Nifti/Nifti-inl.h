@@ -220,6 +220,12 @@ template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &star
 	dimLoop(start.rows() - 1);
 }
 
+template<typename T> void Nifti::readVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data) {
+	if (!((m_mode == Mode::Read) || (m_mode == Mode::ReadSkipExt)))
+		throw(std::runtime_error("File must be opened for reading: " + basePath()));
+	readWriteVoxels(start, size, data);
+}
+
 template<typename T> void Nifti::readVolumes(const size_t first, const size_t nvol, std::vector<T> &data) {
 	if (!((m_mode == Mode::Read) || (m_mode == Mode::ReadSkipExt)))
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
@@ -229,6 +235,12 @@ template<typename T> void Nifti::readVolumes(const size_t first, const size_t nv
 	ArrayXs start, size;
 	start << 0, 0, first;
 	size << dim(1), dim(2), first + nvol;
+	readWriteVoxels(start, size, data);
+}
+
+template<typename T> void Nifti::writeVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data) {
+	if (!((m_mode == Mode::Write) || (m_mode == Mode::WriteSkipExt)))
+		throw(std::runtime_error("File must be opened for writing: " + basePath()));
 	readWriteVoxels(start, size, data);
 }
 
