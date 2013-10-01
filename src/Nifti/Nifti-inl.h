@@ -244,9 +244,9 @@ template<typename T> void Nifti::readVolumes(const size_t first, const size_t nv
 	if (data.size() != (m_dim.head(3).prod() * nvol))
 		throw(std::runtime_error("Insufficient storage allocated for read: " + basePath()));
 	
-	ArrayXs start, size;
-	start << 0, 0, first;
-	size << dim(1), dim(2), first + nvol;
+	ArrayXs start(4), size(4);
+	start << 0, 0, 0, first;
+	size << dim(1), dim(2), dim(3), first + nvol;
 	readWriteVoxels(start, size, data);
 }
 
@@ -262,9 +262,9 @@ template<typename T> void Nifti::writeVolumes(const size_t first, const size_t n
 	if (data.size() != (m_dim.head(3).prod() * nvol))
 		throw(std::runtime_error("Insufficient data for write: " + basePath()));
 	
-	ArrayXs start, size;
-	start << 0, 0, first;
-	size << dim(1), dim(2), first + nvol;
+	ArrayXs start(4), size(4);
+	start << 0, 0, 0, first;
+	size << dim(1), dim(2), dim(3), first + nvol;
 	readWriteVoxels(start, size, data);
 }
 
