@@ -165,7 +165,7 @@ class Nifti {
 		template<typename T> void readVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data);
 		template<typename T> void readVolumes(const size_t first, const size_t nvol, std::vector<T> &data);
 		template<typename T> void writeVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data);
-		template<typename T> void writeVolumes(const size_t vol, const size_t nvol, const std::vector<T> &data);
+		template<typename T> void writeVolumes(const size_t vol, const size_t nvol, std::vector<T> &data);
 		
 		void addExtension(const int code, const std::vector<char> &data);
 		void addExtension(const Extension &e);

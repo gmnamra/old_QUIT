@@ -120,7 +120,7 @@ template<typename T> void Nifti::convertToBytes(const typename std::vector<T>::i
 	auto el = begin;
 	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<BYTE_TYPE *>(bytes.data())
 	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR( BYTE_TYPE ); while (el != end) { *p = static_cast<BYTE_TYPE>(*el / sc_sl - sc_in); el++; p++; }
-	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR( std::complex<BYTE_TYPE> ); while (el != end) { *p = std::complex<BYTE_TYPE>(*el / sc_sl - sc_in, 0.); el++; p++; }
+	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR( std::complex<BYTE_TYPE> ); while (el != end) { *p = std::complex<BYTE_TYPE>(static_cast<BYTE_TYPE>(*el / sc_sl - sc_in), 0.); el++; p++; }
 	switch (m_typeinfo.type) {
 		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
 		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
@@ -253,7 +253,7 @@ template<typename T> void Nifti::writeVoxels(const Eigen::Ref<ArrayXs> &start, c
 	readWriteVoxels(start, size, data);
 }
 
-template<typename T> void Nifti::writeVolumes(const size_t first, const size_t nvol, const std::vector<T> &data) {
+template<typename T> void Nifti::writeVolumes(const size_t first, const size_t nvol, std::vector<T> &data) {
 	if (!(m_mode == Mode::Write))
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
 	if (data.size() != (m_dim.head(3).prod() * nvol))
