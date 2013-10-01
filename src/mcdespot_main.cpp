@@ -87,9 +87,9 @@ static struct option long_options[] =
 	{"mask", required_argument, 0, 'm'},
 	{"out", required_argument, 0, 'o'},
 	{"f0", required_argument, 0, 'O'},
-	{"start", required_argument, 0, 'S'},
-	{"stop", required_argument, 0, 'P'},
-	{"scale", required_argument, 0, 's'},
+	{"start", required_argument, 0, 's'},
+	{"stop", required_argument, 0, 'p'},
+	{"scale", required_argument, 0, 'S'},
 	{"tesla", required_argument, 0, 't'},
 	{"finite", no_argument, 0, 'f'},
 	{"contract", no_argument, 0, 'c'},
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
 	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvn123m:o:f:s:p:S:t:Fceijw", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvn123m:o:f:s:p:S:t:Fcei:j:w", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
@@ -205,7 +205,8 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData = maskFile.readVolume<double>(0);
+				maskData.resize(maskFile.dims().head(3).prod());
+				maskFile.readVolumes(0, 1, maskData);
 				maskFile.close();
 				break;
 			case 'o':
@@ -282,8 +283,8 @@ int main(int argc, char **argv)
 	// Use if files are open to indicate default values should be used -
 	// 0 for f0, 1 for B1
 	//**************************************************************************
-	size_t voxelsPerSlice = templateFile.voxelsPerSlice();
-	size_t voxelsPerVolume = templateFile.voxelsPerVolume();
+	size_t voxelsPerSlice = templateFile.dims().head(2).prod();
+	size_t voxelsPerVolume = templateFile.dims().head(3).prod();
 	
 	vector<vector<double>> signalVolumes(signalFiles.size()),
 	                 B1Volumes(signalFiles.size()),
@@ -331,7 +332,7 @@ int main(int argc, char **argv)
 		residualData.at(i).resize(voxelsPerVolume);
 	Nifti residualFile(templateFile);
 	residualFile.setDim(4, static_cast<int>(mcd.values()));
-	residualFile.open(outPrefix + mcDESPOT::to_string(components) + "_residuals.nii.gz", Nifti::Mode::Write);
+	residualFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
 	
 	ArrayXXd bounds = mcd.defaultBounds();
 	if (tesla == mcDESPOT::FieldStrength::Unknown) {
@@ -365,10 +366,13 @@ int main(int argc, char **argv)
 		const size_t sliceOffset = slice * voxelsPerSlice;
 		
 		// Read data for slices
+		Nifti::ArrayXs sliceStart(4), sliceSize(4);
+		sliceStart << 0, 0, slice, 0;
+		sliceSize << 0, 0, 1, 0; // Zeros will be replaced with dimension
 		for (size_t i = 0; i < signalFiles.size(); i++) {
-			signalFiles[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, signalVolumes[i]);
-			if (B1Files[i].isOpen()) B1Files[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, B1Volumes[i]);
-			if (f0Files[i].isOpen()) f0Files[i].readSubvolume<double>(0, 0, slice, 0, -1, -1, slice + 1, -1, f0Volumes[i]);
+			signalFiles[i].readVoxels<double>(sliceStart, sliceSize, signalVolumes[i]);
+			if (B1Files[i].isOpen()) B1Files[i].readVoxels<double>(sliceStart, sliceSize, B1Volumes[i]);
+			if (f0Files[i].isOpen()) f0Files[i].readVoxels<double>(sliceStart, sliceSize, f0Volumes[i]);
 		}
 		if (verbose) cout << "processing..." << endl;
 		clock_t loopStart = clock();
@@ -439,14 +443,14 @@ int main(int argc, char **argv)
 		}
 		
 		for (size_t p = 0; p < paramsFiles.size(); p++) {
-			paramsFiles.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, paramsData.at(p));
+			paramsFiles.at(p).writeVoxels(sliceStart, sliceSize, paramsData.at(p));
 			if (extra) {
-				midpFiles.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, midpData.at(p));
-				widthFiles.at(p).writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, widthData.at(p));
+				midpFiles.at(p).writeVoxels(sliceStart, sliceSize, midpData.at(p));
+				widthFiles.at(p).writeVoxels(sliceStart, sliceSize, widthData.at(p));
 			}
 		}
 		if (extra)
-			contractFile.writeSubvolume(0, 0, slice, 0, -1, -1, slice + 1, 1, contractData);
+			contractFile.writeVoxels(sliceStart, sliceSize, contractData);
 		if (interrupt_received)
 			break;
 	}
@@ -456,7 +460,7 @@ int main(int argc, char **argv)
 	          << difftime(procEnd, procStart) << " s." << endl;
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
 	for (size_t r = 0; r < residualData.size(); r++)
-		residualFile.writeSubvolume(0, 0, 0, r, -1, -1, -1, r+1, residualData.at(r));
+		residualFile.writeVolumes(r, 1, residualData.at(r));
 	cout << "Finished writing data." << endl;
 	return EXIT_SUCCESS;
 }

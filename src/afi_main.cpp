@@ -50,7 +50,8 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask." << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				mask = maskFile.readVolume<double>(0);
+				mask.resize(maskFile.dims().head(3).prod());
+				maskFile.readVolumes(0, 1, mask);
 				break;
 		}
 	}
@@ -79,15 +80,17 @@ int main(int argc, char **argv)
 		cin >> n >> nomFlip;
 	}
 	nomFlip = nomFlip * M_PI / 180.;
-	auto tr1 = inFile.readVolume<double>(0);
-	auto tr2 = inFile.readVolume<double>(1);
+	size_t nVoxels = inFile.dims().head(3).prod();
+	vector<double> tr1(nVoxels), tr2(nVoxels);
+	inFile.readVolumes(0, 1, tr1);
+	inFile.readVolumes(1, 1, tr2);
 	inFile.close();
 	outPrefix = string(argv[++optind]);
-	vector<double> flip(inFile.voxelsPerVolume());
-	vector<double> B1(inFile.voxelsPerVolume());
+	vector<double> flip(nVoxels);
+	vector<double> B1(nVoxels);
 	cout << "Allocated output memory." << endl;
 	cout << "Processing..." << endl;
-	for (int vox = 0; vox < inFile.voxelsPerVolume(); vox++) {
+	for (size_t vox = 0; vox < nVoxels; vox++) {
 		if (!maskFile.isOpen() || mask[vox] > 0.) {
 			double r = tr2[vox] / tr1[vox];
 			double temp = (r*n - 1.) / (n - r);
@@ -106,13 +109,13 @@ int main(int argc, char **argv)
 	string outPath = outPrefix + "angle.nii.gz";
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
 	outFile.open(outPath, Nifti::Mode::Write);
-	outFile.writeVolume(0, flip);
+	outFile.writeVolumes(0, 1, flip);
 	outFile.close();
 	
 	outPath = outPrefix + "B1.nii.gz";
 	cout << "Writing B1 ratio to " << outPath << "..." << endl;
 	outFile.open(outPath, Nifti::Mode::Write);
-	outFile.writeVolume(0, B1);
+	outFile.writeVolumes(0, 1, B1);
 	outFile.close();
 	
 	cout << "Finished." << endl;

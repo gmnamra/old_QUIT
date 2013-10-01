@@ -67,7 +67,6 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << credit << endl;
 	double spgrTR = 0.;
-	int nSPGR;
 	vector<double> B1Data, maskData;
 	Nifti spgrFile, B1File, maskFile;
 	
@@ -77,12 +76,14 @@ int main(int argc, char **argv)
 			case '1':
 				cout << "Opening B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Data = B1File.readVolume<double>(0);
+				B1Data.resize(B1File.dims().head(3).prod());
+				B1File.readVolumes(0, 1, B1Data);
 				break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData = maskFile.readVolume<double>(0);
+				maskData.resize(maskFile.dims().head(3).prod());
+				maskFile.readVolumes(0, 1, maskData);
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -109,20 +110,20 @@ int main(int argc, char **argv)
 		cerr << "Mask or B1 dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
 	}
-	nSPGR = spgrFile.dim(4);
+	size_t nSPGR = spgrFile.dim(4);
 	VectorXd spgrAngles(nSPGR);
 	
 	#ifdef AGILENT
 	ProcPar pp;
 	if (ReadPP(spgrFile, pp)) {
 		spgrTR = pp.realValue("tr");
-		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = pp.realValue("flip1", i);
+		for (size_t i = 0; i < nSPGR; i++) spgrAngles[i] = pp.realValue("flip1", i);
 	} else
 	#endif
 	{
 		cout << "Enter SPGR TR (seconds):"; cin >> spgrTR;
 		cout << "Enter SPGR " << nSPGR << " Flip Angles (degrees):";
-		for (int i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
+		for (size_t i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
 	}
 	spgrAngles *= M_PI / 180.;
 	//**************************************************************************
@@ -132,11 +133,11 @@ int main(int argc, char **argv)
 	spgrKeep.setOnes();
 	if (drop) {
 		cout << "Choose SPGR angles to use (1 to keep, 0 to drop, " << nSPGR << " values): ";
-		for (int i = 0; i < nSPGR; i++) cin >> spgrKeep[i];
+		for (size_t i = 0; i < nSPGR; i++) cin >> spgrKeep[i];
 		VectorXd temp = spgrAngles;
 		spgrAngles.resize(spgrKeep.sum());
 		int angle = 0;
-		for (int i = 0; i < nSPGR; i++)
+		for (size_t i = 0; i < nSPGR; i++)
 			if (spgrKeep(i)) spgrAngles(angle++) = temp(i);
 	}
 	if (verbose)
@@ -148,11 +149,12 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Allocate memory for slices
 	//**************************************************************************	
-	size_t voxelsPerSlice = spgrFile.voxelsPerSlice();
-	size_t voxelsPerVolume = spgrFile.voxelsPerVolume();
+	size_t voxelsPerSlice = spgrFile.dims().head(2).prod();
+	size_t voxelsPerVolume = spgrFile.dims().head(3).prod();
 	
 	cout << "Reading SPGR data..." << flush;
-	vector<double> spgrData = spgrFile.readAllVolumes<double>();
+	vector<double> spgrData(voxelsPerVolume * nSPGR);
+	spgrFile.readVolumes(0, nSPGR, spgrData);
 	spgrFile.close();
 	cout << "done." << endl;
 	//**************************************************************************
@@ -184,7 +186,7 @@ int main(int argc, char **argv)
 					B1 = B1Data[sliceOffset + vox];
 				ArrayXd spgrs(nSPGR);
 				int vol = 0;
-				for (int img = 0; img < nSPGR; img++) {
+				for (size_t img = 0; img < nSPGR; img++) {
 					if (spgrKeep(img))
 						spgrs[vol++] = spgrData[img * voxelsPerVolume + sliceOffset + vox];
 				}
@@ -211,7 +213,7 @@ int main(int argc, char **argv)
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
 		outFile.open(outName, Nifti::Mode::Write);
-		outFile.writeVolume<double>(0, resultsData[r]);
+		outFile.writeVolumes<double>(0, 1, resultsData[r]);
 		outFile.close();
 	}
 	cout << "All done." << endl;

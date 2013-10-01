@@ -51,7 +51,8 @@ Options:\n\
 	--end_slice   N   : Finish processing at slice N.\n"
 };
 
-static int verbose = false, start_slice = -1, end_slice = -1;
+static int verbose = false;
+static size_t start_slice = 0, end_slice = numeric_limits<size_t>::max();
 static string outPrefix;
 static struct option long_options[] =
 {
@@ -89,17 +90,20 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData = maskFile.readVolume<double>(0);
+				maskData.resize(maskFile.dims().head(3).prod());
+				maskFile.readVolumes(0, 1, maskData);
 				break;
 			case '0':
 				cout << "Reading B0 file: " << optarg << endl;
 				B0File.open(optarg, Nifti::Mode::Read);
-				B0Data = B0File.readVolume<double>(0);
+				B0Data.resize(B0File.dims().head(3).prod());
+				B0File.readVolumes(0, 1, B0Data);
 				break;
 			case '1':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Data = B1File.readVolume<double>(0);
+				B1Data.resize(B1File.dims().head(3).prod());
+				B1File.readVolumes(0, 1, B1Data);
 				break;
 			case 'v': verbose = true; break;
 			case 'S': start_slice = atoi(optarg); break;
@@ -120,7 +124,10 @@ int main(int argc, char **argv)
 	}
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
 	Nifti inFile(argv[optind++], Nifti::Mode::Read);
-	T1Data = inFile.readVolume<double>(0);
+	size_t voxelsPerSlice = inFile.dims().head(2).prod();
+	size_t voxelsPerVolume = inFile.dims().head(3).prod();
+	T1Data.resize(voxelsPerVolume);
+	inFile.readVolumes(0, 1, T1Data);
 	inFile.close();
 	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
 	    (B0File.isOpen() && !inFile.matchesSpace(B0File)) ||
@@ -143,13 +150,11 @@ int main(int argc, char **argv)
 	}
 	nFlip = inFile.dim(4);
 	inFlip.resize(nFlip);
-	size_t voxelsPerSlice = inFile.voxelsPerSlice();
-	size_t voxelsPerVolume = inFile.voxelsPerVolume();
 	#ifdef AGILENT
 	Agilent::ProcPar pp;
 	if (ReadPP(inFile, pp)) {
 		inTR = pp.realValue("tr");
-		for (int i = 0; i < nFlip; i++)
+		for (size_t i = 0; i < nFlip; i++)
 			inFlip[i] = pp.realValue("flip1", i);
 	} else
 	#endif
@@ -157,14 +162,15 @@ int main(int argc, char **argv)
 		cout << "Enter SSFP TR (seconds): " << flush;
 		cin >> inTR;
 		cout << "Enter " << nFlip << " flip angles (degrees): " << flush;
-		for (int i = 0; i < nFlip; i++)
+		for (size_t i = 0; i < nFlip; i++)
 			cin >> inFlip[i];
 	}
 	inFlip *= M_PI / 180.;
 	cout << "Reading SSFP data..." << endl;
-	vector<double> ssfpData = inFile.readAllVolumes<double>();
+	vector<double> ssfpData(voxelsPerVolume * nFlip);
+	inFile.readVolumes(0, nFlip, ssfpData);
 	inFile.close();
-	nResiduals += nFlip;
+	nResiduals = nFlip;
 	optind++;
 	if (verbose) {
 		cout << "SSFP Angles (deg): " << inFlip.transpose() * 180 / M_PI << endl;
@@ -176,16 +182,14 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	if ((start_slice < 0) || (start_slice >= inFile.dim(3)))
-		start_slice = 0;
-	if ((end_slice < 0) || (end_slice > inFile.dim(3)))
+	if (end_slice > inFile.dim(3))
 		end_slice = inFile.dim(3);
 	ThreadPool pool;
     time_t procStart = time(NULL);
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
-	for (int slice = start_slice; slice < end_slice; slice++) {
+	for (size_t slice = start_slice; slice < end_slice; slice++) {
 		// Read in data
 		if (verbose)
 			cout << "Starting slice " << slice << "..." << flush;
@@ -203,7 +207,7 @@ int main(int argc, char **argv)
 				// Gather signals.
 				double B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 				VectorXd sig(nFlip);
-				for (int i = 0; i < nFlip; i++) {
+				for (size_t i = 0; i < nFlip; i++) {
 					sig(i) = ssfpData.at(i*voxelsPerVolume + sliceOffset + vox);
 				}
 				resid = classicDESPOT2(inFlip, sig, inTR, T1, B1, PD, T2);
@@ -229,13 +233,13 @@ int main(int argc, char **argv)
 	
 	const vector<string> classic_names { "D2_PD", "D2_T2" };
 	outFile.open(outPrefix + "D2_PD.nii.gz", Nifti::Mode::Write);
-	outFile.writeVolume(0, PDData);
+	outFile.writeVolumes(0, 1, PDData);
 	outFile.close();
 	outFile.open(outPrefix + "D2_T2.nii.gz", Nifti::Mode::Write);
-	outFile.writeVolume(0, T2Data);
+	outFile.writeVolumes(0, 1, T2Data);
 	outFile.close();
 	outFile.open(outPrefix + "D2_Residual.nii.gz", Nifti::Mode::Write);
-	outFile.writeVolume(0, residualData);
+	outFile.writeVolumes(0, 1, residualData);
 	outFile.close();
 	cout << "Finished writing data." << endl;
 	exit(EXIT_SUCCESS);

@@ -155,7 +155,6 @@ int main(int argc, char **argv) {
 	// Argument Processing
 	//**************************************************************************
 	cout << credit << endl;
-	int nSPGR = 0, nIR = 0;
 	Nifti maskFile, spgrFile, irFile;
 	vector<double> maskData;
 	
@@ -172,7 +171,8 @@ int main(int argc, char **argv) {
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData = maskFile.readVolume<double>(0);
+				maskData.resize(maskFile.dims().head(3).prod());
+				maskFile.readVolumes(0, 1, maskData);
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
 		cerr << "SPGR file dimensions or transform do not match mask." << endl;
 		exit(EXIT_FAILURE);
 	}
-	nSPGR = spgrFile.dim(4);
+	size_t nSPGR = spgrFile.dim(4);
 	VectorXd spgrAngles(nSPGR);
 	double spgrTR;
 	
@@ -205,13 +205,13 @@ int main(int argc, char **argv) {
 	Agilent::ProcPar pp;
 	if (ReadPP(spgrFile, pp)) {
 		spgrTR = pp.realValue("tr");
-		for (int i = 0; i < nSPGR; i++) spgrAngles[i] = pp.realValue("flip1", i);
+		for (size_t i = 0; i < nSPGR; i++) spgrAngles[i] = pp.realValue("flip1", i);
 	} else
 	#endif
 	{
 		cout << "Enter SPGR TR (seconds):"; cin >> spgrTR;
 		cout << "Enter " << nSPGR << " Flip Angles (degrees):";
-		for (int i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
+		for (size_t i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
 	}
 	spgrAngles *= M_PI / 180.;
 	
@@ -224,14 +224,14 @@ int main(int argc, char **argv) {
 		cerr << "Header of " << spgrFile.imagePath() << " does not match " << irFile.imagePath() << endl;
 		exit(EXIT_FAILURE);
 	}
-	nIR = irFile.dim(4);
+	size_t nIR = irFile.dim(4);
 	VectorXd irTI(nIR);
 	double irAngle, irTR;
 	
 	#ifdef AGILENT
 	if (ReadPP(irFile, pp)) {
 		irAngle = pp.realValue("flip1") * M_PI / 180.;
-		for (int i = 0; i < nIR; i++) irTI[i] = pp.realValue("ti", i);
+		for (size_t i = 0; i < nIR; i++) irTI[i] = pp.realValue("ti", i);
 		irTR = pp.realValue("trseg") - irTI[0];
 	} else
 	#endif
@@ -260,13 +260,13 @@ int main(int argc, char **argv) {
 			}
 			irTR = irTR * peReadout;
 			cout << "Enter " << nIR << " IR-SPGR TI times (seconds):";
-			for (int i = 0; i < nIR; i++) {
+			for (size_t i = 0; i < nIR; i++) {
 				cin >> irTI[i];
 				irTI[i] *= TIScale;
 			}
 		} else {
 			cout << "Enter " << nIR << " IR-SPGR TI times (seconds):";
-			for (int i = 0; i < nIR; i++) cin >> irTI[i];
+			for (size_t i = 0; i < nIR; i++) cin >> irTI[i];
 			fprintf(stdout, "Enter first scan Segment TR (seconds):"); cin >> irTR;
 			irTR -= irTI[0]; // Subtract off TI to get 
 		}
@@ -275,18 +275,19 @@ int main(int argc, char **argv) {
 		cout << "Found " << nIR << " SPGR-IR images with flip angle " << irAngle * 180. / M_PI << " degrees." << endl;
 		cout << "Segment TR is " << irTR << " seconds." << endl;
 		cout << "Inversion time(s) are ";
-		for (int i = 0; i < nIR; i++) cout << irTI[i] << " ";
+		for (size_t i = 0; i < nIR; i++) cout << irTI[i] << " ";
 		cout << "seconds." << endl;
 	}
 	//**************************************************************************
 	// Allocate memory for slices
 	//**************************************************************************	
-	int voxelsPerSlice = spgrFile.voxelsPerSlice();
-	int voxelsPerVolume = spgrFile.voxelsPerVolume();
+	size_t voxelsPerSlice = spgrFile.dims().head(2).prod();
+	size_t voxelsPerVolume = spgrFile.dims().head(3).prod();
 	
 	cout << "Reading image data..." << flush;
-	vector<double> SPGR = spgrFile.readAllVolumes<double>();
-	vector<double> IR   = irFile.readAllVolumes<double>();
+	vector<double> SPGR(voxelsPerVolume * nSPGR), IR(voxelsPerVolume * nIR);
+	spgrFile.readVolumes(0, nSPGR, SPGR);
+	irFile.readVolumes(0, nIR, IR);
 	spgrFile.close();
 	irFile.close();
 	cout << "done." << endl;
@@ -303,7 +304,7 @@ int main(int argc, char **argv) {
 	// Do the fitting
 	//**************************************************************************
 	ThreadPool pool;
-	for (int slice = 0; slice < spgrFile.dim(3); slice++)
+	for (size_t slice = 0; slice < spgrFile.dim(3); slice++)
 	{
 		clock_t loopStart;
 		// Read in data
@@ -311,7 +312,7 @@ int main(int argc, char **argv) {
 			cout << "Starting slice " << slice << "..." << flush;
 		loopStart = clock();
 		atomic<int> voxCount{0};
-		int sliceOffset = slice * voxelsPerSlice;
+		size_t sliceOffset = slice * voxelsPerSlice;
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Assume B1 field is uniform for classic DESPOT
@@ -320,9 +321,9 @@ int main(int argc, char **argv) {
 				voxCount++;
 				ArrayXd spgrs(nSPGR), irs(nIR);
 				int vol = 0;
-				for (int img = 0; img < nSPGR; img++)
+				for (size_t img = 0; img < nSPGR; img++)
 						spgrs[vol++] = SPGR[img * voxelsPerVolume + sliceOffset + vox];
-				for (int img = 0; img < nIR; img++)
+				for (size_t img = 0; img < nIR; img++)
 						irs[img] = IR[img * voxelsPerVolume + sliceOffset + vox];
 				res = calcHIFI(spgrAngles, spgrs, spgrTR,
 				               irTI, irs, irAngle, irTR, peReadout, inversionEfficiency,
@@ -357,7 +358,7 @@ int main(int argc, char **argv) {
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
 		outFile.open(outName, Nifti::Mode::Write);
-		outFile.writeVolume<double>(0, resultsData[r]);
+		outFile.writeVolumes(0, 1, resultsData[r]);
 		outFile.close();
 	}
 	cout << "All done." << endl;

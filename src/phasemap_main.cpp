@@ -55,7 +55,8 @@ int main(int argc, char** argv)
 			case 'm':
 				cout << "Reading mask from " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				mask = maskFile.readVolume<double>(0);
+				mask.resize(maskFile.dims().head(3).prod());
+				maskFile.readVolumes(0, 1, mask);
 				break;
 			case 'p':
 				phasetime = atof(optarg);
@@ -80,8 +81,10 @@ int main(int argc, char** argv)
 			cout << "Enter TE2 & TE2 (seconds): ";
 			cin >> TE1 >> TE2;
 		}
-		data1 = inFile.readVolume<double>(0);
-		data2 = inFile.readVolume<double>(1);
+		data1.resize(inFile.dims().head(3).prod());
+		data2.resize(inFile.dims().head(3).prod());
+		inFile.readVolumes(0, 1, data1);
+		inFile.readVolumes(1, 1, data2);
 		inFile.close();
 	} else if ((argc - optind) == 3) {
 		cout << "Opening input file 1" << argv[optind] << "." << endl;
@@ -100,7 +103,8 @@ int main(int argc, char** argv)
 			cout << "Enter TE1 (seconds): ";
 			cin >> TE1;
 		}
-		data1 = inFile.readVolume<double>(0);
+		data1.resize(inFile.dims().head(3).prod());
+		inFile.readVolumes(0, 1, data1);
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
@@ -117,7 +121,8 @@ int main(int argc, char** argv)
 			cout << "Enter TE2 (seconds): ";
 			cin >> TE2;
 		}
-		data2 = inFile.readVolume<double>(1);
+		data2.resize(inFile.dims().head(3).prod());
+		inFile.readVolumes(0, 1, data2);
 		inFile.close();
 	} else {
 		cerr << usage << endl;
@@ -133,9 +138,9 @@ int main(int argc, char** argv)
 	}
 	deltaTE = TE2 - TE1;
 	cout << "Delta TE = " << deltaTE << endl;
-	B0.resize(inFile.voxelsPerVolume());
+	B0.resize(inFile.dims().head(3).prod());
 	cout << "Processing..." << endl;
-	for (size_t vox = 0; vox < inFile.voxelsPerVolume(); vox++) {
+	for (size_t vox = 0; vox < inFile.dims().head(3).prod(); vox++) {
 		if (!maskFile.isOpen() || mask[vox] > 0.) {
 			double deltaPhase = data2[vox] - data1[vox];
 			B0[vox] = deltaPhase / (2 * M_PI * deltaTE);
@@ -152,7 +157,7 @@ int main(int argc, char** argv)
 	
 	Nifti outFile(inFile, 1);
 	outFile.open(outPath, Nifti::Mode::Write);
-	outFile.writeVolume(0, B0);
+	outFile.writeVolumes(0, 1, B0);
 	outFile.close();
 	cout << "Finished." << endl;
     return EXIT_SUCCESS;
