@@ -52,7 +52,7 @@ TARGETS = libNifti.a nifti_hdr
 all     : $(TARGETS)
 
 install : | $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB)
-	mkdir $(INSTALL_INC)/Nifti
+	mkdir -p $(INSTALL_INC)/Nifti
 	cp $(SRC_DIR)/Nifti.h $(SRC_DIR)/ExtensionCodes.h $(SRC_DIR)/Nifti-inl.h $(SRC_DIR)/ZipFile.h $(INSTALL_INC)/Nifti/
 	cp libNifti.a $(INSTALL_LIB)/
 	cp nifti_hdr $(INSTALL_BIN)/
