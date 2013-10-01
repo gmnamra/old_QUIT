@@ -65,7 +65,7 @@ int main(int argc, const char * argv[])
 	output.setDim(3, thisFid.nDim2());
 	output.setDim(4, thisFid.nVolumes());
 	output.setDatatype(NIFTI_TYPE_FLOAT32);
-	output.open("output.nii.gz", Nifti::Modes::Write);
+	output.open("output.nii.gz", Nifti::Mode::Write);
 	output.writeAllVolumes(kSpace);
 	output.close();
 	
