@@ -34,27 +34,30 @@ template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes
 	T sc_sl = static_cast<T>(scaling_slope);
 	T sc_in = static_cast<T>(scaling_inter);
 	auto el = begin;
-	for (size_t i = 0; i < nEl; i++) {
-		switch (m_typeinfo.type) {
-			case DataType::INT8:       *el = sc_in + sc_sl * static_cast<T>(reinterpret_cast<const int8_t *>(bytes.data())[i]); break;
-			case DataType::INT16:      *el = sc_in + sc_sl * static_cast<T>(reinterpret_cast<const int16_t *>(bytes.data())[i]); break;
-			case DataType::INT32:      *el = sc_in + sc_sl * static_cast<T>(reinterpret_cast<const int32_t *>(bytes.data())[i]); break;
-			case DataType::INT64:      *el = sc_in + sc_sl * static_cast<T>(reinterpret_cast<const int64_t *>(bytes.data())[i]); break;
-			case DataType::UINT8:      *el = sc_in + sc_sl * static_cast<T>(reinterpret_cast<const uint8_t *>(bytes.data())[i]); break;
-			case DataType::UINT16:     *el = sc_in + sc_sl * static_cast<T>(reinterpret_cast<const uint16_t *>(bytes.data())[i]); break;
-			case DataType::UINT32:     *el = sc_in + sc_sl * static_cast<T>(reinterpret_cast<const uint32_t *>(bytes.data())[i]); break;
-			case DataType::UINT64:     *el = sc_in + sc_sl * static_cast<T>(reinterpret_cast<const uint64_t *>(bytes.data())[i]); break;
-			case DataType::FLOAT32:    *el = sc_in + sc_sl * static_cast<T>(reinterpret_cast<const float *>(bytes.data())[i]); break;
-			case DataType::FLOAT64:    *el = sc_in + sc_sl * static_cast<T>(reinterpret_cast<const double *>(bytes.data())[i]); break;
-			case DataType::FLOAT128:   *el = sc_in + sc_sl * static_cast<T>(reinterpret_cast<const long double *>(bytes.data())[i]); break;
-			case DataType::COMPLEX64:  *el = sc_in + sc_sl * static_cast<T>(abs(reinterpret_cast<const std::complex<float> *>(bytes.data())[i])); break;
-			case DataType::COMPLEX128: *el = sc_in + sc_sl * static_cast<T>(abs(reinterpret_cast<const std::complex<double> *>(bytes.data())[i])); break;
-			case DataType::COMPLEX256: *el = sc_in + sc_sl * static_cast<T>(abs(reinterpret_cast<const std::complex<long double> *>(bytes.data())[i])); break;
-			case DataType::RGB24: case DataType::RGBA32:
-				throw(std::runtime_error("Unsupported datatype.")); break;
-		}
-		el++;
+	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<const BYTE_TYPE *>(bytes.data())
+	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR(BYTE_TYPE); while (el != end) { *el = sc_in + sc_sl * static_cast<T>(*p); el++; p++; }
+	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR(std::complex<BYTE_TYPE>); while (el != end) { *el = sc_in + sc_sl * static_cast<T>(abs(*p)); el++; p++; }
+	switch (m_typeinfo.type) {
+		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
+		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
+		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
+		case DataType::INT64:      { REAL_LOOP(int64_t); }; break;
+		case DataType::UINT8:      { REAL_LOOP(uint8_t); }; break;
+		case DataType::UINT16:     { REAL_LOOP(uint16_t); }; break;
+		case DataType::UINT32:     { REAL_LOOP(uint32_t); }; break;
+		case DataType::UINT64:     { REAL_LOOP(uint64_t); }; break;
+		case DataType::FLOAT32:    { REAL_LOOP(float); }; break;
+		case DataType::FLOAT64:    { REAL_LOOP(double); }; break;
+		case DataType::FLOAT128:   { REAL_LOOP(long double); }; break;
+		case DataType::COMPLEX64:  { COMP_LOOP(float); }; break;
+		case DataType::COMPLEX128: { COMP_LOOP(double); }; break;
+		case DataType::COMPLEX256: { COMP_LOOP(long double); }; break;
+		case DataType::RGB24: case DataType::RGBA32:
+			throw(std::runtime_error("Unsupported datatype.")); break;
 	}
+	#undef COMP_LOOP
+	#undef REAL_LOOP
+	#undef DECL_PTR
 }
 
 template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes,
@@ -65,27 +68,30 @@ template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes
 	T sc_sl = static_cast<T>(scaling_slope);
 	T sc_in = static_cast<T>(scaling_inter);
 	auto el = begin;
-	for (size_t i = 0; i < nEl; i++) {
-		switch (m_typeinfo.type) {
-			case DataType::INT8:       *el = sc_in + sc_sl * std::complex<T>(static_cast<T>(reinterpret_cast<const int8_t *>(bytes.data())[i]), 0.); break;
-			case DataType::INT16:      *el = sc_in + sc_sl * std::complex<T>(static_cast<T>(reinterpret_cast<const int16_t *>(bytes.data())[i]), 0.); break;
-			case DataType::INT32:      *el = sc_in + sc_sl * std::complex<T>(static_cast<T>(reinterpret_cast<const int32_t *>(bytes.data())[i]), 0.); break;
-			case DataType::INT64:      *el = sc_in + sc_sl * std::complex<T>(static_cast<T>(reinterpret_cast<const int64_t *>(bytes.data())[i]), 0.); break;
-			case DataType::UINT8:      *el = sc_in + sc_sl * std::complex<T>(static_cast<T>(reinterpret_cast<const uint8_t *>(bytes.data())[i]), 0.); break;
-			case DataType::UINT16:     *el = sc_in + sc_sl * std::complex<T>(static_cast<T>(reinterpret_cast<const uint16_t *>(bytes.data())[i]), 0.); break;
-			case DataType::UINT32:     *el = sc_in + sc_sl * std::complex<T>(static_cast<T>(reinterpret_cast<const uint32_t *>(bytes.data())[i]), 0.); break;
-			case DataType::UINT64:     *el = sc_in + sc_sl * std::complex<T>(static_cast<T>(reinterpret_cast<const uint64_t *>(bytes.data())[i]), 0.); break;
-			case DataType::FLOAT32:    *el = sc_in + sc_sl * std::complex<T>(static_cast<T>(reinterpret_cast<const float *>(bytes.data())[i]), 0.); break;
-			case DataType::FLOAT64:    *el = sc_in + sc_sl * std::complex<T>(static_cast<T>(reinterpret_cast<const double *>(bytes.data())[i]), 0.); break;
-			case DataType::FLOAT128:   *el = sc_in + sc_sl * std::complex<T>(static_cast<T>(reinterpret_cast<const long double *>(bytes.data())[i]), 0.); break;
-			case DataType::COMPLEX64:  *el = sc_in + sc_sl * static_cast<std::complex<T> >(reinterpret_cast<const std::complex<float> *>(bytes.data())[i]); break;
-			case DataType::COMPLEX128: *el = sc_in + sc_sl * static_cast<std::complex<T> >(reinterpret_cast<const std::complex<double> *>(bytes.data())[i]); break;
-			case DataType::COMPLEX256: *el = sc_in + sc_sl * static_cast<std::complex<T> >(reinterpret_cast<const std::complex<long double> *>(bytes.data())[i]); break;
-			case DataType::RGB24: case DataType::RGBA32:
-				throw(std::runtime_error("Unsupported datatype.")); break;
-		}
-		el++;
+	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<const BYTE_TYPE *>(bytes.data())
+	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR(BYTE_TYPE); while (el != end) { *el = std::complex<T>(sc_in + sc_sl * static_cast<T>(*p), 0.); el++; p++; }
+	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR(std::complex<BYTE_TYPE>); while (el != end) { *el = sc_in + sc_sl * static_cast<std::complex<T>>(*p); el++; p++; }
+	switch (m_typeinfo.type) {
+		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
+		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
+		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
+		case DataType::INT64:      { REAL_LOOP(int64_t); }; break;
+		case DataType::UINT8:      { REAL_LOOP(uint8_t); }; break;
+		case DataType::UINT16:     { REAL_LOOP(uint16_t); }; break;
+		case DataType::UINT32:     { REAL_LOOP(uint32_t); }; break;
+		case DataType::UINT64:     { REAL_LOOP(uint64_t); }; break;
+		case DataType::FLOAT32:    { REAL_LOOP(float); }; break;
+		case DataType::FLOAT64:    { REAL_LOOP(double); }; break;
+		case DataType::FLOAT128:   { REAL_LOOP(long double); }; break;
+		case DataType::COMPLEX64:  { COMP_LOOP(float); }; break;
+		case DataType::COMPLEX128: { COMP_LOOP(double); }; break;
+		case DataType::COMPLEX256: { COMP_LOOP(long double); }; break;
+		case DataType::RGB24: case DataType::RGBA32:
+			throw(std::runtime_error("Unsupported datatype.")); break;
 	}
+	#undef COMP_LOOP
+	#undef REAL_LOOP
+	#undef DECL_PTR
 }
 
 /**
@@ -112,27 +118,30 @@ template<typename T> void Nifti::convertToBytes(const typename std::vector<T>::i
 	T sc_sl = static_cast<T>(scaling_slope);
 	T sc_in = static_cast<T>(scaling_inter);
 	auto el = begin;
-	for (size_t i = 0; i < nEl; i++) {
-		switch (m_typeinfo.type) {
-			case DataType::INT8:              reinterpret_cast<char *>(bytes.data())[i] = static_cast<int8_t>(*el / sc_sl - sc_in); break;
-			case DataType::INT16:            reinterpret_cast<short *>(bytes.data())[i] = static_cast<int16_t>(*el / sc_sl - sc_in); break;
-			case DataType::INT32:              reinterpret_cast<int *>(bytes.data())[i] = static_cast<int32_t>(*el / sc_sl - sc_in); break;
-			case DataType::INT64:             reinterpret_cast<long *>(bytes.data())[i] = static_cast<int64_t>(*el / sc_sl - sc_in); break;
-			case DataType::UINT8:    reinterpret_cast<unsigned char *>(bytes.data())[i] = static_cast<uint8_t>(*el / sc_sl - sc_in); break;
-			case DataType::UINT16:  reinterpret_cast<unsigned short *>(bytes.data())[i] = static_cast<uint16_t>(*el / sc_sl - sc_in); break;
-			case DataType::UINT32:    reinterpret_cast<unsigned int *>(bytes.data())[i] = static_cast<uint32_t>(*el / sc_sl - sc_in); break;
-			case DataType::UINT64:   reinterpret_cast<unsigned long *>(bytes.data())[i] = static_cast<uint64_t>(*el / sc_sl - sc_in); break;
-			case DataType::FLOAT32:          reinterpret_cast<float *>(bytes.data())[i] = static_cast<float>(*el / sc_sl - sc_in); break;
-			case DataType::FLOAT64:         reinterpret_cast<double *>(bytes.data())[i] = static_cast<double>(*el / sc_sl - sc_in); break;
-			case DataType::FLOAT128:   reinterpret_cast<long double *>(bytes.data())[i] = static_cast<long double>(*el / sc_sl - sc_in); break;
-			case DataType::COMPLEX64:  reinterpret_cast<std::complex<float> *>(bytes.data())[i] = std::complex<float>(static_cast<float>(*el / sc_sl - sc_in)); break;
-			case DataType::COMPLEX128: reinterpret_cast<std::complex<double> *>(bytes.data())[i] = std::complex<double>(static_cast<double>(*el / sc_sl - sc_in)); break;
-			case DataType::COMPLEX256: reinterpret_cast<std::complex<long double> *>(bytes.data())[i] = std::complex<long double>(static_cast<long double>(*el / sc_sl - sc_in)); break;
-			case DataType::RGB24: case DataType::RGBA32:
-				throw(std::runtime_error("Unsupported datatype.")); break;
-		}
-		el++;
+	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<BYTE_TYPE *>(bytes.data())
+	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR( BYTE_TYPE ); while (el != end) { *p = static_cast<BYTE_TYPE>(*el / sc_sl - sc_in); el++; p++; }
+	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR( std::complex<BYTE_TYPE> ); while (el != end) { *p = std::complex<BYTE_TYPE>(*el / sc_sl - sc_in, 0.); el++; p++; }
+	switch (m_typeinfo.type) {
+		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
+		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
+		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
+		case DataType::INT64:      { REAL_LOOP(int64_t); }; break;
+		case DataType::UINT8:      { REAL_LOOP(uint8_t); }; break;
+		case DataType::UINT16:     { REAL_LOOP(uint16_t); }; break;
+		case DataType::UINT32:     { REAL_LOOP(uint32_t); }; break;
+		case DataType::UINT64:     { REAL_LOOP(uint64_t); }; break;
+		case DataType::FLOAT32:    { REAL_LOOP(float); }; break;
+		case DataType::FLOAT64:    { REAL_LOOP(double); }; break;
+		case DataType::FLOAT128:   { REAL_LOOP(long double); }; break;
+		case DataType::COMPLEX64:  { COMP_LOOP(float); }; break;
+		case DataType::COMPLEX128: { COMP_LOOP(double); }; break;
+		case DataType::COMPLEX256: { COMP_LOOP(long double); }; break;
+		case DataType::RGB24: case DataType::RGBA32:
+			throw(std::runtime_error("Unsupported datatype.")); break;
 	}
+	#undef COMP_LOOP
+	#undef REAL_LOOP
+	#undef DECL_PTR
 }
 
 template<typename T> void Nifti::convertToBytes(const typename std::vector<std::complex<T>>::iterator begin,
@@ -143,27 +152,30 @@ template<typename T> void Nifti::convertToBytes(const typename std::vector<std::
 	T sc_sl = static_cast<T>(scaling_slope);
 	T sc_in = static_cast<T>(scaling_inter);
 	auto el = begin;
-	for (int i = 0; i < nEl; i++) {
-		switch (m_typeinfo.type) {
-			case DataType::INT8:              reinterpret_cast<char *>(bytes.data())[i] = static_cast<int8_t>(abs(*el / sc_sl - sc_in)); break;
-			case DataType::INT16:            reinterpret_cast<short *>(bytes.data())[i] = static_cast<int16_t>(abs(*el / sc_sl - sc_in)); break;
-			case DataType::INT32:              reinterpret_cast<int *>(bytes.data())[i] = static_cast<int32_t>(abs(*el / sc_sl - sc_in)); break;
-			case DataType::INT64:             reinterpret_cast<long *>(bytes.data())[i] = static_cast<int64_t>(abs(*el / sc_sl - sc_in)); break;
-			case DataType::UINT8:    reinterpret_cast<unsigned char *>(bytes.data())[i] = static_cast<uint8_t>(abs(*el / sc_sl - sc_in)); break;
-			case DataType::UINT16:  reinterpret_cast<unsigned short *>(bytes.data())[i] = static_cast<uint16_t>(abs(*el / sc_sl - sc_in)); break;
-			case DataType::UINT32:    reinterpret_cast<unsigned int *>(bytes.data())[i] = static_cast<uint32_t>(abs(*el / sc_sl - sc_in)); break;
-			case DataType::UINT64:   reinterpret_cast<unsigned long *>(bytes.data())[i] = static_cast<uint64_t>(abs(*el / sc_sl - sc_in)); break;
-			case DataType::FLOAT32:          reinterpret_cast<float *>(bytes.data())[i] = static_cast<float>(abs(*el / sc_sl - sc_in)); break;
-			case DataType::FLOAT64:         reinterpret_cast<double *>(bytes.data())[i] = static_cast<double>(abs(*el / sc_sl - sc_in)); break;
-			case DataType::FLOAT128:   reinterpret_cast<long double *>(bytes.data())[i] = static_cast<long double>(abs(*el / sc_sl - sc_in)); break;
-			case DataType::COMPLEX64:  reinterpret_cast<std::complex<float> *>(bytes.data())[i] = static_cast<std::complex<float> >(*el / sc_sl - sc_in); break;
-			case DataType::COMPLEX128: reinterpret_cast<std::complex<double> *>(bytes.data())[i] = static_cast<std::complex<double> >(*el / sc_sl - sc_in); break;
-			case DataType::COMPLEX256: reinterpret_cast<std::complex<long double> *>(bytes.data())[i] = static_cast<std::complex<long double> >(*el / sc_sl - sc_in); break;
-			case DataType::RGB24: case DataType::RGBA32:
-				throw(std::runtime_error("Unsupported datatype.")); break;
-		}
-		el++;
+	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<BYTE_TYPE *>(bytes.data())
+	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR( BYTE_TYPE ); while (el != end) { *p = static_cast<BYTE_TYPE>(abs(*el) / sc_sl - sc_in); el++; p++; }
+	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR( std::complex<BYTE_TYPE> ); while (el != end) { *p = static_cast<std::complex<BYTE_TYPE>>(*el / sc_sl - sc_in); el++; p++; }
+	switch (m_typeinfo.type) {
+		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
+		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
+		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
+		case DataType::INT64:      { REAL_LOOP(int64_t); }; break;
+		case DataType::UINT8:      { REAL_LOOP(uint8_t); }; break;
+		case DataType::UINT16:     { REAL_LOOP(uint16_t); }; break;
+		case DataType::UINT32:     { REAL_LOOP(uint32_t); }; break;
+		case DataType::UINT64:     { REAL_LOOP(uint64_t); }; break;
+		case DataType::FLOAT32:    { REAL_LOOP(float); }; break;
+		case DataType::FLOAT64:    { REAL_LOOP(double); }; break;
+		case DataType::FLOAT128:   { REAL_LOOP(long double); }; break;
+		case DataType::COMPLEX64:  { COMP_LOOP(float); }; break;
+		case DataType::COMPLEX128: { COMP_LOOP(double); }; break;
+		case DataType::COMPLEX256: { COMP_LOOP(long double); }; break;
+		case DataType::RGB24: case DataType::RGBA32:
+			throw(std::runtime_error("Unsupported datatype.")); break;
 	}
+	#undef COMP_LOOP
+	#undef REAL_LOOP
+	#undef DECL_PTR
 }
 
 /*
