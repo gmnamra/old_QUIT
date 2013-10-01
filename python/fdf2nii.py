@@ -39,7 +39,7 @@ class App:
 		frame.pack()
 		
 		input = Tk.Frame(frame)
-		input.grid(row = 0, column = 0)
+		input.grid(row = 1, column = 0)
 		Tk.Label(input, text = 'Input:').grid(row = 0, sticky=Tk.E)
 		Tk.Label(input, text = 'Output:').grid(row = 1, sticky=Tk.E)
 		self.in_entry  = Tk.Entry(input, width = 64)
@@ -53,11 +53,16 @@ class App:
 		self.out_button = Tk.Button(input, text = "...", command = self.find_out)
 		self.out_button.grid(row = 1, column = 2)
 		
+		type = Tk.Frame(frame)
+		type.grid(row = 0, column = 0)
+		self.type = Tk.IntVar()
+		self.type.set(1)
+		Tk.Radiobutton(type, text = "Single scan", variable = self.type, value = 0).grid(row = 0, column = 0, sticky = Tk.W)
+		Tk.Radiobutton(type, text = "Single subject", variable = self.type, value = 1).grid(row = 0, column = 1, sticky = Tk.W)
+		Tk.Radiobutton(type, text = "Multiple subjects", variable = self.type, value = 2).grid(row = 0, column = 2, sticky = Tk.W)
+		
 		options = Tk.Frame(frame)
-		options.grid(row = 1, column = 0)
-		self.study = Tk.IntVar()
-		self.study.set(1)
-		Tk.Checkbutton(options, text = "Whole study", variable = self.study).grid(row = 0, column = 1, sticky = Tk.W)
+		options.grid(row = 2, column = 0)
 		self.spm_scale = Tk.IntVar()
 		self.spm_scale.set(1)
 		Tk.Checkbutton(options, text = "Scale for SPM", variable = self.spm_scale).grid(row = 0, column = 2, sticky = Tk.W)
@@ -82,10 +87,10 @@ class App:
 		
 		self.go_button = Tk.Button(options, text = "Convert", command = self.go)
 		self.go_button.grid(row = 0, column = 6, rowspan = 2, columnspan = 2, sticky=Tk.N+Tk.S+Tk.E+Tk.W)
-		self.go_text = StatusBar(frame)
-		self.go_text.set("Ready.\n")
-		self.go_text.grid(row = 2, sticky=Tk.W + Tk.E)
-		self.go_text.grid_propagate(False)
+		self.status_bar = StatusBar(frame)
+		self.status_bar.set("Ready.\n")
+		self.status_bar.grid(row = 3, sticky=Tk.W + Tk.E)
+		self.status_bar.grid_propagate(False)
 		
 		menu = Tk.Menu(root)
 		root.config(menu=menu)
@@ -102,14 +107,10 @@ class App:
 	
 	def find_out(self):
 		self.out_entry.delete(0, Tk.END)
-		self.out_dir = tkFileDialog.askdirectory(initialdir = self.out_dir, mustexist = True)
+		self.out_dir = tkFileDialog.askdirectory(initialdir = self.out_dir, mustexist = False)
 		self.out_entry.insert(0, self.out_dir)
 
-	def go(self):
-		(inpath, inext) = os.path.splitext(os.path.normpath(self.in_entry.get()))
-		(indir, inbase) = os.path.split(os.path.normpath(inpath))
-		outpath = self.out_entry.get()
-		
+	def runCommand(self, inpath, outpath):
 		command = 'fdf2nii -v '
 		if self.spm_scale.get():
 			command = command + '-s 10.0 '
@@ -125,37 +126,60 @@ class App:
 		else:
 			command = command + '-e ' + str(self.echo_mode.get()) + ' '
 		
-		if self.study.get():
-			if inext == ".img":
-				tkMessageBox.showwarning("Wrong folder", "You must select the parent folder when converting a whole study.")
-				return
-			outpath = outpath + '/' + inbase
-			mkdir_p(outpath)
-			command = command + '-o ' + outpath + '/ '
-			
-			scans = glob.glob(inpath + '/*.img')
-			for s in scans:
-				if (self.ignore_scout.get() and (os.path.basename(s).lower().find("scout") != -1)):
-					pass
-				else:
-					command = command + s + ' '
-		else:
-			if inext != ".img":
-				tkMessageBox.showwarning("Wrong Extension", "You must select the .img folder when converting a single image.")
-				return
-			command = command + '-o ' + outpath + '/ ' + inpath + inext
+		command = command + '-o ' + outpath + ' '
+		command = command + inpath
 		
-		self.go_text.clear()
-		self.go_text.set("Starting.\n")
-		self.go_text.set("Input directory: " + inpath + "\nOutput Directory: " + outpath + "\n")
-		self.go_text.set("Running command: " + command)
-		self.master.config(cursor = "watch")
-		self.master.update_idletasks()
+		self.status_bar.set("Running command: " + command + '\n')
 		p = subprocess.Popen(command,
 							 shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		for line in iter(p.stdout.readline, ''):
-			self.go_text.set(line)
+			self.status_bar.set(line)
 			self.master.update_idletasks()
+	
+	def findScans(self, inpath):
+		scans = glob.glob(inpath + '/*.img')
+		list = ''
+		for s in scans:
+			if (self.ignore_scout.get() and (os.path.basename(s).lower().find("scout") != -1)):
+				pass
+			else:
+				list = list + s + ' '
+		return list
+	
+	def go(self):
+		self.status_bar.clear()
+		self.status_bar.set("Starting.\n")
+		self.master.config(cursor = "watch")
+		self.master.update_idletasks()
+				
+		(inpath, inext) = os.path.splitext(os.path.normpath(self.in_entry.get()))
+		(indir, inbase) = os.path.split(os.path.normpath(inpath))
+		outpath = self.out_entry.get()
+		
+		if (self.type.get() == 0):
+			if inext != ".img":
+				tkMessageBox.showwarning("Wrong Extension", "You must select the .img folder when converting a single image.")
+				return
+			self.runCommand(inpath + inext, outpath + '/')
+		elif (self.type.get() == 1):
+			if inext == ".img":
+				tkMessageBox.showwarning("Wrong folder", "You must select the parent folder when converting a single subject.")
+				return
+			outpath = outpath + '/' + inbase + '/'
+			mkdir_p(outpath)
+			scans = self.findScans(inpath)
+			self.runCommand(scans, outpath)
+		elif (self.type.get() == 2):
+			if inext == ".img":
+				tkMessageBox.showwarning("Wrong folder", "Don't select a .img folder when converting multiple subjects.")
+				return
+			subjects = os.walk(inpath).next()[1]
+			for subj in subjects:
+				fullsubj = inpath + '/' + subj
+				subjin = self.findScans(fullsubj)
+				subjout = outpath + '/' + inbase + '/' + subj + '/'
+				mkdir_p(subjout)
+				self.runCommand(subjin, subjout)
 		self.master.config(cursor = "")
 
 root = Tk.Tk()
