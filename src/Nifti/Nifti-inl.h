@@ -205,13 +205,11 @@ template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &star
 		firstDim++;
 		blockSize *= size(firstDim);
 	}
-	//cout << "firstDim " << firstDim << " blockSize " << blockSize << endl;
 	std::vector<char> block(blockSize * m_typeinfo.size);
 	ArrayXs blockStart = start;
 	std::function<void (const size_t dim)> dimLoop;
 	dimLoop = [&] (const size_t dim) {
 		if (dim == firstDim) {
-			//cout << "target " << target.transpose() << endl;
 			seekToVoxel(blockStart);
 			if (m_mode == Nifti::Mode::Read) {
 				readBytes(block);
@@ -222,7 +220,6 @@ template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &star
 			}
 			dataIt += blockSize;
 		} else {
-			//cout << "dim " << dim << " start " << start(dim) << " end " << start(dim) + size(dim) << endl;
 			for (size_t v = start(dim); v < start(dim) + size(dim); v++) {
 				blockStart(dim) = v;
 				dimLoop(dim - 1);
