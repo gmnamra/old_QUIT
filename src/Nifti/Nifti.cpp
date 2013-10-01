@@ -200,7 +200,7 @@ Nifti::Nifti() :
 Nifti::Nifti(const Nifti &other) :
 	m_mode(other.m_mode), m_gz(other.m_gz), m_nii(other.m_nii),
 	m_swap(other.m_swap), m_voxoffset(other.m_voxoffset),
-	m_dim(other.m_dim), m_voxdim(other.m_voxdim),
+	m_dim(other.m_dim), m_voxdim(other.m_voxdim), m_strides(other.m_strides),
 	m_qform(other.m_qform), m_sform(other.m_sform),
 	m_qcode(other.m_qcode), m_scode(other.m_scode),
 	m_typeinfo(other.m_typeinfo), m_basepath(other.m_basepath), m_file(),
@@ -236,7 +236,7 @@ Nifti::Nifti(const Nifti &other, const size_t nt, const DataType dtype) : Nifti(
 Nifti::Nifti(Nifti &&other) noexcept :
 	m_mode(other.m_mode), m_gz(other.m_gz), m_nii(other.m_nii),
 	m_swap(other.m_swap), m_voxoffset(other.m_voxoffset),
-	m_dim(other.m_dim), m_voxdim(other.m_voxdim),
+	m_dim(other.m_dim), m_voxdim(other.m_voxdim), m_strides(other.m_strides),
 	m_qform(other.m_qform), m_sform(other.m_sform),
 	m_qcode(other.m_qcode), m_scode(other.m_scode),
 	m_typeinfo(other.m_typeinfo), m_basepath(other.m_basepath), m_file(other.m_file),
@@ -271,6 +271,7 @@ Nifti::Nifti(const int nx, const int ny, const int nz, const int nt,
 	m_dim[3] = nt < 1 ? 1 : nt;
 	m_voxdim[0] = dx; m_voxdim[1] = dy; m_voxdim[2] = dz; m_voxdim[3] = dt;
 	setTransform(xform);
+	calcStrides();
 }
 
 Nifti::Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
@@ -284,6 +285,7 @@ Nifti::Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
 	m_voxdim.head(voxdim.rows()) = voxdim;
 	m_typeinfo = TypeInfo(dtype);
 	setTransform(xform);
+	calcStrides();
 }
 
 Nifti &Nifti::operator=(const Nifti &other)
@@ -294,6 +296,7 @@ Nifti &Nifti::operator=(const Nifti &other)
 		close();
 	
 	m_dim = other.m_dim;
+	m_strides = other.m_strides;
 	m_voxdim = other.m_voxdim;
 	m_qform = other.m_qform;
 	m_sform = other.m_sform;
@@ -867,7 +870,7 @@ void Nifti::seekToVoxel(const ArrayXs &target) {
 	}
 	size_t index = (target * m_strides.head(target.rows())).sum() * m_typeinfo.size + m_voxoffset;
 	size_t current = m_file.tell();
-	if (!m_file.seek(index - current, SEEK_CUR)) {
+	if ((index - current != 0) && !m_file.seek(index - current, SEEK_CUR)) {
 		throw(std::runtime_error("Failed to seek to index: " + to_string(index) + " in file: " + imagePath()));
 	}
 }
