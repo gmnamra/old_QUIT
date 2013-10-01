@@ -8,6 +8,8 @@
 
 #include "Nifti/ZipFile.h"
 
+//#include <iostream> // For debug
+
 using namespace std;
 
 //******************************

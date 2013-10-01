@@ -1,20 +1,8 @@
 #include "Nifti/Nifti.h"
 #include "Nifti/Internal.h"
 
-using std::string;
-using std::to_string;
-using std::complex;
-using std::vector;
-using std::list;
-using std::map;
-using std::numeric_limits;
-using Eigen::Matrix;
-using Eigen::Array;
-using Eigen::ArrayXf;
-using Eigen::Affine3f;
-using Eigen::Scaling;
-using Eigen::Translation3f;
-using Eigen::Quaternionf;
+using namespace std;
+using namespace Eigen;
 
 const Nifti::DataType Nifti::DataTypeForCode(const int code) {
 	static const map<int, DataType> c2dt{
@@ -364,9 +352,14 @@ void Nifti::open(const string &path, const Mode &mode) {
 			writeExtensions();
 		break;
 	}
-	m_file.close(); // We have now read or written the header
-	if (mode != Mode::ReadHeader) {
+	if (mode == Mode::ReadHeader) {
+		m_file.close();
+	} else if (m_nii) {
+		// We are opening a .nii, keep the file open
+	} else {
+		// We are opening a .hdr/.img pair, close the header and open the image
 		bool result;
+		m_file.close();
 		if (mode == Mode::Read)
 			result = m_file.open(imagePath(), "rb", m_gz);
 		else
@@ -603,10 +596,11 @@ void Nifti::writeHeader() {
 	strncpy(nhdr.intent_name, intent_name.c_str(), 16);
 	
 	// Check that m_voxoffset is sensible
-	m_voxoffset = 352;
 	if (m_nii)
-		m_voxoffset += totalExtensionSize();
-	nhdr.vox_offset = m_voxoffset ;
+		m_voxoffset = sizeof(nhdr) + 4 + totalExtensionSize(); // The 4 is for the nifti_extender struct
+	else
+		m_voxoffset = 0;
+	nhdr.vox_offset = m_voxoffset;
 	nhdr.xyzt_units = SPACE_TIME_TO_XYZT(xyz_units, time_units);
 	nhdr.toffset    = toffset ;
 	
@@ -868,21 +862,14 @@ void Nifti::calcStrides() {
   * @throws std::runtime_error if the seek fails.
   */
 void Nifti::seekToVoxel(const ArrayXs &target) {
-	if (target.rows() > rank()) {
-		throw(std::out_of_range("Too many dimensions for seeking."));
-	}
 	if ((target > m_dim.head(target.rows())).any()) {
 		throw(std::out_of_range("Target voxel is outside image dimensions."));
 	}
-	//cout << "strides " << m_strides.transpose() << " target " << target.transpose() << endl;
-	//cout << "product " << (target * m_strides.head(target.rows())).transpose() << endl;
 	size_t index = (target * m_strides.head(target.rows())).sum() * m_typeinfo.size + m_voxoffset;
 	size_t current = m_file.tell();
-	//cout << "index " << index << " current " << current << endl;
 	if (!m_file.seek(index - current, SEEK_CUR)) {
 		throw(std::runtime_error("Failed to seek to index: " + to_string(index) + " in file: " + imagePath()));
 	}
-	//cout << "seek result " << m_file.tell() << endl;
 }
 
 /**
