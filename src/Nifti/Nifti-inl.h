@@ -241,7 +241,7 @@ template<typename T> void Nifti::readVoxels(const Eigen::Ref<ArrayXs> &start, co
 template<typename T> void Nifti::readVolumes(const size_t first, const size_t nvol, std::vector<T> &data) {
 	if (!(m_mode == Mode::Read))
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
-	if (data.size() != (voxelsPerVolume() * nvol))
+	if (data.size() != (m_dim.head(3).prod() * nvol))
 		throw(std::runtime_error("Insufficient storage allocated for read: " + basePath()));
 	
 	ArrayXs start, size;
@@ -259,7 +259,7 @@ template<typename T> void Nifti::writeVoxels(const Eigen::Ref<ArrayXs> &start, c
 template<typename T> void Nifti::writeVolumes(const size_t first, const size_t nvol, const std::vector<T> &data) {
 	if (!(m_mode == Mode::Write))
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
-	if (data.size() != (voxelsPerVolume() * nvol))
+	if (data.size() != (m_dim.head(3).prod() * nvol))
 		throw(std::runtime_error("Insufficient data for write: " + basePath()));
 	
 	ArrayXs start, size;

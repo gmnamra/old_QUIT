@@ -400,7 +400,7 @@ void Nifti::close()
 		// Write a single zero-byte at the end to persuade the OS to write a file of the
 		// correct size.
 		m_file.seek(0, SEEK_END);
-		long correctEnd = (voxelsTotal() * m_typeinfo.size + m_voxoffset);
+		long correctEnd = (m_dim.prod() * m_typeinfo.size + m_voxoffset);
 		char zero{0};
 		long pos = m_file.tell();
 		if (pos < correctEnd) {
@@ -816,10 +816,6 @@ void Nifti::setDims(const ArrayXs &n) {
 		throw(std::logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
 }
-
-size_t Nifti::voxelsPerSlice() const  { return m_dim[0]*m_dim[1]; };
-size_t Nifti::voxelsPerVolume() const { return m_dim[0]*m_dim[1]*m_dim[2]; };
-size_t Nifti::voxelsTotal() const     { return m_dim.prod(); }
 
 float Nifti::voxDim(const size_t d) const {
 	assert((d > 0) && (d <= m_voxdim.rows()));

@@ -70,7 +70,7 @@ string voxMessage(const Nifti &im) {
 string sizeMessage(const Nifti &im) {
 	stringstream m;
 	m << "Voxels per slice, per volume, total: "
-      << im.voxelsPerSlice() << ", " << im.voxelsPerVolume() << ", " << im.voxelsTotal();
+      << im.dims().head(2).prod() << ", " << im.dims().head(3).prod() << ", " << im.dims().prod();
 	return m.str();
 }
 

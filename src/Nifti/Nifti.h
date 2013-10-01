@@ -147,9 +147,6 @@ class Nifti {
 		const ArrayXs dims() const;                             //!< Get all dimension sizes.
 		void setDim(const size_t d, const size_t n);            //!< Set the size (voxel count) of a dimension. Valid dimensions are 1-7.
 		void setDims(const ArrayXs &newDims);                   //!< Set all dimension sizes.
-		size_t voxelsPerSlice() const;                          //!< Voxel count for a whole slice (dim1 x dim2).
-		size_t voxelsPerVolume() const;                         //!< Voxel count for a volume (dim1 x dim2 x dim3).
-		size_t voxelsTotal() const;                             //!< Voxel count for whole image (all dimensions).
 		
 		float voxDim(const size_t d) const;                     //!< Get the voxel size along dimension d. Valid dimensions are 1-7.
 		const Eigen::ArrayXf voxDims() const;                   //!< Get all voxel sizes.
