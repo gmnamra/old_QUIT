@@ -144,15 +144,24 @@ class DESPOTFunctor : public Functor<double> {
 		const bool m_debug;
 	
 		ArrayXXd offResBounds() {
-			ArrayXXd b(nOffRes(), 2);
-			for (size_t i = 0; i < nOffRes(); i++) {
-				if (m_offRes == OffResMode::SingleSymmetric)
-					b(i, 0) = 0;
-				else
-					b(i, 0) = -0.5 / m_signals.at(i)->m_TR;
-				b(i, 1) = 0.5 / m_signals.at(i)->m_TR;
+			double minTR = numeric_limits<double>::max();
+			for (auto &s : m_signals) {
+				if (s->m_TR < minTR)
+					minTR = s->m_TR;
 			}
-			return b;
+			switch (m_offRes) {
+				case OffResMode::Map: return ArrayXXd(0, 0); break;
+				case OffResMode::Single: {
+					ArrayXXd b(1, 2);
+					b << -0.5 / minTR, 0.5 / minTR;
+					return b;
+				} break;
+				case OffResMode::SingleSymmetric: {
+					ArrayXXd b(1, 2);
+					b << 0., 0.5 / minTR;
+					return b;
+				} break;
+			}
 		}
 	
 		ArrayXXd PDBounds() {
