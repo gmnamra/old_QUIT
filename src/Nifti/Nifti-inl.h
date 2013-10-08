@@ -29,7 +29,7 @@
 template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes,
                                                   const typename std::vector<T>::iterator begin,
 												  const typename std::vector<T>::iterator end) {
-	size_t nEl = bytes.size() / m_typeinfo.size;
+	typename std::vector<T>::iterator::difference_type nEl = bytes.size() / m_typeinfo.size;
 	assert(nEl == std::distance(begin, end));
 	T sc_sl = static_cast<T>(scaling_slope);
 	T sc_in = static_cast<T>(scaling_inter);
@@ -203,8 +203,8 @@ template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &star
 	if (((start + size) > m_dim.head(start.rows())).any()) throw(std::out_of_range("Requested read was larger than image dimensions: " + imagePath()));
 	if (size.prod() < data.size()) throw(std::out_of_range("Allocated memory is insufficient."));
 	
-	size_t firstDim = 0; // We can always read first dimension in one go
-	size_t blockSize = size(firstDim);
+	ArrayXs::Index firstDim = 0; // We can always read first dimension in one go
+	ArrayXs::Index blockSize = size(firstDim);
 	auto dataIt = data.begin();
 	while ((size(firstDim) == m_dim(firstDim)) && (firstDim < size.rows() - 1)) {
 		firstDim++;
@@ -213,7 +213,7 @@ template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &star
 	std::vector<char> block(blockSize * m_typeinfo.size);
 	ArrayXs blockStart = start;
 	std::function<void (const size_t dim)> dimLoop;
-	dimLoop = [&] (const size_t dim) {
+	dimLoop = [&] (const ArrayXs::Index dim) {
 		if (dim == firstDim) {
 			seekToVoxel(blockStart);
 			if (m_mode == Nifti::Mode::Read) {
