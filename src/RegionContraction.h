@@ -25,8 +25,8 @@ using namespace Eigen;
 
 typedef Array<bool, Dynamic, 1> ArrayXb;
 
-vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, size_t N);
-vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, size_t N)
+vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, ArrayXd::Index N);
+vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, ArrayXd::Index N)
 {
 	eigen_assert(x.size() >= N);
     vector<size_t> allIndices(x.size()), indices(N);
@@ -35,7 +35,7 @@ vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, size_t N)
     }
 	partial_sort(allIndices.begin(), allIndices.begin() + N, allIndices.end(),
 	             [&x](size_t i1, size_t i2) { return x[i1] < x[i2]; });
-	for (size_t i = 0; i < N; i++) {
+	for (ArrayXd::Index i = 0; i < N; i++) {
 		indices[i] = allIndices[i];
 	}
     return indices;
