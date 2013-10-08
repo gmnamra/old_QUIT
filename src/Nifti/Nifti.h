@@ -120,9 +120,9 @@ class Nifti {
 		~Nifti();
 		Nifti();                               //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
 		Nifti(const Nifti &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
-		Nifti &operator=(const Nifti &other);  //!< Assignment. Copies all elements except file handles, and marks destination as Closed.
+		Nifti &operator=(const Nifti &other);  //!< Copy Assignment. Copies all elements except file handles, and marks destination as Closed.
 		Nifti(Nifti &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
-		
+		Nifti &operator=(Nifti &&other);       //!< Move assignment. Copies all elements, including the file handles, and marks the original as Closed.
 		Nifti(const int nx, const int ny, const int nz, const int nt,
 			  const float dx, const float dy, const float dz, const float dt,
 			  const DataType dtype = DataType::FLOAT32, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.

@@ -288,8 +288,7 @@ Nifti::Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
 	calcStrides();
 }
 
-Nifti &Nifti::operator=(const Nifti &other)
-{
+Nifti &Nifti::operator=(const Nifti &other) {
 	if (this == &other)
 		return *this;
 	else if (m_mode != Mode::Closed)
@@ -298,16 +297,17 @@ Nifti &Nifti::operator=(const Nifti &other)
 	m_dim = other.m_dim;
 	m_strides = other.m_strides;
 	m_voxdim = other.m_voxdim;
-	m_qform = other.m_qform;
-	m_sform = other.m_sform;
-	m_qcode = other.m_qcode;
-	m_scode = other.m_scode;
+	m_qform = other.m_qform; m_sform = other.m_sform;
+	m_qcode = other.m_qcode; m_scode = other.m_scode;
 	m_basepath = other.m_basepath;
-	m_gz = other.m_gz;
-	m_nii = other.m_nii;
-	m_mode = Mode::Closed;
-	m_voxoffset = 0;
+	m_nii = other.m_nii; m_gz = other.m_gz;
+	//m_mode = other.m_mode; // We are already marked as closed, so do not copy
+	//m_file = other.m_file; // these
 	m_typeinfo = other.m_typeinfo;
+	m_voxoffset = other.m_voxoffset;
+	m_swap = other.m_swap;
+	m_extensions = other.m_extensions;
+	
 	scaling_slope = other.scaling_slope;
 	scaling_inter = other.scaling_inter;
 	calibration_min = other.calibration_min;
@@ -329,6 +329,53 @@ Nifti &Nifti::operator=(const Nifti &other)
 	intent_name = other.intent_name;
 	description = other.description;
 	aux_file = other.aux_file;
+	
+	return *this;
+}
+
+Nifti &Nifti::operator=(Nifti &&other) {
+	if (this == &other)
+		return *this;
+
+	m_dim = other.m_dim;
+	m_strides = other.m_strides;
+	m_voxdim = other.m_voxdim;
+	m_qform = other.m_qform; m_sform = other.m_sform;
+	m_qcode = other.m_qcode; m_scode = other.m_scode;
+	m_basepath = other.m_basepath;
+	m_nii = other.m_nii; m_gz = other.m_gz;
+	m_mode = other.m_mode;
+	m_file = other.m_file;
+	m_typeinfo = other.m_typeinfo;
+	m_voxoffset = other.m_voxoffset;
+	m_swap = other.m_swap;
+	m_extensions = other.m_extensions;
+	
+	scaling_slope = other.scaling_slope;
+	scaling_inter = other.scaling_inter;
+	calibration_min = other.calibration_min;
+	calibration_max = other.calibration_max;
+	freq_dim = other.freq_dim;
+	phase_dim = other.phase_dim;
+	slice_dim = other.slice_dim;
+	slice_code = other.slice_code;
+	slice_start = other.slice_start;
+	slice_end = other.slice_end;
+	slice_duration = other.slice_duration;
+	toffset = other.toffset;
+	xyz_units = other.xyz_units;
+	time_units = other.time_units;
+	intent_code = other.intent_code;
+	intent_p1 = other.intent_p1;
+	intent_p2 = other.intent_p2;
+	intent_p3 = other.intent_p3;
+	intent_name = other.intent_name;
+	description = other.description;
+	aux_file = other.aux_file;
+	
+	if (other.m_mode != Mode::Closed) {
+		other.m_mode = Mode::Closed;
+	}
 	return *this;
 }
 
@@ -384,8 +431,7 @@ bool Nifti::isOpen() {
 		return true;
 }
 
-void Nifti::close()
-{
+void Nifti::close() {
 	if (m_mode == Mode::Closed) {
 		throw(std::logic_error("Cannot close already closed file: " + imagePath()));
 	} else if ((m_mode == Mode::Read) || (m_mode == Mode::ReadHeader)) {
@@ -871,7 +917,8 @@ void Nifti::seekToVoxel(const ArrayXs &target) {
 	size_t index = (target * m_strides.head(target.rows())).sum() * m_typeinfo.size + m_voxoffset;
 	size_t current = m_file.tell();
 	if ((index - current != 0) && !m_file.seek(index - current, SEEK_CUR)) {
-		throw(std::runtime_error("Failed to seek to index: " + to_string(index) + " in file: " + imagePath()));
+		stringstream ss; ss << target.transpose();
+		throw(std::runtime_error("Failed to seek to target voxel: " + ss.str() + ", index: " + to_string(index) + " in file: " + imagePath()));
 	}
 }
 
