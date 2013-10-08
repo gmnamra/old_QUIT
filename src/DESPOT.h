@@ -30,7 +30,7 @@ using namespace Eigen;
 //******************************************************************************
 #pragma mark Versioning etc.
 //******************************************************************************
-const string version { "DESPOT Tools beta 3 (" + string(__DATE__) + ")" };
+const string version { "DESPOT Tools Beta 1 (" + string(__DATE__) + ")" };
 
 const string credit_shared {
 "Written by tobias.wood@kcl.ac.uk, based on work by Sean Deoni. \n\
