@@ -11,6 +11,7 @@
 
 #include <cstdio>
 #include <string>
+#include <iostream>
 #include <limits>
 #include <exception>
 
@@ -33,6 +34,8 @@ class ZipFile {
 		bool seek(long offset, int whence);       //!< Seeks to the specified position in the file. Returns true if successful.
 		long tell() const;                        //!< Returns the current position in the file
 		void flush();                             //!< Flushes unwritten buffer contents
+	
+	friend std::ostream &operator<<(std::ostream &os, const ZipFile &zf);
 };
 
 #endif // NIFTI_ZIPFILE

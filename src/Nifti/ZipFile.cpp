@@ -140,3 +140,15 @@ void ZipFile::flush() {
 	else if (m_plainFile)
 		fflush(m_plainFile);
 }
+
+std::ostream &operator<<(std::ostream &os, const ZipFile &zf) {
+	os << "ZipFile instance " << &zf << ": ";
+	if (zf.m_gzipFile) {
+		os << "GZ file, " << zf.m_gzipFile;
+	} else if (zf.m_plainFile) {
+		os << "Plain file, " << zf.m_plainFile;
+	} else {
+		os << "No file open.";
+	}
+	return os;
+}
