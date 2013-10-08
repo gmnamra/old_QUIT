@@ -32,11 +32,11 @@ Options:\n\
 	--smooth             : Smooth output with a gaussian.\n"
 };
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
+	cout << version << endl << credit_me << endl;
 	static int smooth = false;
 	static struct option long_options[] =
 	{
@@ -156,6 +156,7 @@ int main(int argc, char** argv)
 	string outPath = outPrefix + "f0.nii.gz";
 	
 	Nifti outFile(inFile, 1);
+	outFile.description = version;
 	outFile.open(outPath, Nifti::Mode::Write);
 	outFile.writeVolumes(0, 1, B0);
 	outFile.close();

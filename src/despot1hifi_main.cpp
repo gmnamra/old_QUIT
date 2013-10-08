@@ -115,11 +115,6 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double
 //******************************************************************************
 // Arguments / Usage
 //******************************************************************************
-const string credit {
-"despot-hifi - Written by tobias.wood@kcl.ac.uk, based on work by Sean Deoni. \n\
-Acknowledgements greatfully received, grant discussions welcome."
-};
-
 const string usage {
 "Usage is: despot-hifi [options] spgr_input ir-spgr_input\n\
 \
@@ -154,7 +149,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	cout << credit << endl;
+	cout << version << endl << credit_shared << endl;
 	Nifti maskFile, spgrFile, irFile;
 	vector<double> maskData;
 	
@@ -353,6 +348,7 @@ int main(int argc, char **argv) {
 	#pragma mark Write out data
 	//**************************************************************************
 	Nifti outFile(spgrFile, 1);
+	outFile.description = version;
 	for (int r = 0; r < NR; r++) {
 		string outName = outPrefix + names[r] + ".nii.gz";
 		if (verbose)

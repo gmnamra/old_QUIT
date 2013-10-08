@@ -32,11 +32,6 @@ using namespace Eigen;
 //******************************************************************************
 // Arguments / Usage
 //******************************************************************************
-const string credit {
-"mcdespot - written by tobias.wood@kcl.ac.uk. \n\
-Acknowledgements greatfully received, grant discussions welcome."
-};
-
 const string usage {
 "Usage is: mcdespot [options]\n\
 \n\
@@ -189,7 +184,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Argument Processing
 	//**************************************************************************
-	cout << credit << endl;
+	cout << version << endl << credit_me << endl;
 	Eigen::initParallel();
 	Nifti maskFile, templateFile;
 	vector<double> maskData(0);
@@ -305,6 +300,7 @@ int main(int argc, char **argv)
 		threshes = mcd.defaultThresholds();
 	templateFile.setDim(4, 1);
 	templateFile.setDatatype(Nifti::DataType::FLOAT32);
+	templateFile.description = version;
 	
 	vector<Nifti> paramsFiles(mcd.inputs(), templateFile);
 	vector<Nifti> midpFiles(mcd.inputs(), templateFile);

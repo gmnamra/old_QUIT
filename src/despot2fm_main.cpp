@@ -32,11 +32,6 @@ using namespace Eigen;
 //******************************************************************************
 // Arguments / Usage
 //******************************************************************************
-const string credit {
-"despot2 - Written by tobias.wood@kcl.ac.uk, based on work by Sean Deoni. \n\
-Acknowledgements greatfully received, grant discussions welcome."
-};
-
 const string usage {
 "Usage is: despot2-fm [options] T1_map ssfp_files\n\
 \
@@ -91,7 +86,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	cout << credit << endl;
+	cout << version << endl << credit_me << endl;
 	Eigen::initParallel();
 	Nifti maskFile, f0File, B1File;
 	vector<double> maskData, f0Data, B1Data;
@@ -341,6 +336,7 @@ int main(int argc, char **argv)
 	     << difftime(procEnd, procStart) << " s." << endl;
 	
 	outPrefix = outPrefix + "FM_";
+	templateFile.description = version;
 	for (int p = 0; p < d2fm.inputs(); p++) {
 		templateFile.open(outPrefix + d2fm.names().at(p) + ".nii.gz", Nifti::Mode::Write);
 		templateFile.writeVolumes(0, 1, paramsData.at(p));

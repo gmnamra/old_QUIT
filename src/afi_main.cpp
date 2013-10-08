@@ -30,11 +30,11 @@ Options:\n\
 //******************************************************************************
 // Main
 //******************************************************************************
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
+	cout << version << endl << credit_me << endl;
 	static struct option long_options[] = {
 		{"mask", required_argument, 0, 'm'},
 		{0, 0, 0, 0}
@@ -106,6 +106,7 @@ int main(int argc, char **argv)
 			B1[vox] = 1.; // So smoothing doesn't get messed up
 	}
 	Nifti outFile(inFile, 1);
+	outFile.description = version;
 	string outPath = outPrefix + "angle.nii.gz";
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
 	outFile.open(outPath, Nifti::Mode::Write);

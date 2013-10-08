@@ -42,11 +42,6 @@ Options:\n\
 	-d, --drop      : Drop certain flip-angles (Read from stdin).\n"
 };
 
-const string credit {
-"despot1 - Written by tobias.wood@kcl.ac.uk, based on work by Sean Deoni. \n\
-Acknowledgements greatfully received, grant discussions welcome."
-};
-
 static int verbose = false, drop = false;
 static string outPrefix;
 static struct option long_options[] =
@@ -65,7 +60,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	cout << credit << endl;
+	cout << version << endl << credit_shared << endl;
 	double spgrTR = 0.;
 	vector<double> B1Data, maskData;
 	Nifti spgrFile, B1File, maskFile;
@@ -208,6 +203,7 @@ int main(int argc, char **argv)
 	}
 	const string names[NR] = { "D1_PD", "D1_T1", "D1_Residual" };
 	Nifti outFile(spgrFile, 1);
+	outFile.description = version;
 	for (int r = 0; r < NR; r++) {
 		string outName = outPrefix + names[r] + ".nii.gz";
 		if (verbose)
