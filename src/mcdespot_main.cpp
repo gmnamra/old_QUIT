@@ -119,17 +119,17 @@ Nifti openAndCheck(const string &path, const Nifti &saved, const string &type) {
 }
 
 Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
-				       vector<Nifti > &signalFiles,
-				       vector<Nifti > &B1Files,
-				       vector<Nifti > &f0Files,
-					   const mcDESPOT::OffResMode &f0fit,
-					   const bool &use_finite);
+				 vector<Nifti> &signalFiles,
+				 Nifti &B1File,
+				 Nifti &f0File,
+				 const mcDESPOT::OffResMode &f0fit,
+				 const bool &use_finite);
 Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
-				       vector<Nifti > &signalFiles,
-				       vector<Nifti > &B1Files,
-				       vector<Nifti > &f0Files,
-					   const mcDESPOT::OffResMode &f0fit,
-					   const bool &use_finite) {
+				 vector<Nifti> &signalFiles,
+				 Nifti &B1File,
+				 Nifti &f0File,
+				 const mcDESPOT::OffResMode &f0fit,
+				 const bool &use_finite) {
 	Nifti templateFile;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
@@ -150,25 +150,19 @@ Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 			sigs.emplace_back(parseSPGR(signalFiles.back(), prompt, components, use_finite));
 		else
 			sigs.emplace_back(parseSSFP(signalFiles.back(), prompt, components, use_finite));
-		
-		if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
-		getline(cin, path);
-		if ((path != "NONE") && (path != "")) {
-			B1Files.push_back(openAndCheck(path, templateFile, "B1"));
-		} else {
-			B1Files.push_back(Nifti());
-		}
-		
-		if ((type == "SSFP") && (f0fit == mcDESPOT::OffResMode::Map)) {
-			if (prompt)
-				cout << "Enter path to f0 map: " << flush;
-			getline(cin, path);
-			f0Files.push_back(openAndCheck(path, templateFile, "f0"));
-		} else {
-			f0Files.push_back(Nifti());
-		}
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
+	}
+	if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
+	getline(cin, path);
+	if ((path != "NONE") && (path != "")) {
+		B1File = openAndCheck(path, templateFile, "B1");
+	}
+	if ((f0fit == mcDESPOT::OffResMode::Map || f0fit == mcDESPOT::OffResMode::MapLoose)) {
+		if (prompt)
+			cout << "Enter path to f0 map: " << flush;
+		getline(cin, path);
+		f0File = openAndCheck(path, templateFile, "f0");
 	}
 	if (sigs.size() == 0) {
 		cerr << "No input images specified." << endl;
@@ -186,6 +180,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << version << endl << credit_me << endl;
 	Eigen::initParallel();
+	
+	try { // To fix uncaught exceptions on Mac
+	
 	Nifti maskFile, templateFile;
 	vector<double> maskData(0);
 	
@@ -213,6 +210,7 @@ int main(int argc, char **argv)
 					case '0' : f0fit = mcDESPOT::OffResMode::Map; break;
 					case '1' : f0fit = mcDESPOT::OffResMode::SingleSymmetric; break;
 					case '2' : f0fit = mcDESPOT::OffResMode::Single; break;
+					case '3' : f0fit = mcDESPOT::OffResMode::MapLoose; break;
 					default:
 						cout << "Invalid Off Resonance Mode." << endl;
 						exit(EXIT_FAILURE);
@@ -245,6 +243,7 @@ int main(int argc, char **argv)
 				cout << "Enter number of samples per contraction: " << flush; cin >> samples;
 				cout << "Enter number of samples to retain: " << flush; cin >> retain;
 				cout << "Enter fraction to expand region by: " << flush; cin >> expand;
+				{ string dummy; getline(cin, dummy); } // Eat newlines
 				break;
 			case 'e': extra = true; break;
 			case 'E': early_finish = true; break;
@@ -267,8 +266,9 @@ int main(int argc, char **argv)
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
 	vector<shared_ptr<SignalFunctor>> sigs;
-	vector<Nifti > signalFiles, B1Files, f0Files;
-	templateFile = parseInput(sigs, signalFiles, B1Files, f0Files, f0fit, use_finite);
+	vector<Nifti> signalFiles;
+	Nifti B1File, f0File;
+	templateFile = parseInput(sigs, signalFiles, B1File, f0File, f0fit, use_finite);
 	if ((maskData.size() > 0) && !(maskFile.matchesSpace(templateFile))) {
 		cerr << "Mask file has different dimensions/transform to input data." << endl;
 		exit(EXIT_FAILURE);
@@ -281,13 +281,11 @@ int main(int argc, char **argv)
 	size_t voxelsPerSlice = templateFile.dims().head(2).prod();
 	size_t voxelsPerVolume = templateFile.dims().head(3).prod();
 	
-	vector<vector<double>> signalVolumes(signalFiles.size()),
-	                 B1Volumes(signalFiles.size()),
-				     f0Volumes(signalFiles.size());
+	vector<vector<double>> sigSlices(signalFiles.size());
+	vector<double> B1Slice(voxelsPerSlice);
+	vector<double> f0Slice(voxelsPerSlice);
 	for (size_t i = 0; i < signalFiles.size(); i++) {
-		signalVolumes[i].resize(voxelsPerSlice * sigs.at(i)->size());
-		if (B1Files[i].isOpen()) B1Volumes[i].resize(voxelsPerSlice);
-		if (f0Files[i].isOpen()) f0Volumes[i].resize(voxelsPerSlice);
+		sigSlices[i].resize(voxelsPerSlice * sigs.at(i)->size());
 	}
 	
 	// Build a Functor here so we can query number of parameters etc.
@@ -355,8 +353,7 @@ int main(int argc, char **argv)
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
-	for (size_t slice = start_slice; slice < stop_slice; slice++)
-	{
+	for (size_t slice = start_slice; slice < stop_slice; slice++) {
 		if (verbose) cout << "Reading data for slice " << slice << "..." << flush;
 		atomic<int> voxCount{0};
 		const size_t sliceOffset = slice * voxelsPerSlice;
@@ -366,15 +363,14 @@ int main(int argc, char **argv)
 		sliceStart << 0, 0, slice, 0;
 		sliceSize << 0, 0, 1, 0; // Zeros will be replaced with dimension
 		for (size_t i = 0; i < signalFiles.size(); i++) {
-			signalFiles[i].readVoxels<double>(sliceStart, sliceSize, signalVolumes[i]);
-			if (B1Files[i].isOpen()) B1Files[i].readVoxels<double>(sliceStart, sliceSize, B1Volumes[i]);
-			if (f0Files[i].isOpen()) f0Files[i].readVoxels<double>(sliceStart, sliceSize, f0Volumes[i]);
+			signalFiles[i].readVoxels<double>(sliceStart, sliceSize, sigSlices[i]);
 		}
+		if (B1File.isOpen()) B1File.readVoxels<double>(sliceStart, sliceSize, B1Slice);
+		if (f0File.isOpen()) f0File.readVoxels<double>(sliceStart, sliceSize, f0Slice);
 		if (verbose) cout << "processing..." << endl;
 		clock_t loopStart = clock();
-		function<void (const size_t&)> processVox = [&] (const size_t &vox)
-		{
-			mcDESPOT localf(mcd); // Take a thread local copy so we can change info/signals
+		function<void (const size_t&)> processVox = [&] (const size_t &vox) {
+			mcDESPOT localf(mcd); // Take a thread local copy so we can change info/signals			
 			ArrayXd params(localf.inputs()), residuals(localf.values()),
 					width(localf.inputs()), midp(localf.inputs());
 			size_t c = 0;
@@ -384,19 +380,23 @@ int main(int argc, char **argv)
 				vector<VectorXd> signals(signalFiles.size());
 				for (size_t i = 0; i < signalFiles.size(); i++) {
 					for (size_t j = 0; j < localf.signal(i)->size(); j++) {
-						localf.actual(i)(j) = signalVolumes[i][voxelsPerSlice*j + vox];
+						localf.actual(i)(j) = sigSlices[i][voxelsPerSlice*j + vox];
 					}
 					if (scale == mcDESPOT::Scaling::NormToMean)
 						localf.actual(i) /= localf.actual(i).mean();
-					
-					if (f0fit == mcDESPOT::OffResMode::Map) {
-						localf.m_f0 = f0Files[i].isOpen() ? f0Volumes[i][vox] : 0.;
-					}
-					localf.m_B1 = B1Files[i].isOpen() ? B1Volumes[i][vox] : 1.;
+				}
+				if (f0fit == mcDESPOT::OffResMode::Map || f0fit == mcDESPOT::OffResMode::MapLoose) {
+					localf.m_f0 = f0File.isOpen() ? f0Slice[vox] : 0.;
+				}
+				localf.m_B1 = B1File.isOpen() ? B1Slice[vox] : 1.;
+				// f0 bounds depends on m_f0 and fitting mode
+				ArrayXXd localBounds = localf.defaultBounds();
+				if (tesla == mcDESPOT::FieldStrength::Unknown) {
+					localBounds.block(0, 0, localf.nP(), 2) = bounds.block(0, 0, localf.nP(), 2);
 				}
 				// Add the voxel number to the time to get a decent random seed
 				size_t rSeed = time(NULL) + vox;
-				RegionContraction<mcDESPOT> rc(localf, bounds, weights, threshes,
+				RegionContraction<mcDESPOT> rc(localf, localBounds, weights, threshes,
 											 samples, retain, contract, expand, (voxI != -1));
 				rc.optimise(params, rSeed);
 				residuals = rc.residuals();
@@ -458,6 +458,11 @@ int main(int argc, char **argv)
 	for (size_t r = 0; r < residualData.size(); r++)
 		residualFile.writeVolumes(r, 1, residualData.at(r));
 	cout << "Finished writing data." << endl;
+	
+	} catch (exception &e) {
+		cerr << e.what() << endl;
+		return EXIT_FAILURE;
+	}
 	return EXIT_SUCCESS;
 }
 

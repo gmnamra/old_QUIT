@@ -130,7 +130,7 @@ class DESPOTFunctor : public Functor<double> {
 			}
 		}
 		enum class OffResMode {
-			Map = 0, Single, SingleSymmetric
+			Map = 0, MapLoose, Single, SingleSymmetric
 		};
 	
 	protected:
@@ -149,19 +149,14 @@ class DESPOTFunctor : public Functor<double> {
 				if (s->m_TR < minTR)
 					minTR = s->m_TR;
 			}
+			ArrayXXd b(1, 2);
 			switch (m_offRes) {
-				case OffResMode::Map: return ArrayXXd(0, 0); break;
-				case OffResMode::Single: {
-					ArrayXXd b(1, 2);
-					b << -0.5 / minTR, 0.5 / minTR;
-					return b;
-				} break;
-				case OffResMode::SingleSymmetric: {
-					ArrayXXd b(1, 2);
-					b << 0., 0.5 / minTR;
-					return b;
-				} break;
+				case OffResMode::Map:             b << m_f0, m_f0; break;
+				case OffResMode::MapLoose:        b << m_f0 * 0.9, m_f0 * 1.1; break;
+				case OffResMode::Single:          b << -0.5 / minTR, 0.5 / minTR; break;
+				case OffResMode::SingleSymmetric: b << 0., 0.5 / minTR; break;
 			}
+			return b;
 		}
 	
 		ArrayXXd PDBounds() {
@@ -179,7 +174,8 @@ class DESPOTFunctor : public Functor<double> {
 		double m_f0, m_B1;
 		const size_t nOffRes() const {
 			switch (m_offRes) {
-				case OffResMode::Map: return 0;
+				case OffResMode::Map: return 1;
+				case OffResMode::MapLoose: return 1;
 				case OffResMode::Single: return 1;
 				case OffResMode::SingleSymmetric: return 1;
 			}
@@ -204,7 +200,8 @@ class DESPOTFunctor : public Functor<double> {
 		              const bool &debug = false) :
 			m_signals(signals_in),
 			m_fieldStrength(tesla), m_offRes(offRes),
-			m_scaling(s), m_debug(debug)
+			m_scaling(s), m_debug(debug),
+			m_f0(0), m_B1(1)
 		{
 			m_actual.reserve(m_signals.size());
 			m_theory.reserve(m_signals.size());
@@ -290,7 +287,7 @@ class mcDESPOT : public DESPOTFunctor {
 					switch (m_components) {
 						case Components::One:   b.block(0, 0, 2, 2) << 0.1, 4.0, 0.01, 2.0; break;
 						case Components::Two:   b.block(0, 0, 6, 2) << 0.1, 0.5, 0.001, 0.025, 1.0, 4.0, 0.04, 0.08, 0.01, 0.25, 0.001, 1.0; break;
-						case Components::Three: b.block(0, 0, 9, 2) << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 3., 4.5, 0.5, 2.0, 0.01, 0.25, 0.001, 0.4, 0.001, 1.0; break;
+						case Components::Three: b.block(0, 0, 9, 2) << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 3., 4.5, 0.5, 2.0, 0.05, 0.200, 0.0, 0.5, 0.0, 1.0; break;
 					} break;
 				case FieldStrength::Unknown:
 					switch (m_components) {
