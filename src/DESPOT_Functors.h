@@ -283,8 +283,8 @@ class mcDESPOT : public DESPOTFunctor {
 				case FieldStrength::Three:
 					switch (m_components) {
 						case Components::One:   b.block(0, 0, 2, 2) << 0.1, 4.0, 0.01, 1.5; break;
-						case Components::Two:   b.block(0, 0, 6, 2) << 0.1, 0.25, 0.002, 0.03, 0.7, 4.0, 0.075, 0.145, 0.05, 0.3, 0.0, 0.95; break;
-						case Components::Three: b.block(0, 0, 9, 2) << 0.1, 0.25, 0.002, 0.03, 0.7, 2.0, 0.075, 0.145, 3.5, 4.0, 0.8, 1.5, 0.05, 0.3, 0.001, 0.3, 0.0, 0.95; break;
+						case Components::Two:   b.block(0, 0, 6, 2) << 0.200, 0.350, 0.005, 0.015, 0.700, 2.000, 0.050, 0.120, 0.050, 0.200, 0.0, 0.5; break;
+						case Components::Three: b.block(0, 0, 9, 2) << 0.200, 0.350, 0.005, 0.015, 0.700, 2.000, 0.050, 0.120, 3.500, 7.000, 3.000, 7.000, 0.050, 0.200, 0, 0.5, 0, 1.0; break;
 					} break;
 				case FieldStrength::Seven:
 					switch (m_components) {
