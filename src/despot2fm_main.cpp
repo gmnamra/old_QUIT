@@ -215,7 +215,7 @@ int main(int argc, char **argv)
 	ArrayXXd bounds = d2fm.defaultBounds();
 	if (tesla == DESPOT2FM::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
-		for (int i = 0; i < d2fm.inputs(); i++) {
+		for (int i = 0; i < d2fm.nP(); i++) {
 			cout << d2fm.names()[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
