@@ -130,23 +130,21 @@ class RegionContraction {
 			// Use retained matrix to ensure the initial bounding box is evaluated
 			assert(m_nR >= (2 << m_f.inputs()));
 			for (size_t c = 0; c < m_nR; c++) {
-				size_t m = 1;
 				for (size_t r = 0; r < m_f.inputs(); r++) {
-					if (m & r)
+					if ((c >> r) & 1)
 						retained(r, c) = m_startBounds(r, 1);
 					else
 						retained(r, c) = m_startBounds(r, 0);
-					m *= 2;
 				}
 			}
-			if (m_debug) {
-				cout << "Initial samples" << endl << retained << endl;
-			}
-			
 			for (m_contractions = 0; m_contractions < m_maxContractions; m_contractions++) {
 				for (size_t s = 0; s < m_nR; s++) {
+					samples.col(s) = retained.col(s);
 					m_f(retained.col(s), residuals.col(s));
 					residuals.col(s) *= m_weights;
+				}
+				if (m_debug) {
+					cout << "Initial samples" << endl << samples.block(0, 0, samples.rows(), m_nR) << endl;
 				}
 				for (size_t s = m_nR; s < m_nS; s++) {
 					ArrayXd tempSample(nP);
