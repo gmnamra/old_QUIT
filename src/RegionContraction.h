@@ -126,8 +126,29 @@ class RegionContraction {
 			uniform_real_distribution<double> uniform(0., 1.);
 			
 			m_status = Status::DidNotConverge;
+			
+			// Use retained matrix to ensure the initial bounding box is evaluated
+			assert(m_nR >= (2 << m_f.inputs()));
+			for (size_t c = 0; c < m_nR; c++) {
+				size_t m = 1;
+				for (size_t r = 0; r < m_f.inputs(); r++) {
+					if (m & r)
+						retained(r, c) = m_startBounds(r, 1);
+					else
+						retained(r, c) = m_startBounds(r, 0);
+					m *= 2;
+				}
+			}
+			if (m_debug) {
+				cout << "Initial samples" << endl << retained << endl;
+			}
+			
 			for (m_contractions = 0; m_contractions < m_maxContractions; m_contractions++) {
-				for (size_t s = 0; s < m_nS; s++) {
+				for (size_t s = 0; s < m_nR; s++) {
+					m_f(retained.col(s), residuals.col(s));
+					residuals.col(s) *= m_weights;
+				}
+				for (size_t s = m_nR; s < m_nS; s++) {
 					ArrayXd tempSample(nP);
 					size_t nTries = 0;
 					do {
@@ -148,6 +169,7 @@ class RegionContraction {
 							return;
 						}
 					} while (!m_f.constraint(tempSample));
+					
 					m_f(tempSample, residuals.col(s));
 					if (!isfinite(residuals.col(s).square().sum())) {
 						if (!finiteWarning) {
@@ -167,28 +189,26 @@ class RegionContraction {
 					samples.col(s) = tempSample;
 				}
 				ArrayXd toSort = residuals.square().colwise().sum();
+				ArrayXd retainedRes(m_nR);
 				indices = index_partial_sort(toSort, m_nR);
 				for (size_t i = 0; i < m_nR; i++) {
 					retained.col(i) = samples.col(indices[i]);
-					/*if (m_debug) {
-						cout << "Sample " << indices[i] << " RES " << residuals.col(indices[i]).square().sum() << "\t PARAMS " << retained.col(i).transpose();
-						cout << "\t " << residuals.col(indices[i]).transpose() << endl;
-					}*/
+					retainedRes(i) = toSort(indices[i]);
 				}
 				// Find the min and max for each parameter in the top nR samples
 				m_currentBounds.col(0) = retained.rowwise().minCoeff();
 				m_currentBounds.col(1) = retained.rowwise().maxCoeff();
 				// Terminate if all the desired parameters have converged
 				if (m_debug) {
+					cout << "Retained samples and residuals" << endl << retained << endl << retainedRes.transpose() << endl;
 					cout << "Residual Min:   " << toSort.minCoeff() << " Max: " << toSort.maxCoeff() << endl;
-					cout << "best params:    " << retained.col(0).transpose() << endl;
-					cout << "best theory:    " << m_f.theory(retained.col(0)).transpose() << endl;
-					cout << "best residual   " << residuals.col(indices[0]).transpose() << endl;
-					cout << "mid:            " << midPoint().transpose() << endl;
-					cout << "width:          " << width().transpose() << endl;
-					cout << "threshold:      " << (m_threshes * startWidth()).transpose() << endl;
-					cout << "width < thresh: " << (width() < m_threshes * startWidth()).transpose() << endl;
+					cout << "Best Sample:    " << retained.col(0).transpose() << endl;
+					cout << "Mid Sample:     " << midPoint().transpose() << endl;
+					cout << "Sample Width:   " << width().transpose() << endl;
+					cout << "Threshold:      " << (m_threshes * startWidth()).transpose() << endl;
+					cout << "Width < Thresh: " << (width() < m_threshes * startWidth()).transpose() << endl;
 					cout << "Converged:      " << (width() < m_threshes * startWidth()).all() << endl;
+
 				}
 				if ((width() < m_threshes * startWidth()).all()) {
 					m_status = Status::Converged;
