@@ -114,7 +114,7 @@ Nifti openAndCheck(const string &path, const Nifti &saved, const string &type) {
 		cerr << "Header for " << in.imagePath() << " does not match " << saved.imagePath() << endl;
 		exit(EXIT_FAILURE);
 	}
-	if (verbose) cout << "Opened " << type << " image: " << in.imagePath() << endl;
+	if (verbose) cout << "Opened: " << in.imagePath() << endl;
 	return in;
 }
 
@@ -142,6 +142,7 @@ Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 		getline(cin, path);
 		if (signalFiles.size() == 0) {
 			signalFiles.emplace_back(path, Nifti::Mode::Read);
+			if (verbose) cout << "Opened: " << signalFiles.back().imagePath() << endl;
 			templateFile = Nifti(signalFiles.back(), 1); // Save header info for later
 		} else {
 			signalFiles.push_back(openAndCheck(path, templateFile, type));
