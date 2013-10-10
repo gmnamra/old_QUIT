@@ -110,6 +110,7 @@ class RegionContraction {
 			int nP = static_cast<int>(params.size());
 			ArrayXXd samples(m_f.inputs(), m_nS);
 			ArrayXXd retained(m_f.inputs(), m_nR);
+			ArrayXd retainedRes(m_nR);
 			ArrayXXd residuals(m_f.values(), m_nS);
 			vector<size_t> indices(m_nR);
 			m_currentBounds = m_startBounds;
@@ -127,8 +128,7 @@ class RegionContraction {
 			
 			m_status = Status::DidNotConverge;
 			
-			// Use retained matrix to ensure the initial bounding box is evaluated
-			assert(m_nR >= (2 << m_f.inputs()));
+			// Set up retained matrix for first contraction
 			for (size_t c = 0; c < m_nR; c++) {
 				for (size_t r = 0; r < m_f.inputs(); r++) {
 					if ((c >> r) & 1)
@@ -137,14 +137,14 @@ class RegionContraction {
 						retained(r, c) = m_startBounds(r, 0);
 				}
 			}
+			if (m_debug) {
+				cout << "Initial samples" << endl << samples.block(0, 0, samples.rows(), m_nR) << endl;
+			}
 			for (m_contractions = 0; m_contractions < m_maxContractions; m_contractions++) {
+				// Keep the retained samples to prevent boundary contracting too fast
 				for (size_t s = 0; s < m_nR; s++) {
 					samples.col(s) = retained.col(s);
-					m_f(retained.col(s), residuals.col(s));
-					residuals.col(s) *= m_weights;
-				}
-				if (m_debug) {
-					cout << "Initial samples" << endl << samples.block(0, 0, samples.rows(), m_nR) << endl;
+					residuals.col(s) = retainedRes.col(s);
 				}
 				for (size_t s = m_nR; s < m_nS; s++) {
 					ArrayXd tempSample(nP);
@@ -187,18 +187,17 @@ class RegionContraction {
 					samples.col(s) = tempSample;
 				}
 				ArrayXd toSort = residuals.square().colwise().sum();
-				ArrayXd retainedRes(m_nR);
 				indices = index_partial_sort(toSort, m_nR);
 				for (size_t i = 0; i < m_nR; i++) {
 					retained.col(i) = samples.col(indices[i]);
-					retainedRes(i) = toSort(indices[i]);
+					retainedRes.col(i) = residuals.col(indices[i]);
 				}
 				// Find the min and max for each parameter in the top nR samples
 				m_currentBounds.col(0) = retained.rowwise().minCoeff();
 				m_currentBounds.col(1) = retained.rowwise().maxCoeff();
 				// Terminate if all the desired parameters have converged
 				if (m_debug) {
-					cout << "Retained samples and residuals" << endl << retained << endl << retainedRes.transpose() << endl;
+					cout << "Retained samples and residuals" << endl << retained << endl << retainedRes.square().colwise().sum() << endl;
 					cout << "Residual Min:   " << toSort.minCoeff() << " Max: " << toSort.maxCoeff() << endl;
 					cout << "Best Sample:    " << retained.col(0).transpose() << endl;
 					cout << "Mid Sample:     " << midPoint().transpose() << endl;
