@@ -15,9 +15,22 @@ using namespace std;
 //******************************
 #pragma mark Methods for ZipFile
 //******************************
-ZipFile::ZipFile() :
-	m_plainFile(nullptr), m_gzipFile(nullptr)
-{}
+ZipFile::ZipFile() : m_plainFile(nullptr), m_gzipFile(nullptr) {}
+
+ZipFile::ZipFile(ZipFile &&z) {
+	m_plainFile = z.m_plainFile;
+	m_gzipFile = z.m_gzipFile;
+	z.m_plainFile = nullptr;
+	z.m_gzipFile = nullptr;
+}
+
+ZipFile &ZipFile::operator=(ZipFile &&z) {
+	m_plainFile = z.m_plainFile;
+	m_gzipFile = z.m_gzipFile;
+	z.m_plainFile = nullptr;
+	z.m_gzipFile = nullptr;
+	return *this;
+}
 
 bool ZipFile::open(const string &path, const string &mode, const bool zip) {
 	if (m_gzipFile || m_plainFile) {

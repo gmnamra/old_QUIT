@@ -27,6 +27,11 @@ class ZipFile {
 		
 	public:
 		ZipFile();
+		ZipFile(const ZipFile &z) = delete;
+		ZipFile(ZipFile &&z);
+		ZipFile &operator=(const ZipFile &z) = delete;
+		ZipFile &operator=(ZipFile &&z);
+		
 		bool open(const std::string &path, const std::string &mode, const bool zip);
 		void close();
 		size_t read(void *buff, unsigned size);   //!< Attempts to reads size bytes from the image file to buff. Returns actual number read.

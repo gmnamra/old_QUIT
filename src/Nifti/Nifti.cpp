@@ -239,7 +239,7 @@ Nifti::Nifti(Nifti &&other) noexcept :
 	m_dim(other.m_dim), m_voxdim(other.m_voxdim), m_strides(other.m_strides),
 	m_qform(other.m_qform), m_sform(other.m_sform),
 	m_qcode(other.m_qcode), m_scode(other.m_scode),
-	m_typeinfo(other.m_typeinfo), m_basepath(other.m_basepath), m_file(other.m_file),
+	m_typeinfo(other.m_typeinfo), m_basepath(other.m_basepath), m_file(std::move(other.m_file)),
 	m_extensions(other.m_extensions),
 	scaling_slope(other.scaling_slope), scaling_inter(other.scaling_inter),
 	calibration_min(other.calibration_min), calibration_max(other.calibration_max),
@@ -301,12 +301,20 @@ Nifti &Nifti::operator=(const Nifti &other) {
 	m_qcode = other.m_qcode; m_scode = other.m_scode;
 	m_basepath = other.m_basepath;
 	m_nii = other.m_nii; m_gz = other.m_gz;
-	//m_mode = other.m_mode; // We are already marked as closed, so do not copy
-	//m_file = other.m_file; // these
+	m_mode = other.m_mode;
 	m_typeinfo = other.m_typeinfo;
 	m_voxoffset = other.m_voxoffset;
 	m_swap = other.m_swap;
 	m_extensions = other.m_extensions;
+	
+	// Open the file for ourselves and seek to the same position
+	if (m_mode == Mode::Read) {
+		m_file.open(imagePath(), "r", m_gz);
+		m_file.seek(m_file.tell(), SEEK_SET);
+	} else if (m_mode == Mode::Write) {
+		m_file.open(imagePath(), "w", m_gz);
+		m_file.seek(m_file.tell(), SEEK_SET);
+	}
 	
 	scaling_slope = other.scaling_slope;
 	scaling_inter = other.scaling_inter;
@@ -345,7 +353,7 @@ Nifti &Nifti::operator=(Nifti &&other) {
 	m_basepath = other.m_basepath;
 	m_nii = other.m_nii; m_gz = other.m_gz;
 	m_mode = other.m_mode;
-	m_file = other.m_file;
+	m_file = std::move(other.m_file);
 	m_typeinfo = other.m_typeinfo;
 	m_voxoffset = other.m_voxoffset;
 	m_swap = other.m_swap;
