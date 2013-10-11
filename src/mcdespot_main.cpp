@@ -61,7 +61,7 @@ Options:\n\
 };
 
 static auto f0fit = mcDESPOT::OffResMode::SingleSymmetric;
-static auto components = Components::Two;
+static auto components = Components::Three;
 static auto tesla = mcDESPOT::FieldStrength::Three;
 static auto scale = mcDESPOT::Scaling::NormToMean;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
@@ -342,6 +342,12 @@ int main(int argc, char **argv)
 		cout << "Low bounds: " << bounds.col(0).transpose() << endl;
 		cout << "Hi bounds:  " << bounds.col(1).transpose() << endl;
 	}
+	ofstream boundsFile(outPrefix + "bounds.txt");
+	for (int p = 0; p < mcd.inputs(); p++) {
+		boundsFile << mcd.names()[p] << bounds.row(p) << endl;
+	}
+	boundsFile.close();
+	
 	//**************************************************************************
 	#pragma mark Do the fitting
 	//**************************************************************************
