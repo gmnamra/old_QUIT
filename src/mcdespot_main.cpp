@@ -96,8 +96,7 @@ static struct option long_options[] =
 ThreadPool threads;
 bool interrupt_received = false;
 void int_handler(int sig);
-void int_handler(int sig)
-{
+void int_handler(int sig) {
 	cout << endl << "Stopping processing early." << endl;
 	threads.stop();
 	interrupt_received = true;
@@ -436,15 +435,6 @@ int main(int argc, char **argv)
 			processVox(voxInd);
 			exit(0);
 		}
-		
-		if (verbose) {
-			clock_t loopEnd = clock();
-			if (voxCount > 0)
-				cout << voxCount << " unmasked voxels, CPU time per voxel was "
-				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
-			cout << "finished." << endl;
-		}
-		
 		for (size_t p = 0; p < paramsFiles.size(); p++) {
 			paramsFiles.at(p).writeVoxels(sliceStart, sliceSize, paramsData.at(p));
 			if (extra) {
@@ -454,6 +444,13 @@ int main(int argc, char **argv)
 		}
 		if (extra)
 			contractFile.writeVoxels(sliceStart, sliceSize, contractData);
+		if (verbose) {
+			clock_t loopEnd = clock();
+			if (voxCount > 0)
+				cout << voxCount << " unmasked voxels, CPU time per voxel was "
+				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
+			cout << "finished." << endl;
+		}
 		if (interrupt_received)
 			break;
 	}

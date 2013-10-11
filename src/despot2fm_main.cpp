@@ -79,6 +79,18 @@ static struct option long_options[] = {
 };
 
 //******************************************************************************
+#pragma mark SIGTERM interrupt handler and Threads
+//******************************************************************************
+ThreadPool threads;
+bool interrupt_received = false;
+void int_handler(int sig);
+void int_handler(int sig) {
+	cout << endl << "Stopping processing early." << endl;
+	threads.stop();
+	interrupt_received = true;
+}
+
+//******************************************************************************
 // Main
 //******************************************************************************
 int main(int argc, char **argv)
@@ -88,6 +100,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << version << endl << credit_me << endl;
 	Eigen::initParallel();
+	
+	try { // To fix uncaught exceptions on Mac
+	
 	Nifti maskFile, f0File, B1File;
 	vector<double> maskData, f0Data, B1Data;
 	string procPath;
@@ -233,30 +248,30 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	vector<vector<double>> paramsData(d2fm.inputs());
 	for (auto &p : paramsData)
-		p.resize(voxelsPerVolume);
+		p.resize(voxelsPerVolume, 0.);
 	vector<vector<double>> residuals(d2fm.values());
 	for (auto &r : residuals)
-		r.resize(voxelsPerVolume);
+		r.resize(voxelsPerVolume, 0.);
 	vector<size_t> contractData;
 	vector<vector<double>> midpData(d2fm.inputs());
 	vector<vector<double>> widthData(d2fm.inputs());
 	if (extra) {
 		contractData.resize(voxelsPerVolume);
 		for (auto &m : midpData)
-			m.resize(voxelsPerVolume);
+			m.resize(voxelsPerVolume, 0.);
 		for (auto &r : widthData)
-			r.resize(voxelsPerVolume);
+			r.resize(voxelsPerVolume, 0.);
 	}
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
 	if (stop_slice > templateFile.dim(3))
 		stop_slice = templateFile.dim(3);
-	ThreadPool threads;
     time_t procStart = time(NULL);
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
+	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	for (size_t slice = start_slice; slice < stop_slice; slice++) {
 		// Read in data
 		if (verbose)
@@ -329,6 +344,8 @@ int main(int argc, char **argv)
 				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
 			cout << "finished." << endl;
 		}
+		if (interrupt_received)
+			break;
 	}
     time_t procEnd = time(NULL);
     strftime(theTime, 512, "%H:%M:%S", localtime(&procEnd));
@@ -362,6 +379,11 @@ int main(int argc, char **argv)
 			templateFile.writeVolumes(0, 1, midpData.at(p));
 			templateFile.close();
 		}
+	}
+	
+	} catch (exception &e) {
+		cerr << e.what() << endl;
+		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
 }
