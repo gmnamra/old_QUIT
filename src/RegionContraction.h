@@ -110,8 +110,8 @@ class RegionContraction {
 			int nP = static_cast<int>(params.size());
 			ArrayXXd samples(m_f.inputs(), m_nS);
 			ArrayXXd retained(m_f.inputs(), m_nR);
-			ArrayXd retainedRes(m_nR);
 			ArrayXXd residuals(m_f.values(), m_nS);
+			ArrayXXd retainedRes(m_f.values(), m_nR);
 			vector<size_t> indices(m_nR);
 			m_currentBounds = m_startBounds;
 			m_residuals.setZero();
@@ -131,14 +131,17 @@ class RegionContraction {
 			// Set up retained matrix for first contraction
 			for (size_t c = 0; c < m_nR; c++) {
 				for (size_t r = 0; r < m_f.inputs(); r++) {
-					if ((c >> r) & 1)
+					if ((c >> r) & 1) {
 						retained(r, c) = m_startBounds(r, 1);
-					else
+					} else {
 						retained(r, c) = m_startBounds(r, 0);
+					}
 				}
+				m_f(retained.col(c), retainedRes.col(c));
 			}
 			if (m_debug) {
-				cout << "Initial samples" << endl << samples.block(0, 0, samples.rows(), m_nR) << endl;
+				cout << "Initial samples" << endl << retained << endl;
+				cout << retainedRes.square().colwise().sum() << endl;
 			}
 			for (m_contractions = 0; m_contractions < m_maxContractions; m_contractions++) {
 				// Keep the retained samples to prevent boundary contracting too fast
