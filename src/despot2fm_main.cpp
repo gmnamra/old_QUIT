@@ -12,6 +12,7 @@
 
 #include <time.h>
 #include <getopt.h>
+#include <signal.h>
 #include <iostream>
 #include <atomic>
 #include <Eigen/Dense>
