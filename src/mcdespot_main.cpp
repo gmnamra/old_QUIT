@@ -344,7 +344,7 @@ int main(int argc, char **argv)
 	}
 	ofstream boundsFile(outPrefix + "bounds.txt");
 	for (int p = 0; p < mcd.inputs(); p++) {
-		boundsFile << mcd.names()[p] << bounds.row(p) << endl;
+		boundsFile << mcd.names()[p] << "\t" << bounds.row(p) << endl;
 	}
 	boundsFile.close();
 	
