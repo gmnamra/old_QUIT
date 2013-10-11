@@ -371,12 +371,7 @@ class mcDESPOT : public DESPOTFunctor {
 			ArrayXd t(values());
 			if (m_debug) cout << endl << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
 			for (size_t i = 0; i < m_signals.size(); i++) {
-				double f0;
-				if (m_offRes == OffResMode::Map)
-					f0 = m_f0;
-				else
-					f0 = params[nP()];
-				ArrayXd sig = m_signals.at(i)->signal(params.head(nP()), m_B1, f0);
+				ArrayXd sig = m_signals.at(i)->signal(params.head(nP()), m_B1, params[nP()]);
 				switch (m_scaling) {
 					case (Scaling::NormToMean) : m_theory.at(i) = sig / sig.mean(); break;
 					case (Scaling::Global)     : m_theory.at(i) = sig * params(nP() + nOffRes()); break;
@@ -451,12 +446,7 @@ class DESPOT2FM : public DESPOTFunctor {
 			T1T2 << m_T1, params[0];
 			if (m_debug) cout << endl << __PRETTY_FUNCTION__ << endl;
 			for (size_t i = 0; i < m_signals.size(); i++) {
-				double f0;
-				if (m_offRes == OffResMode::Map)
-					f0 = m_f0;
-				else
-					f0 = params[nP()];
-				ArrayXd sig = m_signals.at(i)->signal(T1T2, m_B1, f0);
+				ArrayXd sig = m_signals.at(i)->signal(T1T2, m_B1, params[nP()]);
 				switch (m_scaling) {
 					case (Scaling::NormToMean) : m_theory.at(i) = sig / sig.mean(); break;
 					case (Scaling::Global)     : m_theory.at(i) = sig * params(nP() + nOffRes()); break;

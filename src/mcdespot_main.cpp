@@ -187,7 +187,7 @@ int main(int argc, char **argv)
 	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvn123m:o:f:s:p:S:t:Fcei:j:w", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvn123m:o:f:s:p:S:t:FceEi:j:w", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
@@ -391,8 +391,8 @@ int main(int argc, char **argv)
 					if (scale == mcDESPOT::Scaling::NormToMean)
 						localf.actual(i) /= localf.actual(i).mean();
 				}
-				if (f0fit == mcDESPOT::OffResMode::Map || f0fit == mcDESPOT::OffResMode::MapLoose) {
-					localf.m_f0 = f0File.isOpen() ? f0Slice[vox] : 0.;
+				if (f0File.isOpen()) {
+					localf.m_f0 = f0Slice[vox];
 				}
 				localf.m_B1 = B1File.isOpen() ? B1Slice[vox] : 1.;
 				// f0 bounds depends on m_f0 and fitting mode
@@ -403,7 +403,7 @@ int main(int argc, char **argv)
 				// Add the voxel number to the time to get a decent random seed
 				size_t rSeed = time(NULL) + vox;
 				RegionContraction<mcDESPOT> rc(localf, localBounds, weights, threshes,
-											 samples, retain, contract, expand, (voxI != -1));
+											   samples, retain, contract, expand, (voxI != -1));
 				rc.optimise(params, rSeed);
 				residuals = rc.residuals();
 				if (extra) {

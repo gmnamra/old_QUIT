@@ -130,13 +130,7 @@ class RegionContraction {
 			
 			// Set up retained matrix for first contraction
 			for (size_t c = 0; c < m_nR; c++) {
-				for (size_t r = 0; r < m_f.inputs(); r++) {
-					if ((c >> r) & 1) {
-						retained(r, c) = m_startBounds(r, 1);
-					} else {
-						retained(r, c) = m_startBounds(r, 0);
-					}
-				}
+				retained.col(c) = m_startBounds.col(0) + (static_cast<float>(c) / m_nR) * startWidth();
 				m_f(retained.col(c), retainedRes.col(c));
 			}
 			if (m_debug) {
@@ -206,11 +200,11 @@ class RegionContraction {
 					cout << "Mid Sample:     " << midPoint().transpose() << endl;
 					cout << "Sample Width:   " << width().transpose() << endl;
 					cout << "Threshold:      " << (m_threshes * startWidth()).transpose() << endl;
-					cout << "Width < Thresh: " << (width() < m_threshes * startWidth()).transpose() << endl;
-					cout << "Converged:      " << (width() < m_threshes * startWidth()).all() << endl;
+					cout << "Width < Thresh: " << (width() <= (m_threshes * startWidth())).transpose() << endl;
+					cout << "Converged:      " << (width() <= (m_threshes * startWidth())).all() << endl;
 
 				}
-				if ((width() < m_threshes * startWidth()).all()) {
+				if ((width() <= (m_threshes * startWidth())).all()) {
 					m_status = Status::Converged;
 					m_contractions++; // Just to give an accurate contraction count.
 					break;
