@@ -37,40 +37,40 @@ enum class Components {
 class SignalFunctor {
 	public:
 		Components m_nC;
-		double m_TR;
+		double m_TR, m_weight;
 		ArrayXd m_flip;
-		SignalFunctor(const ArrayXd &flip, const double TR, const Components nC);
+		SignalFunctor(const ArrayXd &flip, const double TR, const double weight, const Components nC);
 		virtual ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const = 0;
 		virtual size_t size() const { return m_flip.rows(); }
 };
 
 class SPGR_Functor : public SignalFunctor {
 	public:
-		SPGR_Functor(const ArrayXd &flip, const double TR, const Components nC);
+		SPGR_Functor(const ArrayXd &flip, const double TR, const double weight, const Components nC);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 };
 class SPGR_Finite_Functor : public SignalFunctor {
 	public:
 		double m_Trf, m_TE;
-		SPGR_Finite_Functor(const ArrayXd &flip, const double TR, const double Trf, const double TE, const Components nc);
+		SPGR_Finite_Functor(const ArrayXd &flip, const double TR, const double Trf, const double TE, const double weight, const Components nc);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 };
 class SSFP_Functor : public SignalFunctor {
 	public:
 		ArrayXd m_phases;
-		SSFP_Functor(const ArrayXd &flip, const double TR, const ArrayXd &phases, const Components nC);
+		SSFP_Functor(const ArrayXd &flip, const double TR, const ArrayXd &phases, const double weight, const Components nC);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 		size_t size() const override;
 };
 class SSFP_Finite_Functor : public SSFP_Functor {
 	public:
 		double m_Trf, m_TE;
-		SSFP_Finite_Functor(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases, const Components nC);
+		SSFP_Finite_Functor(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases, const double weight, const Components nC);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 };
 		
-shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC, const bool finite);
-shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC, const bool finite);
+shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC, const bool finite, const bool use_weights);
+shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC, const bool finite, const bool use_weights);
 
 //******************************************************************************
 #pragma mark Optimisation Functor Base Class
@@ -233,6 +233,11 @@ class DESPOTFunctor : public Functor<double> {
 			ArrayXd t = theory(params);
 			ArrayXd s = actual();
 			diffs = t - s;
+			int index = 0;
+			for (auto &s : m_signals) {
+				diffs.segment(index, s->size()) *= s->m_weight;
+				index += s->size();
+			}
 			if (m_debug) {
 				cout << endl << __PRETTY_FUNCTION__ << endl;
 				cout << "p:      " << params.transpose() << endl;

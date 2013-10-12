@@ -66,10 +66,10 @@ static auto tesla = mcDESPOT::FieldStrength::Three;
 static auto scale = mcDESPOT::Scaling::NormToMean;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, extra = false, early_finish = false,
-           use_finite = false,
+           use_finite = false, use_weights = false,
 		   samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
-static double expand = 0., weighting = 1.0;
+static double expand = 0.;
 static string outPrefix;
 static struct option long_options[] =
 {
@@ -122,13 +122,15 @@ Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 				 Nifti &B1File,
 				 Nifti &f0File,
 				 const mcDESPOT::OffResMode &f0fit,
-				 const bool &use_finite);
+				 const bool &use_finite,
+				 const bool &use_weights);
 Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 				 vector<Nifti> &signalFiles,
 				 Nifti &B1File,
 				 Nifti &f0File,
 				 const mcDESPOT::OffResMode &f0fit,
-				 const bool &use_finite) {
+				 const bool &use_finites,
+				 const bool &use_weights) {
 	Nifti templateFile;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
@@ -147,9 +149,9 @@ Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 			signalFiles.push_back(openAndCheck(path, templateFile, type));
 		}
 		if (type == "SPGR")
-			sigs.emplace_back(parseSPGR(signalFiles.back(), prompt, components, use_finite));
+			sigs.emplace_back(parseSPGR(signalFiles.back(), prompt, components, use_finite, use_weights));
 		else
-			sigs.emplace_back(parseSSFP(signalFiles.back(), prompt, components, use_finite));
+			sigs.emplace_back(parseSSFP(signalFiles.back(), prompt, components, use_finite, use_weights));
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
@@ -249,7 +251,7 @@ int main(int argc, char **argv)
 			case 'E': early_finish = true; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
-			case 'w': weighting = atof(optarg); break;
+			case 'w': use_weights = true; break;
 			case 'h':
 			case '?': // getopt will print an error message
 			default:
@@ -268,7 +270,7 @@ int main(int argc, char **argv)
 	vector<shared_ptr<SignalFunctor>> sigs;
 	vector<Nifti> signalFiles;
 	Nifti B1File, f0File;
-	templateFile = parseInput(sigs, signalFiles, B1File, f0File, f0fit, use_finite);
+	templateFile = parseInput(sigs, signalFiles, B1File, f0File, f0fit, use_finite, use_weights);
 	if ((maskData.size() > 0) && !(maskFile.matchesSpace(templateFile))) {
 		cerr << "Mask file has different dimensions/transform to input data." << endl;
 		exit(EXIT_FAILURE);

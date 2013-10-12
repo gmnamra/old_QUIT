@@ -11,11 +11,11 @@
 //******************************************************************************
 #pragma mark Signal Functors
 //******************************************************************************
-SignalFunctor::SignalFunctor(const ArrayXd &flip, const double TR, const Components nC) :
-	m_flip(flip), m_TR(TR), m_nC(nC) {}
+SignalFunctor::SignalFunctor(const ArrayXd &flip, const double TR, const double weight, const Components nC) :
+	m_flip(flip), m_TR(TR), m_weight(weight), m_nC(nC) {}
 
-SPGR_Functor::SPGR_Functor(const ArrayXd &flip, const double TR, const Components nC) :
-	SignalFunctor(flip, TR, nC) {}
+SPGR_Functor::SPGR_Functor(const ArrayXd &flip, const double TR, const double weight, const Components nC) :
+	SignalFunctor(flip, TR, weight, nC) {}
 ArrayXd SPGR_Functor::signal(const VectorXd &p, const double B1, double f0) const {
 	switch (m_nC) {
 		case (Components::One) : return SigMag(One_SPGR(p, m_flip, m_TR, B1));
@@ -24,8 +24,8 @@ ArrayXd SPGR_Functor::signal(const VectorXd &p, const double B1, double f0) cons
 	}
 }
 
-SPGR_Finite_Functor::SPGR_Finite_Functor(const ArrayXd &flip, const double TR, double Trf, double TE, const Components nC) :
-	SignalFunctor(flip, TR, nC), m_Trf(Trf), m_TE(TE) {}
+SPGR_Finite_Functor::SPGR_Finite_Functor(const ArrayXd &flip, const double TR, double Trf, double TE, const double weight, const Components nC) :
+	SignalFunctor(flip, TR, weight, nC), m_Trf(Trf), m_TE(TE) {}
 ArrayXd SPGR_Finite_Functor::signal(const VectorXd &p, const double B1, double f0) const {
 	switch (m_nC) {
 		case (Components::One) : return SigMag(One_SSFP_Finite(p, m_flip, true, m_TR, m_Trf, m_TE, 0, B1, f0));
@@ -35,8 +35,8 @@ ArrayXd SPGR_Finite_Functor::signal(const VectorXd &p, const double B1, double f
 }
 
 
-SSFP_Functor::SSFP_Functor(const ArrayXd &flip, const double TR, const ArrayXd &phases, const Components nC) :
-	SignalFunctor(flip, TR, nC), m_phases(phases) {}
+SSFP_Functor::SSFP_Functor(const ArrayXd &flip, const double TR, const ArrayXd &phases, const double weight, const Components nC) :
+	SignalFunctor(flip, TR, weight, nC), m_phases(phases) {}
 size_t SSFP_Functor::size() const {
 	return m_flip.rows() * m_phases.rows();
 }
@@ -54,8 +54,8 @@ ArrayXd SSFP_Functor::signal(const VectorXd &p, const double B1, double f0) cons
 	return s;
 }
 
-SSFP_Finite_Functor::SSFP_Finite_Functor(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases, const Components nC) :
-	SSFP_Functor(flip, TR, phases, nC), m_Trf(Trf) {}
+SSFP_Finite_Functor::SSFP_Finite_Functor(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases, const double weight, const Components nC) :
+	SSFP_Functor(flip, TR, phases, weight, nC), m_Trf(Trf) {}
 ArrayXd SSFP_Finite_Functor::signal(const VectorXd &p, const double B1, double f0) const {
 	ArrayXd s(size());
 	ArrayXd::Index start = 0;
@@ -70,8 +70,9 @@ ArrayXd SSFP_Finite_Functor::signal(const VectorXd &p, const double B1, double f
 	return s;
 }
 
-shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC, const bool use_finite) {
-	double inTR = 0., inTrf = 0., inTE = 0.;
+shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC,
+                                    const bool use_finite, const bool use_weights) {
+	double inTR = 0., inTrf = 0., inTE = 0., inWeight = 1.;
 	ArrayXd inAngles(img.dim(4));
 	#ifdef AGILENT
 	Agilent::ProcPar pp;
@@ -94,16 +95,20 @@ shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const C
 		for (int i = 0; i < inAngles.size(); i++) cin >> inAngles[i];
 		string temp; getline(cin, temp); // Just to eat the newline
 	}
+	if (use_weights) {
+		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
+	}
 	shared_ptr<SignalFunctor> f;
 	if (use_finite)
-		f = make_shared<SPGR_Finite_Functor>(inAngles * M_PI / 180, inTR, inTrf, inTE, nC);
+		f = make_shared<SPGR_Finite_Functor>(inAngles * M_PI / 180, inTR, inTrf, inTE, inWeight, nC);
 	else
-		f = make_shared<SPGR_Functor>(inAngles * M_PI / 180., inTR, nC);
+		f = make_shared<SPGR_Functor>(inAngles * M_PI / 180., inTR, inWeight, nC);
 	return f;
 }
 
-shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC, const bool use_finite) {
-	double inTR = 0., inTrf = 0.;
+shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC,
+                                    const bool use_finite, const bool use_weights) {
+	double inTR = 0., inTrf = 0., inWeight = 1.;
 	ArrayXd inPhases, inAngles;
 	#ifdef AGILENT
 	Agilent::ProcPar pp;
@@ -131,10 +136,13 @@ shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const C
 		for (ArrayXd::Index i = 0; i < inAngles.size(); i++) cin >> inAngles(i);
 		string temp; getline(cin, temp); // Just to eat the newline
 	}
+	if (use_weights) {
+		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
+	}
 	shared_ptr<SignalFunctor> f;
 	if (use_finite)
-		f = make_shared<SSFP_Finite_Functor>(inAngles * M_PI / 180., inTR, inTrf, inPhases * M_PI / 180., nC);
+		f = make_shared<SSFP_Finite_Functor>(inAngles * M_PI / 180., inTR, inTrf, inPhases * M_PI / 180., inWeight, nC);
 	else
-		f = make_shared<SSFP_Functor>(inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., nC);
+		f = make_shared<SSFP_Functor>(inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., inWeight, nC);
 	return f;
 }
