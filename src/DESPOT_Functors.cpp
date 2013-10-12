@@ -97,6 +97,7 @@ shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const C
 	}
 	if (use_weights) {
 		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
+		string temp; getline(cin, temp); // Just to eat the newline
 	}
 	shared_ptr<SignalFunctor> f;
 	if (use_finite)
@@ -138,6 +139,7 @@ shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const C
 	}
 	if (use_weights) {
 		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
+		string temp; getline(cin, temp); // Just to eat the newline
 	}
 	shared_ptr<SignalFunctor> f;
 	if (use_finite)
