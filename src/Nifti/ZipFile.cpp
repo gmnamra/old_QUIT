@@ -55,7 +55,8 @@ void ZipFile::close() {
 		gzclose(m_gzipFile);
 	else if (m_plainFile)
 		fclose(m_plainFile);
-	m_gzipFile = m_plainFile = NULL;
+	m_gzipFile = nullptr;
+	m_plainFile = nullptr;
 }
 
 /*! Attempts to read the specified number of bytes into the buffer

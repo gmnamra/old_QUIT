@@ -17,6 +17,7 @@
 #include <map>
 #include <limits>
 #include <exception>
+#include <stdexcept>
 #include <cstdint>
 
 #include "Eigen/Core"

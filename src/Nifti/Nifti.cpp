@@ -309,10 +309,10 @@ Nifti &Nifti::operator=(const Nifti &other) {
 	
 	// Open the file for ourselves and seek to the same position
 	if (m_mode == Mode::Read) {
-		m_file.open(imagePath(), "r", m_gz);
+		m_file.open(imagePath(), "rb", m_gz);
 		m_file.seek(m_file.tell(), SEEK_SET);
 	} else if (m_mode == Mode::Write) {
-		m_file.open(imagePath(), "w", m_gz);
+		m_file.open(imagePath(), "wb", m_gz);
 		m_file.seek(m_file.tell(), SEEK_SET);
 	}
 	
