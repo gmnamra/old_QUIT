@@ -185,9 +185,9 @@ class RegionContraction {
 				}
 				ArrayXd toSort = residuals.square().colwise().sum();
 				indices = index_partial_sort(toSort, m_nR);
+				ArrayXd previousBest = retained.col(0);
 				for (size_t i = 0; i < m_nR; i++) {
 					retained.col(i) = samples.col(indices[i]);
-					retainedRes.col(i) = residuals.col(indices[i]);
 				}
 				// Find the min and max for each parameter in the top nR samples
 				m_currentBounds.col(0) = retained.rowwise().minCoeff();
@@ -204,7 +204,8 @@ class RegionContraction {
 					cout << "Converged:      " << (width() <= (m_threshes * startWidth())).all() << endl;
 
 				}
-				if ((width() <= (m_threshes * startWidth())).all()) {
+				if (((width() <= (m_threshes * startWidth())).all()) ||
+				    (previousBest == retained.col(0)).all()) {
 					m_status = Status::Converged;
 					m_contractions++; // Just to give an accurate contraction count.
 					break;
@@ -218,9 +219,7 @@ class RegionContraction {
 			}
 			// Return the best evaluated solution so far
 			params = retained.col(0);
-			// Calculate the residuals
-			m_f(params, m_residuals);
-			//diffs /= f.signals();
+			m_residuals = retainedRes.col(0);
 			if (m_debug) {
 				cout << "Finished, contractions = " << m_contractions << endl;
 			}
