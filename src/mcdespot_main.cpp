@@ -280,21 +280,10 @@ int main(int argc, char **argv)
 	// Use if files are open to indicate default values should be used -
 	// 0 for f0, 1 for B1
 	//**************************************************************************
-	size_t voxelsPerSlice = templateFile.dims().head(2).prod();
-	size_t voxelsPerVolume = templateFile.dims().head(3).prod();
-	
-	vector<vector<double>> sigSlices(signalFiles.size());
-	vector<double> B1Slice(voxelsPerSlice);
-	vector<double> f0Slice(voxelsPerSlice);
-	for (size_t i = 0; i < signalFiles.size(); i++) {
-		sigSlices[i].resize(voxelsPerSlice * sigs.at(i)->size());
-	}
-	
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << mcDESPOT::to_string(components) << " component model." << endl;
 	mcDESPOT mcd(components, sigs, tesla, f0fit, scale, use_finite);
 	outPrefix = outPrefix + mcDESPOT::to_string(components) + "C_";
-	ArrayXd weights(mcd.values()); weights.setConstant(1.0);
 	ArrayXd threshes(mcd.inputs()); threshes.setConstant(0.05);
 	if (early_finish)
 		threshes = mcd.defaultThresholds();
@@ -305,30 +294,41 @@ int main(int argc, char **argv)
 	vector<Nifti> paramsFiles(mcd.inputs(), templateFile);
 	vector<Nifti> midpFiles(mcd.inputs(), templateFile);
 	vector<Nifti> widthFiles(mcd.inputs(), templateFile);
-	Nifti contractFile(templateFile);
-	vector<vector<double>> paramsData(mcd.inputs());
-	vector<vector<double>> midpData(mcd.inputs());
-	vector<vector<double>> widthData(mcd.inputs());
-	vector<size_t> contractData(voxelsPerSlice);
+	Nifti SoSFile(templateFile);
+	Nifti contractFile(templateFile, 1, Nifti::DataType::UINT8);
+	Nifti residualsFile(templateFile, static_cast<int>(mcd.values()));
+
+	size_t voxelsPerSlice = templateFile.dims().head(2).prod();
+	size_t voxelsPerVolume = templateFile.dims().head(3).prod();
+	vector<double> B1Slice(voxelsPerSlice);
+	vector<double> f0Slice(voxelsPerSlice);
+	vector<double> SoSSlice(voxelsPerSlice);
+	vector<size_t> contractSlice(voxelsPerSlice);
+	vector<vector<double>> paramsSlice(mcd.inputs());
+	vector<vector<double>> midpSlice(mcd.inputs());
+	vector<vector<double>> widthSlice(mcd.inputs());
+	vector<vector<double>> residualsVolume(mcd.values());
+	vector<vector<double>> sigSlices(signalFiles.size());
 	for (int i = 0; i < mcd.inputs(); i++) {
-		paramsData.at(i).resize(voxelsPerSlice);
+		paramsSlice.at(i).resize(voxelsPerSlice);
 		paramsFiles.at(i).open(outPrefix + mcd.names()[i] + ".nii.gz", Nifti::Mode::Write);
 		if (extra) {
-			midpData.at(i).resize(voxelsPerSlice);
+			midpSlice.at(i).resize(voxelsPerSlice);
 			midpFiles.at(i).open(outPrefix + mcd.names()[i] + "_mid.nii.gz", Nifti::Mode::Write);
-			widthData.at(i).resize(voxelsPerSlice);
+			widthSlice.at(i).resize(voxelsPerSlice);
 			widthFiles.at(i).open(outPrefix + mcd.names()[i] + "_width.nii.gz", Nifti::Mode::Write);
 		}
 	}
-	if (extra)
+	SoSFile.open(outPrefix + "_SoS.nii.gz", Nifti::Mode::Write);
+	for (size_t i = 0; i < signalFiles.size(); i++) {
+		sigSlices.at(i).resize(voxelsPerSlice * sigs.at(i)->size());
+	}
+	if (extra) {
 		contractFile.open(outPrefix + "n_contract.nii.gz", Nifti::Mode::Write);
-	
-	vector<vector<double>> residualData(mcd.values());
-	for (size_t i = 0; i < residualData.size(); i ++)
-		residualData.at(i).resize(voxelsPerVolume);
-	Nifti residualFile(templateFile);
-	residualFile.setDim(4, static_cast<int>(mcd.values()));
-	residualFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
+		residualsFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
+		for (size_t i = 0; i < residualsVolume.size(); i ++)
+			residualsVolume.at(i).resize(voxelsPerVolume);
+	}
 	
 	ArrayXXd bounds = mcd.defaultBounds();
 	if (tesla == mcDESPOT::FieldStrength::Unknown) {
@@ -377,11 +377,13 @@ int main(int argc, char **argv)
 		if (f0File.isOpen()) f0File.readVoxels<double>(sliceStart, sliceSize, f0Slice);
 		if (verbose) cout << "processing..." << endl;
 		clock_t loopStart = clock();
+		
 		function<void (const size_t&)> processVox = [&] (const size_t &vox) {
 			mcDESPOT localf(mcd); // Take a thread local copy so we can change info/signals			
 			ArrayXd params(localf.inputs()), residuals(localf.values()),
 					width(localf.inputs()), midp(localf.inputs());
 			size_t c = 0;
+			double SoS = 0.;
 			width.setZero(); midp.setZero(); params.setZero(); residuals.setZero();
 			if ((maskData.size() == 0) || (maskData[sliceOffset + vox] > 0.)) {
 				voxCount++;
@@ -404,27 +406,30 @@ int main(int argc, char **argv)
 				}
 				// Add the voxel number to the time to get a decent random seed
 				size_t rSeed = time(NULL) + vox;
-				RegionContraction<mcDESPOT> rc(localf, localBounds, weights, threshes,
+				RegionContraction<mcDESPOT> rc(localf, localBounds, localf.weights(), threshes,
 											   samples, retain, contract, expand, (voxI != -1));
 				rc.optimise(params, rSeed);
-				residuals = rc.residuals();
+				SoS = rc.SoS();
 				if (extra) {
 					c = rc.contractions();
 					width = rc.width();
 					midp = rc.midPoint();
+					residuals = rc.residuals();
 				}
 			}
-			if (extra)
-				contractData.at(vox) = c;
-			for (size_t p = 0; p < paramsData.size(); p++) {
-				paramsData.at(p).at(vox) = params[p];
+			for (size_t p = 0; p < paramsSlice.size(); p++) {
+				paramsSlice.at(p).at(vox) = params[p];
 				if (extra) {
-					widthData.at(p).at(vox) = width(p);
-					midpData.at(p).at(vox) = midp(p);
+					widthSlice.at(p).at(vox) = width(p);
+					midpSlice.at(p).at(vox) = midp(p);
 				}
 			}
-			for (int i = 0; i < residuals.size(); i++) {
-				residualData.at(i).at(slice * voxelsPerSlice + vox) = residuals[i];
+			SoSSlice.at(vox) = SoS;
+			if (extra) {
+				contractSlice.at(vox) = c;
+				for (int i = 0; i < residuals.size(); i++) {
+					residualsVolume.at(i).at(slice * voxelsPerSlice + vox) = residuals[i];
+				}
 			}
 			if (voxI != -1) {
 				cout << "Final: " << params.transpose() << endl;
@@ -438,14 +443,14 @@ int main(int argc, char **argv)
 			exit(0);
 		}
 		for (size_t p = 0; p < paramsFiles.size(); p++) {
-			paramsFiles.at(p).writeVoxels(sliceStart, sliceSize, paramsData.at(p));
+			paramsFiles.at(p).writeVoxels(sliceStart, sliceSize, paramsSlice.at(p));
 			if (extra) {
-				midpFiles.at(p).writeVoxels(sliceStart, sliceSize, midpData.at(p));
-				widthFiles.at(p).writeVoxels(sliceStart, sliceSize, widthData.at(p));
+				midpFiles.at(p).writeVoxels(sliceStart, sliceSize, midpSlice.at(p));
+				widthFiles.at(p).writeVoxels(sliceStart, sliceSize, widthSlice.at(p));
 			}
 		}
 		if (extra)
-			contractFile.writeVoxels(sliceStart, sliceSize, contractData);
+			contractFile.writeVoxels(sliceStart, sliceSize, contractSlice);
 		if (verbose) {
 			clock_t loopEnd = clock();
 			if (voxCount > 0)
@@ -461,8 +466,10 @@ int main(int argc, char **argv)
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 	          << difftime(procEnd, procStart) << " s." << endl;
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
-	for (size_t r = 0; r < residualData.size(); r++)
-		residualFile.writeVolumes(r, 1, residualData.at(r));
+	if (extra) {
+		for (size_t r = 0; r < residualsVolume.size(); r++)
+			residualsFile.writeVolumes(r, 1, residualsVolume.at(r));
+	}
 	cout << "Finished writing data." << endl;
 	
 	} catch (exception &e) {

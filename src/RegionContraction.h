@@ -54,14 +54,14 @@ class RegionContraction {
 		ArrayXXd m_startBounds, m_currentBounds;
 		ArrayXd m_weights, m_residuals, m_threshes;
 		size_t m_nS, m_nR, m_maxContractions, m_contractions;
-		double m_expand;
+		double m_expand, m_SoS;
 		Status m_status;
 		bool m_debug;
 	
 	public:
 	
 		RegionContraction(Functor_t &f, const Ref<ArrayXXd> &startBounds,
-						  const Ref<ArrayXd> &weights, const Ref<ArrayXd> &thresh,
+						  const ArrayXd &weights, const ArrayXd &thresh,
 						  const int nS = 5000, const int nR = 50, const int maxContractions = 10,
 						  const double expand = 0., const bool debug = false) :
 				m_f(f), m_startBounds(startBounds), m_currentBounds(startBounds),
@@ -95,13 +95,14 @@ class RegionContraction {
 			eigen_assert((t >= 0.).all() && (t <= 1.).all());
 			m_threshes = t;
 		}
-		const ArrayXd &residuals() const { return m_residuals; }
-		const size_t contractions() const { return m_contractions; }
-		const Status status() const { return m_status; }
+		const ArrayXd  &residuals() const { return m_residuals; }
+		const size_t   contractions() const { return m_contractions; }
+		const Status   status() const { return m_status; }
 		const ArrayXXd &currentBounds() const { return m_currentBounds; }
-		const ArrayXd startWidth() const { return m_startBounds.col(1) - m_startBounds.col(0); }
-		const ArrayXd width() const { return m_currentBounds.col(1) - m_currentBounds.col(0); }
-		const ArrayXd midPoint() const { return (m_currentBounds.rowwise().sum() / 2.); }
+		const double   SoS() const { return m_SoS; }
+		const ArrayXd  startWidth() const { return m_startBounds.col(1) - m_startBounds.col(0); }
+		const ArrayXd  width() const { return m_currentBounds.col(1) - m_currentBounds.col(0); }
+		const ArrayXd  midPoint() const { return (m_currentBounds.rowwise().sum() / 2.); }
 		
 		void optimise(Ref<ArrayXd> params, const size_t seed = 0) {
 			static atomic<bool> finiteWarning(false);
@@ -180,10 +181,9 @@ class RegionContraction {
 						m_status = Status::ErrorInfiniteResidual;
 						return;
 					}
-					residuals.col(s) *= m_weights;
 					samples.col(s) = tempSample;
 				}
-				ArrayXd toSort = (residuals * m_f.weights()).square().colwise().sum();
+				ArrayXd toSort = (residuals * m_weights).square().colwise().sum();
 				indices = index_partial_sort(toSort, m_nR);
 				ArrayXd previousBest = retained.col(0);
 				for (size_t i = 0; i < m_nR; i++) {
@@ -220,6 +220,7 @@ class RegionContraction {
 			// Return the best evaluated solution so far
 			params = retained.col(0);
 			m_residuals = retainedRes.col(0);
+			m_SoS = m_residuals.square().sum();
 			if (m_debug) {
 				cout << "Finished, contractions = " << m_contractions << endl;
 			}

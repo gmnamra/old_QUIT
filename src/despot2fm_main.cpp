@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 		cout << "Reading SSFP data..." << endl;
-		sigs.emplace_back(parseSSFP(inFile, true, Components::One, use_finite));
+		sigs.emplace_back(parseSSFP(inFile, true, Components::One, use_finite, false));
 		ssfpData.at(p).resize(inFile.dims().head(4).prod());
 		inFile.readVolumes(0, inFile.dim(4), ssfpData.at(p));
 		inFile.close();
