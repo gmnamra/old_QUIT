@@ -62,6 +62,7 @@ Options:\n\
 
 static auto f0fit = mcDESPOT::OffResMode::SingleSymmetric;
 static auto components = Components::Three;
+static auto model = Model::Simple;
 static auto tesla = mcDESPOT::FieldStrength::Three;
 static auto scale = mcDESPOT::Scaling::NormToMean;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
@@ -118,19 +119,10 @@ Nifti openAndCheck(const string &path, const Nifti &saved, const string &type) {
 }
 
 Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
-				 vector<Nifti> &signalFiles,
-				 Nifti &B1File,
-				 Nifti &f0File,
-				 const mcDESPOT::OffResMode &f0fit,
-				 const bool &use_finite,
-				 const bool &use_weights);
+				 vector<Nifti> &signalFiles, Nifti &B1File, Nifti &f0File);
 Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
-				 vector<Nifti> &signalFiles,
-				 Nifti &B1File,
-				 Nifti &f0File,
-				 const mcDESPOT::OffResMode &f0fit,
-				 const bool &use_finites,
-				 const bool &use_weights) {
+				 vector<Nifti> &signalFiles, Nifti &B1File, Nifti &f0File)
+{
 	Nifti templateFile;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
@@ -149,9 +141,9 @@ Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 			signalFiles.push_back(openAndCheck(path, templateFile, type));
 		}
 		if (type == "SPGR")
-			sigs.emplace_back(parseSPGR(signalFiles.back(), prompt, components, use_finite, use_weights));
+			sigs.emplace_back(parseSPGR(signalFiles.back(), prompt, components, model, use_weights));
 		else
-			sigs.emplace_back(parseSSFP(signalFiles.back(), prompt, components, use_finite, use_weights));
+			sigs.emplace_back(parseSSFP(signalFiles.back(), prompt, components, model, use_weights));
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
@@ -189,7 +181,7 @@ int main(int argc, char **argv)
 	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvn123m:o:f:s:p:S:t:FceEi:j:w", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvn123m:o:f:s:p:S:t:M:ceEi:j:w", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
@@ -235,11 +227,21 @@ int main(int argc, char **argv)
 					case '7': tesla = mcDESPOT::FieldStrength::Seven; break;
 					case 'u': tesla = mcDESPOT::FieldStrength::Unknown; break;
 					default:
-						cout << "Unknown boundaries type " << optarg << endl;
+						cout << "Unknown boundaries type " << *optarg << endl;
 						exit(EXIT_FAILURE);
 						break;
 				} break;
-			case 'F': use_finite = true; break;
+			case 'M':
+				switch (*optarg) {
+					case 's': model = Model::Simple; break;
+					case 'e': model = Model::Echo; break;
+					case 'f': model = Model::Finite; break;
+					default:
+						cout << "Unknown model type " << *optarg << endl;
+						exit(EXIT_FAILURE);
+						break;
+				}
+				break;
 			case 'c':
 				cout << "Enter max number of contractions: " << flush; cin >> contract;
 				cout << "Enter number of samples per contraction: " << flush; cin >> samples;
@@ -270,7 +272,7 @@ int main(int argc, char **argv)
 	vector<shared_ptr<SignalFunctor>> sigs;
 	vector<Nifti> signalFiles;
 	Nifti B1File, f0File;
-	templateFile = parseInput(sigs, signalFiles, B1File, f0File, f0fit, use_finite, use_weights);
+	templateFile = parseInput(sigs, signalFiles, B1File, f0File);
 	if ((maskData.size() > 0) && !(maskFile.matchesSpace(templateFile))) {
 		cerr << "Mask file has different dimensions/transform to input data." << endl;
 		exit(EXIT_FAILURE);
@@ -319,7 +321,7 @@ int main(int argc, char **argv)
 			widthFiles.at(i).open(outPrefix + mcd.names()[i] + "_width.nii.gz", Nifti::Mode::Write);
 		}
 	}
-	SoSFile.open(outPrefix + "_SoS.nii.gz", Nifti::Mode::Write);
+	SoSFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);
 	for (size_t i = 0; i < signalFiles.size(); i++) {
 		sigSlices.at(i).resize(voxelsPerSlice * sigs.at(i)->size());
 	}
