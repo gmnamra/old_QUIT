@@ -233,11 +233,6 @@ class DESPOTFunctor : public Functor<double> {
 			ArrayXd t = theory(params);
 			ArrayXd s = actual();
 			diffs = t - s;
-			int index = 0;
-			for (auto &s : m_signals) {
-				diffs.segment(index, s->size()) *= s->m_weight;
-				index += s->size();
-			}
 			if (m_debug) {
 				cout << endl << __PRETTY_FUNCTION__ << endl;
 				cout << "p:      " << params.transpose() << endl;
@@ -247,6 +242,16 @@ class DESPOTFunctor : public Functor<double> {
 				cout << "Sum:    " << diffs.square().sum() << endl;
 			}
 			return 0;
+		}
+		
+		ArrayXd weights() const {
+			ArrayXd w(inputs());
+			ArrayXd::Index index;
+			for (auto &s : m_signals) {
+				w.segment(index, s->size()).setConstant(s->m_weight);
+				index += s->size();
+			}
+			return w;
 		}
 };
 
