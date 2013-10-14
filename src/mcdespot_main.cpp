@@ -449,6 +449,7 @@ int main(int argc, char **argv)
 				widthFiles.at(p).writeVoxels(sliceStart, sliceSize, widthSlice.at(p));
 			}
 		}
+		SoSFile.writeVoxels(sliceStart, sliceSize, SoSSlice);
 		if (extra)
 			contractFile.writeVoxels(sliceStart, sliceSize, contractSlice);
 		if (verbose) {
