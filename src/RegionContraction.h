@@ -183,7 +183,7 @@ class RegionContraction {
 					}
 					samples.col(s) = tempSample;
 				}
-				ArrayXd toSort = (residuals * m_weights).square().colwise().sum();
+				ArrayXd toSort = (residuals.colwise() * m_weights).square().colwise().sum();
 				indices = index_partial_sort(toSort, m_nR);
 				ArrayXd previousBest = retained.col(0);
 				for (size_t i = 0; i < m_nR; i++) {

@@ -245,8 +245,8 @@ class DESPOTFunctor : public Functor<double> {
 		}
 		
 		ArrayXd weights() const {
-			ArrayXd w(inputs());
-			ArrayXd::Index index;
+			ArrayXd w(values());
+			ArrayXd::Index index = 0;
 			for (auto &s : m_signals) {
 				w.segment(index, s->size()).setConstant(s->m_weight);
 				index += s->size();
