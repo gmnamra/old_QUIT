@@ -118,6 +118,10 @@ All times, e.g. TR, TI and the output T1 and T2 maps, are measured in SECONDS by
 
 Off-resonance (f0) maps are produced in Hertz (Hz). B1 maps are fractions of the desired flip angle. Myelin Water Fraction and Cerebral-Spinal Fluid Fractions are fractions, obviously. Proton Density is in arbitrary units and will depend on your scanner's scaling factors.
 
+\section{A Note for Agilent Scanners}
+
+I have automated steps in the processing for files coming from an Agilent scanner. If you have used my Agilent image conversion tools you will not have to enter flip angles, TRs, etc. by hand, they will automatically be read from the nifti header.
+
 \section{B0 Maps}
 
 No IoP studies that I am aware of have collected magnetic field (B0) inhomogeneity maps. I have only included this section to mention that a program to help with this, \texttt{phasemap} exists for future use.
@@ -258,5 +262,7 @@ $mcdespot -v -m mask.nii.gz -o test\_ <template\_mcd\_input.txt
 \end{lstlisting}
 
 You can hence have one file containing your scan settings and use it with your entire dataset. This is how I usually run the programs. If you wish to be more advanced, then look up ``HEREDOC'' on-line. This allows you to use redirection within a script, but because it is complicated to use correctly I cannot provide help.
+
+If you do script the programs, the \texttt{-n} option suppresses the text prompts, which will make the output more intelligible.
 
 \end{document}
