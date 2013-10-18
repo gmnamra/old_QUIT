@@ -40,15 +40,15 @@ The program will prompt for input (unless --no-prompt specified)\n\
 All times (TR) are in SECONDS. All angles are in degrees.\n\
 \n\
 Options:\n\
-	--help, -h		  : Print this message.\n\
+	--help, -h        : Print this message.\n\
 	--verbose, -v     : Print extra information.\n\
 	--no-prompt, -n   : Don't print prompts for input.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 3).\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
 	--f0, -f 0        : Read f0 values from map files.\n\
-			 1        : (Default) Fit one symmetric f0 value to all scans.\n\
-			 2        : Fit an unsymmetric f0 value to all scans.\n\
+	         1        : (Default) Fit one symmetric f0 value to all scans.\n\
+	         2        : Fit an unsymmetric f0 value to all scans.\n\
 	--start, -s n     : Only start processing at slice n.\n\
 	--stop, -p n      : Finish at slice n-1.\n\
 	--scale, -S 0     : Normalise signals to mean (default).\n\
@@ -233,9 +233,9 @@ int main(int argc, char **argv)
 				} break;
 			case 'M':
 				switch (*optarg) {
-					case 's': model = Model::Simple; break;
-					case 'e': model = Model::Echo; break;
-					case 'f': model = Model::Finite; break;
+					case 's': model = Model::Simple; if (prompt) cout << "Simple model selected." << endl; break;
+					case 'e': model = Model::Echo; if (prompt) cout << "TE correction selected." << endl; break;
+					case 'f': model = Model::Finite; if (prompt) cout << "Finite pulse correction selected." << endl; break;
 					default:
 						cout << "Unknown model type " << *optarg << endl;
 						exit(EXIT_FAILURE);
