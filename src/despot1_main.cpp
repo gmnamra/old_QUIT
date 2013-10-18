@@ -36,8 +36,8 @@ const string usage {
 \
 Options:\n\
 	-m, --mask file : Mask input with specified file.\n\
-	--out, -o path    : Add a prefix to the output filenames.\n\
-	--B1 file       : Correct flip angles with specified B1 ratio.\n\
+	-o, --out path  : Add a prefix to the output filenames.\n\
+	-b, --B1 file   : Correct flip angles with specified B1 ratio.\n\
 	-v, --verbose   : Print out more messages.\n\
 	-d, --drop      : Drop certain flip-angles (Read from stdin).\n"
 };
@@ -46,7 +46,7 @@ static int verbose = false, drop = false;
 static string outPrefix;
 static struct option long_options[] =
 {
-	{"B1", required_argument, 0, '1'},
+	{"B1", required_argument, 0, 'b'},
 	{"mask", required_argument, 0, 'm'},
 	{"out", required_argument, 0, 'o'},
 	{"verbose", no_argument, 0, 'v'},
@@ -66,9 +66,9 @@ int main(int argc, char **argv)
 	Nifti spgrFile, B1File, maskFile;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "m:o:vd", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "bm:o:vd", long_options, &indexptr)) != -1) {
 		switch (c) {
-			case '1':
+			case 'b':
 				cout << "Opening B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
 				B1Data.resize(B1File.dims().head(3).prod());
