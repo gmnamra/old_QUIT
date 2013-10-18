@@ -124,7 +124,7 @@ Options:\n\
 	-v, --verbose    : Print out more messages.\n\
 	-i, --inv 0-3    : Specify the scanner Inversion mode:\n\
 	                   0 = Use raw segment TR from input file\n\
-			           1 = 1.5T scanner, readout pulses div 2 + 2\n\
+	                   1 = 1.5T scanner, readout pulses div 2 + 2\n\
 	                   2 (Default) = 3T, scale TI by 0.9, readout pulses div 2 + 2\n\
 	                   3 = 3T, scale TI by 0.84, readout pulses + 2)\n\
 "
