@@ -124,7 +124,7 @@ I have automated steps in the processing for files coming from an Agilent scanne
 
 \section{B0 Maps}
 
-No IoP studies that I am aware of have collected magnetic field (B0) inhomogeneity maps. I have only included this section to mention that a program to help with this, \texttt{phasemap} exists for future use.
+No IoP studies that I am aware of have collected magnetic field (B0) inhomogeneity maps. I have only included this section to mention that a program to help with this, \texttt{phasemap}, exists for future use.
 
 \section{B1 Maps}
 
@@ -134,7 +134,7 @@ There are multiple B1 mapping techniques in the literature. I prefer to use a te
 
 \subsection{AFI}
 
-Processing an AFI sequence is simple. The sequence uses interleaved TRs to collect two volumes, and the actual flip angle in each voxel is then directly calculated from the ratio of those two volumes. It is hence very simple to run, just type \texttt{afi input\_file.nii.gz output\_prefix}.
+Processing an AFI sequence is simple. The sequence uses interleaved TRs to collect two volumes, and the actual flip angle in each voxel is then directly calculated from the ratio of those two volumes. It is hence very simple to run, just type \texttt{afi input\_file.nii.gz}.
 
 \subsection{DESPOT1-HIFI}
 
@@ -214,7 +214,8 @@ Suffix	& Unit	& Description\\
 \texttt{tau\_a}	& seconds & Myelin water residence time \\
 \texttt{f\_a}	& None (fraction) & MWF \\
 \texttt{f\_c}	& None (fraction) & CSF Fraction (Only for 3C model) \\
-\texttt{f0}		& Hertz  & Off-resonance \\
+\texttt{f0}		& Hertz   & Off-resonance \\
+\texttt{SoS}	& None    & Sum-of-Squares of Residual \\
 \hline
 \end{tabular}
 \caption{Filenames created by \texttt{mcdespot} and their meanings}
