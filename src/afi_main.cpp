@@ -23,10 +23,13 @@ using namespace std;
 #endif
 #include "DESPOT.h"
 
-const string usage("Usage is: afi [options] input output \n\
+const string usage{
+"Usage is: afi [options] input \n\
 \
 Options:\n\
-	--mask, -m file  : Mask input with specified file.\n");
+	--mask, -m file  : Mask input with specified file.\n\
+	--out, -o path   : Add a prefix to the output filenames.\n"
+};
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -37,15 +40,18 @@ int main(int argc, char **argv) {
 	cout << version << endl << credit_me << endl;
 	static struct option long_options[] = {
 		{"mask", required_argument, 0, 'm'},
+		{"out", required_argument, 0, 'o'},
 		{0, 0, 0, 0}
 	};
 	
+	try { // MacOS can't cope with uncaught exceptions
+	
 	int indexptr = 0, c;
-	string procPath, outPrefix;
+	string procPath, outPrefix = "";
 	double n, nomFlip;
 	vector<double> mask;
 	Nifti maskFile, inFile;
-	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "m:o:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
 				cout << "Reading mask." << endl;
@@ -53,9 +59,17 @@ int main(int argc, char **argv) {
 				mask.resize(maskFile.dims().head(3).prod());
 				maskFile.readVolumes(0, 1, mask);
 				break;
+			case 'o':
+				outPrefix = optarg;
+				cout << "Output prefix will be: " << outPrefix << endl;
+				break;
+			case '?': // getopt will print an error message
+			default:
+				cout << usage << endl;
+				return EXIT_FAILURE;
 		}
 	}
-	if ((argc - optind) != 2) {
+	if ((argc - optind) != 1) {
 		cout << usage << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -85,7 +99,6 @@ int main(int argc, char **argv) {
 	inFile.readVolumes(0, 1, tr1);
 	inFile.readVolumes(1, 1, tr2);
 	inFile.close();
-	outPrefix = string(argv[++optind]);
 	vector<double> flip(nVoxels);
 	vector<double> B1(nVoxels);
 	cout << "Allocated output memory." << endl;
@@ -120,6 +133,11 @@ int main(int argc, char **argv) {
 	outFile.close();
 	
 	cout << "Finished." << endl;
+	
+	} catch (exception &e) {
+		cerr << e.what() << endl;
+		return EXIT_FAILURE;
+	}
     return EXIT_SUCCESS;
 }
 

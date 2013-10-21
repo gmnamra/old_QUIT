@@ -136,7 +136,7 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
 }
 
 //******************************************************************************
-#pragma Magnetisation Evolution Matrices, helper functions etc.
+#pragma mark Magnetisation Evolution Matrices, helper functions etc.
 //******************************************************************************
 typedef Matrix<double, 6, 6> Matrix6d;
 typedef Matrix<double, 6, 1> Vector6d;
