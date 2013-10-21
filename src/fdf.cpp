@@ -77,9 +77,11 @@ void fdfImage::open(const string &path, const OpenMode &mode) {
 	double sinpsi = sin(psi*M_PI/180.), cospsi = cos(psi*M_PI/180.);
 	
 	// Now for the vox dimensions and offsets in the user frame
+	// The offset for the RO axis appears to be negative versus the PE/PE2 axis
+	// Verified in a mouse dataset 13/11/21
 	Array3d offset;
 	m_voxdim[0] = m_pp.realValue("lro")/m_dim[0];
-	offset(0)   = m_pp.realValue("pro") - (m_pp.realValue("lro") - m_voxdim[0])/2.;
+	offset(0)   = -m_pp.realValue("pro") - (m_pp.realValue("lro") - m_voxdim[0])/2.;
 	m_voxdim[1] = m_pp.realValue("lpe")/m_dim[1];
 	offset(1)   = m_pp.realValue("ppe") - (m_pp.realValue("lpe") - m_voxdim[1])/2.;
 	if (m_rank == 2) {
