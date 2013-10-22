@@ -218,11 +218,14 @@ void fdfFile::open(const string &path) {
 	m_hdrSize = m_file.tellg();
 	m_dtype = headerValue<string>("storage");
 	m_rank = headerValue<size_t>("rank");
-	m_dims[0] = headerValue<size_t>("matrix", 0);
-	m_dims[1] = headerValue<size_t>("matrix", 1);
 	if (m_rank == 3) {
+		m_dims[0] = headerValue<size_t>("matrix", 0);
+		m_dims[1] = headerValue<size_t>("matrix", 1);
 		m_dims[2] = headerValue<size_t>("matrix", 2);
 	} else {
+		// 2D fdfs have a horrible data flip in them.
+		m_dims[0] = headerValue<size_t>("matrix", 1);
+		m_dims[1] = headerValue<size_t>("matrix", 0);
 		m_dims[2] = 1;
 	}
 	// Unfortunately cannot keep all the headers open in a large dataset as
