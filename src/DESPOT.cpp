@@ -131,7 +131,7 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
 	ArrayXd eTI = exp(-TI / T1);
 	ArrayXd eFull = exp(-(TI + TR) / T1);
 
-	VectorXd irspgr = ((M0 * sin(B1 * flip) * (1. + irEfficiency * eTI + eFull))).abs();
+	ArrayXd irspgr = ((M0 * sin(B1 * flip) * (1. + irEfficiency * eTI + eFull))).abs();
 	return irspgr;
 }
 

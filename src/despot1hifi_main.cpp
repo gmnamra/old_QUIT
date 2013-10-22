@@ -34,11 +34,11 @@ using namespace Eigen;
 //******************************************************************************
 double HIFIResidual(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
 				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
-				const double irTR, const double nReadout, const double eff,
+				const double irTR, const double eff,
                 double &M0, double &T1, double &B1);
 double HIFIResidual(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
 				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
-				const double irTR, const double nReadout, const double eff,
+				const double irTR, const double eff,
                 double &M0, double &T1, double &B1) {
 	ArrayXd st = SPGR(flipAngles, spgrTR, B1, M0, T1);
 	ArrayXd it = IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1);
@@ -49,11 +49,11 @@ double HIFIResidual(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const do
 
 double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
 				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
-				const double irTR, const double nReadout, const double eff,
+				const double irTR, const double eff,
                 double &M0, double &T1, double &B1);
 double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
 				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
-				const double irTR, const double nReadout, const double eff,
+				const double irTR, const double eff,
                 double &M0, double &T1, double &B1) {
 	// Golden Section Search to find B1
 	// From www.mae.wvu.edu/~smirnov/nr/c10-1.pdf
@@ -66,10 +66,10 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double
 	
 	B1 = B1_0;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	double res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
+	double res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
 	B1 = B1_3;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	double res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
+	double res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
 	if (res1 < res2) {
 		B1_1 = B1_0 + 0.2;
 		B1_2 = B1_1 + C * (B1_3 - B1_1);
@@ -80,10 +80,10 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double
 	
 	B1 = B1_1;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
+	res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
 	B1 = B1_2;
 	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
+	res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
 	while ( fabs(B1_3 - B1_0) > precision * (fabs(B1_1) + fabs(B1_2))) {
 		if (res2 < res1) {
 			B1_0 = B1_1; B1_1 = B1_2;
@@ -91,14 +91,14 @@ double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double
 			res1 = res2;
 			B1 = B1_2;
 			classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-			res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
+			res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
 		} else {
 			B1_3 = B1_2; B1_2 = B1_1;
 			B1_1 = R * B1_2 + C * B1_0;
 			res2 = res1;
 			B1 = B1_1;
 			classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-			res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, nReadout, eff, M0, T1, B1);
+			res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
 		}
 	}
 	// Best value for B1
@@ -130,7 +130,7 @@ Options:\n\
 "
 };
 
-static int verbose = false, inversionMode = 2, peReadout = 0;
+static int verbose = false, inversionMode = 2, NPE2 = 0;
 static string outPrefix;
 static double inversionEfficiency = 0.;
 static struct option long_options[] =
@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	size_t nSPGR = spgrFile.dim(4);
-	VectorXd spgrAngles(nSPGR);
+	ArrayXd spgrAngles(nSPGR);
 	double spgrTR;
 	
 	#ifdef AGILENT
@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	size_t nIR = irFile.dim(4);
-	VectorXd irTI(nIR);
+	ArrayXd irTI(nIR);
 	double irAngle, irTR;
 	
 	#ifdef AGILENT
@@ -234,26 +234,26 @@ int main(int argc, char **argv) {
 		cout << "Enter IR-SPGR Flip Angle (degrees):"; cin >> irAngle; irAngle *= M_PI / 180.;
 		if (inversionMode > 0) {
 			cout << "Enter IR-SPGR TR (seconds):"; cin >> irTR;
-			cout << "Enter original number of slices (PE2):"; cin >> peReadout;
+			cout << "Enter original number of slices (PE2):"; cin >> NPE2;
 			double TIScale = 0.;
 			switch (inversionMode) {
 				case 1:
 					TIScale = 1.0;
-					peReadout = (peReadout / 2) + 2;
+					NPE2 = (NPE2 / 2) + 2;
 					inversionEfficiency = 0.97;
 					break;
 				case 2:
 					TIScale = 0.9; // From Sean's code
-					peReadout = (peReadout / 2) + 2;
+					NPE2 = (NPE2 / 2) + 2;
 					inversionEfficiency = 0.97;
 					break;
 				case 3:
 					TIScale = 0.84; // From Sean's code
-					peReadout = peReadout + 2;
+					NPE2 = NPE2 + 2;
 					inversionEfficiency = 0.97;
 					break;
 			}
-			irTR = irTR * peReadout;
+			irTR = irTR * NPE2;
 			cout << "Enter " << nIR << " IR-SPGR TI times (seconds):";
 			for (size_t i = 0; i < nIR; i++) {
 				cin >> irTI[i];
@@ -291,8 +291,8 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	#define NR 4
 	vector<vector<double>> resultsData(NR);
-	for (int i = 0; i < NR; i++)
-		resultsData[i].resize(voxelsPerVolume);
+	for (auto &r : resultsData)
+		r.resize(voxelsPerVolume);
 	const string names[NR] = { "HIFI_M0", "HIFI_T1", "HIFI_B1", "HIFI_residual" };
 	
 	//**************************************************************************
@@ -309,10 +309,9 @@ int main(int argc, char **argv) {
 		atomic<int> voxCount{0};
 		size_t sliceOffset = slice * voxelsPerSlice;
 		
-		function<void (const int&)> processVox = [&] (const int &vox) {
+		function<void (const size_t&)> processVox = [&] (const size_t &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Assume B1 field is uniform for classic DESPOT
-			if (!maskFile.isOpen() || (maskData[sliceOffset + vox] > 0.))
-			{
+			if (!maskFile.isOpen() || (maskData[sliceOffset + vox] > 0.)) {
 				voxCount++;
 				ArrayXd spgrs(nSPGR), irs(nIR);
 				int vol = 0;
@@ -321,7 +320,7 @@ int main(int argc, char **argv) {
 				for (size_t img = 0; img < nIR; img++)
 						irs[img] = IR[img * voxelsPerVolume + sliceOffset + vox];
 				res = calcHIFI(spgrAngles, spgrs, spgrTR,
-				               irTI, irs, irAngle, irTR, peReadout, inversionEfficiency,
+				               irTI, irs, irAngle, irTR, inversionEfficiency,
 							   M0, T1, B1);
 				// Sanity check
 				M0 = clamp(M0, 0., 1.e7);
