@@ -239,17 +239,17 @@ int main(int argc, char **argv) {
 			switch (inversionMode) {
 				case 1:
 					TIScale = 1.0;
-					NPE2 = (NPE2 / 2) + 2;
+					NPE2 = (NPE2 / 2) + 2; // 2 segments, 2 extra slices
 					inversionEfficiency = 0.97;
 					break;
 				case 2:
-					TIScale = 0.9; // From Sean's code
-					NPE2 = (NPE2 / 2) + 2;
+					TIScale = 0.9; // From Sean's code, no idea why GE does this
+					NPE2 = (NPE2 / 2) + 2; // 2 segments, with 2 extra slices per segment
 					inversionEfficiency = 0.97;
 					break;
 				case 3:
-					TIScale = 0.84; // From Sean's code
-					NPE2 = NPE2 + 2;
+					TIScale = 0.84; // From Sean's code, no idea why GE does this
+					NPE2 = NPE2 + 2; // 1 segment, 2 extra slices
 					inversionEfficiency = 0.97;
 					break;
 			}
