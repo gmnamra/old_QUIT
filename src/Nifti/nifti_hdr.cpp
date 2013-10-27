@@ -158,12 +158,7 @@ int main(int argc, char **argv) {
 			cout << im.qform().matrix() << endl;
 			cout << "SForm: " << Nifti::XFormName(im.scode()) << endl;
 			cout << im.sform().matrix() << endl;
-			cout << "Extensions: " << endl;
-			for (auto &e : im.extensions()) {
-				cout << "Extension Code: " << e.code() << endl;
-				string out(e.data().begin(), e.data().end());
-				cout << out << endl;
-			}
+			cout << "Number of extensions: " << im.extensions().size() << endl;
 		}
 	}
 	
