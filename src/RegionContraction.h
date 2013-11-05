@@ -188,21 +188,21 @@ class RegionContraction {
 				ArrayXd previousBest = retained.col(0);
 				for (size_t i = 0; i < m_nR; i++) {
 					retained.col(i) = samples.col(indices[i]);
+					retainedRes.col(i) = residuals.col(indices[i]);
 				}
 				// Find the min and max for each parameter in the top nR samples
 				m_currentBounds.col(0) = retained.rowwise().minCoeff();
 				m_currentBounds.col(1) = retained.rowwise().maxCoeff();
 				// Terminate if all the desired parameters have converged
 				if (m_debug) {
-					cout << "Retained samples and residuals" << endl << retained << endl << retainedRes.square().colwise().sum() << endl;
-					cout << "Residual Min:   " << toSort.minCoeff() << " Max: " << toSort.maxCoeff() << endl;
-					cout << "Best Sample:    " << retained.col(0).transpose() << endl;
+					cout << "Best sample:    " << retained.col(0).transpose() << endl;
+					cout << "Best residual:  " << retainedRes.col(0).transpose() << endl;
+					cout << "Best SoS:       " << retainedRes.col(0).square().sum() << endl;
 					cout << "Mid Sample:     " << midPoint().transpose() << endl;
 					cout << "Sample Width:   " << width().transpose() << endl;
 					cout << "Threshold:      " << (m_threshes * startWidth()).transpose() << endl;
 					cout << "Width < Thresh: " << (width() <= (m_threshes * startWidth())).transpose() << endl;
 					cout << "Converged:      " << (width() <= (m_threshes * startWidth())).all() << endl;
-
 				}
 				if (((width() <= (m_threshes * startWidth())).all()) ||
 				    (previousBest == retained.col(0)).all()) {
