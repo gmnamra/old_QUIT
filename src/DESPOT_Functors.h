@@ -144,13 +144,13 @@ class DESPOTFunctor : public Functor<double> {
 				case Scaling::NormToMean: return "normalised to per signal mean";
 			}
 		}
-		enum class OffResMode {
-			Map = 0, MapLoose, Single, SingleSymmetric
+		enum class OffRes {
+			Map = 0, MapLoose, Fit, FitSym
 		};
 	
 	protected:
 		const FieldStrength m_fieldStrength;
-		const OffResMode m_offRes;
+		const OffRes m_offRes;
 		const Scaling m_scaling;
 		size_t m_nV;
 		vector<shared_ptr<SignalFunctor>> m_signals;
@@ -166,10 +166,10 @@ class DESPOTFunctor : public Functor<double> {
 			}
 			ArrayXXd b(1, 2);
 			switch (m_offRes) {
-				case OffResMode::Map:             b << m_f0, m_f0; break;
-				case OffResMode::MapLoose:        b << m_f0 * 0.9, m_f0 * 1.1; break;
-				case OffResMode::Single:          b << -0.5 / minTR, 0.5 / minTR; break;
-				case OffResMode::SingleSymmetric: b << 0., 0.5 / minTR; break;
+				case OffRes::Map:             b << m_f0, m_f0; break;
+				case OffRes::MapLoose:        b << m_f0 * 0.9, m_f0 * 1.1; break;
+				case OffRes::Fit:          b << -0.5 / minTR, 0.5 / minTR; break;
+				case OffRes::FitSym: b << 0., 0.5 / minTR; break;
 			}
 			return b;
 		}
@@ -189,10 +189,10 @@ class DESPOTFunctor : public Functor<double> {
 		double m_f0, m_B1;
 		const size_t nOffRes() const {
 			switch (m_offRes) {
-				case OffResMode::Map: return 1;
-				case OffResMode::MapLoose: return 1;
-				case OffResMode::Single: return 1;
-				case OffResMode::SingleSymmetric: return 1;
+				case OffRes::Map: return 1;
+				case OffRes::MapLoose: return 1;
+				case OffRes::Fit: return 1;
+				case OffRes::FitSym: return 1;
 			}
 		}
 		
@@ -210,7 +210,7 @@ class DESPOTFunctor : public Functor<double> {
 		
 		DESPOTFunctor(vector<shared_ptr<SignalFunctor>> &signals_in,
 					  const FieldStrength &tesla,
-					  const OffResMode &offRes = OffResMode::Single,
+					  const OffRes &offRes = OffRes::Fit,
 					  const Scaling &s = Scaling::NormToMean,
 		              const bool &debug = false) :
 			m_signals(signals_in),
@@ -344,7 +344,7 @@ class mcDESPOT : public DESPOTFunctor {
 		}
 		
 		mcDESPOT(const Components &c, vector<shared_ptr<SignalFunctor>> &data,
-				 const FieldStrength &tesla, const OffResMode &offRes, const Scaling &s = Scaling::NormToMean,
+				 const FieldStrength &tesla, const OffRes &offRes, const Scaling &s = Scaling::NormToMean,
 				 const bool &isFinite = false, const bool &debug = false) :
 			DESPOTFunctor(data, tesla, offRes, s, debug),
 			m_components(c), m_finite(isFinite)
@@ -408,85 +408,6 @@ class mcDESPOT : public DESPOTFunctor {
 				t.segment(index, m_actual.at(i).size()) = m_theory.at(i);
 				if (m_debug) cout << m_theory.at(i).transpose() << endl;
 				index += m_theory.at(i).size();
-			}
-			
-			return t;
-		}
-};
-//******************************************************************************
-#pragma mark DESPOT2FM Functor
-//******************************************************************************
-class DESPOT2FM : public DESPOTFunctor {
-	protected:
-		bool m_finite;
-		
-	public:
-		double m_T1;
-		const size_t nP() const override {
-			return 1;
-		}
-		
-		const ArrayXXd defaultBounds() override {
-			ArrayXXd b(inputs(), 2);
-			switch (m_fieldStrength) {
-				case FieldStrength::Three: b.block(0, 0, 1, 2) << 0.010, 1.5; break;
-				case FieldStrength::Seven: b.block(0, 0, 1, 2) << 0.005, 2.0; break;
-				case FieldStrength::Unknown: b.block(0, 0, 1, 2).setZero(); break;
-			}
-			b.block(nP(), 0, nOffRes(), 2) = offResBounds();
-			b.block(nP() + nOffRes(), 0, nPD(), 2) = PDBounds();
-			return b;
-		}
-		
-		const ArrayXd defaultThresholds() {
-			ArrayXd m(inputs());
-			m.head(nP()) << 0.05;
-			m.segment(nP(), nOffRes()).setConstant(0.1);
-			m.tail(nPD()).setConstant(0.1);
-			return m;
-		}
-		
-		const bool constraint(const VectorXd &params) const override {
-			if (params[0] < 0.)
-				return false;
-			else
-				return true;
-		}
-		
-		DESPOT2FM(vector<shared_ptr<SignalFunctor>> &data, const double T1,
-				  const FieldStrength& tesla, const OffResMode &offRes, const Scaling &s = Scaling::NormToMean,
-				  const bool &finite = false, const bool &debug = false) :
-			DESPOTFunctor(data, tesla, offRes, s, debug), m_T1(T1), m_finite(finite)
-		{
-			m_names.resize(inputs());
-			m_names.at(0) = "T2";
-			for (size_t i = 0; i < nOffRes(); i++)
-				m_names.at(1 + i) = "f0_" + std::to_string(i);
-			for (size_t i = 0; i < nPD(); i++)
-				m_names.at(1 + nOffRes() + i) = "PD_" + std::to_string(i);
-		}
-		
-		const ArrayXd theory(const Ref<VectorXd> &params) override {
-			VectorXd T1T2(2);
-			T1T2 << m_T1, params[0];
-			if (m_debug) cout << endl << __PRETTY_FUNCTION__ << endl;
-			for (size_t i = 0; i < m_signals.size(); i++) {
-				ArrayXd sig = m_signals.at(i)->signal(T1T2, m_B1, params[nP()]);
-				switch (m_scaling) {
-					case (Scaling::NormToMean) : m_theory.at(i) = sig / sig.mean(); break;
-					case (Scaling::Global)     : m_theory.at(i) = sig * params(nP() + nOffRes()); break;
-				}
-				if (m_debug) cout << "m_theory.at(" << i << "): " << m_theory.at(i).transpose() << endl;
-			}
-			int index = 0;
-			ArrayXd t(values()); t.setZero();
-			for (size_t i = 0; i < m_signals.size(); i++) {
-				t.segment(index, m_actual.at(i).size()) = m_theory.at(i);
-				index += m_theory.at(i).size();
-				if (m_debug) {
-					cout << "m_theory.at(" << i << "): " << m_theory.at(i).transpose() << endl;
-					cout << "t: " << t.transpose() << endl;
-				}
 			}
 			
 			return t;

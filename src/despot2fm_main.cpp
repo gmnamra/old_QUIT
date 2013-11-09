@@ -1,5 +1,5 @@
 /*
- *  despot2fm_main.cpp
+ *  mcDESPOT_main.cpp
  *
  *  Created by Tobias Wood on 2013/08/12.
  *  Copyright (c) 2013 Tobias Wood.
@@ -50,16 +50,19 @@ Options:\n\
 	--tesla, -t 3       : Use boundaries suitable for 3T (default)\n\
 	            7       : Boundaries suitable for 7T\n\
 	            u       : User specified boundaries from stdin.\n\
-	--finite, -F        : Use Finite Pulse Length correction.\n\
+	--model, -M s       : Use simple model (default).\n\
+	            e       : Use echo-time correction.\n\
+				f       : Use finite pulse length correction.\n\
 	--contract, -c n    : Read contraction settings from stdin (Will prompt).\n"
 };
 
-static auto scale = DESPOT2FM::Scaling::NormToMean;
-static auto tesla = DESPOT2FM::FieldStrength::Three;
-static auto offRes = DESPOT2FM::OffResMode::SingleSymmetric;
-static int verbose = false, extra = false, use_finite = false,
+static auto scale = mcDESPOT::Scaling::NormToMean;
+static auto tesla = mcDESPOT::FieldStrength::Three;
+static auto offRes = mcDESPOT::OffRes::FitSym;
+static int verbose = false, extra = false,
 		   samples = 2000, retain = 20, contract = 10,
            voxI = -1, voxJ = -1;
+static auto model = Model::Simple;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static double expand = 0., weighting = 1.0;
 static string outPrefix;
@@ -74,7 +77,7 @@ static struct option long_options[] = {
 	{"stop", required_argument, 0, 'p'},
 	{"scale", required_argument, 0, 'S'},
 	{"tesla", required_argument, 0, 't'},
-	{"finite", no_argument, 0, 'F'},
+	{"model", no_argument, 0, 'M'},
 	{"contract", no_argument, 0, 'c'},
 	{0, 0, 0, 0}
 };
@@ -109,7 +112,7 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:Fcei:j:w", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:M:cei:j:w", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
@@ -124,13 +127,13 @@ int main(int argc, char **argv)
 				break;
 			case 'f':
 				if (string(optarg) == "ASYM") {
-					offRes = DESPOT2FM::OffResMode::Single;
+					offRes = mcDESPOT::OffRes::Fit;
 				} else {
 					cout << "Reading f0 file: " << optarg << endl;
 					f0File.open(optarg, Nifti::Mode::Read);
 					f0Data.resize(f0File.dims().head(3).prod());
 					f0File.readVolumes(0, 1, f0Data);
-					offRes = DESPOT2FM::OffResMode::Map;
+					offRes = mcDESPOT::OffRes::Map;
 				}
 				break;
 			case 'b':
@@ -143,8 +146,8 @@ int main(int argc, char **argv)
 			case 'p': stop_slice = atoi(optarg); break;
 			case 'S':
 				switch (atoi(optarg)) {
-					case 0 : scale = DESPOT2FM::Scaling::NormToMean; break;
-					case 1 : scale = DESPOT2FM::Scaling::Global; break;
+					case 0 : scale = mcDESPOT::Scaling::NormToMean; break;
+					case 1 : scale = mcDESPOT::Scaling::Global; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						exit(EXIT_FAILURE);
@@ -152,15 +155,25 @@ int main(int argc, char **argv)
 				} break;
 			case 't':
 				switch (*optarg) {
-					case '3': tesla = DESPOT2FM::FieldStrength::Three; break;
-					case '7': tesla = DESPOT2FM::FieldStrength::Seven; break;
-					case 'u': tesla = DESPOT2FM::FieldStrength::Unknown; break;
+					case '3': tesla = mcDESPOT::FieldStrength::Three; break;
+					case '7': tesla = mcDESPOT::FieldStrength::Seven; break;
+					case 'u': tesla = mcDESPOT::FieldStrength::Unknown; break;
 					default:
 						cout << "Unknown boundaries type " << optarg << endl;
 						exit(EXIT_FAILURE);
 						break;
 				} break;
-			case 'F': use_finite = true; break;
+			case 'M':
+				switch (*optarg) {
+					case 's': model = Model::Simple; cout << "Simple model selected." << endl; break;
+					case 'e': model = Model::Echo; cout << "TE correction selected." << endl; break;
+					case 'f': model = Model::Finite; cout << "Finite pulse correction selected." << endl; break;
+					default:
+						cout << "Unknown model type " << *optarg << endl;
+						exit(EXIT_FAILURE);
+						break;
+				}
+				break;
 			case 'c':
 				cout << "Enter max number of contractions: " << flush; cin >> contract;
 				cout << "Enter number of samples per contraction: " << flush; cin >> samples;
@@ -214,7 +227,7 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 		cout << "Reading SSFP data..." << endl;
-		sigs.emplace_back(parseSSFP(inFile, true, Components::One, use_finite, false));
+		sigs.emplace_back(parseSSFP(inFile, true, Components::One, model, false));
 		ssfpData.at(p).resize(inFile.dims().head(4).prod());
 		inFile.readVolumes(0, inFile.dim(4), ssfpData.at(p));
 		inFile.close();
@@ -226,10 +239,10 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	DESPOT2FM d2fm(sigs, 0., tesla, offRes, scale, use_finite);
+	mcDESPOT d2fm(Components::One, sigs, tesla, offRes, scale, model == Model::Finite);
 	ArrayXd thresh = d2fm.defaultThresholds();
 	ArrayXXd bounds = d2fm.defaultBounds();
-	if (tesla == DESPOT2FM::FieldStrength::Unknown) {
+	if (tesla == mcDESPOT::FieldStrength::Unknown) {
 		cout << "Enter parameter pairs (low then high)" << endl;
 		for (int i = 0; i < d2fm.nP(); i++) {
 			cout << d2fm.names()[i] << ": " << flush;
@@ -283,7 +296,7 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const size_t&)> processVox = [&] (const size_t &vox) {
 			// Set up parameters and constants
-			DESPOT2FM locald2(d2fm); // Take a thread local copy of the functor
+			mcDESPOT locald2(d2fm); // Take a thread local copy of the functor
 			ArrayXd params(locald2.inputs()); params.setZero();
 			ArrayXd resid(locald2.values()); resid.setZero();
 			// extra stuff
@@ -293,7 +306,6 @@ int main(int argc, char **argv)
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// -ve T1 is non-sensical, no point fitting
 				voxCount++;
-				locald2.m_T1 = T1Data.at(sliceOffset + vox);
 				for (size_t p = 0; p < nPhases; p++) {
 					locald2.m_f0 = f0File.isOpen() ? f0Data[sliceOffset + vox] : 0.;
 					locald2.m_B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
@@ -302,9 +314,13 @@ int main(int argc, char **argv)
 					if (scale == DESPOTFunctor::Scaling::NormToMean)
 						locald2.actual(p) /= locald2.actual(p).mean();
 				}
+				auto localBounds = bounds;
+				// Fix T1 value
+				localBounds(0, 0) = T1Data.at(sliceOffset + vox);
+				localBounds(0, 1) = T1Data.at(sliceOffset + vox);
 				ArrayXd weights(locald2.values());
 				weights.setConstant(1.0);
-				RegionContraction<DESPOT2FM> rc(locald2, bounds, weights, thresh,
+				RegionContraction<mcDESPOT> rc(locald2, localBounds, weights, thresh,
 				                                samples, retain, contract, expand, (voxI != -1));
 				// Add the voxel number to the time to get a decent random seed
 				size_t rSeed = time(NULL) + vox;
@@ -355,7 +371,7 @@ int main(int argc, char **argv)
 	
 	outPrefix = outPrefix + "FM_";
 	templateFile.description = version;
-	for (int p = 0; p < d2fm.inputs(); p++) {
+	for (int p = 1; p < d2fm.inputs(); p++) { // Skip T1
 		templateFile.open(outPrefix + d2fm.names().at(p) + ".nii.gz", Nifti::Mode::Write);
 		templateFile.writeVolumes(0, 1, paramsData.at(p));
 		templateFile.close();

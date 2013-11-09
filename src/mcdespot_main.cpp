@@ -60,7 +60,7 @@ Options:\n\
 	--contract, -c n  : Read contraction settings from stdin (Will prompt).\n"
 };
 
-static auto f0fit = mcDESPOT::OffResMode::SingleSymmetric;
+static auto f0fit = mcDESPOT::OffRes::FitSym;
 static auto components = Components::Three;
 static auto model = Model::Simple;
 static auto tesla = mcDESPOT::FieldStrength::Three;
@@ -82,12 +82,12 @@ static struct option long_options[] =
 	{"3", no_argument, 0, '3'},
 	{"mask", required_argument, 0, 'm'},
 	{"out", required_argument, 0, 'o'},
-	{"f0", required_argument, 0, 'O'},
+	{"f0", required_argument, 0, 'f'},
 	{"start", required_argument, 0, 's'},
 	{"stop", required_argument, 0, 'p'},
 	{"scale", required_argument, 0, 'S'},
 	{"tesla", required_argument, 0, 't'},
-	{"finite", no_argument, 0, 'f'},
+	{"model", no_argument, 0, 'M'},
 	{"contract", no_argument, 0, 'c'},
 	{0, 0, 0, 0}
 };
@@ -152,7 +152,7 @@ Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 	if ((path != "NONE") && (path != "")) {
 		B1File = openAndCheck(path, templateFile, "B1");
 	}
-	if ((f0fit == mcDESPOT::OffResMode::Map || f0fit == mcDESPOT::OffResMode::MapLoose)) {
+	if ((f0fit == mcDESPOT::OffRes::Map || f0fit == mcDESPOT::OffRes::MapLoose)) {
 		if (prompt)
 			cout << "Enter path to f0 map: " << flush;
 		getline(cin, path);
@@ -201,10 +201,10 @@ int main(int argc, char **argv)
 				break;
 			case 'f':
 				switch (*optarg) {
-					case '0' : f0fit = mcDESPOT::OffResMode::Map; break;
-					case '1' : f0fit = mcDESPOT::OffResMode::SingleSymmetric; break;
-					case '2' : f0fit = mcDESPOT::OffResMode::Single; break;
-					case '3' : f0fit = mcDESPOT::OffResMode::MapLoose; break;
+					case '0' : f0fit = mcDESPOT::OffRes::Map; break;
+					case '1' : f0fit = mcDESPOT::OffRes::FitSym; break;
+					case '2' : f0fit = mcDESPOT::OffRes::Fit; break;
+					case '3' : f0fit = mcDESPOT::OffRes::MapLoose; break;
 					default:
 						cout << "Invalid Off Resonance Mode." << endl;
 						exit(EXIT_FAILURE);
@@ -214,8 +214,8 @@ int main(int argc, char **argv)
 			case 'p': stop_slice = atoi(optarg); break;
 			case 'S':
 				switch (atoi(optarg)) {
-					case 1 : scale = DESPOT2FM::Scaling::Global; break;
-					case 2 : scale = DESPOT2FM::Scaling::NormToMean; break;
+					case 1 : scale = mcDESPOT::Scaling::Global; break;
+					case 2 : scale = mcDESPOT::Scaling::NormToMean; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						exit(EXIT_FAILURE);
