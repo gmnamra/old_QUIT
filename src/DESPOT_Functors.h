@@ -158,50 +158,15 @@ class DESPOTFunctor : public Functor<double> {
 		vector<string> m_names; // Subclasses responsible for initialising this
 		const bool m_debug;
 	
-		ArrayXXd offResBounds() {
-			double minTR = numeric_limits<double>::max();
-			for (auto &s : m_signals) {
-				if (s->m_TR < minTR)
-					minTR = s->m_TR;
-			}
-			ArrayXXd b(1, 2);
-			switch (m_offRes) {
-				case OffRes::Map:             b << m_f0, m_f0; break;
-				case OffRes::MapLoose:        b << m_f0 * 0.9, m_f0 * 1.1; break;
-				case OffRes::Fit:          b << -0.5 / minTR, 0.5 / minTR; break;
-				case OffRes::FitSym: b << 0., 0.5 / minTR; break;
-			}
-			return b;
-		}
-	
-		ArrayXXd PDBounds() {
-			ArrayXXd b(nPD(), 2);
-			for (size_t i = 0; i < nPD(); i++) {
-				b(i, 0) = 1.e4;
-				b(i, 1) = 5.e6;
-			}
-			return b;
-		}
+		const ArrayXXd offResBounds() const;
+		const ArrayXXd PDBounds() const;
 		
 		virtual const ArrayXXd defaultBounds() = 0;
 		
 	public:
 		double m_f0, m_B1;
-		const size_t nOffRes() const {
-			switch (m_offRes) {
-				case OffRes::Map: return 1;
-				case OffRes::MapLoose: return 1;
-				case OffRes::Fit: return 1;
-				case OffRes::FitSym: return 1;
-			}
-		}
-		
-		const size_t nPD() const {
-			switch (m_scaling) {
-				case Scaling::Global:     return 1;
-				case Scaling::NormToMean: return 0;
-			}
-		}
+		const size_t nOffRes() const;
+		const size_t nPD() const;
 		
 		virtual const size_t nP() const = 0;
 		virtual const bool constraint(const VectorXd &params) const = 0;
@@ -209,65 +174,15 @@ class DESPOTFunctor : public Functor<double> {
 		const long values() const override { return m_nV; }
 		
 		DESPOTFunctor(vector<shared_ptr<SignalFunctor>> &signals_in,
-					  const FieldStrength &tesla,
-					  const OffRes &offRes = OffRes::Fit,
-					  const Scaling &s = Scaling::NormToMean,
-		              const bool &debug = false) :
-			m_signals(signals_in),
-			m_fieldStrength(tesla), m_offRes(offRes),
-			m_scaling(s), m_debug(debug),
-			m_f0(0), m_B1(1)
-		{
-			m_actual.reserve(m_signals.size());
-			m_theory.reserve(m_signals.size());
-			m_nV = 0;
-			for (size_t i = 0; i < m_signals.size(); i++) {
-				m_actual.emplace_back(m_signals.at(i)->size());
-				m_theory.emplace_back(m_signals.at(i)->size());
-				m_nV += m_signals.at(i)->size();
-			}
-		}
+					  const FieldStrength tesla, const OffRes offRes,
+					  const Scaling s, const bool debug = false);
 		
 		const vector<string> &names() { return m_names; }
 		shared_ptr<SignalFunctor> &signal(const size_t i) { return m_signals.at(i); }
 		ArrayXd &actual(const size_t s) { return m_actual.at(s); }
-		const ArrayXd actual() const {
-			ArrayXd v(values());
-			int index = 0;
-			if (m_debug) cout << __PRETTY_FUNCTION__ << endl;
-			for (size_t i = 0; i < m_actual.size(); i++) {
-				v.segment(index, m_actual.at(i).size()) = m_actual.at(i);
-				index += m_actual.at(i).size();
-				if (m_debug) cout << v.transpose() << endl;
-			}
-			return v;
-		}
-		
-		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) override {
-			eigen_assert(diffs.size() == values());
-			ArrayXd t = theory(params);
-			ArrayXd s = actual();
-			diffs = t - s;
-			if (m_debug) {
-				cout << endl << __PRETTY_FUNCTION__ << endl;
-				cout << "p:      " << params.transpose() << endl;
-				cout << "t:      " << t.transpose() << endl;
-				cout << "s:      " << s.transpose() << endl;
-				cout << "Diffs:  " << diffs.transpose() << endl;
-				cout << "Sum:    " << diffs.square().sum() << endl;
-			}
-			return 0;
-		}
-		
-		ArrayXd weights() const {
-			ArrayXd w(values());
-			ArrayXd::Index index = 0;
-			for (auto &s : m_signals) {
-				w.segment(index, s->size()).setConstant(s->m_weight);
-				index += s->size();
-			}
-			return w;
-		}
+		const ArrayXd actual() const;
+		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) override;		
+		ArrayXd weights() const;
 };
 
 //******************************************************************************

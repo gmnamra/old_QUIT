@@ -181,3 +181,103 @@ shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const C
 	}
 	return f;
 }
+
+//******************************************************************************
+#pragma mark DESPOTFunctor
+//******************************************************************************
+DESPOTFunctor::DESPOTFunctor(vector<shared_ptr<SignalFunctor>> &signals_in,
+			                 const FieldStrength tesla, const OffRes offRes,
+			                 const Scaling s, const bool debug) :
+	m_signals(signals_in),
+	m_fieldStrength(tesla), m_offRes(offRes),
+	m_scaling(s), m_debug(debug),
+	m_f0(0), m_B1(1)
+{
+	m_actual.reserve(m_signals.size());
+	m_theory.reserve(m_signals.size());
+	m_nV = 0;
+	for (size_t i = 0; i < m_signals.size(); i++) {
+		m_actual.emplace_back(m_signals.at(i)->size());
+		m_theory.emplace_back(m_signals.at(i)->size());
+		m_nV += m_signals.at(i)->size();
+	}
+}
+
+const size_t DESPOTFunctor::nOffRes() const {
+	switch (m_offRes) {
+		case OffRes::Map: return 1;
+		case OffRes::MapLoose: return 1;
+		case OffRes::Fit: return 1;
+		case OffRes::FitSym: return 1;
+	}
+}
+
+const ArrayXXd DESPOTFunctor::offResBounds() const {
+	double minTR = numeric_limits<double>::max();
+	for (auto &s : m_signals) {
+		if (s->m_TR < minTR)
+			minTR = s->m_TR;
+	}
+	ArrayXXd b(1, 2);
+	switch (m_offRes) {
+		case OffRes::Map:             b << m_f0, m_f0; break;
+		case OffRes::MapLoose:        b << m_f0 * 0.9, m_f0 * 1.1; break;
+		case OffRes::Fit:          b << -0.5 / minTR, 0.5 / minTR; break;
+		case OffRes::FitSym: b << 0., 0.5 / minTR; break;
+	}
+	return b;
+}
+
+const size_t DESPOTFunctor::nPD() const {
+	switch (m_scaling) {
+		case Scaling::Global:     return 1;
+		case Scaling::NormToMean: return 0;
+	}
+}
+
+const ArrayXXd DESPOTFunctor::PDBounds() const {
+	ArrayXXd b(nPD(), 2);
+	for (size_t i = 0; i < nPD(); i++) {
+		b(i, 0) = 1.e4;
+		b(i, 1) = 5.e6;
+	}
+	return b;
+}
+
+const ArrayXd DESPOTFunctor::actual() const {
+	ArrayXd v(values());
+	int index = 0;
+	if (m_debug) cout << __PRETTY_FUNCTION__ << endl;
+	for (size_t i = 0; i < m_actual.size(); i++) {
+		v.segment(index, m_actual.at(i).size()) = m_actual.at(i);
+		index += m_actual.at(i).size();
+		if (m_debug) cout << v.transpose() << endl;
+	}
+	return v;
+}
+
+int DESPOTFunctor::operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) {
+	eigen_assert(diffs.size() == values());
+	ArrayXd t = theory(params);
+	ArrayXd s = actual();
+	diffs = t - s;
+	if (m_debug) {
+		cout << endl << __PRETTY_FUNCTION__ << endl;
+		cout << "p:      " << params.transpose() << endl;
+		cout << "t:      " << t.transpose() << endl;
+		cout << "s:      " << s.transpose() << endl;
+		cout << "Diffs:  " << diffs.transpose() << endl;
+		cout << "Sum:    " << diffs.square().sum() << endl;
+	}
+	return 0;
+}
+
+ArrayXd DESPOTFunctor::weights() const {
+	ArrayXd w(values());
+	ArrayXd::Index index = 0;
+	for (auto &s : m_signals) {
+		w.segment(index, s->size()).setConstant(s->m_weight);
+		index += s->size();
+	}
+	return w;
+}
