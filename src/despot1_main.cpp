@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 	Nifti spgrFile, B1File, maskFile;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "bm:o:vd", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "b:m:o:vd", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'b':
 				cout << "Opening B1 file: " << optarg << endl;
