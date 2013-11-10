@@ -156,7 +156,6 @@ class DESPOTFunctor : public Functor<double> {
 		vector<shared_ptr<SignalFunctor>> m_signals;
 		vector<ArrayXd> m_actual, m_theory;
 		vector<string> m_names; // Subclasses responsible for initialising this
-		const bool m_debug;
 	
 		const ArrayXXd offResBounds() const;
 		const ArrayXXd PDBounds() const;
@@ -164,6 +163,7 @@ class DESPOTFunctor : public Functor<double> {
 		virtual const ArrayXXd defaultBounds() = 0;
 		
 	public:
+		bool m_debug;
 		double m_f0, m_B1;
 		const size_t nOffRes() const;
 		const size_t nPD() const;
@@ -309,22 +309,22 @@ class mcDESPOT : public DESPOTFunctor {
 		
 		const ArrayXd theory(const Ref<VectorXd> &params) override {
 			ArrayXd t(values());
+			int index = 0;
 			if (m_debug) cout << endl << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
 			for (size_t i = 0; i < m_signals.size(); i++) {
 				ArrayXd sig = m_signals.at(i)->signal(params.head(nP()), m_B1, params[nP()]);
+				if (m_debug)
+					cout << "Raw signal " << i << ": " << sig.transpose() << endl;
 				switch (m_scaling) {
-					case (Scaling::NormToMean) : m_theory.at(i) = sig / sig.mean(); break;
-					case (Scaling::Global)     : m_theory.at(i) = sig * params(nP() + nOffRes()); break;
+					case (Scaling::NormToMean) : sig /= sig.mean(); break;
+					case (Scaling::Global)     : sig = sig * params(nP() + nOffRes()); break;
 				}
+				if (m_debug)
+					cout << "Scaled signal " << i << ": " << sig.transpose() << endl;
+				m_theory.at(i) = sig;
+				t.segment(index, sig.rows()) = sig;
+				index += sig.rows();
 			}
-
-			int index = 0;
-			for (size_t i = 0; i < m_signals.size(); i++) {
-				t.segment(index, m_actual.at(i).size()) = m_theory.at(i);
-				if (m_debug) cout << m_theory.at(i).transpose() << endl;
-				index += m_theory.at(i).size();
-			}
-			
 			return t;
 		}
 };

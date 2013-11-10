@@ -173,6 +173,7 @@ class RegionContraction {
 							cout << "Warning: Non-finite residual found!" << endl
 								 << "Result may be meaningless. This warning will only be printed once." << endl;
 							cout << "Parameters were " << tempSample.transpose() << endl;
+							m_f.m_debug = true;
 							cout << "Signal " << m_f.actual().transpose() << endl;
 							cout << "Theory " << m_f.theory(tempSample).transpose() << endl;
 						}
