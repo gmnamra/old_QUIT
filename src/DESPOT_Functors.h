@@ -237,7 +237,7 @@ class mcDESPOT : public DESPOTFunctor {
 					} break;
 			}
 			if (m_finite) {
-				b.block(nP() - 1, 0, 1, 2) << 0., 100.;
+				b.block(nP() - 1, 0, 1, 2) << 0., 25.;
 			}
 			b.block(nP(), 0, nOffRes(), 2) = offResBounds();
 			b.block(nP() + nOffRes(), 0, nPD(), 2) = PDBounds();

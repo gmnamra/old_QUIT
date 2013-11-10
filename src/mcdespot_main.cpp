@@ -56,7 +56,9 @@ Options:\n\
 	--tesla, -t 3     : Boundaries suitable for 3T (default)\n\
 	            7     : Boundaries suitable for 7T \n\
 	            u     : User specified boundaries from stdin.\n\
-	--finite, -F      : Use Finite Pulse Length correction.\n\
+	--model, -M s     : Use simple model (default).\n\
+	            e     : Use echo-time correction.\n\
+	            f     : Use Finite Pulse Length correction.\n\
 	--contract, -c n  : Read contraction settings from stdin (Will prompt).\n"
 };
 
@@ -66,8 +68,8 @@ static auto model = Model::Simple;
 static auto tesla = mcDESPOT::FieldStrength::Three;
 static auto scale = mcDESPOT::Scaling::NormToMean;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
-static int verbose = false, prompt = true, extra = false, early_finish = false,
-           use_finite = false, use_weights = false,
+static int verbose = false, prompt = true, extra = false,
+           early_finish = false, use_weights = false,
 		   samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
 static double expand = 0.;
@@ -284,7 +286,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << mcDESPOT::to_string(components) << " component model." << endl;
-	mcDESPOT mcd(components, sigs, tesla, f0fit, scale, use_finite);
+	mcDESPOT mcd(components, sigs, tesla, f0fit, scale, model == Model::Finite);
 	outPrefix = outPrefix + mcDESPOT::to_string(components) + "C_";
 	ArrayXd threshes(mcd.inputs()); threshes.setConstant(0.05);
 	if (early_finish)
