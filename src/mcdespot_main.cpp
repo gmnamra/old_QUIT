@@ -427,8 +427,10 @@ int main(int argc, char **argv)
 											   samples, retain, contract, expand, (voxI != -1));
 				rc.optimise(params, rSeed);
 				if (verbose && (rc.status() == RegionContraction<mcDESPOT>::Status::ErrorInfiniteResidual)) {
+					cerr << "Thread ID: " << this_thread::get_id() << endl;
+					cerr << "RC address: " << &rc << endl;
 					cerr << "Slice: " << slice << "\tVoxel: " << vox << endl;
-					cerr << "B1: " << localf.m_B1 << endl;
+					cerr << "B1: " << localf.m_B1 << " f0: " << localf.m_f0 << endl;
 					cerr << "nContract: " << rc.contractions() << endl;
 					cerr << "Params: " << params.transpose() << endl;
 				}
