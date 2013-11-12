@@ -128,23 +128,17 @@ class RegionContraction {
 			uniform_real_distribution<double> uniform(0., 1.);
 			
 			m_status = Status::DidNotConverge;
-			
-			// Set up retained matrix for first contraction
-			for (size_t c = 0; c < m_nR; c++) {
-				retained.col(c) = m_startBounds.col(0) + (static_cast<float>(c) / m_nR) * startWidth();
-				m_f(retained.col(c), retainedRes.col(c));
-			}
-			if (m_debug) {
-				cout << "Initial samples" << endl << retained << endl;
-				cout << retainedRes.square().colwise().sum() << endl;
-			}
 			for (m_contractions = 0; m_contractions < m_maxContractions; m_contractions++) {
-				// Keep the retained samples to prevent boundary contracting too fast
-				for (size_t s = 0; s < m_nR; s++) {
-					samples.col(s) = retained.col(s);
-					residuals.col(s) = retainedRes.col(s);
+				size_t startSample = 0;
+				if (m_contractions > 0) {
+					// Keep the retained samples to prevent boundary contracting too fast
+					for (size_t s = 0; s < m_nR; s++) {
+						samples.col(s) = retained.col(s);
+						residuals.col(s) = retainedRes.col(s);
+					}
+					startSample = m_nR;
 				}
-				for (size_t s = m_nR; s < m_nS; s++) {
+				for (size_t s = startSample; s < m_nS; s++) {
 					ArrayXd tempSample(nP);
 					size_t nTries = 0;
 					do {
