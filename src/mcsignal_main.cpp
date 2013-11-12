@@ -142,18 +142,16 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << mcDESPOT::to_string(components) << " component model." << endl;
-	mcDESPOT mcd(components, sigs, mcDESPOT::FieldStrength::Unknown, mcDESPOT::OffRes::Map, mcDESPOT::Scaling::NormToMean, model == Model::Finite, true);
+	mcDESPOT mcd(components, sigs, mcDESPOT::FieldStrength::Unknown, mcDESPOT::OffRes::Fit, mcDESPOT::Scaling::NormToMean, model == Model::Finite, true);
 	VectorXd params(mcd.inputs());
 	if (prompt) cout << "Enter parameters." << endl;
-	for (size_t i = 0; i < mcd.nP(); i++) {
+	for (size_t i = 0; i < mcd.nP() + mcd.nOffRes(); i++) {
 		if (prompt) cout << mcd.names()[i] << ": " << flush;
 		cin >> params(i);
 	}
-	double B1, f0;
+	double B1;
 	if (prompt) cout << "Enter B1: " << flush; cin >> B1;
-	if (prompt) cout << "Enter f0: " << flush; cin >> f0;
 	mcd.m_B1 = B1;
-	mcd.m_f0 = f0;
 	mcd.theory(params);
 	
 	} catch (exception &e) {
