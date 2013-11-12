@@ -322,7 +322,11 @@ class mcDESPOT : public DESPOTFunctor {
 			int index = 0;
 			if (m_debug) cout << endl << __PRETTY_FUNCTION__ << endl << "Params: " << params.transpose() << endl;
 			for (size_t i = 0; i < m_signals.size(); i++) {
-				ArrayXd sig = m_signals.at(i)->signal(params.head(nP()), m_B1, params[nP()]);
+				double f0 = m_f0;
+				if ((m_offRes == OffRes::Fit) || (m_offRes == OffRes::FitSym)) {
+					f0 = params[nP()];
+				}
+				ArrayXd sig = m_signals.at(i)->signal(params.head(nP()), m_B1, f0);
 				if (m_debug)
 					cout << "Raw signal " << i << ": " << sig.transpose() << endl;
 				switch (m_scaling) {
