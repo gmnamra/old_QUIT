@@ -11,10 +11,8 @@
 #include <vector>
 #include <string>
 
-#include "RegionContraction.h"
+#include "Nifti/Nifti.h"
 #include "DESPOT_Functors.h"
-#include "Nifti.h"
-#include "procpar.h"
 
 static int components = 1, tesla = 7;
 static std::string outPrefix;
@@ -32,7 +30,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-	int indexptr = 0, c;
+	/*int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "c:sf", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'c':
@@ -49,28 +47,27 @@ int main(int argc, char **argv)
 			default:
 				break;
 		}
-	}
+	}*/
 		
-	// Set up all the parameters
-	double spgrTR = 0.012;
-	double ssfpTR = 0.006;
-	double Trf = 0.0008;
-	
-	ArrayXd alphaSPGR(6); alphaSPGR << 2, 4, 8, 16, 24, 32;
-	ArrayXd alphaSSFP(6); alphaSSFP << 2, 4, 8, 16, 32, 64;
+	// Set up all the parameters	
+	ArrayXd alphaSPGR(8); alphaSPGR << 3, 4, 5, 6, 7, 9, 13, 18;
+	ArrayXd alphaSSFP(8); alphaSSFP << 12.4, 16.5, 21.6, 27.8, 34.0, 41.2, 52.5, 70.0;
+	ArrayXd phases(2); phases << M_PI, 0;
 	alphaSPGR *= M_PI / 180.;
 	alphaSSFP *= M_PI / 180.;
-	ArrayXd sSPGR(alphaSPGR.size()); sSPGR.setZero();
-	ArrayXd sSSFP(alphaSSFP.size()); sSSFP.setZero();
+	VectorXd p(11); p << 0.127495, 0.0174758,   1.82927,  0.101974,    3.8992,   3.32707,   0.27656,  0.151555,  0.848445,   22.7945,   94.2626;
 	
-	vector<VectorXd> signals, angles;
-	vector<double> TR, phases, B0, B1;
-	vector<Info> data;
-	data.emplace_back(alphaSPGR, true, spgrTR, Trf, 0.003, 0., 0., 1.);
-	data.emplace_back(alphaSSFP, false, ssfpTR, Trf, 0., 0., 0., 1.);
+	SPGR_Finite_Functor spgr(Components::Three, alphaSPGR, 0.0081, 0.0005, 0.0037);
+	SSFP_Finite_Functor ssfp(Components::Three, alphaSSFP, 0.003912, 0.0005, phases);
+	auto spgr_s = spgr.signal(p.head(10), 1.0, p(10));
+	auto ssfp_s = ssfp.signal(p.head(10), 1.0, p(10));
+	cout << spgr_s.transpose() << endl;
+	cout << (spgr_s.array() / spgr_s.mean()).transpose() << endl;
+	cout << ssfp_s.transpose() << endl;
+	cout << (ssfp_s.array() / ssfp_s.mean()).transpose() << endl;
 	//angles.push_back(alphaSSFP); signals.push_back(sSSFP); consts.emplace_back(false, ssfpTR, Trf, 0., M_PI);
 	
-	long loops = 1;
+	/*long loops = 1;
 	if (testSpeed) {
 		cout << "Alpha SPGR: " << alphaSPGR.transpose() << endl;
 		cout << "Alpha SSFP: " << alphaSSFP.transpose() << endl;

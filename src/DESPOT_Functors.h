@@ -83,10 +83,20 @@ class SSFP_Finite_Functor : public SSFP_Functor {
 		SSFP_Finite_Functor(const Components nC, const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases, const double weight = 1.);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 };
-		
-shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC, const Model m, const bool use_weights);
-shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC, const Model m, const bool use_weights);
 
+//******************************************************************************
+#pragma mark Parsing Functions
+//******************************************************************************
+shared_ptr<SignalFunctor> parseSPGR(const Components nC, const Model mdl, const size_t nFlip,
+									const bool prompt, const bool use_weights);
+shared_ptr<SignalFunctor> parseSSFP(const Components nC, const Model mdl, const size_t nVols,
+                                    const bool prompt, const bool use_weights);
+#ifdef AGILENT
+shared_ptr<SignalFunctor> procparseSPGR(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
+										const bool prompt, const bool use_weights);
+shared_ptr<SignalFunctor> procparseSSFP(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
+										const bool prompt, const bool use_weights);
+#endif
 //******************************************************************************
 #pragma mark Optimisation Functor Base Class
 //******************************************************************************

@@ -227,7 +227,15 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 		cout << "Reading SSFP data..." << endl;
-		sigs.emplace_back(parseSSFP(inFile, true, Components::One, model, false));
+		#ifdef AGILENT
+		Agilent::ProcPar pp;
+		if (ReadPP(inFile, pp)) {
+			sigs.emplace_back(procparseSPGR(pp, Components::One, model, true, false));
+		} else
+		#endif
+		{
+			sigs.emplace_back(parseSSFP(Components::One, model, inFile.dim(4), true, false));
+		}
 		ssfpData.at(p).resize(inFile.dims().head(4).prod());
 		inFile.readVolumes(0, inFile.dim(4), ssfpData.at(p));
 		inFile.close();

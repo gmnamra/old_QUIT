@@ -103,31 +103,23 @@ ArrayXd SSFP_Finite_Functor::signal(const VectorXd &p, const double B1, double f
 	return s;
 }
 
-shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const Components nC,
-                                    const Model mdl, const bool use_weights) {
+//******************************************************************************
+#pragma mark Parsing Functions
+//******************************************************************************
+shared_ptr<SignalFunctor> parseSPGR(const Components nC, const Model mdl, const size_t nFlip,
+									const bool prompt, const bool use_weights) {
 	double inTR = 0., inTrf = 0., inTE = 0., inWeight = 1.;
-	ArrayXd inAngles(img.dim(4));
-	#ifdef AGILENT
-	Agilent::ProcPar pp;
-	if (ReadPP(img, pp)) {
-		inTR = pp.realValue("tr");
-		inAngles = pp.realValues("flip1");
-		inTE = pp.realValue("te");         // Just read these anyway to save a switch
-		inTrf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
-	} else
-	#endif
-	{
-		if (prompt) cout << "Enter TR (seconds): " << flush; cin >> inTR;
-		if (mdl == Model::Echo || mdl == Model::Finite) {
-			if (prompt) cout << "Enter TE (seconds): " << flush; cin >> inTE;
-		}
-		if (mdl == Model::Finite) {
-			if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> inTrf;
-		}
-		if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
-		for (int i = 0; i < inAngles.size(); i++) cin >> inAngles[i];
-		string temp; getline(cin, temp); // Just to eat the newline
+	ArrayXd inAngles(nFlip);
+	if (prompt) cout << "Enter TR (seconds): " << flush; cin >> inTR;
+	if (mdl == Model::Echo || mdl == Model::Finite) {
+		if (prompt) cout << "Enter TE (seconds): " << flush; cin >> inTE;
 	}
+	if (mdl == Model::Finite) {
+		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> inTrf;
+	}
+	if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
+	for (int i = 0; i < inAngles.size(); i++) cin >> inAngles[i];
+	string temp; getline(cin, temp); // Just to eat the newline
 	if (use_weights) {
 		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
 		string temp; getline(cin, temp); // Just to eat the newline
@@ -141,34 +133,23 @@ shared_ptr<SignalFunctor> parseSPGR(const Nifti &img, const bool prompt, const C
 	return f;
 }
 
-shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const Components nC,
-                                    const Model mdl, const bool use_weights) {
+shared_ptr<SignalFunctor> parseSSFP(const Components nC, const Model mdl, const size_t nVols,
+                                    const bool prompt, const bool use_weights) {
 	double inTR = 0., inTrf = 0., inWeight = 1.;
 	ArrayXd inPhases, inAngles;
-	#ifdef AGILENT
-	Agilent::ProcPar pp;
-	if (ReadPP(img, pp)) {
-		inPhases = pp.realValues("rfphase");
-		inTR = pp.realValue("tr");
-		inAngles = pp.realValues("flip1");
-		inTrf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
-	} else
-	#endif
-	{
-		size_t nPhases = 0;
-		if (prompt) cout << "Enter number of phase-cycling patterns: " << flush; cin >> nPhases;
-		inPhases.resize(nPhases);
-		inAngles.resize(img.dim(4) / nPhases);
-		if (prompt) cout << "Enter " << nPhases << " phase-cycles (degrees): " << flush;
-		for (size_t i = 0; i < nPhases; i++) cin >> inPhases(i);
-		if (prompt) cout << "Enter TR (seconds): " << flush; cin >> inTR;
-		if (mdl == Model::Finite) {
-			if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> inTrf;
-		}
-		if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
-		for (ArrayXd::Index i = 0; i < inAngles.size(); i++) cin >> inAngles(i);
-		string temp; getline(cin, temp); // Just to eat the newline
+	size_t nPhases = 0;
+	if (prompt) cout << "Enter number of phase-cycling patterns: " << flush; cin >> nPhases;
+	inPhases.resize(nPhases);
+	inAngles.resize(nVols / nPhases);
+	if (prompt) cout << "Enter " << nPhases << " phase-cycles (degrees): " << flush;
+	for (size_t i = 0; i < nPhases; i++) cin >> inPhases(i);
+	if (prompt) cout << "Enter TR (seconds): " << flush; cin >> inTR;
+	if (mdl == Model::Finite) {
+		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> inTrf;
 	}
+	if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
+	for (ArrayXd::Index i = 0; i < inAngles.size(); i++) cin >> inAngles(i);
+	string temp; getline(cin, temp); // Just to eat the newline
 	if (use_weights) {
 		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
 		string temp; getline(cin, temp); // Just to eat the newline
@@ -181,6 +162,50 @@ shared_ptr<SignalFunctor> parseSSFP(const Nifti &img, const bool prompt, const C
 	}
 	return f;
 }
+
+#ifdef AGILENT
+shared_ptr<SignalFunctor> procparseSPGR(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
+										const bool prompt, const bool use_weights) {
+	double inTR = 0., inTrf = 0., inTE = 0., inWeight = 1.;
+	ArrayXd inAngles = pp.realValues("flip1");
+	inTR = pp.realValue("tr");
+	inAngles = pp.realValues("flip1");
+	inTE = pp.realValue("te");         // Just read these anyway to save a switch
+	inTrf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
+	if (use_weights) {
+		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
+		string temp; getline(cin, temp); // Just to eat the newline
+	}
+	shared_ptr<SignalFunctor> f;
+	switch (mdl) {
+		case Model::Simple: f = make_shared<SPGR_Functor>(nC, inAngles * M_PI / 180., inTR, inWeight); break;
+		case Model::Echo:   f = make_shared<SPGR_Echo_Functor>(nC, inAngles * M_PI / 180, inTR, inTE, inWeight); break;
+		case Model::Finite: f = make_shared<SPGR_Finite_Functor>(nC, inAngles * M_PI / 180, inTR, inTrf, inTE, inWeight); break;
+	}
+	return f;
+}
+
+shared_ptr<SignalFunctor> procparseSSFP(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
+										const bool prompt, const bool use_weights) {
+	double inTR = 0., inTrf = 0., inWeight = 1.;
+	ArrayXd inPhases, inAngles;
+	inPhases = pp.realValues("rfphase");
+	inTR = pp.realValue("tr");
+	inAngles = pp.realValues("flip1");
+	inTrf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
+	if (use_weights) {
+		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
+		string temp; getline(cin, temp); // Just to eat the newline
+	}
+	shared_ptr<SignalFunctor> f;
+	switch (mdl) {
+		case Model::Simple: f = make_shared<SSFP_Functor>(nC, inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., inWeight); break;
+		case Model::Echo:   f = make_shared<SSFP_Echo_Functor>(nC, inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., inWeight); break;
+		case Model::Finite: f = make_shared<SSFP_Finite_Functor>(nC, inAngles * M_PI / 180., inTR, inTrf, inPhases * M_PI / 180., inWeight); break;
+	}
+	return f;
+}
+#endif
 
 //******************************************************************************
 #pragma mark DESPOTFunctor

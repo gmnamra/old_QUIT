@@ -42,7 +42,7 @@ All times (TR) are in SECONDS. All angles are in degrees.\n\
 Options:\n\
 	--help, -h        : Print this message.\n\
 	--verbose, -v     : Print extra information.\n\
-	--no-prompt, -n   : Don't print prompts for input.\n\
+	--no-prompt, -p   : Don't print prompts for input.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 3).\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
@@ -78,7 +78,7 @@ static struct option long_options[] =
 {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
-	{"no-prompt", no_argument, 0, 'p'},
+	{"no-prompt", no_argument, 0, 'n'},
 	{"1", no_argument, 0, '1'},
 	{"2", no_argument, 0, '2'},
 	{"3", no_argument, 0, '3'},
@@ -98,8 +98,8 @@ static struct option long_options[] =
 //******************************************************************************
 ThreadPool threads;
 bool interrupt_received = false;
-void int_handler(int sig);
-void int_handler(int sig) {
+void int_handler(int); // Need the int to conform to handler definition but we don't use it
+void int_handler(int) {
 	cout << endl << "Stopping processing early." << endl;
 	threads.stop();
 	interrupt_received = true;
@@ -109,8 +109,8 @@ void int_handler(int sig) {
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
 //Utility function
-Nifti openAndCheck(const string &path, const Nifti &saved, const string &type);
-Nifti openAndCheck(const string &path, const Nifti &saved, const string &type) {
+Nifti openAndCheck(const string &path, const Nifti &saved);
+Nifti openAndCheck(const string &path, const Nifti &saved) {
 	Nifti in(path, Nifti::Mode::Read);
 	if (!(in.matchesSpace(saved))) {
 		cerr << "Header for " << in.imagePath() << " does not match " << saved.imagePath() << endl;
@@ -140,25 +140,38 @@ Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
 			if (verbose) cout << "Opened: " << signalFiles.back().imagePath() << endl;
 			templateFile = Nifti(signalFiles.back(), 1); // Save header info for later
 		} else {
-			signalFiles.push_back(openAndCheck(path, templateFile, type));
+			signalFiles.push_back(openAndCheck(path, templateFile));
 		}
-		if (type == "SPGR")
-			sigs.emplace_back(parseSPGR(signalFiles.back(), prompt, components, model, use_weights));
-		else
-			sigs.emplace_back(parseSSFP(signalFiles.back(), prompt, components, model, use_weights));
+		#ifdef AGILENT
+		Agilent::ProcPar pp;
+		if (ReadPP(signalFiles.back(), pp)) {
+			if (type == "SPGR") {
+				sigs.emplace_back(procparseSPGR(pp, components, model, prompt, use_weights));
+			} else {
+				sigs.emplace_back(procparseSSFP(pp, components, model, prompt, use_weights));
+			}
+		} else
+		#endif
+		{
+			if (type == "SPGR") {
+				sigs.emplace_back(parseSPGR(components, model, signalFiles.back().dim(4), prompt, use_weights));
+			} else {
+				sigs.emplace_back(parseSSFP(components, model, signalFiles.back().dim(4), prompt, use_weights));
+			}
+		}
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
 	if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
 	getline(cin, path);
 	if ((path != "NONE") && (path != "")) {
-		B1File = openAndCheck(path, templateFile, "B1");
+		B1File = openAndCheck(path, templateFile);
 	}
 	if ((f0fit == mcDESPOT::OffRes::Map || f0fit == mcDESPOT::OffRes::MapLoose)) {
 		if (prompt)
 			cout << "Enter path to f0 map: " << flush;
 		getline(cin, path);
-		f0File = openAndCheck(path, templateFile, "f0");
+		f0File = openAndCheck(path, templateFile);
 	}
 	if (sigs.size() == 0) {
 		cerr << "No input images specified." << endl;
@@ -413,6 +426,13 @@ int main(int argc, char **argv)
 				RegionContraction<mcDESPOT> rc(localf, localBounds, localf.weights(), threshes,
 											   samples, retain, contract, expand, (voxI != -1));
 				rc.optimise(params, rSeed);
+				if (verbose && (rc.status() == RegionContraction<mcDESPOT>::Status::ErrorInfiniteResidual)) {
+					cerr << "Slice: " << slice << "\tVoxel: " << vox << endl;
+					cerr << "B1: " << localf.m_B1 << endl;
+					cerr << "nContract: " << rc.contractions() << endl;
+					cerr << "Params: " << params.transpose() << endl;
+				}
+				
 				SoS = rc.SoS();
 				if (extra) {
 					c = rc.contractions();
