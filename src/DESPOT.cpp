@@ -282,6 +282,7 @@ MagVector One_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spo
 	if (spoil) {
 		C = Spoiling();
 		TE = inTE - Trf;
+		assert(TE > 0.);
 		R = Relax(p[0], 1./(1./p[1]+p[2])); // For SPGR use T2*
 	} else {
 		C = AngleAxisd(phase, Vector3d::UnitZ());
@@ -408,6 +409,7 @@ MagVector Two_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spo
 	double TE;
 	if (spoil) {
 		TE = inTE - Trf;
+		assert(TE > 0.);
 		C3 = Spoiling();
 		R.block(0,0,3,3) = Relax(p[0], 1./(1./p[1] + p[6])); // For SPGR use T2*
 		R.block(3,3,3,3) = Relax(p[2], 1./(1./p[3] + p[6]));

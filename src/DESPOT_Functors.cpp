@@ -111,11 +111,11 @@ shared_ptr<SignalFunctor> parseSPGR(const Components nC, const Model mdl, const 
 	double inTR = 0., inTrf = 0., inTE = 0., inWeight = 1.;
 	ArrayXd inAngles(nFlip);
 	if (prompt) cout << "Enter TR (seconds): " << flush; cin >> inTR;
-	if (mdl == Model::Echo || mdl == Model::Finite) {
-		if (prompt) cout << "Enter TE (seconds): " << flush; cin >> inTE;
-	}
 	if (mdl == Model::Finite) {
 		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> inTrf;
+	}
+	if (mdl == Model::Echo || mdl == Model::Finite) {
+		if (prompt) cout << "Enter TE (seconds): " << flush; cin >> inTE;
 	}
 	if (prompt) cout << "Enter " << inAngles.size() << " Flip-angles (degrees): " << flush;
 	for (int i = 0; i < inAngles.size(); i++) cin >> inAngles[i];
