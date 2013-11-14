@@ -181,8 +181,6 @@ class App:
 				self.status_bar.set("Wrong extension on directory: " + self.in_entry.get() + "\n")
 			else:
 				subjects = glob.glob(inpath)
-				print inpath
-				print subjects
 				for subj in subjects:
 					subjin = self.findScans(subj)
 					if subjin:
@@ -190,8 +188,8 @@ class App:
 						mkdir_p(subjout)
 						self.runCommand(subjin, subjout)
 					else:
-						tkMessageBox.showwarning("No scans", "No scans to convert were found in directory: " + fullsubj)
-						self.status_bar.set("No scans to convert were found directory: " + inpath + "\n")
+						tkMessageBox.showwarning("No scans", "No scans to convert were found in directory: " + subj)
+						self.status_bar.set("No scans to convert were found directory: " + subj + "\n")
 		self.status_bar.set("Finished.\n")
 		self.master.config(cursor = "")
 
