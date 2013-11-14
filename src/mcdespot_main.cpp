@@ -120,9 +120,9 @@ Nifti openAndCheck(const string &path, const Nifti &saved) {
 	return in;
 }
 
-Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
+Nifti parseInput(vector<shared_ptr<Signal>> &sigs,
 				 vector<Nifti> &signalFiles, Nifti &B1File, Nifti &f0File);
-Nifti parseInput(vector<shared_ptr<SignalFunctor>> &sigs,
+Nifti parseInput(vector<shared_ptr<Signal>> &sigs,
 				 vector<Nifti> &signalFiles, Nifti &B1File, Nifti &f0File)
 {
 	Nifti templateFile;
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	vector<shared_ptr<SignalFunctor>> sigs;
+	vector<shared_ptr<Signal>> sigs;
 	vector<Nifti> signalFiles;
 	Nifti B1File, f0File;
 	templateFile = parseInput(sigs, signalFiles, B1File, f0File);

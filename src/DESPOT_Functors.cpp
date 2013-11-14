@@ -11,14 +11,14 @@
 //******************************************************************************
 #pragma mark Signal Functors
 //******************************************************************************
-SignalFunctor::SignalFunctor(const Components nC, const ArrayXd &flip, const double TR, const double weight) :
+Signal::Signal(const Components nC, const ArrayXd &flip, const double TR, const double weight) :
 	m_flip(flip), m_TR(TR), m_weight(weight), m_nC(nC)
 {}
 
-SPGR_Functor::SPGR_Functor(const Components nC, const ArrayXd &flip, const double TR, const double weight) :
-	SignalFunctor(nC, flip, TR, weight)
+SPGR::SPGR(const Components nC, const ArrayXd &flip, const double TR, const double weight) :
+	Signal(nC, flip, TR, weight)
 {}
-ArrayXd SPGR_Functor::signal(const VectorXd &p, const double B1, const double f0) const {
+ArrayXd SPGR::signal(const VectorXd &p, const double B1, const double f0) const {
 	switch (m_nC) {
 		case (Components::One) : return SigMag(One_SPGR(p, m_flip, m_TR, B1));
 		case (Components::Two) : return SigMag(Two_SPGR(p, m_flip, m_TR, B1));
@@ -26,10 +26,10 @@ ArrayXd SPGR_Functor::signal(const VectorXd &p, const double B1, const double f0
 	}
 }
 
-SPGR_Echo_Functor::SPGR_Echo_Functor(const Components nC, const ArrayXd &flip, const double TR, const double TE, const double weight) :
-	SignalFunctor(nC, flip, TR, weight), m_TE(TE)
+SPGREcho::SPGREcho(const Components nC, const ArrayXd &flip, const double TR, const double TE, const double weight) :
+	Signal(nC, flip, TR, weight), m_TE(TE)
 {}
-ArrayXd SPGR_Echo_Functor::signal(const VectorXd &p, const double B1, const double f0) const {
+ArrayXd SPGREcho::signal(const VectorXd &p, const double B1, const double f0) const {
 	switch (m_nC) {
 		case (Components::One) : return SigMag(One_SPGR_Echo(p, m_flip, m_TR, m_TE, B1));
 		case (Components::Two) : return SigMag(Two_SPGR_Echo(p, m_flip, m_TR, m_TE, B1));
@@ -37,10 +37,10 @@ ArrayXd SPGR_Echo_Functor::signal(const VectorXd &p, const double B1, const doub
 	}
 }
 
-SPGR_Finite_Functor::SPGR_Finite_Functor(const Components nC, const ArrayXd &flip, const double TR, const double Trf, const double TE, const double weight) :
-	SignalFunctor(nC, flip, TR, weight), m_Trf(Trf), m_TE(TE)
+SPGRFinite::SPGRFinite(const Components nC, const ArrayXd &flip, const double TR, const double Trf, const double TE, const double weight) :
+	Signal(nC, flip, TR, weight), m_Trf(Trf), m_TE(TE)
 {}
-ArrayXd SPGR_Finite_Functor::signal(const VectorXd &p, const double B1, double f0) const {
+ArrayXd SPGRFinite::signal(const VectorXd &p, const double B1, double f0) const {
 	switch (m_nC) {
 		case (Components::One) : return SigMag(One_SSFP_Finite(p, m_flip, true, m_TR, m_Trf, m_TE, 0, B1, f0));
 		case (Components::Two) : return SigMag(Two_SSFP_Finite(p, m_flip, true, m_TR, m_Trf, m_TE, 0, B1, f0));
@@ -49,13 +49,13 @@ ArrayXd SPGR_Finite_Functor::signal(const VectorXd &p, const double B1, double f
 }
 
 
-SSFP_Functor::SSFP_Functor(const Components nC, const ArrayXd &flip, const double TR, const ArrayXd &phases, const double weight) :
-	SignalFunctor(nC, flip, TR, weight), m_phases(phases)
+SSFP::SSFP(const Components nC, const ArrayXd &flip, const double TR, const ArrayXd &phases, const double weight) :
+	Signal(nC, flip, TR, weight), m_phases(phases)
 {}
-size_t SSFP_Functor::size() const {
+size_t SSFP::size() const {
 	return m_flip.rows() * m_phases.rows();
 }
-ArrayXd SSFP_Functor::signal(const VectorXd &p, const double B1, double f0) const {
+ArrayXd SSFP::signal(const VectorXd &p, const double B1, double f0) const {
 	ArrayXd s(size());
 	ArrayXd::Index start = 0;
 	for (ArrayXd::Index i = 0; i < m_phases.rows(); i++) {
@@ -69,10 +69,10 @@ ArrayXd SSFP_Functor::signal(const VectorXd &p, const double B1, double f0) cons
 	return s;
 }
 
-SSFP_Echo_Functor::SSFP_Echo_Functor(const Components nC, const ArrayXd &flip, const double TR, const ArrayXd &phases, const double weight) :
-	SSFP_Functor(nC, flip, TR, phases, weight)
+SSFPEcho::SSFPEcho(const Components nC, const ArrayXd &flip, const double TR, const ArrayXd &phases, const double weight) :
+	SSFP(nC, flip, TR, phases, weight)
 {}
-ArrayXd SSFP_Echo_Functor::signal(const VectorXd &p, const double B1, const double f0) const {
+ArrayXd SSFPEcho::signal(const VectorXd &p, const double B1, const double f0) const {
 	ArrayXd s(size());
 	ArrayXd::Index start = 0;
 	for (ArrayXd::Index i = 0; i < m_phases.rows(); i++) {
@@ -86,10 +86,10 @@ ArrayXd SSFP_Echo_Functor::signal(const VectorXd &p, const double B1, const doub
 	return s;
 }	
 
-SSFP_Finite_Functor::SSFP_Finite_Functor(const Components nC, const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases, const double weight) :
-	SSFP_Functor(nC, flip, TR, phases, weight), m_Trf(Trf)
+SSFPFinite::SSFPFinite(const Components nC, const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases, const double weight) :
+	SSFP(nC, flip, TR, phases, weight), m_Trf(Trf)
 {}
-ArrayXd SSFP_Finite_Functor::signal(const VectorXd &p, const double B1, double f0) const {
+ArrayXd SSFPFinite::signal(const VectorXd &p, const double B1, double f0) const {
 	ArrayXd s(size());
 	ArrayXd::Index start = 0;
 	for (ArrayXd::Index i = 0; i < m_phases.rows(); i++) {
@@ -106,7 +106,7 @@ ArrayXd SSFP_Finite_Functor::signal(const VectorXd &p, const double B1, double f
 //******************************************************************************
 #pragma mark Parsing Functions
 //******************************************************************************
-shared_ptr<SignalFunctor> parseSPGR(const Components nC, const Model mdl, const size_t nFlip,
+shared_ptr<Signal> parseSPGR(const Components nC, const Model mdl, const size_t nFlip,
 									const bool prompt, const bool use_weights) {
 	double inTR = 0., inTrf = 0., inTE = 0., inWeight = 1.;
 	ArrayXd inAngles(nFlip);
@@ -124,16 +124,16 @@ shared_ptr<SignalFunctor> parseSPGR(const Components nC, const Model mdl, const 
 		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
 		string temp; getline(cin, temp); // Just to eat the newline
 	}
-	shared_ptr<SignalFunctor> f;
+	shared_ptr<Signal> f;
 	switch (mdl) {
-		case Model::Simple: f = make_shared<SPGR_Functor>(nC, inAngles * M_PI / 180., inTR, inWeight); break;
-		case Model::Echo:   f = make_shared<SPGR_Echo_Functor>(nC, inAngles * M_PI / 180, inTR, inTE, inWeight); break;
-		case Model::Finite: f = make_shared<SPGR_Finite_Functor>(nC, inAngles * M_PI / 180, inTR, inTrf, inTE, inWeight); break;
+		case Model::Simple: f = make_shared<SPGR>(nC, inAngles * M_PI / 180., inTR, inWeight); break;
+		case Model::Echo:   f = make_shared<SPGREcho>(nC, inAngles * M_PI / 180, inTR, inTE, inWeight); break;
+		case Model::Finite: f = make_shared<SPGRFinite>(nC, inAngles * M_PI / 180, inTR, inTrf, inTE, inWeight); break;
 	}
 	return f;
 }
 
-shared_ptr<SignalFunctor> parseSSFP(const Components nC, const Model mdl, const size_t nVols,
+shared_ptr<Signal> parseSSFP(const Components nC, const Model mdl, const size_t nVols,
                                     const bool prompt, const bool use_weights) {
 	double inTR = 0., inTrf = 0., inWeight = 1.;
 	ArrayXd inPhases, inAngles;
@@ -154,17 +154,17 @@ shared_ptr<SignalFunctor> parseSSFP(const Components nC, const Model mdl, const 
 		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
 		string temp; getline(cin, temp); // Just to eat the newline
 	}
-	shared_ptr<SignalFunctor> f;
+	shared_ptr<Signal> f;
 	switch (mdl) {
-		case Model::Simple: f = make_shared<SSFP_Functor>(nC, inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., inWeight); break;
-		case Model::Echo:   f = make_shared<SSFP_Echo_Functor>(nC, inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., inWeight); break;
-		case Model::Finite: f = make_shared<SSFP_Finite_Functor>(nC, inAngles * M_PI / 180., inTR, inTrf, inPhases * M_PI / 180., inWeight); break;
+		case Model::Simple: f = make_shared<SSFP>(nC, inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., inWeight); break;
+		case Model::Echo:   f = make_shared<SSFPEcho>(nC, inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., inWeight); break;
+		case Model::Finite: f = make_shared<SSFPFinite>(nC, inAngles * M_PI / 180., inTR, inTrf, inPhases * M_PI / 180., inWeight); break;
 	}
 	return f;
 }
 
 #ifdef AGILENT
-shared_ptr<SignalFunctor> procparseSPGR(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
+shared_ptr<Signal> procparseSPGR(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
 										const bool prompt, const bool use_weights) {
 	double inTR = 0., inTrf = 0., inTE = 0., inWeight = 1.;
 	ArrayXd inAngles = pp.realValues("flip1");
@@ -176,16 +176,16 @@ shared_ptr<SignalFunctor> procparseSPGR(const Agilent::ProcPar &pp, const Compon
 		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
 		string temp; getline(cin, temp); // Just to eat the newline
 	}
-	shared_ptr<SignalFunctor> f;
+	shared_ptr<Signal> f;
 	switch (mdl) {
-		case Model::Simple: f = make_shared<SPGR_Functor>(nC, inAngles * M_PI / 180., inTR, inWeight); break;
-		case Model::Echo:   f = make_shared<SPGR_Echo_Functor>(nC, inAngles * M_PI / 180, inTR, inTE, inWeight); break;
-		case Model::Finite: f = make_shared<SPGR_Finite_Functor>(nC, inAngles * M_PI / 180, inTR, inTrf, inTE, inWeight); break;
+		case Model::Simple: f = make_shared<SPGR>(nC, inAngles * M_PI / 180., inTR, inWeight); break;
+		case Model::Echo:   f = make_shared<SPGREcho>(nC, inAngles * M_PI / 180, inTR, inTE, inWeight); break;
+		case Model::Finite: f = make_shared<SPGRFinite>(nC, inAngles * M_PI / 180, inTR, inTrf, inTE, inWeight); break;
 	}
 	return f;
 }
 
-shared_ptr<SignalFunctor> procparseSSFP(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
+shared_ptr<Signal> procparseSSFP(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
 										const bool prompt, const bool use_weights) {
 	double inTR = 0., inTrf = 0., inWeight = 1.;
 	ArrayXd inPhases, inAngles;
@@ -197,11 +197,11 @@ shared_ptr<SignalFunctor> procparseSSFP(const Agilent::ProcPar &pp, const Compon
 		if (prompt) cout << "Enter weighting: " << flush; cin >> inWeight;
 		string temp; getline(cin, temp); // Just to eat the newline
 	}
-	shared_ptr<SignalFunctor> f;
+	shared_ptr<Signal> f;
 	switch (mdl) {
-		case Model::Simple: f = make_shared<SSFP_Functor>(nC, inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., inWeight); break;
-		case Model::Echo:   f = make_shared<SSFP_Echo_Functor>(nC, inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., inWeight); break;
-		case Model::Finite: f = make_shared<SSFP_Finite_Functor>(nC, inAngles * M_PI / 180., inTR, inTrf, inPhases * M_PI / 180., inWeight); break;
+		case Model::Simple: f = make_shared<SSFP>(nC, inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., inWeight); break;
+		case Model::Echo:   f = make_shared<SSFPEcho>(nC, inAngles * M_PI / 180., inTR, inPhases * M_PI / 180., inWeight); break;
+		case Model::Finite: f = make_shared<SSFPFinite>(nC, inAngles * M_PI / 180., inTR, inTrf, inPhases * M_PI / 180., inWeight); break;
 	}
 	return f;
 }
@@ -210,7 +210,7 @@ shared_ptr<SignalFunctor> procparseSSFP(const Agilent::ProcPar &pp, const Compon
 //******************************************************************************
 #pragma mark DESPOTFunctor
 //******************************************************************************
-DESPOTFunctor::DESPOTFunctor(vector<shared_ptr<SignalFunctor>> &signals_in,
+DESPOTFunctor::DESPOTFunctor(vector<shared_ptr<Signal>> &signals_in,
 			                 const FieldStrength tesla, const OffRes offRes,
 			                 const Scaling s, const bool debug) :
 	m_signals(signals_in),

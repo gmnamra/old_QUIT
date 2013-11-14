@@ -61,8 +61,8 @@ static struct option long_options[] = {
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-void parseInput(vector<shared_ptr<SignalFunctor>> &sigs);
-void parseInput(vector<shared_ptr<SignalFunctor>> &sigs) {
+void parseInput(vector<shared_ptr<Signal>> &sigs);
+void parseInput(vector<shared_ptr<Signal>> &sigs) {
 	string type;
 	size_t nFlip;
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Set up SPGR & SSFP lists
 	//**************************************************************************
-	vector<shared_ptr<SignalFunctor>> sigs;
+	vector<shared_ptr<Signal>> sigs;
 	parseInput(sigs);
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.

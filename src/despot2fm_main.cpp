@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 	// Gather SSFP Data
 	//**************************************************************************
 	size_t nPhases = argc - optind;
-	vector<shared_ptr<SignalFunctor>> sigs;
+	vector<shared_ptr<Signal>> sigs;
 	vector<vector<double>> ssfpData(nPhases);
 	VectorXd inFlip;
 	for (size_t p = 0; p < nPhases; p++) {

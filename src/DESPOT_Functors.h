@@ -38,63 +38,63 @@ enum class Model {
 	Simple, Echo, Finite
 };
 
-class SignalFunctor {
+class Signal {
 	public:
 		Components m_nC;
 		double m_TR, m_weight;
 		ArrayXd m_flip;
-		SignalFunctor(const Components nC, const ArrayXd &flip, const double TR, const double weight = 1.);
+		Signal(const Components nC, const ArrayXd &flip, const double TR, const double weight = 1.);
 		virtual ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const = 0;
 		virtual size_t size() const { return m_flip.rows(); }
 };
 
-class SPGR_Functor : public SignalFunctor {
+class SPGR : public Signal {
 	public:
-		SPGR_Functor(const Components nC, const ArrayXd &flip, const double TR, const double weight = 1.);
+		SPGR(const Components nC, const ArrayXd &flip, const double TR, const double weight = 1.);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 };
-class SPGR_Echo_Functor : public SignalFunctor {
+class SPGREcho : public Signal {
 	public:
 		double m_TE;
-		SPGR_Echo_Functor(const Components nC, const ArrayXd &flip, const double TR, const double TE, const double weight = 1.);
+		SPGREcho(const Components nC, const ArrayXd &flip, const double TR, const double TE, const double weight = 1.);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 };
-class SPGR_Finite_Functor : public SignalFunctor {
+class SPGRFinite : public Signal {
 	public:
 		double m_Trf, m_TE;
-		SPGR_Finite_Functor(const Components nC, const ArrayXd &flip, const double TR, const double Trf, const double TE, const double weight = 1.);
+		SPGRFinite(const Components nC, const ArrayXd &flip, const double TR, const double Trf, const double TE, const double weight = 1.);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 };
-class SSFP_Functor : public SignalFunctor {
+class SSFP : public Signal {
 	public:
 		ArrayXd m_phases;
-		SSFP_Functor(const Components nC, const ArrayXd &flip, const double TR, const ArrayXd &phases, const double weight = 1.);
+		SSFP(const Components nC, const ArrayXd &flip, const double TR, const ArrayXd &phases, const double weight = 1.);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 		size_t size() const override;
 };
-class SSFP_Echo_Functor : public SSFP_Functor {
+class SSFPEcho : public SSFP {
 	public:
-		SSFP_Echo_Functor(const Components nC, const ArrayXd &flip, const double TR, const ArrayXd &phases, const double weight = 1.);
+		SSFPEcho(const Components nC, const ArrayXd &flip, const double TR, const ArrayXd &phases, const double weight = 1.);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 };
-class SSFP_Finite_Functor : public SSFP_Functor {
+class SSFPFinite : public SSFP {
 	public:
 		double m_Trf, m_TE;
-		SSFP_Finite_Functor(const Components nC, const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases, const double weight = 1.);
+		SSFPFinite(const Components nC, const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases, const double weight = 1.);
 		ArrayXd signal(const VectorXd &p, const double B1 = 1., const double f0 = 0.) const override;
 };
 
 //******************************************************************************
 #pragma mark Parsing Functions
 //******************************************************************************
-shared_ptr<SignalFunctor> parseSPGR(const Components nC, const Model mdl, const size_t nFlip,
+shared_ptr<Signal> parseSPGR(const Components nC, const Model mdl, const size_t nFlip,
 									const bool prompt, const bool use_weights);
-shared_ptr<SignalFunctor> parseSSFP(const Components nC, const Model mdl, const size_t nVols,
+shared_ptr<Signal> parseSSFP(const Components nC, const Model mdl, const size_t nVols,
                                     const bool prompt, const bool use_weights);
 #ifdef AGILENT
-shared_ptr<SignalFunctor> procparseSPGR(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
+shared_ptr<Signal> procparseSPGR(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
 										const bool prompt, const bool use_weights);
-shared_ptr<SignalFunctor> procparseSSFP(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
+shared_ptr<Signal> procparseSSFP(const Agilent::ProcPar &pp, const Components nC, const Model mdl,
 										const bool prompt, const bool use_weights);
 #endif
 //******************************************************************************
@@ -163,7 +163,7 @@ class DESPOTFunctor : public Functor<double> {
 		const OffRes m_offRes;
 		const Scaling m_scaling;
 		size_t m_nV;
-		vector<shared_ptr<SignalFunctor>> m_signals;
+		vector<shared_ptr<Signal>> m_signals;
 		vector<ArrayXd> m_actual, m_theory;
 		vector<string> m_names; // Subclasses responsible for initialising this
 	
@@ -183,12 +183,12 @@ class DESPOTFunctor : public Functor<double> {
 		const long inputs() const override { return this->nP() + nOffRes() + nPD(); }
 		const long values() const override { return m_nV; }
 		
-		DESPOTFunctor(vector<shared_ptr<SignalFunctor>> &signals_in,
+		DESPOTFunctor(vector<shared_ptr<Signal>> &signals_in,
 					  const FieldStrength tesla, const OffRes offRes,
 					  const Scaling s, const bool debug = false);
 		
 		const vector<string> &names() { return m_names; }
-		shared_ptr<SignalFunctor> &signal(const size_t i) { return m_signals.at(i); }
+		shared_ptr<Signal> &signal(const size_t i) { return m_signals.at(i); }
 		ArrayXd &actual(const size_t s) { return m_actual.at(s); }
 		const ArrayXd actual() const;
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) override;		
@@ -268,7 +268,7 @@ class mcDESPOT : public DESPOTFunctor {
 			return m;
 		}
 		
-		mcDESPOT(const Components &c, vector<shared_ptr<SignalFunctor>> &data,
+		mcDESPOT(const Components &c, vector<shared_ptr<Signal>> &data,
 				 const FieldStrength &tesla, const OffRes &offRes, const Scaling &s = Scaling::NormToMean,
 				 const bool &isFinite = false, const bool &debug = false) :
 			DESPOTFunctor(data, tesla, offRes, s, debug),
