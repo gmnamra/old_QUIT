@@ -159,27 +159,39 @@ class App:
 		if (self.type.get() == 0):
 			if inext != ".img":
 				tkMessageBox.showwarning("Wrong Extension", "You must select the .img folder when converting a single image.")
-				return
-			self.runCommand(inpath + inext, outpath + '/')
+				self.status_bar.set("Wrong extension on directory: " + self.in_entry.get() + "\n")
+			else:
+				self.runCommand(inpath + inext, outpath + '/')
 		elif (self.type.get() == 1):
 			if inext == ".img":
 				tkMessageBox.showwarning("Wrong folder", "You must select the parent folder when converting a single subject.")
-				return
-			outpath = outpath + '/' + inbase + '/'
-			mkdir_p(outpath)
-			scans = self.findScans(inpath)
-			self.runCommand(scans, outpath)
+				self.status_bar.set("Wrong extension on directory: " + self.in_entry.get() + "\n")
+			else:
+				scans = self.findScans(inpath)
+				if scans:
+					outpath = outpath + '/' + inbase + '/'
+					mkdir_p(outpath)
+					self.runCommand(scans, outpath)
+				else:
+					tkMessageBox.showwarning("No scans", "No scans to convert were found directory: " + inpath)
+					self.status_bar.set("No scans to convert were found directory: " + inpath + "\n")
 		elif (self.type.get() == 2):
 			if inext == ".img":
 				tkMessageBox.showwarning("Wrong folder", "Don't select a .img folder when converting multiple subjects.")
-				return
-			subjects = os.walk(inpath).next()[1]
-			for subj in subjects:
-				fullsubj = inpath + '/' + subj
-				subjin = self.findScans(fullsubj)
-				subjout = outpath + '/' + inbase + '/' + subj + '/'
-				mkdir_p(subjout)
-				self.runCommand(subjin, subjout)
+				self.status_bar.set("Wrong extension on directory: " + self.in_entry.get() + "\n")
+			else:
+				subjects = glob.glob(inpath)
+				for subj in subjects:
+					fullsubj = inpath + '/' + subj
+					subjin = self.findScans(fullsubj)
+					if subjin:
+						subjout = outpath + '/' + inbase + '/' + subj + '/'
+						mkdir_p(subjout)
+						self.runCommand(subjin, subjout)
+					else:
+						tkMessageBox.showwarning("No scans", "No scans to convert were found in directory: " + fullsubj)
+						self.status_bar.set("No scans to convert were found directory: " + inpath + "\n")
+		self.status_bar.set("Finished.\n")
 		self.master.config(cursor = "")
 
 root = Tk.Tk()
