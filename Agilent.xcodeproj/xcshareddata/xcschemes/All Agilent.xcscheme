@@ -34,6 +34,34 @@
                ReferencedContainer = "container:Agilent.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "F6CF0AD617CFEFBC000B56BA"
+               BuildableName = "fdf2nii"
+               BlueprintName = "fdf2nii"
+               ReferencedContainer = "container:Agilent.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "F62275BA17E2208200523AC0"
+               BuildableName = "fdfhdr"
+               BlueprintName = "fdfhdr"
+               ReferencedContainer = "container:Agilent.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
