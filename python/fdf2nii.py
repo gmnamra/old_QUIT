@@ -103,12 +103,10 @@ class App:
 		self.master = master
 		
 	def find_in(self):
-		self.in_entry.delete(0, Tk.END)
-		self.in_dir.set(tkFileDialog.askdirectory(initialdir = self.in_dir, mustexist = True))
+		self.in_dir.set(tkFileDialog.askdirectory(initialdir = self.in_dir.get(), mustexist = True))
 	
 	def find_out(self):
-		self.out_entry.delete(0, Tk.END)
-		self.out_dir.set(tkFileDialog.askdirectory(initialdir = self.out_dir, mustexist = False))
+		self.out_dir.set(tkFileDialog.askdirectory(initialdir = self.out_dir.get(), mustexist = False))
 	
 	def runCommand(self, inpath, outpath):
 		command = 'fdf2nii -v '
@@ -151,45 +149,40 @@ class App:
 		self.status_bar.set("Starting.\n")
 		self.master.config(cursor = "watch")
 		self.master.update_idletasks()
-				
-		(inpath, inext) = os.path.splitext(os.path.normpath(self.in_dir.get()))
-		(indir, inbase) = os.path.split(os.path.normpath(inpath))
 		outpath = self.out_dir.get()
 		
 		if (self.type.get() == 0):
+			(inpath, inext) = os.path.splitext(os.path.normpath(self.in_dir.get()))
+			(indir, inbase) = os.path.split(os.path.normpath(inpath))
 			if inext != ".img":
 				tkMessageBox.showwarning("Wrong Extension", "You must select the .img folder when converting a single image.")
 				self.status_bar.set("Wrong extension on directory: " + self.in_entry.get() + "\n")
 			else:
 				self.runCommand(inpath + inext, outpath + '/')
 		elif (self.type.get() == 1):
-			if inext == ".img":
-				tkMessageBox.showwarning("Wrong folder", "You must select the parent folder when converting a single subject.")
-				self.status_bar.set("Wrong extension on directory: " + self.in_entry.get() + "\n")
+			inpath = os.path.normpath(self.in_dir.get())
+			(indir, inbase) = os.path.split(os.path.normpath(inpath))
+			scans = self.findScans(inpath)
+			if scans:
+				outpath = outpath + '/' + inbase + '/'
+				mkdir_p(outpath)
+				self.runCommand(scans, outpath)
 			else:
-				scans = self.findScans(inpath)
-				if scans:
-					outpath = outpath + '/' + inbase + '/'
-					mkdir_p(outpath)
-					self.runCommand(scans, outpath)
-				else:
-					tkMessageBox.showwarning("No scans", "No scans to convert were found directory: " + inpath)
-					self.status_bar.set("No scans to convert were found directory: " + inpath + "\n")
+				tkMessageBox.showwarning("No scans", "No scans to convert were found directory: " + inpath)
+				self.status_bar.set("No scans to convert were found directory: " + inpath + "\n")
 		elif (self.type.get() == 2):
-			if inext == ".img":
-				tkMessageBox.showwarning("Wrong folder", "Don't select a .img folder when converting multiple subjects.")
-				self.status_bar.set("Wrong extension on directory: " + self.in_entry.get() + "\n")
-			else:
-				subjects = glob.glob(inpath)
-				for subj in subjects:
-					subjin = self.findScans(subj)
-					if subjin:
-						subjout = outpath + '/' + inbase + '/' + subj + '/'
-						mkdir_p(subjout)
-						self.runCommand(subjin, subjout)
-					else:
-						tkMessageBox.showwarning("No scans", "No scans to convert were found in directory: " + subj)
-						self.status_bar.set("No scans to convert were found directory: " + subj + "\n")
+			inpath = os.path.normpath(self.in_dir.get())
+			subjects = glob.glob(inpath)
+			for subj in subjects:
+				(subjdir, subjbase) = os.path.split(subj)
+				subjscans = self.findScans(subj)
+				if subjscans:
+					subjout = outpath + '/' + subjbase + '/'
+					mkdir_p(subjout)
+					self.runCommand(subjscans, subjout)
+				else:
+					tkMessageBox.showwarning("No scans", "No scans to convert were found in directory: " + subj)
+					self.status_bar.set("No scans to convert were found directory: " + subj + "\n")
 		self.status_bar.set("Finished.\n")
 		self.master.config(cursor = "")
 
