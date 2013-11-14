@@ -42,15 +42,17 @@ class App:
 		input.grid(row = 1, column = 0)
 		Tk.Label(input, text = 'Input:').grid(row = 0, sticky=Tk.E)
 		Tk.Label(input, text = 'Output:').grid(row = 1, sticky=Tk.E)
-		self.in_entry  = Tk.Entry(input, width = 64)
-		self.out_entry = Tk.Entry(input, width = 64)
-		self.in_entry.grid(row = 0, column = 1)
-		self.out_entry.grid(row = 1, column = 1)
-		self.in_dir = "/data/blinded/OSIRIS/"
+		self.in_dir = Tk.StringVar()
+		self.in_dir.set("/data/blinded/OSIRIS/")
+		self.out_dir = Tk.StringVar()
+		self.out_dir.set(os.getcwd())
+		self.in_entry  = Tk.Entry(input, width = 64, textvariable = self.in_dir)
 		self.in_button = Tk.Button(input, text = "...", command = self.find_in)
-		self.in_button.grid(row = 0, column = 2)
-		self.out_dir = "~"
+		self.out_entry = Tk.Entry(input, width = 64, textvariable = self.out_dir)
 		self.out_button = Tk.Button(input, text = "...", command = self.find_out)
+		self.in_entry.grid(row = 0, column = 1)
+		self.in_button.grid(row = 0, column = 2)
+		self.out_entry.grid(row = 1, column = 1)
 		self.out_button.grid(row = 1, column = 2)
 		
 		type = Tk.Frame(frame)
@@ -102,14 +104,12 @@ class App:
 		
 	def find_in(self):
 		self.in_entry.delete(0, Tk.END)
-		self.in_dir = tkFileDialog.askdirectory(initialdir = self.in_dir, mustexist = True)
-		self.in_entry.insert(0, self.in_dir)
+		self.in_dir.set(tkFileDialog.askdirectory(initialdir = self.in_dir, mustexist = True))
 	
 	def find_out(self):
 		self.out_entry.delete(0, Tk.END)
-		self.out_dir = tkFileDialog.askdirectory(initialdir = self.out_dir, mustexist = False)
-		self.out_entry.insert(0, self.out_dir)
-
+		self.out_dir.set(tkFileDialog.askdirectory(initialdir = self.out_dir, mustexist = False))
+	
 	def runCommand(self, inpath, outpath):
 		command = 'fdf2nii -v '
 		if self.spm_scale.get():
@@ -152,9 +152,9 @@ class App:
 		self.master.config(cursor = "watch")
 		self.master.update_idletasks()
 				
-		(inpath, inext) = os.path.splitext(os.path.normpath(self.in_entry.get()))
+		(inpath, inext) = os.path.splitext(os.path.normpath(self.in_dir.get()))
 		(indir, inbase) = os.path.split(os.path.normpath(inpath))
-		outpath = self.out_entry.get()
+		outpath = self.out_dir.get()
 		
 		if (self.type.get() == 0):
 			if inext != ".img":
@@ -181,9 +181,10 @@ class App:
 				self.status_bar.set("Wrong extension on directory: " + self.in_entry.get() + "\n")
 			else:
 				subjects = glob.glob(inpath)
+				print inpath
+				print subjects
 				for subj in subjects:
-					fullsubj = inpath + '/' + subj
-					subjin = self.findScans(fullsubj)
+					subjin = self.findScans(subj)
 					if subjin:
 						subjout = outpath + '/' + inbase + '/' + subj + '/'
 						mkdir_p(subjout)
