@@ -90,33 +90,27 @@ const void CalcExchange(const double tau_a, const double f_a, const double f_b, 
 
 //******************************************************************************
 #pragma mark Actual Signal Equations
-// Parameters are { T1, T2 }
+// Parameters are { T1, T2, f0 }
 //******************************************************************************
 MagVector One_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1);
-MagVector One_SPGR_Echo(const VectorXd &p, const ArrayXd &flip, const double TR, const double TE, const double B1);
-MagVector One_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
-MagVector One_SSFP_Echo(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
+MagVector One_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1);
 MagVector One_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spoil,
                           const double TR, const double Trf, const double TE,
-						  const double ph, const double B1, const double f0);
+						  const double ph, const double B1);
 //******************************************************************************
-// Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a }
+// Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0 }
 //******************************************************************************
 MagVector Two_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1);
-MagVector Two_SPGR_Echo(const VectorXd &p, const ArrayXd &flip, const double TR, const double TE, const double B1);
-MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
-MagVector Two_SSFP_Echo(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
+MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1);
 MagVector Two_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spoil,
                           const double TR, const double Trf, const double TE,
-						  const double ph, const double B1, const double f0);
+						  const double ph, const double B1);
 //******************************************************************************
-// Parameters are { T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c }
+// Parameters are { T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c, f0 }
 //******************************************************************************
 MagVector Three_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1);
-MagVector Three_SPGR_Echo(const VectorXd &p, const ArrayXd &flip, const double TR, const double TE, const double B1);
-MagVector Three_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
-MagVector Three_SSFP_Echo(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1, const double f0);
+MagVector Three_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double ph, const double B1);
 MagVector Three_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spoil,
                             const double TR, const double Trf, const double TE,
-						    const double ph, const double B1, const double f0);
+						    const double ph, const double B1);
 #endif

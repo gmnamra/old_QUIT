@@ -12,13 +12,11 @@
 
 #include <string>
 #include <iostream>
-#include <atomic>
 #include <getopt.h>
-#include <signal.h>
-#include <time.h>
+#include <exception>
 #include <Eigen/Dense>
 
-#include "DESPOT_Functors.h"
+#include "Model.h"
 
 using namespace std;
 using namespace Eigen;
@@ -44,9 +42,9 @@ Options:\n\
 	            f     : Use Finite Pulse Length correction.\n"
 };
 
-static auto components = Components::Three;
-static auto model = Model::Simple;
-static int verbose = false, prompt = true;
+static auto components = Signal::Components::Three;
+static auto modelType = ModelTypes::Simple;
+static bool verbose = false, prompt = true;
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
@@ -61,10 +59,10 @@ static struct option long_options[] = {
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-void parseInput(vector<shared_ptr<Signal>> &sigs);
-void parseInput(vector<shared_ptr<Signal>> &sigs) {
+void parseInput(shared_ptr<Model> &mdl);
+void parseInput(shared_ptr<Model> &mdl) {
 	string type;
-	size_t nFlip;
+	size_t nFlip, nPhase;
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
 		if (type != "SPGR" && type != "SSFP") {
@@ -73,16 +71,15 @@ void parseInput(vector<shared_ptr<Signal>> &sigs) {
 		}
 		if (prompt) cout << "Number of Flip-Angles: " << flush;
 		cin >> nFlip;
-		if (type == "SPGR")
-			sigs.emplace_back(parseSPGR(components, model, nFlip, prompt, false));
-		else
-			sigs.emplace_back(parseSSFP(components, model, nFlip, prompt, false));
+		if (type == "SPGR") {
+			mdl->parseSPGR(nFlip, prompt);
+		} else {
+			if (prompt) cout << "Number of phase-cycles: " << flush;
+			cin >> nPhase;
+			mdl->parseSSFP(nFlip, nPhase, prompt);
+		}
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
-	}
-	if (sigs.size() == 0) {
-		cerr << "No signals specified." << endl;
-		exit(EXIT_FAILURE);
 	}
 }
 //******************************************************************************
@@ -98,22 +95,18 @@ int main(int argc, char **argv)
 	
 	try { // To fix uncaught exceptions on Mac
 	
-	Nifti maskFile, templateFile;
-	vector<double> maskData(0);
-	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvn123M:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
-			case '1': components = Components::One; break;
-			case '2': components = Components::Two; break;
-			case '3': components = Components::Three; break;
+			case '1': components = Signal::Components::One; break;
+			case '2': components = Signal::Components::Two; break;
+			case '3': components = Signal::Components::Three; break;
 			case 'M':
 				switch (*optarg) {
-					case 's': model = Model::Simple; if (prompt) cout << "Simple model selected." << endl; break;
-					case 'e': model = Model::Echo; if (prompt) cout << "TE correction selected." << endl; break;
-					case 'f': model = Model::Finite; if (prompt) cout << "Finite pulse correction selected." << endl; break;
+					case 's': modelType = ModelTypes::Simple; if (prompt) cout << "Simple model selected." << endl; break;
+					case 'f': modelType = ModelTypes::Finite; if (prompt) cout << "Finite pulse correction selected." << endl; break;
 					default:
 						cout << "Unknown model type " << *optarg << endl;
 						exit(EXIT_FAILURE);
@@ -133,26 +126,28 @@ int main(int argc, char **argv)
 	}
 
 	//**************************************************************************
-	#pragma mark  Set up SPGR & SSFP lists
+	#pragma mark  Set up model
 	//**************************************************************************
-	vector<shared_ptr<Signal>> sigs;
-	parseInput(sigs);
+	shared_ptr<Model> model;
+	switch (modelType) {
+		case ModelTypes::Simple: model = make_shared<SimpleModel>(components, Model::Scaling::NormToMean); break;
+		case ModelTypes::Finite: model = make_shared<FiniteModel>(components, Model::Scaling::NormToMean); break;
+	}
+	parseInput(model);
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	//**************************************************************************
 	// Build a Functor here so we can query number of parameters etc.
-	cout << "Using " << mcDESPOT::to_string(components) << " component model." << endl;
-	mcDESPOT mcd(components, sigs, mcDESPOT::FieldStrength::Unknown, mcDESPOT::OffRes::Fit, mcDESPOT::Scaling::NormToMean, model == Model::Finite, true);
-	VectorXd params(mcd.inputs());
+	cout << "Using " << Signal::to_string(components) << " component model." << endl;
+	VectorXd params(model->nParameters());
 	if (prompt) cout << "Enter parameters." << endl;
-	for (size_t i = 0; i < mcd.nP() + mcd.nOffRes(); i++) {
-		if (prompt) cout << mcd.names()[i] << ": " << flush;
+	for (VectorXd::Index i = 0; i < params.rows(); i++) {
+		if (prompt) cout << model->names()[i] << ": " << flush;
 		cin >> params(i);
 	}
 	double B1;
 	if (prompt) cout << "Enter B1: " << flush; cin >> B1;
-	mcd.m_B1 = B1;
-	mcd.theory(params);
+	cout << model->signal(params, B1).transpose() << endl;
 	
 	} catch (exception &e) {
 		cerr << e.what() << endl;

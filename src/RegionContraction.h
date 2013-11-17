@@ -46,8 +46,19 @@ class RegionContraction {
 	public:
 		enum class Status {
 			NotStarted = -1,
-			DidNotConverge, Converged, ErrorConstraints, ErrorInfiniteResidual
+			Converged, IterationLimit, ErrorInvalid, ErrorResidual
 		};
+		
+		friend ostream& operator<<(ostream &os, Status &s) {
+			switch (s) {
+				case Status::NotStarted: os << "Not Started"; break;
+				case Status::DidNotConverge: os << "Converged"; break;
+				case Status::IterationLimit: os << "Reached iteration limit"; break;
+				case Status::ErrorConstraints: os << "Could not generate valid sample"; break;
+				case Status::ErrorResidual: os << "Infinite residual found"; break;
+			}
+			return os;
+		}
 	
 	private:
 		Functor_t &m_f;
@@ -120,14 +131,13 @@ class RegionContraction {
 			if (m_debug) {
 				cout << "Start Midpoint: " << midPoint().transpose() << endl;
 				cout << "Start Width:    " << width().transpose() << endl;
-				cout << "Fitting to data:" << m_f.actual().transpose() << endl;
 				cout << "Weights:        " << m_weights.transpose() << endl;
 			}
 			
 			mt19937_64 twist(seed);
 			uniform_real_distribution<double> uniform(0., 1.);
 			
-			m_status = Status::DidNotConverge;
+			m_status = Status::IterationLimit;
 			for (m_contractions = 0; m_contractions < m_maxContractions; m_contractions++) {
 				size_t startSample = 0;
 				if (m_contractions > 0) {
@@ -155,7 +165,7 @@ class RegionContraction {
 								cout << "This warning will only be printed once." << endl;
 							}
 							params.setZero();
-							m_status = Status::ErrorConstraints;
+							m_status = Status::ErrorInvalid;
 							return;
 						}
 					} while (!m_f.constraint(tempSample));
@@ -168,12 +178,10 @@ class RegionContraction {
 								 << "Result may be meaningless. This warning will only be printed once." << endl;
 							cout << "Parameters were " << tempSample.transpose() << endl;
 							m_f.m_debug = true;
-							cout << "Signal " << m_f.actual().transpose() << endl;
-							cout << "Theory " << m_f.theory(tempSample).transpose() << endl;
 						}
 						params = retained.col(0);
 						m_residuals.setConstant(numeric_limits<double>::infinity());
-						m_status = Status::ErrorInfiniteResidual;
+						m_status = Status::ErrorResidual;
 						return;
 					}
 					samples.col(s) = tempSample;

@@ -56,13 +56,13 @@ Options:\n\
 	--contract, -c n    : Read contraction settings from stdin (Will prompt).\n"
 };
 
-static auto scale = mcDESPOT::Scaling::NormToMean;
-static auto tesla = mcDESPOT::FieldStrength::Three;
-static auto offRes = mcDESPOT::OffRes::FitSym;
+static auto scale = Model::Scaling::NormToMean;
+static auto tesla = Model::FieldStrength::Three;
+static auto f0Fit = OffRes::FitSym;
 static int verbose = false, extra = false,
 		   samples = 2000, retain = 20, contract = 10,
            voxI = -1, voxJ = -1;
-static auto model = Model::Simple;
+static auto modelType = ModelTypes::Simple;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static double expand = 0., weighting = 1.0;
 static string outPrefix;
@@ -88,7 +88,7 @@ static struct option long_options[] = {
 ThreadPool threads;
 bool interrupt_received = false;
 void int_handler(int sig);
-void int_handler(int sig) {
+void int_handler(int) {
 	cout << endl << "Stopping processing early." << endl;
 	threads.stop();
 	interrupt_received = true;
@@ -127,13 +127,13 @@ int main(int argc, char **argv)
 				break;
 			case 'f':
 				if (string(optarg) == "ASYM") {
-					offRes = mcDESPOT::OffRes::Fit;
+					f0Fit = OffRes::Fit;
 				} else {
 					cout << "Reading f0 file: " << optarg << endl;
 					f0File.open(optarg, Nifti::Mode::Read);
 					f0Data.resize(f0File.dims().head(3).prod());
 					f0File.readVolumes(0, 1, f0Data);
-					offRes = mcDESPOT::OffRes::Map;
+					f0Fit = OffRes::Map;
 				}
 				break;
 			case 'b':
@@ -146,8 +146,8 @@ int main(int argc, char **argv)
 			case 'p': stop_slice = atoi(optarg); break;
 			case 'S':
 				switch (atoi(optarg)) {
-					case 0 : scale = mcDESPOT::Scaling::NormToMean; break;
-					case 1 : scale = mcDESPOT::Scaling::Global; break;
+					case 0 : scale = Model::Scaling::None; break;
+					case 1 : scale = Model::Scaling::NormToMean; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						exit(EXIT_FAILURE);
@@ -155,9 +155,9 @@ int main(int argc, char **argv)
 				} break;
 			case 't':
 				switch (*optarg) {
-					case '3': tesla = mcDESPOT::FieldStrength::Three; break;
-					case '7': tesla = mcDESPOT::FieldStrength::Seven; break;
-					case 'u': tesla = mcDESPOT::FieldStrength::Unknown; break;
+					case '3': tesla = Model::FieldStrength::Three; break;
+					case '7': tesla = Model::FieldStrength::Seven; break;
+					case 'u': tesla = Model::FieldStrength::User; break;
 					default:
 						cout << "Unknown boundaries type " << optarg << endl;
 						exit(EXIT_FAILURE);
@@ -165,9 +165,8 @@ int main(int argc, char **argv)
 				} break;
 			case 'M':
 				switch (*optarg) {
-					case 's': model = Model::Simple; cout << "Simple model selected." << endl; break;
-					case 'e': model = Model::Echo; cout << "TE correction selected." << endl; break;
-					case 'f': model = Model::Finite; cout << "Finite pulse correction selected." << endl; break;
+					case 's': modelType = ModelTypes::Simple; cout << "Simple model selected." << endl; break;
+					case 'f': modelType = ModelTypes::Finite; cout << "Finite pulse correction selected." << endl; break;
 					default:
 						cout << "Unknown model type " << *optarg << endl;
 						exit(EXIT_FAILURE);
@@ -213,11 +212,15 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	size_t nPhases = argc - optind;
-	vector<shared_ptr<Signal>> sigs;
-	vector<vector<double>> ssfpData(nPhases);
+	size_t nFiles = argc - optind;
+	vector<vector<double>> ssfpData(nFiles);
+	shared_ptr<Model> model;
+	switch (modelType) {
+		case ModelTypes::Simple: model = make_shared<SimpleModel>(Signal::Components::One, scale); break;
+		case ModelTypes::Finite: model = make_shared<FiniteModel>(Signal::Components::One, scale); break;
+	}
 	VectorXd inFlip;
-	for (size_t p = 0; p < nPhases; p++) {
+	for (size_t p = 0; p < nFiles; p++) {
 		cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
 		if (p == 0)
@@ -226,57 +229,60 @@ int main(int argc, char **argv)
 			cerr << "Input file dimensions and/or transforms do not match." << endl;
 			exit(EXIT_FAILURE);
 		}
-		cout << "Reading SSFP data..." << endl;
 		#ifdef AGILENT
 		Agilent::ProcPar pp;
 		if (ReadPP(inFile, pp)) {
-			sigs.emplace_back(procparseSPGR(pp, Components::One, model, true, false));
+			model->procparseSPGR(pp);
 		} else
 		#endif
 		{
-			sigs.emplace_back(parseSSFP(Components::One, model, inFile.dim(4), true, false));
+			size_t nPhases;
+			cout << "Enter number of phase-cycling patterns: " << flush;
+			cin >> nPhases;
+			model->parseSSFP(inFile.dim(4) / nPhases, nPhases, true);
 		}
+		cout << "Reading data..." << endl;
 		ssfpData.at(p).resize(inFile.dims().head(4).prod());
 		inFile.readVolumes(0, inFile.dim(4), ssfpData.at(p));
 		inFile.close();
 		optind++;
 	}
-	
+	size_t totalSize = model->size();
 	if (optind != argc) {
 		cerr << "Unprocessed arguments supplied.\n" << usage;
 		exit(EXIT_FAILURE);
 	}
 	
-	mcDESPOT d2fm(Components::One, sigs, tesla, offRes, scale, model == Model::Finite);
-	ArrayXd thresh = d2fm.defaultThresholds();
-	ArrayXXd bounds = d2fm.defaultBounds();
-	if (tesla == mcDESPOT::FieldStrength::Unknown) {
+	ArrayXd thresh(model->nParameters()); thresh.setConstant(0.05);
+	ArrayXXd bounds = model->bounds(tesla);
+	if (tesla == Model::FieldStrength::User) {
 		cout << "Enter parameter pairs (low then high)" << endl;
-		for (int i = 0; i < d2fm.nP(); i++) {
-			cout << d2fm.names()[i] << ": " << flush;
+		for (size_t i = 0; i < model->nParameters() - 1; i++) {
+			cout << model->names()[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 	}
+	if (f0Fit == OffRes::FitSym) {
+		bounds(model->nParameters() - 1, 0) = 0.;
+	}
+	ArrayXd weights(totalSize); weights.setOnes();
 	
 	if (verbose) {
-		for (auto &s : sigs) {
-			cout << "SSFP Angles (deg): " << s->m_flip.transpose() * 180 / M_PI << endl;
-		}
 		cout << "Low bounds: " << bounds.col(0).transpose() << endl
 		     << "Hi bounds:  " << bounds.col(1).transpose() << endl;
 	}
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
-	vector<vector<double>> paramsData(d2fm.inputs());
+	vector<vector<double>> paramsData(model->nParameters());
 	for (auto &p : paramsData)
 		p.resize(voxelsPerVolume, 0.);
-	vector<vector<double>> residuals(d2fm.values());
+	vector<vector<double>> residuals(totalSize);
 	for (auto &r : residuals)
 		r.resize(voxelsPerVolume, 0.);
 	vector<size_t> contractData;
-	vector<vector<double>> midpData(d2fm.inputs());
-	vector<vector<double>> widthData(d2fm.inputs());
+	vector<vector<double>> midpData(totalSize);
+	vector<vector<double>> widthData(totalSize);
 	if (extra) {
 		contractData.resize(voxelsPerVolume);
 		for (auto &m : midpData)
@@ -304,35 +310,27 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const size_t&)> processVox = [&] (const size_t &vox) {
 			// Set up parameters and constants
-			mcDESPOT locald2(d2fm); // Take a thread local copy of the functor
-			ArrayXd params(locald2.inputs()); params.setZero();
-			ArrayXd resid(locald2.values()); resid.setZero();
+			ArrayXd params(model->nParameters()); params.setZero();
+			ArrayXd resid(model->size()); resid.setZero();
 			// extra stuff
 			size_t c = 0;
-			ArrayXd width(locald2.inputs()); width.setZero();
-			ArrayXd midp(locald2.inputs()); midp.setZero();
+			ArrayXd width(model->size()); width.setZero();
+			ArrayXd midp(model->size()); midp.setZero();
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// -ve T1 is non-sensical, no point fitting
 				voxCount++;
-				for (size_t p = 0; p < nPhases; p++) {
-					locald2.m_f0 = f0File.isOpen() ? f0Data[sliceOffset + vox] : 0.;
-					locald2.m_B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
-					for (int i = 0; i < locald2.actual(p).rows(); i++)
-						locald2.actual(p)(i) = ssfpData[p][i*voxelsPerVolume + sliceOffset + vox];
-					if (scale == DESPOTFunctor::Scaling::NormToMean)
-						locald2.actual(p) /= locald2.actual(p).mean();
+				ArrayXd signal = model->loadSignals(ssfpData, voxelsPerVolume, vox);
+				ArrayXXd localBounds = bounds;
+				localBounds.row(0).setConstant(T1Data[sliceOffset + vox]);
+				if (f0Fit == OffRes::Map) {
+					localBounds.row(2).setConstant(f0Data[vox]);
 				}
-				auto localBounds = bounds;
-				// Fix T1 value
-				localBounds(0, 0) = T1Data.at(sliceOffset + vox);
-				localBounds(0, 1) = T1Data.at(sliceOffset + vox);
-				ArrayXd weights(locald2.values());
-				weights.setConstant(1.0);
-				RegionContraction<mcDESPOT> rc(locald2, localBounds, weights, thresh,
-				                                samples, retain, contract, expand, (voxI != -1));
-				// Add the voxel number to the time to get a decent random seed
-				size_t rSeed = time(NULL) + vox;
-				rc.optimise(params, rSeed);
+				double B1 = B1File.isOpen() ? B1Data[vox] : 1.;
+				size_t rSeed = time(NULL) + vox; // Add the voxel number to the time to get a decent random seed
+				DESPOTFunctor func(model, signal, B1, false);
+				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, thresh,
+											        samples, retain, contract, expand, (voxI != -1));
+				rc.optimise(params);
 				resid = rc.residuals();
 				if (extra) {
 					c = rc.contractions();
@@ -379,8 +377,8 @@ int main(int argc, char **argv)
 	
 	outPrefix = outPrefix + "FM_";
 	templateFile.description = version;
-	for (int p = 1; p < d2fm.inputs(); p++) { // Skip T1
-		templateFile.open(outPrefix + d2fm.names().at(p) + ".nii.gz", Nifti::Mode::Write);
+	for (int p = 1; p < model->nParameters(); p++) { // Skip T1
+		templateFile.open(outPrefix + model->names().at(p) + ".nii.gz", Nifti::Mode::Write);
 		templateFile.writeVolumes(0, 1, paramsData.at(p));
 		templateFile.close();
 	}
@@ -396,11 +394,11 @@ int main(int argc, char **argv)
 		templateFile.writeVolumes(0, 1, contractData);
 		templateFile.close();
 		templateFile.setDatatype(Nifti::DataType::FLOAT32);
-		for (int p = 0; p < d2fm.inputs(); p++) {
-			templateFile.open(outPrefix + d2fm.names().at(p) + "_width.nii.gz", Nifti::Mode::Write);
+		for (int p = 0; p < model->nParameters(); p++) {
+			templateFile.open(outPrefix + model->names().at(p) + "_width.nii.gz", Nifti::Mode::Write);
 			templateFile.writeVolumes(0, 1, widthData.at(p));
 			templateFile.close();
-			templateFile.open(outPrefix + d2fm.names().at(p) + "_mid.nii.gz", Nifti::Mode::Write);
+			templateFile.open(outPrefix + model->names().at(p) + "_mid.nii.gz", Nifti::Mode::Write);
 			templateFile.writeVolumes(0, 1, midpData.at(p));
 			templateFile.close();
 		}

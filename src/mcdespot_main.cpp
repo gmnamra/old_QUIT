@@ -57,16 +57,15 @@ Options:\n\
 	            7     : Boundaries suitable for 7T \n\
 	            u     : User specified boundaries from stdin.\n\
 	--model, -M s     : Use simple model (default).\n\
-	            e     : Use echo-time correction.\n\
 	            f     : Use Finite Pulse Length correction.\n\
 	--contract, -c n  : Read contraction settings from stdin (Will prompt).\n"
 };
 
-static auto f0fit = mcDESPOT::OffRes::FitSym;
-static auto components = Components::Three;
-static auto model = Model::Simple;
-static auto tesla = mcDESPOT::FieldStrength::Three;
-static auto scale = mcDESPOT::Scaling::NormToMean;
+static auto f0fit = OffRes::FitSym;
+static auto components = Signal::Components::Three;
+static auto modelType = ModelTypes::Simple;
+static auto tesla = Model::FieldStrength::Three;
+static auto scale = Model::Scaling::NormToMean;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, extra = false,
            early_finish = false, use_weights = false,
@@ -120,10 +119,8 @@ Nifti openAndCheck(const string &path, const Nifti &saved) {
 	return in;
 }
 
-Nifti parseInput(vector<shared_ptr<Signal>> &sigs,
-				 vector<Nifti> &signalFiles, Nifti &B1File, Nifti &f0File);
-Nifti parseInput(vector<shared_ptr<Signal>> &sigs,
-				 vector<Nifti> &signalFiles, Nifti &B1File, Nifti &f0File)
+Nifti parseInput(shared_ptr<Model> &mdl, vector<Nifti> &signalFiles, Nifti &B1File, Nifti &f0File);
+Nifti parseInput(shared_ptr<Model> &mdl, vector<Nifti> &signalFiles, Nifti &B1File, Nifti &f0File)
 {
 	Nifti templateFile;
 	string type, path;
@@ -146,17 +143,20 @@ Nifti parseInput(vector<shared_ptr<Signal>> &sigs,
 		Agilent::ProcPar pp;
 		if (ReadPP(signalFiles.back(), pp)) {
 			if (type == "SPGR") {
-				sigs.emplace_back(procparseSPGR(pp, components, model, prompt, use_weights));
+				mdl->procparseSPGR(pp);
 			} else {
-				sigs.emplace_back(procparseSSFP(pp, components, model, prompt, use_weights));
+				mdl->procparseSSFP(pp);
 			}
 		} else
 		#endif
 		{
 			if (type == "SPGR") {
-				sigs.emplace_back(parseSPGR(components, model, signalFiles.back().dim(4), prompt, use_weights));
+				mdl->parseSPGR(signalFiles.back().dim(4), prompt);
 			} else {
-				sigs.emplace_back(parseSSFP(components, model, signalFiles.back().dim(4), prompt, use_weights));
+				size_t nPhases;
+				if (prompt) cout << "Enter number of phase-cycling patterns: " << flush;
+				cin >> nPhases;
+				mdl->parseSSFP(signalFiles.back().dim(4) / nPhases, nPhases, prompt);
 			}
 		}
 		// Print message ready for next loop
@@ -167,15 +167,11 @@ Nifti parseInput(vector<shared_ptr<Signal>> &sigs,
 	if ((path != "NONE") && (path != "")) {
 		B1File = openAndCheck(path, templateFile);
 	}
-	if ((f0fit == mcDESPOT::OffRes::Map || f0fit == mcDESPOT::OffRes::MapLoose)) {
+	if (f0fit == OffRes::Map) {
 		if (prompt)
 			cout << "Enter path to f0 map: " << flush;
 		getline(cin, path);
 		f0File = openAndCheck(path, templateFile);
-	}
-	if (sigs.size() == 0) {
-		cerr << "No input images specified." << endl;
-		exit(EXIT_FAILURE);
 	}
 	return templateFile;
 }
@@ -196,13 +192,13 @@ int main(int argc, char **argv)
 	vector<double> maskData(0);
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvn123m:o:f:s:p:S:t:M:ceEi:j:w", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvn123m:o:f:s:p:S:t:M:cei:j:w", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
-			case '1': components = Components::One; break;
-			case '2': components = Components::Two; break;
-			case '3': components = Components::Three; break;
+			case '1': components = Signal::Components::One; break;
+			case '2': components = Signal::Components::Two; break;
+			case '3': components = Signal::Components::Three; break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
@@ -216,10 +212,9 @@ int main(int argc, char **argv)
 				break;
 			case 'f':
 				switch (*optarg) {
-					case '0' : f0fit = mcDESPOT::OffRes::Map; break;
-					case '1' : f0fit = mcDESPOT::OffRes::FitSym; break;
-					case '2' : f0fit = mcDESPOT::OffRes::Fit; break;
-					case '3' : f0fit = mcDESPOT::OffRes::MapLoose; break;
+					case '0' : f0fit = OffRes::Map; break;
+					case '1' : f0fit = OffRes::FitSym; break;
+					case '2' : f0fit = OffRes::Fit; break;
 					default:
 						cout << "Invalid Off Resonance Mode." << endl;
 						exit(EXIT_FAILURE);
@@ -229,8 +224,8 @@ int main(int argc, char **argv)
 			case 'p': stop_slice = atoi(optarg); break;
 			case 'S':
 				switch (atoi(optarg)) {
-					case 1 : scale = mcDESPOT::Scaling::Global; break;
-					case 2 : scale = mcDESPOT::Scaling::NormToMean; break;
+					case 1 : scale = Model::Scaling::None; break;
+					case 2 : scale = Model::Scaling::NormToMean; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						exit(EXIT_FAILURE);
@@ -238,9 +233,9 @@ int main(int argc, char **argv)
 				} break;
 			case 't':
 				switch (*optarg) {
-					case '3': tesla = mcDESPOT::FieldStrength::Three; break;
-					case '7': tesla = mcDESPOT::FieldStrength::Seven; break;
-					case 'u': tesla = mcDESPOT::FieldStrength::Unknown; break;
+					case '3': tesla = Model::FieldStrength::Three; break;
+					case '7': tesla = Model::FieldStrength::Seven; break;
+					case 'u': tesla = Model::FieldStrength::User; break;
 					default:
 						cout << "Unknown boundaries type " << *optarg << endl;
 						exit(EXIT_FAILURE);
@@ -248,9 +243,8 @@ int main(int argc, char **argv)
 				} break;
 			case 'M':
 				switch (*optarg) {
-					case 's': model = Model::Simple; if (prompt) cout << "Simple model selected." << endl; break;
-					case 'e': model = Model::Echo; if (prompt) cout << "TE correction selected." << endl; break;
-					case 'f': model = Model::Finite; if (prompt) cout << "Finite pulse correction selected." << endl; break;
+					case 's': modelType = ModelTypes::Simple; if (prompt) cout << "Simple model selected." << endl; break;
+					case 'f': modelType = ModelTypes::Finite; if (prompt) cout << "Finite pulse correction selected." << endl; break;
 					default:
 						cout << "Unknown model type " << *optarg << endl;
 						exit(EXIT_FAILURE);
@@ -265,7 +259,6 @@ int main(int argc, char **argv)
 				{ string dummy; getline(cin, dummy); } // Eat newlines
 				break;
 			case 'e': extra = true; break;
-			case 'E': early_finish = true; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
 			case 'w': use_weights = true; break;
@@ -284,10 +277,16 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	vector<shared_ptr<Signal>> sigs;
+	shared_ptr<Model> model;
+	// Build a Functor here so we can query number of parameters etc.
+	cout << "Using " << Signal::to_string(components) << " component model." << endl;
+	switch (modelType) {
+		case ModelTypes::Simple : model = make_shared<SimpleModel>(components, scale);
+		case ModelTypes::Finite : model = make_shared<FiniteModel>(components, scale);
+	}
 	vector<Nifti> signalFiles;
 	Nifti B1File, f0File;
-	templateFile = parseInput(sigs, signalFiles, B1File, f0File);
+	templateFile = parseInput(model, signalFiles, B1File, f0File);
 	if ((maskData.size() > 0) && !(maskFile.matchesSpace(templateFile))) {
 		cerr << "Mask file has different dimensions/transform to input data." << endl;
 		exit(EXIT_FAILURE);
@@ -297,23 +296,19 @@ int main(int argc, char **argv)
 	// Use if files are open to indicate default values should be used -
 	// 0 for f0, 1 for B1
 	//**************************************************************************
-	// Build a Functor here so we can query number of parameters etc.
-	cout << "Using " << mcDESPOT::to_string(components) << " component model." << endl;
-	mcDESPOT mcd(components, sigs, tesla, f0fit, scale, model == Model::Finite);
-	outPrefix = outPrefix + mcDESPOT::to_string(components) + "C_";
-	ArrayXd threshes(mcd.inputs()); threshes.setConstant(0.05);
-	if (early_finish)
-		threshes = mcd.defaultThresholds();
+	outPrefix = outPrefix + Signal::to_string(components) + "C_";
+	ArrayXd threshes(model->nParameters()); threshes.setConstant(0.05);
+	
 	templateFile.setDim(4, 1);
 	templateFile.setDatatype(Nifti::DataType::FLOAT32);
 	templateFile.description = version;
 	
-	vector<Nifti> paramsFiles(mcd.inputs(), templateFile);
-	vector<Nifti> midpFiles(mcd.inputs(), templateFile);
-	vector<Nifti> widthFiles(mcd.inputs(), templateFile);
+	vector<Nifti> paramsFiles(model->nParameters(), templateFile);
+	vector<Nifti> midpFiles(model->nParameters(), templateFile);
+	vector<Nifti> widthFiles(model->nParameters(), templateFile);
 	Nifti SoSFile(templateFile);
 	Nifti contractFile(templateFile, 1, Nifti::DataType::UINT8);
-	Nifti residualsFile(templateFile, static_cast<int>(mcd.values()));
+	Nifti residualsFile(templateFile, static_cast<int>(model->size()));
 
 	size_t voxelsPerSlice = templateFile.dims().head(2).prod();
 	size_t voxelsPerVolume = templateFile.dims().head(3).prod();
@@ -321,24 +316,24 @@ int main(int argc, char **argv)
 	vector<double> f0Slice(voxelsPerSlice);
 	vector<double> SoSSlice(voxelsPerSlice);
 	vector<size_t> contractSlice(voxelsPerSlice);
-	vector<vector<double>> paramsSlice(mcd.inputs());
-	vector<vector<double>> midpSlice(mcd.inputs());
-	vector<vector<double>> widthSlice(mcd.inputs());
-	vector<vector<double>> residualsVolume(mcd.values());
+	vector<vector<double>> paramsSlice(model->nParameters());
+	vector<vector<double>> midpSlice(model->nParameters());
+	vector<vector<double>> widthSlice(model->nParameters());
+	vector<vector<double>> residualsVolume(model->size());
 	vector<vector<double>> sigSlices(signalFiles.size());
-	for (int i = 0; i < mcd.inputs(); i++) {
+	for (int i = 0; i < model->nParameters(); i++) {
 		paramsSlice.at(i).resize(voxelsPerSlice);
-		paramsFiles.at(i).open(outPrefix + mcd.names()[i] + ".nii.gz", Nifti::Mode::Write);
+		paramsFiles.at(i).open(outPrefix + model->names()[i] + ".nii.gz", Nifti::Mode::Write);
 		if (extra) {
 			midpSlice.at(i).resize(voxelsPerSlice);
-			midpFiles.at(i).open(outPrefix + mcd.names()[i] + "_mid.nii.gz", Nifti::Mode::Write);
+			midpFiles.at(i).open(outPrefix + model->names()[i] + "_mid.nii.gz", Nifti::Mode::Write);
 			widthSlice.at(i).resize(voxelsPerSlice);
-			widthFiles.at(i).open(outPrefix + mcd.names()[i] + "_width.nii.gz", Nifti::Mode::Write);
+			widthFiles.at(i).open(outPrefix + model->names()[i] + "_width.nii.gz", Nifti::Mode::Write);
 		}
 	}
 	SoSFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);
 	for (size_t i = 0; i < signalFiles.size(); i++) {
-		sigSlices.at(i).resize(voxelsPerSlice * sigs.at(i)->size());
+		sigSlices.at(i).resize(voxelsPerSlice * signalFiles.at(i).dim(4));
 	}
 	if (extra) {
 		contractFile.open(outPrefix + "n_contract.nii.gz", Nifti::Mode::Write);
@@ -347,22 +342,25 @@ int main(int argc, char **argv)
 			residualsVolume.at(i).resize(voxelsPerVolume);
 	}
 	
-	ArrayXXd bounds = mcd.defaultBounds();
-	if (tesla == mcDESPOT::FieldStrength::Unknown) {
+	ArrayXXd bounds = model->bounds(tesla);
+	if (tesla == Model::FieldStrength::User) {
 		if (prompt) cout << "Enter parameter pairs (low then high)" << endl;
-		for (size_t i = 0; i < mcd.nP(); i++) {
-			if (prompt) cout << mcd.names()[i] << ": " << flush;
+		for (size_t i = 0; i < model->nParameters() - 1; i++) {
+			if (prompt) cout << model->names()[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 	}
-	
+	if (f0fit == OffRes::FitSym) {
+		bounds(model->nParameters() - 1, 0) = 0.;
+	}
+	ArrayXd weights(model->size()); weights.setOnes();
 	if (verbose) {
 		cout << "Low bounds: " << bounds.col(0).transpose() << endl;
 		cout << "Hi bounds:  " << bounds.col(1).transpose() << endl;
 	}
 	ofstream boundsFile(outPrefix + "bounds.txt");
-	for (int p = 0; p < mcd.inputs(); p++) {
-		boundsFile << mcd.names()[p] << "\t" << bounds.row(p) << endl;
+	for (int p = 0; p < model->nParameters(); p++) {
+		boundsFile << model->names()[p] << "\t" << bounds.row(p) << endl;
 	}
 	boundsFile.close();
 	
@@ -396,43 +394,35 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		
 		function<void (const size_t&)> processVox = [&] (const size_t &vox) {
-			mcDESPOT localf(mcd); // Take a thread local copy so we can change info/signals			
-			ArrayXd params(localf.inputs()), residuals(localf.values()),
-					width(localf.inputs()), midp(localf.inputs());
+			ArrayXd params(model->nParameters()), residuals(model->size()),
+					width(model->nParameters()), midp(model->nParameters());
+			width.setZero(); midp.setZero(); params.setZero(); residuals.setZero();
+			
 			size_t c = 0;
 			double SoS = 0.;
-			width.setZero(); midp.setZero(); params.setZero(); residuals.setZero();
+			
 			if ((maskData.size() == 0) || (maskData[sliceOffset + vox] > 0.)) {
 				voxCount++;
-				vector<VectorXd> signals(signalFiles.size());
-				for (size_t i = 0; i < signalFiles.size(); i++) {
-					for (size_t j = 0; j < localf.signal(i)->size(); j++) {
-						localf.actual(i)(j) = sigSlices[i][voxelsPerSlice*j + vox];
-					}
-					if (scale == mcDESPOT::Scaling::NormToMean)
-						localf.actual(i) /= localf.actual(i).mean();
+				ArrayXd signal = model->loadSignals(sigSlices, voxelsPerSlice, vox);
+				ArrayXXd localBounds = bounds;
+				if (f0fit == OffRes::Map) {
+					localBounds.row(model->nParameters() - 1).setConstant(f0Slice[vox]);
 				}
-				if (f0File.isOpen()) {
-					localf.m_f0 = f0Slice[vox];
-				}
-				localf.m_B1 = B1File.isOpen() ? B1Slice[vox] : 1.;
-				// f0 bounds depends on m_f0 and fitting mode
-				ArrayXXd localBounds = localf.defaultBounds();
-				if (tesla == mcDESPOT::FieldStrength::Unknown) {
-					localBounds.block(0, 0, localf.nP(), 2) = bounds.block(0, 0, localf.nP(), 2);
-				}
-				// Add the voxel number to the time to get a decent random seed
-				size_t rSeed = time(NULL) + vox;
-				RegionContraction<mcDESPOT> rc(localf, localBounds, localf.weights(), threshes,
-											   samples, retain, contract, expand, (voxI != -1));
+				double B1 = B1File.isOpen() ? B1Slice[vox] : 1.;
+				size_t rSeed = time(NULL) + vox; // Add the voxel number to the time to get a decent random seed
+				DESPOTFunctor func(model, signal, B1, false);
+				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
+											        samples, retain, contract, expand, (voxI != -1));
 				rc.optimise(params, rSeed);
-				if (verbose && (rc.status() == RegionContraction<mcDESPOT>::Status::ErrorInfiniteResidual)) {
+				if (voxI != -1)
+				if (verbose && (rc.status() == RegionContraction<DESPOTFunctor>::Status::ErrorResidual)) {
 					cerr << "Thread ID: " << this_thread::get_id() << endl;
 					cerr << "RC address: " << &rc << endl;
 					cerr << "Slice: " << slice << "\tVoxel: " << vox << endl;
-					cerr << "B1: " << localf.m_B1 << " f0: " << localf.m_f0 << endl;
+					cerr << "B1: " << B1 << endl;
 					cerr << "nContract: " << rc.contractions() << endl;
 					cerr << "Params: " << params.transpose() << endl;
+					cerr << "Theory: " << model->signal(params, B1).transpose() << endl;
 				}
 				
 				SoS = rc.SoS();
