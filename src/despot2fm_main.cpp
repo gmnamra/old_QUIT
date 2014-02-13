@@ -277,6 +277,7 @@ int main(int argc, char **argv)
 	vector<vector<double>> paramsData(model->nParameters());
 	for (auto &p : paramsData)
 		p.resize(voxelsPerVolume, 0.);
+	vector<double> SoSVolume(voxelsPerVolume);
 	vector<vector<double>> residuals(totalSize);
 	for (auto &r : residuals)
 		r.resize(voxelsPerVolume, 0.);
@@ -312,8 +313,9 @@ int main(int argc, char **argv)
 			// Set up parameters and constants
 			ArrayXd params(model->nParameters()); params.setZero();
 			ArrayXd resid(model->size()); resid.setZero();
-			// extra stuff
+
 			size_t c = 0;
+			double SoS = 0.;
 			ArrayXd width(model->size()); width.setZero();
 			ArrayXd midp(model->size()); midp.setZero();
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
@@ -331,20 +333,22 @@ int main(int argc, char **argv)
 				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, thresh,
 											        samples, retain, contract, expand, (voxI != -1));
 				rc.optimise(params);
-				resid = rc.residuals();
+				SoS = rc.SoS();
 				if (extra) {
 					c = rc.contractions();
 					width = rc.width();
 					midp = rc.midPoint();
+					resid = rc.residuals();
 				}
 			}
 			for (ArrayXd::Index p = 0; p < params.size(); p++) {
 				paramsData.at(p).at(sliceOffset + vox) = params(p);
 			}
-			for (ArrayXd::Index i = 0; i < resid.size(); i++) {
-				residuals.at(i).at(sliceOffset + vox) = resid(i);
-			}
+			SoSVolume.at(sliceOffset + vox) = SoS;
 			if (extra) {
+				for (ArrayXd::Index i = 0; i < resid.size(); i++) {
+					residuals.at(i).at(sliceOffset + vox) = resid(i);
+				}
 				contractData.at(sliceOffset + vox) = c;
 				for (size_t i = 0; i < widthData.size(); i++) {
 					widthData.at(i).at(sliceOffset + vox) = width(i);
@@ -382,10 +386,8 @@ int main(int argc, char **argv)
 		templateFile.writeVolumes(0, 1, paramsData.at(p));
 		templateFile.close();
 	}
-	templateFile.setDim(4, static_cast<int>(residuals.size()));
-	templateFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
-	for (size_t i = 0; i < residuals.size(); i++)
-		templateFile.writeVolumes(i, 1, residuals[i]);
+	templateFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);
+	templateFile.writeVolumes(0, 1, SoSVolume);
 	templateFile.close();
 	if (extra) {
 		templateFile.setDim(4, 1);
@@ -402,6 +404,11 @@ int main(int argc, char **argv)
 			templateFile.writeVolumes(0, 1, midpData.at(p));
 			templateFile.close();
 		}
+		templateFile.setDim(4, static_cast<int>(residuals.size()));
+		templateFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
+		for (size_t i = 0; i < residuals.size(); i++)
+			templateFile.writeVolumes(i, 1, residuals[i]);
+		templateFile.close();
 	}
 	
 	} catch (exception &e) {

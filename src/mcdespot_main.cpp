@@ -15,6 +15,7 @@
 #include <getopt.h>
 #include <signal.h>
 #include <time.h>
+#include <fstream>
 #include <Eigen/Dense>
 
 #include "Nifti/Nifti.h"
@@ -478,10 +479,10 @@ int main(int argc, char **argv)
 		if (interrupt_received)
 			break;
 	}
-    time_t procEnd = time(NULL);
-    strftime(theTime, 512, "%H:%M:%S", localtime(&procEnd));
+	time_t procEnd = time(NULL);
+	strftime(theTime, 512, "%H:%M:%S", localtime(&procEnd));
 	cout << "Finished processing at " << theTime << ". Run-time was " 
-	          << difftime(procEnd, procStart) << " s." << endl;
+		 << difftime(procEnd, procStart) << " s." << endl;
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
 	if (extra) {
 		for (size_t r = 0; r < residualsVolume.size(); r++)
