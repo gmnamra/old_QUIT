@@ -6,9 +6,9 @@
 ###################################################
 
 # Set up Paths
-SRC_DIR = ../src/Nifti
-INC_DIR = ../src
-OBJ_DIR := obj
+SRC_DIR = src/Nifti
+INC_DIR = src
+OBJ_DIR := build
 INSTALL_DIR := /Users/Tobias/Code
 INSTALL_BIN = $(INSTALL_DIR)/bin
 INSTALL_INC = $(INSTALL_DIR)/include
@@ -35,17 +35,17 @@ CXX_FLAGS = -g -std=c++11 -stdlib=libc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4
 LD_FLAGS = -g -std=c++11 -stdlib=libc++ -m64 -O3 -L.
 INCLUDE = -I$(INC_DIR) -I$(EIGEN)
 
-# Source files for libNifti
-
+# Build rules for libNifti
 NIFTI_BASE = Nifti Internal ZipFile Extension
 NIFTI_OBJ  = $(patsubst %, $(OBJ_DIR)/%.o, $(NIFTI_BASE))
-
-# General Build Rule
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
-
 libNifti.a : $(NIFTI_OBJ) | $(OBJ_DIR)
 	$(LIBCPP) ar rcs libNifti.a $(NIFTI_OBJ)
+
+# Build rules for utils (nifti_hdr only at the moment)
+$(OBJ_DIR)/nifti_hdr.o: src/nifti_hdr.cpp | libNifti.a $(OBJ_DIR)
+	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
 
 nifti_hdr : $(OBJ_DIR)/nifti_hdr.o | libNifti.a $(OBJ_DIR)
 	$(CXX) $^ -o $@ $(LD_FLAGS) -lNifti -lz
