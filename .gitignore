@@ -1,5 +1,6 @@
 .DS_Store
 DESPOT.xcodeproj/project.xcworkspace/
 DESPOT.xcodeproj/xcuserdata/
+DESPOT.xcodeproj/xcshareddata/
 manual/DESPOT_manual*
 build/
