@@ -1,0 +1,5 @@
+.DS_Store
+DESPOT.xcodeproj/project.xcworkspace/
+DESPOT.xcodeproj/xcuserdata/
+manual/DESPOT_manual*
+build/
