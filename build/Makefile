@@ -5,22 +5,33 @@
 #
 ###################################################
 
+# Platform/system specific
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+	CPPPATH = /software/system/gcc/gcc-4.8.0
+	LIBCPP = LD_RUN_PATH=$(CPPPATH)/lib64
+	CXX = $(LIBCPP) $(CPPPATH)/bin/g++
+	EIGEN  = /home/k1078535/Code/eigen
+	INSTALL_DIR := /home/k1078535/Code
+endif
+ifeq ($(UNAME_S),Darwin)
+	# Defaults work okay on Apple
+	EIGEN  = /Users/Tobias/Code/eigen
+	INSTALL_DIR := /Users/Tobias/Code/MR
+endif
+
 # Set up Paths
 SRC_DIR = ../src
 OBJ_DIR := obj
-INSTALL_DIR := /home/k1078535/Code
 INSTALL_BIN = $(INSTALL_DIR)/bin
 INSTALL_INC = $(INSTALL_DIR)/include
 INSTALL_LIB = $(INSTALL_DIR)/lib
-LIBCPP = /software/system/gcc/gcc-4.8.0/lib64
-EIGEN  = /home/k1078535/Code/eigen
 
 # Set up all our compiler options
-CXX = LD_RUN_PATH=$(LIBCPP) /software/system/gcc/gcc-4.8.0/bin/g++
-CXX_FLAGS = -std=c++11 -lstdc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -pthread -Wfatal-errors $(DEBUG) -DAGILENT
+CXX_FLAGS = -g -std=c++11 -stdlib=libc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors $(DEBUG)
 INCLUDE = -I$(SRC_DIR) -I$(INSTALL_INC) -I$(EIGEN)
-LD_FLAGS = -std=c++11 -lstdc++ -O3 -pthread -L$(INSTALL_LIB)
-LD_LIBS  = -lAgilent -lNifti -lz
+LD_FLAGS = -std=c++11 -stdlib=libc++ -m64 -O3 -L$(INSTALL_LIB)
+LD_LIBS  = -lNifti -lz
 
 # Top level build rules
 .PHONY : all debug install clean
@@ -41,7 +52,7 @@ clean :
 	rm -f $(TARGETS)
 	rm -r $(OBJ_DIR)
 
-%: $(OBJ_DIR)/%_main.o $(OBJ_DIR)/DESPOT.o $(OBJ_DIR)/DESPOT_Functors.o $(OBJ_DIR)/ThreadPool.o | $(OBJ_DIR)
+%: $(OBJ_DIR)/%_main.o $(OBJ_DIR)/DESPOT.o $(OBJ_DIR)/DESPOT_Functors.o $(OBJ_DIR)/ThreadPool.o $(OBJ_DIR)/Model.o | $(OBJ_DIR)
 	$(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS)
 
 $(OBJ_DIR)/mcdespot_main.o: $(SRC_DIR)/mcdespot_main.cpp $(SRC_DIR)/DESPOT_Functors.h $(SRC_DIR)/RegionContraction.h | $(OBJ_DIR)
