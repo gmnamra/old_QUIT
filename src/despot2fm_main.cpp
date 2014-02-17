@@ -232,7 +232,7 @@ int main(int argc, char **argv)
 		#ifdef AGILENT
 		Agilent::ProcPar pp;
 		if (ReadPP(inFile, pp)) {
-			model->procparseSPGR(pp);
+			model->procparseSSFP(pp);
 		} else
 		#endif
 		{
@@ -268,8 +268,8 @@ int main(int argc, char **argv)
 	ArrayXd weights(totalSize); weights.setOnes();
 	
 	if (verbose) {
-		cout << "Low bounds: " << bounds.col(0).transpose() << endl
-		     << "Hi bounds:  " << bounds.col(1).transpose() << endl;
+		cout << *model;
+		cout << "Bounds:" << endl <<  bounds.transpose() << endl;
 	}
 	//**************************************************************************
 	// Set up results data
@@ -321,13 +321,13 @@ int main(int argc, char **argv)
 			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
 			{	// -ve T1 is non-sensical, no point fitting
 				voxCount++;
-				ArrayXd signal = model->loadSignals(ssfpData, voxelsPerVolume, vox);
+				ArrayXd signal = model->loadSignals(ssfpData, voxelsPerVolume, sliceOffset + vox);
 				ArrayXXd localBounds = bounds;
 				localBounds.row(0).setConstant(T1Data[sliceOffset + vox]);
 				if (f0Fit == OffRes::Map) {
 					localBounds.row(2).setConstant(f0Data[vox]);
 				}
-				double B1 = B1File.isOpen() ? B1Data[vox] : 1.;
+				double B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
 				size_t rSeed = time(NULL) + vox; // Add the voxel number to the time to get a decent random seed
 				DESPOTFunctor func(model, signal, B1, false);
 				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, thresh,
