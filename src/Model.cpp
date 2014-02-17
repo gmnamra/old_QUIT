@@ -24,8 +24,17 @@ const string Signal::to_string(const Components& c) {
 };
 
 Signal::Signal(const ArrayXd &flip, const double TR) : m_flip(flip), m_TR(TR) {}
+ostream& operator<<(ostream& os, const Signal& s) {
+	s.write(os);
+	return os;
+}
 
 SPGRSimple::SPGRSimple(const ArrayXd &flip, const double TR) : Signal(flip, TR) {}
+void SPGRSimple::write(ostream &os) const {
+	os << "SPGR Simple" << endl;
+	os << "TR: " << m_TR << endl;
+	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
+}
 ArrayXd SPGRSimple::signal(const Components nC, const VectorXd &p, const double B1) const {
 	switch (nC) {
 		case (Components::One) : return SigMag(One_SPGR(p, m_flip, m_TR, B1));
@@ -35,6 +44,11 @@ ArrayXd SPGRSimple::signal(const Components nC, const VectorXd &p, const double 
 }
 
 SPGRFinite::SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE) : Signal(flip, TR), m_Trf(Trf), m_TE(TE) {}
+void SPGRFinite::write(ostream &os) const {
+	os << "SPGR Finite" << endl;
+	os << "TR: " << m_TR << "\tTrf: " << m_Trf << "\tTE: " << m_TE << endl;
+	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
+}
 ArrayXd SPGRFinite::signal(const Components nC, const VectorXd &p, const double B1) const {
 	switch (nC) {
 		case (Components::One) : return SigMag(One_SSFP_Finite(p, m_flip, true, m_TR, m_Trf, m_TE, 0, B1));
@@ -45,6 +59,11 @@ ArrayXd SPGRFinite::signal(const Components nC, const VectorXd &p, const double 
 
 
 SSFPSimple::SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases) : Signal(flip, TR), m_phases(phases) {}
+void SSFPSimple::write(ostream &os) const {
+	os << "SSFP Simple" << endl;
+	os << "TR: " << m_TR << "\tPhases: " << (m_phases * 180. / M_PI).transpose() << endl;
+	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
+}
 size_t SSFPSimple::size() const { return m_flip.rows() * m_phases.rows(); }
 ArrayXd SSFPSimple::signal(const Components nC, const VectorXd &p, const double B1) const {
 	ArrayXd s(size());
@@ -61,6 +80,11 @@ ArrayXd SSFPSimple::signal(const Components nC, const VectorXd &p, const double 
 }
 
 SSFPFinite::SSFPFinite(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases) : SSFPSimple(flip, TR, phases), m_Trf(Trf) {}
+void SSFPFinite::write(ostream &os) const {
+	os << "SSFP Finite" << endl;
+	os << "TR: " << m_TR << "\tTrf: " << m_Trf << "\tPhases: " << (m_phases * 180. / M_PI).transpose() << endl;
+	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
+}
 ArrayXd SSFPFinite::signal(const Components nC, const VectorXd &p, const double B1) const {
 	ArrayXd s(size());
 	ArrayXd::Index start = 0;
@@ -97,9 +121,18 @@ const string Model::to_string(const Scaling &p) {
 
 Model::Model(const Signal::Components c, const Scaling s) : m_nC(c), m_scaling(s) {}
 
+ostream& operator<<(ostream &os, const Model& m) {
+	os << "Model Parameters: " << m.nParameters() << endl;
+	os << "Names:\t"; for (auto& n : m.names()) os << n << "\t"; os << endl;
+	os << "Signals: " << m.m_signals.size() << "\tTotal size: " << m.size() << endl;
+	for (auto& sig : m.m_signals)
+		os << *sig;
+	return os;
+}
+
 const size_t Model::size() const {
 	size_t sz = 0;
-	for (auto &sig : m_signals)
+	for (auto& sig : m_signals)
 		sz += sig->size();
 	return sz;
 }

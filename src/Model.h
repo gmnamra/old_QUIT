@@ -39,18 +39,22 @@ class Signal {
 		Signal(const ArrayXd &flip, const double TR);
 		virtual ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const = 0;
 		virtual size_t size() const { return m_flip.rows(); }
+		virtual void write(ostream &os) const = 0;
 };
+ostream& operator<<(ostream& os, const Signal& s);
 
 class SPGRSimple : public Signal {
 	public:
 		SPGRSimple(const ArrayXd &flip, const double TR);
 		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
+		void write(ostream& os) const override;
 };
 class SPGRFinite : public Signal {
 	public:
 		double m_Trf, m_TE;
 		SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE);
 		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
+		void write(ostream& os) const override;
 };
 class SSFPSimple : public Signal {
 	public:
@@ -58,12 +62,14 @@ class SSFPSimple : public Signal {
 		SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases);
 		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		size_t size() const override;
+		void write(ostream& os) const override;
 };
 class SSFPFinite : public SSFPSimple {
 	public:
-		double m_Trf, m_TE;
+		double m_Trf;
 		SSFPFinite(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases);
 		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
+		void write(ostream& os) const override;
 };
 
 enum class ModelTypes { Simple, Finite };
@@ -76,13 +82,14 @@ public:
 	
 	static const string to_string(const FieldStrength& f);
 	static const string to_string(const Scaling &p);
-	
+
 	Signal::Components m_nC;
 	Scaling m_scaling;
 	vector<shared_ptr<Signal>> m_signals;
 	
 	Model(const Signal::Components c, const Scaling s);
-	
+	friend ostream& operator<<(ostream& os, const Model& m);
+
 	const ArrayXd signal(const VectorXd &p, const double B1) const;
 	const size_t size() const;
 	
@@ -100,6 +107,7 @@ public:
 	virtual void procparseSPGR(const Agilent::ProcPar &pp) = 0;
 	virtual void procparseSSFP(const Agilent::ProcPar &pp) = 0;
 	#endif
+
 };
 
 class SimpleModel : public Model {
