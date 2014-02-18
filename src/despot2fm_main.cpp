@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 	try { // To fix uncaught exceptions on Mac
 	
 	Nifti maskFile, f0File, B1File;
-	vector<double> maskData, f0Data, B1Data;
+	vector<double> maskData, f0Vol, B1Vol;
 	string procPath;
 	
 	int indexptr = 0, c;
@@ -131,16 +131,16 @@ int main(int argc, char **argv)
 				} else {
 					cout << "Reading f0 file: " << optarg << endl;
 					f0File.open(optarg, Nifti::Mode::Read);
-					f0Data.resize(f0File.dims().head(3).prod());
-					f0File.readVolumes(0, 1, f0Data);
+					f0Vol.resize(f0File.dims().head(3).prod());
+					f0File.readVolumes(0, 1, f0Vol);
 					f0Fit = OffRes::Map;
 				}
 				break;
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Data.resize(B1File.dims().head(3).prod());
-				B1File.readVolumes(0, 1, B1Data);
+				B1Vol.resize(B1File.dims().head(3).prod());
+				B1File.readVolumes(0, 1, B1Vol);
 				break;
 			case 's': start_slice = atoi(optarg); break;
 			case 'p': stop_slice = atoi(optarg); break;
@@ -307,9 +307,9 @@ int main(int argc, char **argv)
 				ArrayXXd localBounds = bounds;
 				localBounds.row(0).setConstant(T1Data[sliceOffset + vox]);
 				if (f0Fit == OffRes::Map) {
-					localBounds.row(2).setConstant(f0Data[vox]);
+					localBounds.row(2).setConstant(f0Vol[vox]);
 				}
-				double B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
+				double B1 = B1File.isOpen() ? B1Vol[sliceOffset + vox] : 1.;
 				size_t rSeed = time(NULL) + vox; // Add the voxel number to the time to get a decent random seed
 				DESPOTFunctor func(model, signal, B1, false);
 				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, thresh,
