@@ -282,8 +282,8 @@ int main(int argc, char **argv)
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << Signal::to_string(components) << " component model." << endl;
 	switch (modelType) {
-		case ModelTypes::Simple : model = make_shared<SimpleModel>(components, scale);
-		case ModelTypes::Finite : model = make_shared<FiniteModel>(components, scale);
+		case ModelTypes::Simple : model = make_shared<SimpleModel>(components, scale); break;
+		case ModelTypes::Finite : model = make_shared<FiniteModel>(components, scale); break;
 	}
 	vector<Nifti> signalFiles;
 	Nifti B1File, f0File;
