@@ -1208,6 +1208,7 @@
 				F663C9A418324E5E001B86BB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F675C8D215CC11E000BA95FC /* Build configuration list for PBXNativeTarget "afi" */ = {
 			isa = XCConfigurationList;
