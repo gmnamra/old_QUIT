@@ -42,7 +42,7 @@ All times (TR) are in SECONDS. All angles are in degrees.\n\
 \n\
 Options:\n\
 	--help, -h        : Print this message.\n\
-	--verbose, -v     : Print extra information.\n\
+	--verbose, -v     : Print writeResiduals information.\n\
 	--no-prompt, -p   : Don't print prompts for input.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 3).\n\
 	--mask, -m file   : Mask input with specified file.\n\
@@ -68,7 +68,7 @@ static auto modelType = ModelTypes::Simple;
 static auto tesla = Model::FieldStrength::Three;
 static auto scale = Model::Scaling::NormToMean;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
-static int verbose = false, prompt = true, extra = false,
+static int verbose = false, prompt = true, writeResiduals = false,
            early_finish = false, use_weights = false,
 		   samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
 				cout << "Enter fraction to expand region by: " << flush; cin >> expand;
 				{ string dummy; getline(cin, dummy); } // Eat newlines
 				break;
-			case 'e': extra = true; break;
+			case 'e': writeResiduals = true; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
 			case 'w': use_weights = true; break;
@@ -305,42 +305,28 @@ int main(int argc, char **argv)
 	templateFile.description = version;
 	
 	vector<Nifti> paramsFiles(model->nParameters(), templateFile);
-	vector<Nifti> midpFiles(model->nParameters(), templateFile);
-	vector<Nifti> widthFiles(model->nParameters(), templateFile);
 	Nifti SoSFile(templateFile);
-	Nifti contractFile(templateFile, 1, Nifti::DataType::UINT8);
 	Nifti residualsFile(templateFile, static_cast<int>(model->size()));
 
 	size_t voxelsPerSlice = templateFile.dims().head(2).prod();
 	size_t voxelsPerVolume = templateFile.dims().head(3).prod();
 	vector<double> B1Slice(voxelsPerSlice);
 	vector<double> f0Slice(voxelsPerSlice);
-	vector<double> SoSSlice(voxelsPerSlice);
-	vector<size_t> contractSlice(voxelsPerSlice);
+	vector<double> SoSSlice(voxelsPerSlice, 0.);
 	vector<vector<double>> paramsSlice(model->nParameters());
-	vector<vector<double>> midpSlice(model->nParameters());
-	vector<vector<double>> widthSlice(model->nParameters());
 	vector<vector<double>> residualsVolume(model->size());
 	vector<vector<double>> sigSlices(signalFiles.size());
 	for (int i = 0; i < model->nParameters(); i++) {
-		paramsSlice.at(i).resize(voxelsPerSlice);
+		paramsSlice.at(i).resize(voxelsPerSlice, 0.);
 		paramsFiles.at(i).open(outPrefix + model->names()[i] + ".nii.gz", Nifti::Mode::Write);
-		if (extra) {
-			midpSlice.at(i).resize(voxelsPerSlice);
-			midpFiles.at(i).open(outPrefix + model->names()[i] + "_mid.nii.gz", Nifti::Mode::Write);
-			widthSlice.at(i).resize(voxelsPerSlice);
-			widthFiles.at(i).open(outPrefix + model->names()[i] + "_width.nii.gz", Nifti::Mode::Write);
-		}
 	}
 	SoSFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);
 	for (size_t i = 0; i < signalFiles.size(); i++) {
 		sigSlices.at(i).resize(voxelsPerSlice * signalFiles.at(i).dim(4));
 	}
-	if (extra) {
-		contractFile.open(outPrefix + "n_contract.nii.gz", Nifti::Mode::Write);
-		residualsFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
+	if (writeResiduals) {
 		for (size_t i = 0; i < residualsVolume.size(); i ++)
-			residualsVolume.at(i).resize(voxelsPerVolume);
+			residualsVolume.at(i).resize(voxelsPerVolume, 0.);
 	}
 	
 	ArrayXXd bounds = model->bounds(tesla);
@@ -395,13 +381,6 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		
 		function<void (const size_t&)> processVox = [&] (const size_t &vox) {
-			ArrayXd params(model->nParameters()), residuals(model->size()),
-					width(model->nParameters()), midp(model->nParameters());
-			width.setZero(); midp.setZero(); params.setZero(); residuals.setZero();
-			
-			size_t c = 0;
-			double SoS = 0.;
-			
 			if ((maskData.size() == 0) || (maskData[sliceOffset + vox] > 0.)) {
 				voxCount++;
 				ArrayXd signal = model->loadSignals(sigSlices, voxelsPerSlice, vox);
@@ -414,6 +393,7 @@ int main(int argc, char **argv)
 				DESPOTFunctor func(model, signal, B1, false);
 				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
 											        samples, retain, contract, expand, (voxI != -1));
+				ArrayXd params(model->nParameters());
 				rc.optimise(params, rSeed);
 				if (voxI != -1)
 				if (verbose && (rc.status() == RegionContraction<DESPOTFunctor>::Status::ErrorResidual)) {
@@ -425,31 +405,15 @@ int main(int argc, char **argv)
 					cerr << "Params: " << params.transpose() << endl;
 					cerr << "Theory: " << model->signal(params, B1).transpose() << endl;
 				}
-				
-				SoS = rc.SoS();
-				if (extra) {
-					c = rc.contractions();
-					width = rc.width();
-					midp = rc.midPoint();
-					residuals = rc.residuals();
+				for (size_t p = 0; p < paramsSlice.size(); p++) {
+					paramsSlice.at(p).at(vox) = params[p];
 				}
-			}
-			for (size_t p = 0; p < paramsSlice.size(); p++) {
-				paramsSlice.at(p).at(vox) = params[p];
-				if (extra) {
-					widthSlice.at(p).at(vox) = width(p);
-					midpSlice.at(p).at(vox) = midp(p);
+				SoSSlice.at(vox) = rc.SoS();
+				if (writeResiduals) {
+					for (int i = 0; i < model->size(); i++) {
+						residualsVolume.at(i).at(slice * voxelsPerSlice + vox) = rc.residuals()[i];
+					}
 				}
-			}
-			SoSSlice.at(vox) = SoS;
-			if (extra) {
-				contractSlice.at(vox) = c;
-				for (int i = 0; i < residuals.size(); i++) {
-					residualsVolume.at(i).at(slice * voxelsPerSlice + vox) = residuals[i];
-				}
-			}
-			if (voxI != -1) {
-				cout << "Final: " << params.transpose() << endl;
 			}
 		};
 		if (voxI == -1)
@@ -461,14 +425,8 @@ int main(int argc, char **argv)
 		}
 		for (size_t p = 0; p < paramsFiles.size(); p++) {
 			paramsFiles.at(p).writeVoxels(sliceStart, sliceSize, paramsSlice.at(p));
-			if (extra) {
-				midpFiles.at(p).writeVoxels(sliceStart, sliceSize, midpSlice.at(p));
-				widthFiles.at(p).writeVoxels(sliceStart, sliceSize, widthSlice.at(p));
-			}
 		}
 		SoSFile.writeVoxels(sliceStart, sliceSize, SoSSlice);
-		if (extra)
-			contractFile.writeVoxels(sliceStart, sliceSize, contractSlice);
 		if (verbose) {
 			clock_t loopEnd = clock();
 			if (voxCount > 0)
@@ -484,9 +442,11 @@ int main(int argc, char **argv)
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 		 << difftime(procEnd, procStart) << " s." << endl;
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
-	if (extra) {
+	if (writeResiduals) {
+		residualsFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
 		for (size_t r = 0; r < residualsVolume.size(); r++)
 			residualsFile.writeVolumes(r, 1, residualsVolume.at(r));
+		residualsFile.close();
 	}
 	cout << "Finished writing data." << endl;
 	
