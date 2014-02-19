@@ -178,15 +178,15 @@ const ArrayXXd Model::bounds(const FieldStrength f) const {
 	switch (f) {
 		case FieldStrength::Three:
 			switch (m_nC) {
-				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 0.1, 4.0, 0.01, 1.5; break;
-				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 0.200, 0.350, 0.005, 0.015, 0.700, 2.000, 0.050, 0.120, 0.050, 0.200, 0.0, 0.5; break;
-				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 0.200, 0.350, 0.005, 0.015, 0.700, 2.000, 0.050, 0.120, 3.500, 7.000, 3.000, 7.000, 0.050, 0.200, 0, 0.5, 0, 1.0; break;
+				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 0.10, 4.50, 0.010, 2.500; break;
+				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 0.20, 0.35, 0.001, 0.030, 0.700, 4.500, 0.050, 0.200, 0.025, 0.600, 0.00, 1.0; break;
+				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 0.20, 0.35, 0.001, 0.030, 0.700, 2.000, 0.050, 0.200, 3.000, 4.500, 1.50, 2.50, 0.025, 0.600, 0.0, 1.0, 0, 1.0; break;
 			} break;
 		case FieldStrength::Seven:
 			switch (m_nC) {
-				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 0.1, 4.0, 0.01, 2.0; break;
-				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 0.1, 0.5, 0.001, 0.025, 1.0, 4.0, 0.04, 0.08, 0.01, 0.25, 0.001, 1.0; break;
-				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 0.1, 0.5, 0.001, 0.025, 1.0, 2.5, 0.04, 0.08, 3., 4.5, 0.5, 2.0, 0.05, 0.200, 0.0, 0.5, 0.0, 1.0; break;
+				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 0.1, 4.5, 0.010, 2.500; break;
+				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 0.1, 0.5, 0.001, 0.025, 1.5, 4.5, 0.04, 0.20, 0.025, 0.600, 0.0, 1.0; break;
+				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 0.1, 0.5, 0.001, 0.025, 1.5, 2.5, 0.04, 0.20, 3.000, 4.500, 1.5, 2.5, 0.025, 0.600, 0.0, 1.0, 0.0, 1.0; break;
 			} break;
 		case FieldStrength::User:
 			switch (m_nC) {
