@@ -178,9 +178,9 @@ const ArrayXXd Model::bounds(const FieldStrength f) const {
 	switch (f) {
 		case FieldStrength::Three:
 			switch (m_nC) {
-				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 0.10, 4.50, 0.010, 2.500; break;
-				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 0.20, 0.35, 0.001, 0.030, 0.700, 4.500, 0.050, 0.200, 0.025, 0.600, 0.00, 1.0; break;
-				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 0.20, 0.35, 0.001, 0.030, 0.700, 2.000, 0.050, 0.200, 3.000, 4.500, 1.50, 2.50, 0.025, 0.600, 0.0, 1.0, 0, 1.0; break;
+				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 0.1, 4.5, 0.010, 2.500; break;
+				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 0.1, 0.5, 0.001, 0.030, 0.700, 4.500, 0.050, 0.200, 0.025, 0.600, 0.00, 1.0; break;
+				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 0.1, 0.5, 0.001, 0.030, 0.700, 2.000, 0.050, 0.200, 3.000, 4.500, 1.50, 2.50, 0.025, 0.600, 0.0, 1.0, 0, 1.0; break;
 			} break;
 		case FieldStrength::Seven:
 			switch (m_nC) {
