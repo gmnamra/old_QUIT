@@ -37,34 +37,35 @@ const string usage {
 "Usage is: despot2-fm [options] T1_map ssfp_files\n\
 \
 Options:\n\
-	--help, -h          : Print this message.\n\
-	--verbose, -v       : Print slice processing times.\n\
-	--mask, -m file     : Mask input with specified file.\n\
-	--out, -o path      : Add a prefix to the output filenames.\n\
-	--f0, -f file/ASYM  : f0 Map file in Hertz, or asymmetric fitting.\n\
-	--B1, -b file       : B1 Map file.\n\
-	--start, -s N       : Start processing from slice N.\n\
-	--stop, -p  N       : Stop processing at slice N.\n\
-	--scale, -S 0       : Normalise signals to mean (default).\n\
-	            1       : Fit a scaling factor/proton density.\n\
-	--tesla, -t 3       : Use boundaries suitable for 3T (default)\n\
-	            7       : Boundaries suitable for 7T\n\
-	            u       : User specified boundaries from stdin.\n\
-	--model, -M s       : Use simple model (default).\n\
-	            e       : Use echo-time correction.\n\
-				f       : Use finite pulse length correction.\n\
-	--contract, -c n    : Read contraction settings from stdin (Will prompt).\n"
+	--help, -h       : Print this message\n\
+	--verbose, -v    : Print slice processing times\n\
+	--mask, -m file  : Mask input with specified file\n\
+	--out, -o path   : Add a prefix to the output filenames\n\
+	--f0, -f SYM     : Fit symmetric f0 map (default)\n\
+	         ASYM    : Fit asymmetric f0 map\n\
+	         file    : Use f0 Map file (in Hertz)\n\
+	--B1, -b file    : B1 Map file (ratio)\n\
+	--start, -s N    : Start processing from slice N\n\
+	--stop, -p  N    : Stop processing at slice N\n\
+	--scale, -S 0    : Normalise signals to mean (default)\n\
+	            1    : Fit a scaling factor/proton density\n\
+	--tesla, -t 3    : Use boundaries suitable for 3T (default)\n\
+	            7    : Boundaries suitable for 7T\n\
+	            u    : User specified boundaries from stdin\n\
+	--model, -M s    : Use simple model (default)\n\
+	            f    : Use finite pulse length correction\n\
+	--contract, -c n : Read contraction settings from stdin (Will prompt)\n"
 };
 
+static auto modelType = ModelTypes::Simple;
 static auto scale = Model::Scaling::NormToMean;
 static auto tesla = Model::FieldStrength::Three;
-static auto f0Fit = OffRes::FitSym;
+static auto f0fit = OffRes::FitSym;
+static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, writeResiduals = false,
 		   samples = 2000, retain = 20, contract = 10,
            voxI = -1, voxJ = -1;
-static auto modelType = ModelTypes::Simple;
-static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
-static double expand = 0., weighting = 1.0;
+static double expand = 0.;
 static string outPrefix;
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
@@ -79,6 +80,7 @@ static struct option long_options[] = {
 	{"tesla", required_argument, 0, 't'},
 	{"model", no_argument, 0, 'M'},
 	{"contract", no_argument, 0, 'c'},
+	{"resid", no_argument, 0, 'r'},
 	{0, 0, 0, 0}
 };
 
@@ -112,7 +114,7 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:M:cri:j:w", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:M:cri:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
@@ -126,14 +128,16 @@ int main(int argc, char **argv)
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
 			case 'f':
-				if (string(optarg) == "ASYM") {
-					f0Fit = OffRes::Fit;
+				if (string(optarg) == "SYM") {
+					f0fit = OffRes::FitSym;
+				} else if (string(optarg) == "ASYM") {
+					f0fit = OffRes::Fit;
 				} else {
 					cout << "Reading f0 file: " << optarg << endl;
 					f0File.open(optarg, Nifti::Mode::Read);
 					f0Vol.resize(f0File.dims().head(3).prod());
 					f0File.readVolumes(0, 1, f0Vol);
-					f0Fit = OffRes::Map;
+					f0fit = OffRes::Map;
 				}
 				break;
 			case 'b':
@@ -182,7 +186,6 @@ int main(int argc, char **argv)
 			case 'r': writeResiduals = true; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
-			case 'w': weighting = atof(optarg); break;
 			case '?': // getopt will print an error message
 			case 'h':
 			default:
@@ -261,7 +264,7 @@ int main(int argc, char **argv)
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 	}
-	if (f0Fit == OffRes::FitSym) {
+	if (f0fit == OffRes::FitSym) {
 		bounds(model->nParameters() - 1, 0) = 0.;
 	}
 	ArrayXd weights(model->size()); weights.setOnes();
@@ -306,7 +309,7 @@ int main(int argc, char **argv)
 				ArrayXd signal = model->loadSignals(ssfpData, voxelsPerVolume, sliceOffset + vox);
 				ArrayXXd localBounds = bounds;
 				localBounds.row(0).setConstant(T1Data[sliceOffset + vox]);
-				if (f0Fit == OffRes::Map) {
+				if (f0fit == OffRes::Map) {
 					localBounds.row(2).setConstant(f0Vol[vox]);
 				}
 				double B1 = B1File.isOpen() ? B1Vol[sliceOffset + vox] : 1.;

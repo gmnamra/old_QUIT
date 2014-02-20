@@ -41,56 +41,58 @@ The program will prompt for input (unless --no-prompt specified)\n\
 All times (TR) are in SECONDS. All angles are in degrees.\n\
 \n\
 Options:\n\
-	--help, -h        : Print this message.\n\
-	--verbose, -v     : Print writeResiduals information.\n\
-	--no-prompt, -p   : Don't print prompts for input.\n\
-	--1, --2, --3     : Use 1, 2 or 3 component model (default 3).\n\
-	--mask, -m file   : Mask input with specified file.\n\
-	--out, -o path    : Add a prefix to the output filenames.\n\
-	--f0, -f 0        : Read f0 values from map files.\n\
-	         1        : (Default) Fit one symmetric f0 value to all scans.\n\
-	         2        : Fit an unsymmetric f0 value to all scans.\n\
+	--help, -h        : Print this message\n\
+	--verbose, -v     : Print writeResiduals information\n\
+	--mask, -m file   : Mask input with specified file\n\
+	--out, -o path    : Add a prefix to the output filenames\n\
+	--f0, -f SYM     : Fit symmetric f0 map (default)\n\
+	         ASYM    : Fit asymmetric f0 map\n\
+	         file    : Use f0 Map file (in Hertz)\n\
+	--B1, -b file     : B1 Map file (ratio)\n\
 	--start, -s n     : Only start processing at slice n.\n\
-	--stop, -p n      : Finish at slice n-1.\n\
-	--scale, -S 0     : Normalise signals to mean (default).\n\
-	            1     : Fit a scaling factor/proton density.\n\
+	--stop, -p n      : Finish at slice n-1\n\
+	--scale, -S 0     : Normalise signals to mean (default)\n\
+	            1     : Fit a scaling factor/proton density\n\
 	--tesla, -t 3     : Boundaries suitable for 3T (default)\n\
 	            7     : Boundaries suitable for 7T \n\
-	            u     : User specified boundaries from stdin.\n\
-	--model, -M s     : Use simple model (default).\n\
-	            f     : Use Finite Pulse Length correction.\n\
-	--contract, -c n  : Read contraction settings from stdin (Will prompt).\n"
+	            u     : User specified boundaries from stdin\n\
+	--model, -M s     : Use simple model (default)\n\
+	            f     : Use Finite Pulse Length correction\n\
+	--contract, -c n  : Read contraction settings from stdin (Will prompt)\n\
+	--resid, -r       : Write out per-flip angle residuals\n\
+	--no-prompt, -n   : Don't print prompts for input\n\
+	--1, --2, --3     : Use 1, 2 or 3 component model (default 3)\n"
 };
 
-static auto f0fit = OffRes::FitSym;
 static auto components = Signal::Components::Three;
 static auto modelType = ModelTypes::Simple;
-static auto tesla = Model::FieldStrength::Three;
 static auto scale = Model::Scaling::NormToMean;
+static auto tesla = Model::FieldStrength::Three;
+static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, writeResiduals = false,
-           early_finish = false, use_weights = false,
-		   samples = 5000, retain = 50, contract = 10,
+           samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
 static double expand = 0.;
 static string outPrefix;
-static struct option long_options[] =
-{
+static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
-	{"no-prompt", no_argument, 0, 'n'},
-	{"1", no_argument, 0, '1'},
-	{"2", no_argument, 0, '2'},
-	{"3", no_argument, 0, '3'},
 	{"mask", required_argument, 0, 'm'},
 	{"out", required_argument, 0, 'o'},
 	{"f0", required_argument, 0, 'f'},
+	{"B1", required_argument, 0, 'b'},
 	{"start", required_argument, 0, 's'},
 	{"stop", required_argument, 0, 'p'},
 	{"scale", required_argument, 0, 'S'},
 	{"tesla", required_argument, 0, 't'},
 	{"model", no_argument, 0, 'M'},
 	{"contract", no_argument, 0, 'c'},
+	{"resid", no_argument, 0, 'r'},
+	{"no-prompt", no_argument, 0, 'n'},
+	{"1", no_argument, 0, '1'},
+	{"2", no_argument, 0, '2'},
+	{"3", no_argument, 0, '3'},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
@@ -120,8 +122,8 @@ Nifti openAndCheck(const string &path, const Nifti &saved) {
 	return in;
 }
 
-Nifti parseInput(shared_ptr<Model> &mdl, vector<vector<double>> &signalVols, vector<double> &B1Vol, vector<double> &f0Vol);
-Nifti parseInput(shared_ptr<Model> &mdl, vector<vector<double>> &signalVols, vector<double> &B1Vol, vector<double> &f0Vol)
+Nifti parseInput(shared_ptr<Model> &mdl, vector<vector<double>> &signalVols);
+Nifti parseInput(shared_ptr<Model> &mdl, vector<vector<double>> &signalVols)
 {
 	Nifti templateFile, inFile;
 	string type, path;
@@ -166,23 +168,6 @@ Nifti parseInput(shared_ptr<Model> &mdl, vector<vector<double>> &signalVols, vec
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
-	if (prompt) cout << "Enter B1 Map Path (Or NONE): " << flush;
-	getline(cin, path);
-	if ((path != "NONE") && (path != "")) {
-		inFile = openAndCheck(path, templateFile);
-		B1Vol.resize(inFile.dims().head(3).prod());
-		inFile.readVolumes(0, 1, B1Vol);
-		inFile.close();
-	}
-	if (f0fit == OffRes::Map) {
-		if (prompt)
-			cout << "Enter path to f0 map: " << flush;
-		getline(cin, path);
-		inFile = openAndCheck(path, templateFile);
-		f0Vol.resize(inFile.dims().head(3).prod());
-		inFile.readVolumes(0, 1, f0Vol);
-		inFile.close();
-	}
 	return templateFile;
 }
 //******************************************************************************
@@ -198,11 +183,11 @@ int main(int argc, char **argv)
 	
 	try { // To fix uncaught exceptions on Mac
 	
-	Nifti maskFile, templateFile;
-	vector<double> maskData(0);
+	Nifti maskFile, f0File, B1File, templateFile;
+	vector<double> maskData(0), f0Vol(0), B1Vol(0);
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvn123m:o:f:s:p:S:t:M:cei:j:w", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:M:crn123i:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
@@ -221,15 +206,24 @@ int main(int argc, char **argv)
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
 			case 'f':
-				switch (*optarg) {
-					case '0' : f0fit = OffRes::Map; break;
-					case '1' : f0fit = OffRes::FitSym; break;
-					case '2' : f0fit = OffRes::Fit; break;
-					default:
-						cout << "Invalid Off Resonance Mode." << endl;
-						exit(EXIT_FAILURE);
-						break;
-				} break;
+				if (string(optarg) == "SYM") {
+					f0fit = OffRes::FitSym;
+				} else if (string(optarg) == "ASYM") {
+					f0fit = OffRes::Fit;
+				} else {
+					cout << "Reading f0 file: " << optarg << endl;
+					f0File.open(optarg, Nifti::Mode::Read);
+					f0Vol.resize(f0File.dims().head(3).prod());
+					f0File.readVolumes(0, 1, f0Vol);
+					f0fit = OffRes::Map;
+				}
+				break;
+			case 'b':
+				cout << "Reading B1 file: " << optarg << endl;
+				B1File.open(optarg, Nifti::Mode::Read);
+				B1Vol.resize(B1File.dims().head(3).prod());
+				B1File.readVolumes(0, 1, B1Vol);
+				break;
 			case 's': start_slice = atoi(optarg); break;
 			case 'p': stop_slice = atoi(optarg); break;
 			case 'S':
@@ -268,10 +262,9 @@ int main(int argc, char **argv)
 				cout << "Enter fraction to expand region by: " << flush; cin >> expand;
 				{ string dummy; getline(cin, dummy); } // Eat newlines
 				break;
-			case 'e': writeResiduals = true; break;
+			case 'r': writeResiduals = true; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
-			case 'w': use_weights = true; break;
 			case 'h':
 			case '?': // getopt will print an error message
 			default:
@@ -295,10 +288,11 @@ int main(int argc, char **argv)
 		case ModelTypes::Finite : model = make_shared<FiniteModel>(components, scale); break;
 	}
 	vector<vector<double>> signalVols(0);
-	vector<double> B1Vol(0), f0Vol(0);
-	templateFile = parseInput(model, signalVols, B1Vol, f0Vol);
-	if ((maskData.size() > 0) && !(maskFile.matchesSpace(templateFile))) {
-		cerr << "Mask file has different dimensions/transform to input data." << endl;
+	templateFile = parseInput(model, signalVols);
+	if ((maskFile.isOpen() && !templateFile.matchesSpace(maskFile)) ||
+		(f0File.isOpen() && !templateFile.matchesSpace(f0File)) ||
+		(B1File.isOpen() && !templateFile.matchesSpace(B1File))){
+		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
 	//**************************************************************************
@@ -366,7 +360,7 @@ int main(int argc, char **argv)
 				if (f0fit == OffRes::Map) {
 					localBounds.row(model->nParameters() - 1).setConstant(f0Vol[sliceOffset + vox]);
 				}
-				double B1 = (B1Vol.size() > 0) ? B1Vol[sliceOffset + vox] : 1.;
+				double B1 = B1File.isOpen() ? B1Vol[sliceOffset + vox] : 1.;
 				DESPOTFunctor func(model, signal, B1, false);
 				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
 											        samples, retain, contract, expand, (voxI != -1));
