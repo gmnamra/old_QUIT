@@ -199,9 +199,9 @@ template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &star
 		if (size(i) == 0) size(i) = m_dim(i);
 	
 	if (start.rows() != size.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
-	if (start.rows() > m_dim.rows()) throw(std::out_of_range("Too many read dimensions specified in image: " + imagePath()));
-	if (((start + size) > m_dim.head(start.rows())).any()) throw(std::out_of_range("Requested read was larger than image dimensions: " + imagePath()));
-	if (size.prod() < data.size()) throw(std::out_of_range("Allocated memory is insufficient."));
+	if (start.rows() > m_dim.rows()) throw(std::out_of_range("Too many read/write dimensions specified in image: " + imagePath()));
+	if (((start + size) > m_dim.head(start.rows())).any()) throw(std::out_of_range("Read/write past image dimensions requested: " + imagePath()));
+	if (size.prod() < data.size()) throw(std::out_of_range("Allocated memory is insufficient for read/write in image: " + imagePath()));
 	
 	ArrayXs::Index firstDim = 0; // We can always read first dimension in one go
 	ArrayXs::Index blockSize = size(firstDim);

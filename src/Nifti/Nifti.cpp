@@ -493,7 +493,7 @@ void Nifti::readHeader() {
 	}
 	
 	// Check if disk and CPU byte order match.
-	// The sizeof_hdr field should always be 352, as this is the size of a
+	// The sizeof_hdr field should always be 348, as this is the size of a
 	// NIfTI-1 header
 	if (nhdr.sizeof_hdr != sizeof(nhdr)) {
 		swapBytes(1, 4, &nhdr.sizeof_hdr);
