@@ -50,7 +50,7 @@ libNifti.a : $(NIFTI_OBJ) | $(OBJ_DIR)
 $(OBJ_DIR)/nifti_hdr.o: src/nifti_hdr.cpp | libNifti.a $(OBJ_DIR)
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE) -o $@ $<
 
-nifti_hdr : $(OBJ_DIR)/nifti_hdr.o | libNifti.a $(OBJ_DIR)
+niihdr : $(OBJ_DIR)/niihdr.o | libNifti.a $(OBJ_DIR)
 	$(CXX) $^ -o $@ $(LD_FLAGS) -lNifti -lz
 
 # Top level build rules
