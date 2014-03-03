@@ -5,26 +5,29 @@
 #
 ###################################################
 
-# Set up Paths
-SRC_DIR = src/Nifti
-INC_DIR = src
-OBJ_DIR := build
-INSTALL_DIR := /Users/Tobias/Code
-INSTALL_BIN = $(INSTALL_DIR)/bin
-INSTALL_INC = $(INSTALL_DIR)/include
-INSTALL_LIB = $(INSTALL_DIR)/lib
-EIGEN  = /Users/Tobias/Code/eigen
-
 # Platform/system specific
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
-	CPPPATH = /software/system/gcc/gcc-4.8.0
-	LIBCPP = LD_RUN_PATH=$(CPPPATH)/lib64
-	CXX = $(LIBCPP) $(CPPPATH)/bin/g++
+	CPPPATH     := /software/system/gcc/gcc-4.8.0
+	LIBCPP      := LD_RUN_PATH=$(CPPPATH)/lib64
+	CXX         := $(LIBCPP) $(CPPPATH)/bin/g++
+	EIGEN       := /home/k1078535/Code/eigen
+	INSTALL_DIR := /home/k1078535/Code
 endif
 ifeq ($(UNAME_S),Darwin)
 	# Defaults work okay on Apple
+	EIGEN       := /Users/Tobias/Code/eigen
+	INSTALL_DIR := /Users/Tobias/Code/MR
 endif
+
+# Set up Paths
+SRC_DIR := src/Nifti
+INC_DIR := src
+OBJ_DIR := build
+INSTALL_DIR := /Users/Tobias/Code/MR
+INSTALL_BIN := $(INSTALL_DIR)/bin
+INSTALL_INC := $(INSTALL_DIR)/include
+INSTALL_LIB := $(INSTALL_DIR)/lib
 
 # Create directories
 $(OBJ_DIR) $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB):
