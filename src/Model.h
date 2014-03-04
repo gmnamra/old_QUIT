@@ -16,6 +16,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <memory>
 #include <Eigen/Dense>
 
 #include "DESPOT.h"
