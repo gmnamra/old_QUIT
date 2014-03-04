@@ -8,14 +8,17 @@
 # Platform/system specific
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
-	CPPPATH     := /software/system/gcc/gcc-4.8.0
-	LIBCPP      := LD_RUN_PATH=$(CPPPATH)/lib64
-	CXX         := $(LIBCPP) $(CPPPATH)/bin/g++
+	CXXPATH     := /software/system/gcc/gcc-4.8.0
+	LDPATH      := LD_RUN_PATH=$(CXXPATH)/lib64
+	CXX         := $(LDPATH) $(CXXPATH)/bin/g++
+	THREADS     := -pthread
+	STDLIB      := -lstdc++
 	EIGEN       := /home/k1078535/Code/eigen
 	INSTALL_DIR := /home/k1078535/Code
 endif
 ifeq ($(UNAME_S),Darwin)
 	# Defaults work okay on Apple
+	STDLIB      := -stdlib=libc++
 	EIGEN       := /Users/Tobias/Code/eigen
 	INSTALL_DIR := /Users/Tobias/Code/MR
 endif
@@ -28,9 +31,9 @@ INSTALL_INC := $(INSTALL_DIR)/include
 INSTALL_LIB := $(INSTALL_DIR)/lib
 
 # Set up all our compiler options
-CXX_FLAGS := -std=c++11 -stdlib=libc++ -m64 -g -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors -DAGILENT $(DEBUG)
+CXX_FLAGS := -std=c++11 $(STDLIB) $(THREADS) -m64 -g -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors -DAGILENT $(DEBUG)
 INCLUDE   := -I$(SRC_DIR) -I$(INSTALL_INC) -I$(EIGEN)
-LD_FLAGS  := -std=c++11 -stdlib=libc++ -m64 -g -L$(INSTALL_LIB)
+LD_FLAGS  := -std=c++11 $(STDLIB) $(THREADS) -m64 -g -L$(INSTALL_LIB)
 LD_LIBS   := -lAgilent -lNifti -lz
 
 # Top level build rules
