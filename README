@@ -64,12 +64,12 @@ not recommended. You can find out the version of your system gcc by running
 
 1. A Makefile is provided in DESPOT/build. You will need to alter at least 3
    of the Makefile variables to build libNifti.
-2. CPPPATH will need to point to your recent gcc installation. If your system
-   gcc is recent enough set this to "/usr".
-3. You will need to alter the EIGEN setting in the Makefile. EIGEN should point
+2. If you use a non-system compiler CXXPATH will need to point to it.
+3. You will need to alter INSTALL_DIR to point to the root directory of your
+   installation (i.e. directory above Eigen and libNifti).
+4. You will need to alter the EIGEN setting in the Makefile. EIGEN should point
    to where you have installed/downloaded Eigen. Make sure you only enter the
    path to the "eigen" parent directory, not the "eigen/Eigen" subdirectory.
-4. You will need to alter INSTALL_DIR to point to where libNifti was installed.
 5. At this point, you can run "make all" to build the products inside
    DESPOT/build.
 

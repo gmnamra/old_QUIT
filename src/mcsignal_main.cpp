@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 		Nifti input(filename, Nifti::Mode::Read);
 
 		if (i == 0) {
-			saveFile = Nifti(input, model->size());
+			saveFile = Nifti(input);
 			numVoxels = input.dims().head(3).prod();
 		} else {
 			if (!input.matchesSpace(saveFile)) {
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 		s.resize(numVoxels, 0.);
 	}
 
-	cout << "Starting calculating." << endl;
+	cout << "Started calculating." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &v) {
 		if ((maskData.size() == 0) || (maskData.at(v))) {
 			ArrayXd params(model->nParameters());

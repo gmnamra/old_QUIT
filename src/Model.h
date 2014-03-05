@@ -41,6 +41,7 @@ class Signal {
 		virtual ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const = 0;
 		virtual size_t size() const { return m_flip.rows(); }
 		virtual void write(ostream &os) const = 0;
+		virtual const string name() const = 0;
 };
 ostream& operator<<(ostream& os, const Signal& s);
 
@@ -49,6 +50,7 @@ class SPGRSimple : public Signal {
 		SPGRSimple(const ArrayXd &flip, const double TR);
 		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
+		const string name() const override { return "SPGR"; } ;
 };
 class SPGRFinite : public Signal {
 	public:
@@ -56,6 +58,7 @@ class SPGRFinite : public Signal {
 		SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE);
 		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
+		const string name() const override { return "SPGR_Finite"; } ;
 };
 class SSFPSimple : public Signal {
 	public:
@@ -64,6 +67,7 @@ class SSFPSimple : public Signal {
 		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		size_t size() const override;
 		void write(ostream& os) const override;
+		const string name() const override { return "SSFP"; } ;
 };
 class SSFPFinite : public SSFPSimple {
 	public:
@@ -71,6 +75,7 @@ class SSFPFinite : public SSFPSimple {
 		SSFPFinite(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases);
 		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
+		const string name() const override { return "SSFP_Finite"; } ;
 };
 
 enum class ModelTypes { Simple, Finite };

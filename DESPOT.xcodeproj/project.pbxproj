@@ -51,6 +51,7 @@
 		F6AEA45717F2EAA400032A7A /* DESPOT_Functors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */; };
 		F6AEA45917F2EAA400032A7A /* DESPOT_Functors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */; };
 		F6E1F9141591FFF200DA918F /* phasemap_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */; };
+		F6E31E8818BF6A7400955295 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
 		F6E41D9C17C64FB80043A338 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
 		F6E41D9F17C64FBF0043A338 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
 		F6E41DA217C64FC70043A338 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
@@ -300,7 +301,7 @@
 		F660A66717BD12AC008682C3 /* despot2fm */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot2fm; sourceTree = BUILT_PRODUCTS_DIR; };
 		F663C99D18324E5E001B86BB /* mcsignal */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mcsignal; sourceTree = BUILT_PRODUCTS_DIR; };
 		F663C9AC18324E93001B86BB /* mcsignal_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mcsignal_main.cpp; path = src/mcsignal_main.cpp; sourceTree = SOURCE_ROOT; };
-		F663C9B318327E57001B86BB /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = build/Makefile; sourceTree = "<group>"; };
+		F663C9B318327E57001B86BB /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		F663C9B51834DE05001B86BB /* Model.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Model.cpp; path = src/Model.cpp; sourceTree = SOURCE_ROOT; };
 		F663C9B61834DE05001B86BB /* Model.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Model.h; path = src/Model.h; sourceTree = SOURCE_ROOT; };
 		F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ThreadPool.cpp; path = src/ThreadPool.cpp; sourceTree = SOURCE_ROOT; };
@@ -782,6 +783,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6E31E8818BF6A7400955295 /* ThreadPool.cpp in Sources */,
 				F663C9AE18324EA1001B86BB /* DESPOT.cpp in Sources */,
 				F663C9AD18324E93001B86BB /* mcsignal_main.cpp in Sources */,
 				F663C9B81834DE05001B86BB /* Model.cpp in Sources */,
@@ -1069,7 +1071,7 @@
 					"-ferror-limit=20",
 				);
 				OTHER_LDFLAGS = "";
-				SDKROOT = macosx10.7;
+				SDKROOT = macosx;
 				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
@@ -1119,7 +1121,7 @@
 					"-ferror-limit=20",
 				);
 				OTHER_LDFLAGS = "";
-				SDKROOT = macosx10.7;
+				SDKROOT = macosx;
 				VALID_ARCHS = x86_64;
 			};
 			name = Release;

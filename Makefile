@@ -13,14 +13,15 @@ ifeq ($(UNAME_S),Linux)
 	CXX         := $(LDPATH) $(CXXPATH)/bin/g++
 	THREADS     := -pthread
 	STDLIB      := -lstdc++
-	EIGEN       := /home/k1078535/Code/eigen
-	INSTALL_DIR := /home/k1078535/Code
+	INSTALL_DIR := $(HOME)/Code
+	EIGEN       := $(INSTALL_DIR)/eigen
+
 endif
 ifeq ($(UNAME_S),Darwin)
 	# Defaults work okay on Apple
 	STDLIB      := -stdlib=libc++
-	EIGEN       := /Users/Tobias/Code/eigen
-	INSTALL_DIR := /Users/Tobias/Code/MR
+	INSTALL_DIR := $(HOME)/Code/MR
+	EIGEN       := $(INSTALL_DIR)/eigen
 endif
 
 # Set up Paths

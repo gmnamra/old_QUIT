@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 			cout << "finished." << endl;
 		}
 	}
-	const string names[NR] = { "D1_PD", "D1_T1", "D1_Residual" };
+	const string names[NR] = { "D1_PD", "D1_T1", "D1_SoS" };
 	Nifti outFile(spgrFile, 1);
 	outFile.description = version;
 	for (int r = 0; r < NR; r++) {
