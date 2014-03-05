@@ -5,6 +5,7 @@ DESPOT.xcodeproj/xcshareddata/
 DESPOT.*
 manual/DESPOT_manual*
 build/
+src/version
 despot1
 despot1hifi
 despot2
