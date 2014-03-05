@@ -34,7 +34,7 @@ class ZipFile {
 		
 		bool open(const std::string &path, const std::string &mode, const bool zip);
 		void close();
-		size_t read(void *buff, unsigned size);   //!< Attempts to reads size bytes from the image file to buff. Returns actual number read.
+		size_t read(void *buff, size_t size);   //!< Attempts to reads size bytes from the image file to buff. Returns actual number read.
 		size_t write(const void *buff, int size); //!< Attempts to write size bytes from buff to the image file. Returns actual number written.
 		bool seek(long offset, int whence);       //!< Seeks to the specified position in the file. Returns true if successful.
 		long tell() const;                        //!< Returns the current position in the file

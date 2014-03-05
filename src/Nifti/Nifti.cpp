@@ -40,22 +40,22 @@ const Nifti::DataType Nifti::DataTypeForCode(const int code) {
  */
 const Nifti::DataTypeInfo &Nifti::TypeInfo(const DataType dt) {
 	static const map<DataType, DataTypeInfo> DTInfo{
-		{DataType::UINT8,      {DataType::UINT8, NIFTI_TYPE_UINT8, 1, 0, "NIFTI_TYPE_UINT8"} },
-		{DataType::UINT16,     {DataType::UINT16, NIFTI_TYPE_UINT16, 2, 2, "NIFTI_TYPE_UINT16"} },
-		{DataType::UINT32,     {DataType::UINT32, NIFTI_TYPE_UINT32, 4, 4, "NIFTI_TYPE_UINT32"} },
-		{DataType::UINT64,     {DataType::UINT64, NIFTI_TYPE_UINT64, 8, 8, "NIFTI_TYPE_UINT64"} },
-		{DataType::INT8,       {DataType::INT8, NIFTI_TYPE_INT8, 1, 0, "NIFTI_TYPE_INT8"} },
-		{DataType::INT16,      {DataType::INT16, NIFTI_TYPE_INT16, 2, 2, "NIFTI_TYPE_INT16"} },
-		{DataType::INT32,      {DataType::INT32, NIFTI_TYPE_INT32, 4, 4, "NIFTI_TYPE_INT32"} },
-		{DataType::INT64,      {DataType::INT64, NIFTI_TYPE_INT64, 8, 8, "NIFTI_TYPE_INT64"} },
-		{DataType::FLOAT32,    {DataType::FLOAT32, NIFTI_TYPE_FLOAT32, 4, 4, "NIFTI_TYPE_FLOAT32"} },
-		{DataType::FLOAT64,    {DataType::FLOAT64, NIFTI_TYPE_FLOAT64, 8, 8, "NIFTI_TYPE_FLOAT64"} },
-		{DataType::FLOAT128,   {DataType::FLOAT128, NIFTI_TYPE_FLOAT128, 16, 16, "NIFTI_TYPE_FLOAT128"} },
-		{DataType::COMPLEX64,  {DataType::COMPLEX64, NIFTI_TYPE_COMPLEX64, 8, 4, "NIFTI_TYPE_COMPLEX64"} },
-		{DataType::COMPLEX128, {DataType::COMPLEX128, NIFTI_TYPE_COMPLEX128, 16,  8, "NIFTI_TYPE_COMPLEX128"} },
-		{DataType::COMPLEX256, {DataType::COMPLEX256, NIFTI_TYPE_COMPLEX256, 32, 16, "NIFTI_TYPE_COMPLEX256"} },
-		{DataType::RGB24,      {DataType::RGB24, NIFTI_TYPE_RGB24, 3, 0, "NIFTI_TYPE_RGB24"} },
-		{DataType::RGBA32,     {DataType::RGBA32, NIFTI_TYPE_RGBA32, 4,   0, "NIFTI_TYPE_RGBA32"} }
+		{DataType::UINT8,      {DataType::UINT8,      NIFTI_TYPE_UINT8,       1,  0, "UINT8"} },
+		{DataType::UINT16,     {DataType::UINT16,     NIFTI_TYPE_UINT16,      2,  2, "UINT16"} },
+		{DataType::UINT32,     {DataType::UINT32,     NIFTI_TYPE_UINT32,      4,  4, "UINT32"} },
+		{DataType::UINT64,     {DataType::UINT64,     NIFTI_TYPE_UINT64,      8,  8, "UINT64"} },
+		{DataType::INT8,       {DataType::INT8,       NIFTI_TYPE_INT8,        1,  0, "INT8"} },
+		{DataType::INT16,      {DataType::INT16,      NIFTI_TYPE_INT16,       2,  2, "INT16"} },
+		{DataType::INT32,      {DataType::INT32,      NIFTI_TYPE_INT32,       4,  4, "INT32"} },
+		{DataType::INT64,      {DataType::INT64,      NIFTI_TYPE_INT64,       8,  8, "INT64"} },
+		{DataType::FLOAT32,    {DataType::FLOAT32,    NIFTI_TYPE_FLOAT32,     4,  4, "FLOAT32"} },
+		{DataType::FLOAT64,    {DataType::FLOAT64,    NIFTI_TYPE_FLOAT64,     8,  8, "FLOAT64"} },
+		{DataType::FLOAT128,   {DataType::FLOAT128,   NIFTI_TYPE_FLOAT128,   16, 16, "FLOAT128"} },
+		{DataType::COMPLEX64,  {DataType::COMPLEX64,  NIFTI_TYPE_COMPLEX64,   8,  4, "COMPLEX64"} },
+		{DataType::COMPLEX128, {DataType::COMPLEX128, NIFTI_TYPE_COMPLEX128, 16,  8, "COMPLEX128"} },
+		{DataType::COMPLEX256, {DataType::COMPLEX256, NIFTI_TYPE_COMPLEX256, 32, 16, "COMPLEX256"} },
+		{DataType::RGB24,      {DataType::RGB24,      NIFTI_TYPE_RGB24,       3,  0, "RGB24"} },
+		{DataType::RGBA32,     {DataType::RGBA32,     NIFTI_TYPE_RGBA32,      4,  0, "RGBA32"} }
 	};
 	auto info = DTInfo.find(dt);
 	if (info != DTInfo.end())
@@ -941,8 +941,9 @@ void Nifti::readBytes(std::vector<char> &buffer) {
 		throw(std::logic_error("File not opened for reading: " + imagePath()));
 	}
 	if (buffer.size() > 0) {
-		if (m_file.read(buffer.data(), static_cast<unsigned int>(buffer.size())) != buffer.size()) {
-			throw(std::runtime_error("Read wrong number of bytes from file: " + imagePath()));
+		size_t nread = m_file.read(buffer.data(), buffer.size());
+		if (nread != buffer.size()) {
+			throw(std::runtime_error("Error reading data from file: " + imagePath()));
 		}
 		if (m_typeinfo.swapsize > 1 && m_swap)
 			swapBytes(buffer.size() / m_typeinfo.swapsize, m_typeinfo.swapsize, buffer.data());

@@ -65,13 +65,15 @@ void ZipFile::close() {
  * gzread uses
  *
  */
-size_t ZipFile::read(void *buff, unsigned size) {
+size_t ZipFile::read(void *buff, size_t size) {
 	if (m_gzipFile) {
-		unsigned remaining = size, totalRead = 0;
+		size_t remaining = size, totalRead = 0;
 		char *cbuff = (char *)buff;
 		while (remaining > 0) {
-			unsigned chunkSize = (remaining < numeric_limits<int>::max()) ? remaining : numeric_limits<int>::max();
-			int nread = gzread(m_gzipFile, cbuff, static_cast<unsigned int>(chunkSize));
+			// Maximum read size for libz is <int>::max(), now do some
+			// careful casting to get the read size right
+			unsigned chunkSize = (remaining < numeric_limits<int>::max()) ? static_cast<unsigned>(remaining) : numeric_limits<int>::max();
+			int nread = gzread(m_gzipFile, cbuff, chunkSize);
 			if (nread <= 0) {
 				return 0;
 			}
