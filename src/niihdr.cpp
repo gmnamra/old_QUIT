@@ -53,7 +53,7 @@ static struct option long_options[] =
 	{"abbrev", no_argument, &mode, Abbreviated},
 	{"full",   no_argument, &mode, Full},
 	{"comp",   no_argument, &mode, Compare},
-	{"help",   no_argument, 0, 'h'}
+	{"help",   no_argument, 0, 'h'},
 	{0, 0, 0, 0}
 };
 
@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
 			cout << "Dimensions:  " << im.dims().transpose() << endl;
 			cout << voxMessage(im) << endl;
 			cout << "XForm matrix: " << endl << im.transform().matrix() << endl;
-			cout << "Number of extensions: " << (im.extensions().size() > 0 << endl;
+			(im.extensions().size() > 0) ? cout << "Has extensions." << endl : cout << "No extensions." << endl;
 		} else if (mode == Full) {
 			cout << "Full Nifti Header for file: " << im.imagePath() << endl;
 			cout << dataMessage(im) << endl;

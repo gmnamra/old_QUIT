@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F60103F918C782AA00F5E584 /* niihdr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F64D55DB178B0C3B005BF1A8 /* niihdr.cpp */; };
+		F60103FA18C782B000F5E584 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6F2E6EF1792164800A4AC8F /* libNifti.a */; };
+		F60103FC18C782B900F5E584 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F60103FB18C782B900F5E584 /* libz.dylib */; };
 		F67F75911792191A00A278B6 /* Nifti.h in Headers */ = {isa = PBXBuildFile; fileRef = F6C4AF17160B156C00254B6C /* Nifti.h */; settings = {ATTRIBUTES = (); }; };
 		F67FA0C317CEA8E300B4FA63 /* nifti1.h in Headers */ = {isa = PBXBuildFile; fileRef = F6E9DAAC16022D06005D73E3 /* nifti1.h */; settings = {ATTRIBUTES = (); }; };
 		F67FA0C717CEAAAC00B4FA63 /* nifti_analyze.h in Headers */ = {isa = PBXBuildFile; fileRef = F6B0AB6B178CB9510098443E /* nifti_analyze.h */; settings = {ATTRIBUTES = (); }; };
@@ -21,6 +24,15 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		F60103EE18C7828F00F5E584 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		F6BADCDB178B75CA00DCD475 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -33,6 +45,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F60103F018C7828F00F5E584 /* niihdr */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = niihdr; sourceTree = BUILT_PRODUCTS_DIR; };
+		F60103FB18C782B900F5E584 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		F60A233917E9C51D00CACC28 /* Extension.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Extension.cpp; path = src/Nifti/Extension.cpp; sourceTree = "<group>"; };
 		F60A233C17E9C87F00CACC28 /* ZipFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZipFile.cpp; path = src/Nifti/ZipFile.cpp; sourceTree = "<group>"; };
 		F60A233D17E9C87F00CACC28 /* ZipFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZipFile.h; path = src/Nifti/ZipFile.h; sourceTree = "<group>"; };
@@ -47,7 +61,7 @@
 		F6980B2717E1D10200F7DBD3 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/lib/libz.dylib; sourceTree = DEVELOPER_DIR; };
 		F6A7217317EB130700106190 /* Doxyfile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Doxyfile; sourceTree = "<group>"; };
 		F6B0AB6B178CB9510098443E /* nifti_analyze.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = nifti_analyze.h; path = src/Nifti/nifti_analyze.h; sourceTree = "<group>"; };
-		F6BADCDD178B75CA00DCD475 /* nifti_hdr */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = nifti_hdr; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6BADCDD178B75CA00DCD475 /* nifti_hdr */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = nifti_hdr; path = /Users/Tobias/Code/MR/Nifti/build/Debug/nifti_hdr; sourceTree = "<absolute>"; };
 		F6C4AF16160B156C00254B6C /* Nifti.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Nifti.cpp; path = src/Nifti/Nifti.cpp; sourceTree = "<group>"; };
 		F6C4AF17160B156C00254B6C /* Nifti.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Nifti.h; path = src/Nifti/Nifti.h; sourceTree = "<group>"; };
 		F6E9DAAC16022D06005D73E3 /* nifti1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = nifti1.h; path = src/Nifti/nifti1.h; sourceTree = "<group>"; };
@@ -55,6 +69,15 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F60103ED18C7828F00F5E584 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F60103FC18C782B900F5E584 /* libz.dylib in Frameworks */,
+				F60103FA18C782B000F5E584 /* libNifti.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F6BADCDA178B75CA00DCD475 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -86,14 +109,15 @@
 		F6E9DA9716022CD1005D73E3 = {
 			isa = PBXGroup;
 			children = (
+				F60103FB18C782B900F5E584 /* libz.dylib */,
 				F628BD8417F5821100DE62AD /* README */,
 				F6A7217317EB130700106190 /* Doxyfile */,
 				F60A234017EA019600CACC28 /* Makefile */,
 				F6980B2717E1D10200F7DBD3 /* libz.dylib */,
 				F6E9DAB516022D0B005D73E3 /* Library */,
 				F6295B5118C4BDB500FA8C6B /* Tools */,
-				F6BADCDD178B75CA00DCD475 /* nifti_hdr */,
 				F6F2E6EF1792164800A4AC8F /* libNifti.a */,
+				F60103F018C7828F00F5E584 /* niihdr */,
 			);
 			sourceTree = "<group>";
 		};
@@ -103,10 +127,10 @@
 				F6E9DAAC16022D06005D73E3 /* nifti1.h */,
 				F6B0AB6B178CB9510098443E /* nifti_analyze.h */,
 				F6C4AF17160B156C00254B6C /* Nifti.h */,
-				F60A233F17E9C9E800CACC28 /* Nifti-inl.h */,
 				F6C4AF16160B156C00254B6C /* Nifti.cpp */,
 				F60A233C17E9C87F00CACC28 /* ZipFile.cpp */,
 				F60A233D17E9C87F00CACC28 /* ZipFile.h */,
+				F60A233F17E9C9E800CACC28 /* Nifti-inl.h */,
 				F60A234317EA364B00CACC28 /* ExtensionCodes.h */,
 				F60A233917E9C51D00CACC28 /* Extension.cpp */,
 				F60A234417EA57BF00CACC28 /* Internal.cpp */,
@@ -132,6 +156,23 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		F60103EF18C7828F00F5E584 /* niihdr */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F60103F618C7828F00F5E584 /* Build configuration list for PBXNativeTarget "niihdr" */;
+			buildPhases = (
+				F60103EC18C7828F00F5E584 /* Sources */,
+				F60103ED18C7828F00F5E584 /* Frameworks */,
+				F60103EE18C7828F00F5E584 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = niihdr;
+			productName = niihdr;
+			productReference = F60103F018C7828F00F5E584 /* niihdr */;
+			productType = "com.apple.product-type.tool";
+		};
 		F6BADCDC178B75CA00DCD475 /* nifti_hdr */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F6BADCE3178B75CA00DCD475 /* Build configuration list for PBXNativeTarget "nifti_hdr" */;
@@ -189,11 +230,20 @@
 			targets = (
 				F6BADCDC178B75CA00DCD475 /* nifti_hdr */,
 				F6F2E6EE1792164800A4AC8F /* Nifti */,
+				F60103EF18C7828F00F5E584 /* niihdr */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F60103EC18C7828F00F5E584 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F60103F918C782AA00F5E584 /* niihdr.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F6BADCD9178B75CA00DCD475 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -216,6 +266,58 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		F60103F718C7828F00F5E584 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		F60103F818C7828F00F5E584 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
 		F6BADCE4178B75CA00DCD475 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -326,6 +428,14 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F60103F618C7828F00F5E584 /* Build configuration list for PBXNativeTarget "niihdr" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F60103F718C7828F00F5E584 /* Debug */,
+				F60103F818C7828F00F5E584 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
 		F6BADCE3178B75CA00DCD475 /* Build configuration list for PBXNativeTarget "nifti_hdr" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
