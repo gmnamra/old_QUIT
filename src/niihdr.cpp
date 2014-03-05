@@ -41,7 +41,7 @@ enum Modes {
 
 static int mode = Nothing;
 static int printDims = false, printVoxdims = false, printSize = false, printData = false,
-           printTransform = false, printExtensions = false;
+           printTransform = false;
 
 static struct option long_options[] =
 {
@@ -53,8 +53,7 @@ static struct option long_options[] =
 	{"abbrev", no_argument, &mode, Abbreviated},
 	{"full",   no_argument, &mode, Full},
 	{"comp",   no_argument, &mode, Compare},
-	{"help",   no_argument, 0, 'h'},
-	{"ext",    no_argument, 0, 'e'},
+	{"help",   no_argument, 0, 'h'}
 	{0, 0, 0, 0}
 };
 
@@ -88,7 +87,6 @@ int main(int argc, char **argv) {
 			case 'v': printVoxdims = true; break;
 			case 't': printTransform = true; break;
 			case 's': printSize = true; break;
-			case 'e': printExtensions = true; break;
 			case 'a': mode = Abbreviated; break;
 			case 'f': mode = Full; break;
 			case 'c': mode = Compare; break;
@@ -135,7 +133,7 @@ int main(int argc, char **argv) {
 			cout << "Dimensions:  " << im.dims().transpose() << endl;
 			cout << voxMessage(im) << endl;
 			cout << "XForm matrix: " << endl << im.transform().matrix() << endl;
-			cout << "Number of extensions: " << im.extensions().size() << endl;
+			cout << "Number of extensions: " << (im.extensions().size() > 0 << endl;
 		} else if (mode == Full) {
 			cout << "Full Nifti Header for file: " << im.imagePath() << endl;
 			cout << dataMessage(im) << endl;
