@@ -21,7 +21,7 @@ ifeq ($(UNAME_S),Darwin)
 	# Defaults work okay on Apple
 	STDLIB      := -stdlib=libc++
 	INSTALL_DIR := $(HOME)/Code/MR
-	EIGEN       := $(INSTALL_DIR)/eigen
+	EIGEN       := $(HOME)/Code/eigen
 endif
 
 # Set up Paths
