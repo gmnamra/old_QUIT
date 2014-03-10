@@ -390,9 +390,13 @@ Nifti &Nifti::operator=(Nifti &&other) {
 #pragma mark Open/Header Routines
 
 void Nifti::open(const string &path, const Mode &mode) {
+	if (m_mode != Mode::Closed) {
+		throw(std::runtime_error("Cannot open " + path + ", file: " + basePath() + " is already open."));
+	}
 	switch (mode) {
 		case (Mode::Closed):
-			throw(std::runtime_error("File: " + basePath() + " is already open."));
+			throw(std::runtime_error("Asked to open file " + path + " in Closed mode, does not make sense."));
+			break;
 		case (Mode::Read): case (Mode::ReadHeader):
 			setPaths(path);
 			if(!m_file.open(headerPath(), "rb", m_gz)) {
@@ -782,6 +786,9 @@ void Nifti::writeExtensions() {
 	}
 	
 	for (auto ext : m_extensions) {
+		if (ext.rawSize() > numeric_limits<int>::max()) {
+			throw(std::runtime_error("Extension is larger than Nifti standard permits in file: " + headerPath()));
+		}
 		int size = ext.size();
 		int padding = ext.padding();
 		long bytesWritten = m_file.write(&size, sizeof(int));
@@ -790,7 +797,7 @@ void Nifti::writeExtensions() {
 		if (bytesWritten != (2*sizeof(int))) {
 			throw(std::runtime_error("Could not write extension size and code to file: " + headerPath()));
 		}
-		if (m_file.write(ext.data().data(), ext.rawSize()) != (ext.rawSize())) {
+		if (m_file.write(ext.data().data(), static_cast<int>(ext.rawSize())) != static_cast<int>(ext.rawSize())) {
 			throw(std::runtime_error("Could not write extension data to file: " + headerPath()));
 		}
 		if (padding) {
@@ -807,9 +814,9 @@ void Nifti::writeExtensions() {
 
 #pragma mark Path Getters
 
-const string Nifti::basePath() const { return m_basepath; }
-const string Nifti::imagePath() const {
-	string path(m_basepath);
+const string &Nifti::basePath() const { return m_basepath; }
+const string &Nifti::imagePath() const {
+	static string path(m_basepath);
 	if (m_nii) {
 		path += ".nii";
 	} else {
@@ -820,8 +827,8 @@ const string Nifti::imagePath() const {
 	
 	return path;
 }
-const string Nifti::headerPath() const {
-	string path(m_basepath);
+const string &Nifti::headerPath() const {
+	static string path(m_basepath);
 	if (m_nii) {
 		path += ".nii";
 	} else {
@@ -857,7 +864,7 @@ void Nifti::setDim(const size_t d, const size_t n) {
 		throw(std::logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
 }
-const Nifti::ArrayXs Nifti::dims() const { return m_dim.head(rank()); }
+Nifti::ArrayXs Nifti::dims() const { return m_dim.head(rank()); }
 void Nifti::setDims(const ArrayXs &n) {
 	if (m_mode == Mode::Closed) {
 		assert(n.rows() <= m_voxdim.rows());
@@ -879,7 +886,7 @@ void Nifti::setVoxDim(const size_t d, const float f) {
 	} else
 		throw(std::logic_error("Cannot change voxel sizes for open file: " + imagePath()));
 }
-const ArrayXf Nifti::voxDims() const { return m_voxdim; }
+ArrayXf Nifti::voxDims() const { return m_voxdim.head(rank()); }
 void Nifti::setVoxDims(const ArrayXf &n) {
 	if (m_mode == Mode::Closed) {
 		assert(n.rows() <= m_voxdim.rows());
@@ -1005,8 +1012,8 @@ const Nifti::XForm Nifti::XFormForCode(const int c) {
 
 const Affine3f &Nifti::qform() const { return m_qform; }
 const Affine3f &Nifti::sform() const { return m_sform; }
-const Nifti::XForm Nifti::qcode() const { return m_qcode; }
-const Nifti::XForm Nifti::scode() const { return m_scode; }
+const Nifti::XForm &Nifti::qcode() const { return m_qcode; }
+const Nifti::XForm &Nifti::scode() const { return m_scode; }
 const Affine3f &Nifti::transform() const {
 	if ((m_scode > XForm::Unknown) && (m_scode >= m_qcode))
 		return m_sform;

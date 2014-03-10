@@ -47,6 +47,7 @@
 /* Begin PBXFileReference section */
 		F60103F018C7828F00F5E584 /* niihdr */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = niihdr; sourceTree = BUILT_PRODUCTS_DIR; };
 		F60103FB18C782B900F5E584 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
+		F601040518C7AB0700F5E584 /* nifti_hdr */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = nifti_hdr; path = /Users/Tobias/Code/MR/Nifti/build/Debug/nifti_hdr; sourceTree = "<absolute>"; };
 		F60A233917E9C51D00CACC28 /* Extension.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Extension.cpp; path = src/Nifti/Extension.cpp; sourceTree = "<group>"; };
 		F60A233C17E9C87F00CACC28 /* ZipFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZipFile.cpp; path = src/Nifti/ZipFile.cpp; sourceTree = "<group>"; };
 		F60A233D17E9C87F00CACC28 /* ZipFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZipFile.h; path = src/Nifti/ZipFile.h; sourceTree = "<group>"; };
@@ -61,7 +62,6 @@
 		F6980B2717E1D10200F7DBD3 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/lib/libz.dylib; sourceTree = DEVELOPER_DIR; };
 		F6A7217317EB130700106190 /* Doxyfile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Doxyfile; sourceTree = "<group>"; };
 		F6B0AB6B178CB9510098443E /* nifti_analyze.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = nifti_analyze.h; path = src/Nifti/nifti_analyze.h; sourceTree = "<group>"; };
-		F6BADCDD178B75CA00DCD475 /* nifti_hdr */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = nifti_hdr; path = /Users/Tobias/Code/MR/Nifti/build/Debug/nifti_hdr; sourceTree = "<absolute>"; };
 		F6C4AF16160B156C00254B6C /* Nifti.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Nifti.cpp; path = src/Nifti/Nifti.cpp; sourceTree = "<group>"; };
 		F6C4AF17160B156C00254B6C /* Nifti.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Nifti.h; path = src/Nifti/Nifti.h; sourceTree = "<group>"; };
 		F6E9DAAC16022D06005D73E3 /* nifti1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = nifti1.h; path = src/Nifti/nifti1.h; sourceTree = "<group>"; };
@@ -187,7 +187,7 @@
 			);
 			name = nifti_hdr;
 			productName = nifti_hdr;
-			productReference = F6BADCDD178B75CA00DCD475 /* nifti_hdr */;
+			productReference = F601040518C7AB0700F5E584 /* nifti_hdr */;
 			productType = "com.apple.product-type.tool";
 		};
 		F6F2E6EE1792164800A4AC8F /* Nifti */ = {
@@ -435,6 +435,7 @@
 				F60103F818C7828F00F5E584 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F6BADCE3178B75CA00DCD475 /* Build configuration list for PBXNativeTarget "nifti_hdr" */ = {
 			isa = XCConfigurationList;

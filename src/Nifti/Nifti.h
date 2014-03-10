@@ -67,10 +67,10 @@ class Nifti {
 				
 				Extension(int code, std::vector<char> data);
 				Extension(int size, int code, char *data);
-				const int rawSize() const;
-				const int size() const;
-				const int padding() const;
-				const int code() const;
+				size_t rawSize() const;
+				int size() const;
+				int padding() const;
+				int code() const;
 				const std::string &codeName() const;
 				void setCode(int code);
 				
@@ -136,21 +136,21 @@ class Nifti {
 		void close();                                             //!< Closes the file
 		bool isOpen();                                            //!< Returns true if file is currently open for reading or writing.
 		
-		const std::string basePath() const;
-		const std::string imagePath() const;
-		const std::string headerPath() const;
+		const std::string &basePath() const;
+		const std::string &imagePath() const;
+		const std::string &headerPath() const;
 		
 		const DataType &datatype() const;
 		void setDatatype(const DataType dt);
 		
 		size_t rank() const;                                    //!< Get the rank (number of dimensions) of the image.
 		size_t dim(const size_t d) const;                       //!< Get the size (voxel count) of a dimension. Valid dimensions are 1-7.
-		const ArrayXs dims() const;                             //!< Get all dimension sizes.
+		ArrayXs dims() const;                                   //!< Get all dimension sizes.
 		void setDim(const size_t d, const size_t n);            //!< Set the size (voxel count) of a dimension. Valid dimensions are 1-7.
 		void setDims(const ArrayXs &newDims);                   //!< Set all dimension sizes.
 		
 		float voxDim(const size_t d) const;                     //!< Get the voxel size along dimension d. Valid dimensions are 1-7.
-		const Eigen::ArrayXf voxDims() const;                   //!< Get all voxel sizes.
+		Eigen::ArrayXf voxDims() const;                  //!< Get all voxel sizes.
 		void setVoxDim(const size_t d, const float f);          //!< Set the voxel size along dimension d. Valid dimensions are 1-7.
 		void setVoxDims(const Eigen::ArrayXf &newVoxDims);      //!< Set all voxel sizes.
 		
@@ -158,8 +158,8 @@ class Nifti {
 		const Eigen::Affine3f &transform() const;            //!< Return the XForm with the highest priority.
 		const Eigen::Affine3f &qform() const;                //!< Return just the qform.
 		const Eigen::Affine3f &sform() const;                //!< Return just the sform.
-		const XForm qcode() const;               //!< Find out what transformation the qform represents.
-		const XForm scode() const;               //!< Find out what transformation the sform represents.
+		const XForm &qcode() const;               //!< Find out what transformation the qform represents.
+		const XForm &scode() const;               //!< Find out what transformation the sform represents.
 		bool matchesSpace(const Nifti &other) const;  //!< Check if voxel dimensions, data size and XForm match
 		bool matchesVoxels(const Nifti &other) const; //!< Looser check if voxel dimensions and data size match
 		

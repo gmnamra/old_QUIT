@@ -52,18 +52,18 @@ Nifti::Extension::Extension(int size, int code, char *data) :
 		m_data[i] = data[i];
 	}
 }
-const int Nifti::Extension::rawSize() const {
-	return static_cast<int>(m_data.size());
+size_t Nifti::Extension::rawSize() const {
+	return m_data.size();
 }
-const int Nifti::Extension::padding() const {
+int Nifti::Extension::padding() const {
 	return static_cast<int>(16 - ((m_data.size() + 8) % 16));
 }
-const int Nifti::Extension::size() const {
+int Nifti::Extension::size() const {
 	// Must leave 8 bytes for the code and size fields (ints)
-	return rawSize() + 8 + padding();
+	return static_cast<int>(rawSize()) + 8 + padding();
 }
 
-const int Nifti::Extension::code() const { return m_code; }
+int Nifti::Extension::code() const { return m_code; }
 const string &Nifti::Extension::codeName() const { return CodeName(m_code); }
 void Nifti::Extension::setCode(int code) {
 	// Code must be in range and even
