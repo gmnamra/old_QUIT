@@ -252,35 +252,33 @@ MagVector One_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spo
 						  const double phase, const double B1) {
 	const Matrix3d I = Matrix3d::Identity();
 	const Matrix3d O = OffResonance(p[2]);
-	Matrix3d C, R;
+	Matrix3d P, R = Relax(p[0], p[1]);
 	double TE;
 	if (spoil) {
-		C = Spoiling();
+		P = Spoiling();
 		TE = inTE - Trf;
 		assert(TE > 0.);
-		R = Relax(p[0], p[1]);
 	} else {
-		C = AngleAxisd(phase, Vector3d::UnitZ());
+		P = AngleAxisd(phase, Vector3d::UnitZ());
 		TE = (TR - Trf) / 2; // Time AFTER the RF Pulse ends that echo is formed
-		R = Relax(p[0], p[1]); // For SSFP just use T2
 	}
 	
-	Matrix3d l1, l2, le;
-	le = (-(R + O) * TE).exp();
-	l2 = (-(R + O) * (TR - Trf)).exp();
-	Vector3d m0; m0 << 0, 0, 1.;
-	Vector3d m2 = (R + O).partialPivLu().solve(R * m0);
-	MagVector theory(3, flip.size());
-	
+	const Matrix3d RpO = R + O;
+	const Matrix3d E_e = (-TE * RpO).exp();
+	const Matrix3d E = (-(TR - Trf) * RpO).exp();
+	Vector3d m_inf; m_inf << 0, 0, 1.;
+		
+	Matrix3d E_r;
+	MagVector result(3, flip.size());
 	for (int i = 0; i < flip.size(); i++) {
 		const Matrix3d A = InfinitesimalRF(B1 * flip(i) / Trf);
-		l1 = (-(R + O + A)*(Trf)).exp();
-		Vector3d m1 = (R + O + A).partialPivLu().solve(R * m0);
-		Vector3d mp = C*m2 + (I - l1*C*l2).partialPivLu().solve((I - l1)*(m1 - C*m2));
-		Vector3d me = le*(mp - m2) + m2;
-		theory.col(i) = me;
+		E_r.noalias() = (-Trf * (RpO + A)).exp();
+		Vector3d m_rinf = (RpO + A).partialPivLu().solve(R * m_inf);
+		Vector3d m_r = (I - E_r*P*E).partialPivLu().solve(E_r*P*(I-E)*m_inf + (I-E_r)*m_rinf);
+		Vector3d m_e = E_e*(m_r - m_inf) + m_inf;
+		result.col(i) = m_e;
 	}
-	return theory;
+	return result;
 }
 
 //******************************************************************************
@@ -356,7 +354,7 @@ MagVector Two_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spo
 	CalcExchange(p[4], p[5], (1. - p[5]), k_ab, k_ba);
 	Matrix6d K = Exchange(k_ab, k_ba);
 	Matrix6d RpOpK = RpO + K;
-	Matrix6d l1, temp;
+	Matrix6d l1;
 	const Matrix6d le = (-(RpOpK)*TE).exp();
 	const Matrix6d l2 = (-(RpOpK)*(TR-Trf)).exp();
 	
@@ -372,7 +370,6 @@ MagVector Two_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spo
 	for (int i = 0; i < flip.size(); i++) {
 		A.block(0,0,3,3) = A.block(3,3,3,3) = InfinitesimalRF(B1 * flip(i) / Trf);
 		l1 = (-(RpOpK+A)*Trf).exp();
-		temp.noalias() = -(RpOpK + A)*(Trf);
 		Vector6d m1 = (RpO + A).partialPivLu().solve(Rm0);
 		mp.noalias() = Cm2 + (I - l1*C*l2).partialPivLu().solve((I - l1)*(m1 - Cm2));
 		me.noalias() = le*(mp - m2) + m2;				
