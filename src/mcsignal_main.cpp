@@ -37,6 +37,7 @@ Options:\n\
 	--help, -h        : Print this message.\n\
 	--verbose, -v     : Print extra information.\n\
 	--mask, -m file   : Only calculate inside the mask.\n\
+	--out, -o path    : Add a prefix to the output filenames\n\
 	--no-prompt, -n   : Don't print prompts for input.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 3).\n\
 	--model, -M s     : Use simple model (default).\n\
@@ -46,11 +47,12 @@ Options:\n\
 static auto components = Signal::Components::Three;
 static auto modelType = ModelTypes::Simple;
 static bool verbose = false, prompt = true;
-static string inputPrefix = "";
+static string outPrefix = "";
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"mask", required_argument, 0, 'm'},
+	{"out", required_argument, 0, 'o'},
 	{"no-prompt", no_argument, 0, 'n'},
 	{"1", no_argument, 0, '1'},
 	{"2", no_argument, 0, '2'},
@@ -101,7 +103,7 @@ int main(int argc, char **argv)
 	Nifti maskFile, B1File;
 	vector<bool> maskData(0), B1Vol(0);
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvnm:b:123M:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvnm:o:b:123M:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
@@ -111,6 +113,10 @@ int main(int argc, char **argv)
 				maskData.resize(maskFile.dims().head(3).prod());
 				maskFile.readVolumes(0, 1, maskData);
 				maskFile.close();
+				break;
+			case 'o':
+				outPrefix = optarg;
+				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
@@ -203,7 +209,7 @@ int main(int argc, char **argv)
 	threads.for_loop(calcVox, numVoxels);
 	
 	cout << "Finished calculating." << endl;
-	saveFile.open("mcsigout.nii.gz", Nifti::Mode::Write);
+	saveFile.open(outPrefix + "mcsigout.nii.gz", Nifti::Mode::Write);
 	for (size_t s = 0; s < model->size(); s++) {
 		saveFile.writeVolumes(s, 1, signalVols.at(s));
 	}
