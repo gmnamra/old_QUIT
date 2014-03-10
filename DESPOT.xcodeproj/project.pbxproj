@@ -301,7 +301,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		F60103FD18C7A90000F5E584 /* release.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = release.sh; sourceTree = "<group>"; };
+		F60103FD18C7A90000F5E584 /* make_release.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = make_release.sh; sourceTree = "<group>"; };
 		F601040618C7ACBC00F5E584 /* version */ = {isa = PBXFileReference; lastKnownFileType = text; name = version; path = src/version; sourceTree = "<group>"; };
 		F601040718C7BD4F00F5E584 /* update_version.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = update_version.sh; sourceTree = "<group>"; };
 		F61131BA15DD54E80040FE67 /* DESPOT_Functors.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DESPOT_Functors.h; path = src/DESPOT_Functors.h; sourceTree = SOURCE_ROOT; };
@@ -458,7 +458,7 @@
 			isa = PBXGroup;
 			children = (
 				F601040618C7ACBC00F5E584 /* version */,
-				F60103FD18C7A90000F5E584 /* release.sh */,
+				F60103FD18C7A90000F5E584 /* make_release.sh */,
 				F601040718C7BD4F00F5E584 /* update_version.sh */,
 				F663C9B318327E57001B86BB /* Makefile */,
 				F628BD8517F58FDC00DE62AD /* README */,
@@ -743,10 +743,9 @@
 		F628BD6117F580F900DE62AD /* nifti_hdr */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
-			name = nifti_hdr;
-			path = /Users/Tobias/Code/MR/Nifti/build/Debug/nifti_hdr;
+			path = nifti_hdr;
 			remoteRef = F628BD6017F580F900DE62AD /* PBXContainerItemProxy */;
-			sourceTree = "<absolute>";
+			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		F628BD6317F580F900DE62AD /* libNifti.a */ = {
 			isa = PBXReferenceProxy;

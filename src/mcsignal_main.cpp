@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 		Nifti input(filename, Nifti::Mode::Read);
 
 		if (i == 0) {
-			saveFile = Nifti(input);
+			saveFile = Nifti(input, model->size());
 			numVoxels = input.dims().head(3).prod();
 		} else {
 			if (!input.matchesSpace(saveFile)) {
@@ -203,7 +203,6 @@ int main(int argc, char **argv)
 	threads.for_loop(calcVox, numVoxels);
 	
 	cout << "Finished calculating." << endl;
-	
 	saveFile.open("mcsigout.nii.gz", Nifti::Mode::Write);
 	for (size_t s = 0; s < model->size(); s++) {
 		saveFile.writeVolumes(s, 1, signalVols.at(s));
