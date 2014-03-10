@@ -137,8 +137,8 @@ class Nifti {
 		bool isOpen();                                            //!< Returns true if file is currently open for reading or writing.
 		
 		const std::string &basePath() const;
-		const std::string &imagePath() const;
-		const std::string &headerPath() const;
+		std::string imagePath() const;
+		std::string headerPath() const;
 		
 		const DataType &datatype() const;
 		void setDatatype(const DataType dt);

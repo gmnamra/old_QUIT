@@ -815,8 +815,8 @@ void Nifti::writeExtensions() {
 #pragma mark Path Getters
 
 const string &Nifti::basePath() const { return m_basepath; }
-const string &Nifti::imagePath() const {
-	static string path(m_basepath);
+string Nifti::imagePath() const {
+	string path(m_basepath);
 	if (m_nii) {
 		path += ".nii";
 	} else {
@@ -827,8 +827,8 @@ const string &Nifti::imagePath() const {
 	
 	return path;
 }
-const string &Nifti::headerPath() const {
-	static string path(m_basepath);
+string Nifti::headerPath() const {
+	string path(m_basepath);
 	if (m_nii) {
 		path += ".nii";
 	} else {
