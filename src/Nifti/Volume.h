@@ -34,12 +34,15 @@ class Volume {
 	public:
 		Volume();
 		Volume(const std::vector<size_t> dims);
+		Volume(const IndexArray dims);
 		Volume(Nifti &img);
 		
 		void readFrom(Nifti &img);
+		void writeTo(Nifti &img);
 		
-		Tp at(const size_t index) const;
-		Tp at(const std::vector<size_t> indices) const;
+		const Tp &at(const size_t index) const;
+		Tp &at(const size_t index);
+		Tp &at(const std::vector<size_t> indices);
 		
 		VectorTp series(const size_t index) const;
 		VectorTp series(const std::vector<size_t> indices) const;
