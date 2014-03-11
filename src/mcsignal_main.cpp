@@ -38,6 +38,7 @@ Options:\n\
 	--verbose, -v     : Print extra information.\n\
 	--mask, -m file   : Only calculate inside the mask.\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
+	--B1, -b file     : B1 Map file (ratio)\n\
 	--no-prompt, -n   : Don't print prompts for input.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component model (default 3).\n\
 	--model, -M s     : Use simple model (default).\n\
@@ -58,6 +59,7 @@ static struct option long_options[] = {
 	{"2", no_argument, 0, '2'},
 	{"3", no_argument, 0, '3'},
 	{"model", no_argument, 0, 'M'},
+	{"B1", required_argument, 0, 'b'},
 	{0, 0, 0, 0}
 };
 
@@ -101,7 +103,8 @@ int main(int argc, char **argv)
 	try { // To fix uncaught exceptions on Mac
 	
 	Nifti maskFile, B1File;
-	vector<bool> maskData(0), B1Vol(0);
+	vector<bool> maskData(0);
+	vector<double> B1Vol(0);
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvnm:o:b:123M:", long_options, &indexptr)) != -1) {
 		switch (c) {
