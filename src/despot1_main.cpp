@@ -18,8 +18,11 @@
 
 #include "Nifti/Nifti.h"
 #include "Nifti/Volume.h"
-#include "DESPOT.h"
 #include "ThreadPool.h"
+#include "Model.h"
+#include "DESPOT_Functors.h"
+#include "unsupported/Eigen/NonLinearOptimization"
+#include "unsupported/Eigen/NumericalDiff"
 
 #ifdef AGILENT
 #include "procpar.h"
@@ -43,11 +46,12 @@ Options:\n\
 	--B1, -b file     : B1 Map file (ratio)\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
-			   n      : NLLS algorithm\n"
+	--nits, -n N      : Max iterations for WLLS (default 4)\n"
 };
 
 enum class Algos { LLS, WLLS, NLLS };
-static int verbose = false;
+static bool verbose = false;
+static size_t nIterations = 4;
 static string outPrefix;
 static Algos algo;
 static struct option long_options[] =
@@ -67,13 +71,12 @@ int main(int argc, char **argv)
 	// Argument Processing
 	//**************************************************************************
 	cout << version << endl << credit_shared << endl;
-	double spgrTR = 0.;
 	Nifti spgrFile, B1File, maskFile;
 	Volume<float> spgrVol, B1Vol;
 	Volume<bool> maskVol;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:b:a:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:b:a:n", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
@@ -94,12 +97,15 @@ int main(int argc, char **argv)
 				switch (*optarg) {
 					case 'l': algo = Algos::LLS; break;
 					case 'w': algo = Algos::WLLS; break;
-					case 'n': algo = Algos::NLLS; break;
+					//case 'n': algo = Algos::NLLS; break;
 					default:
 						cout << "Unknown algorithm type " << optarg << endl;
 						exit(EXIT_FAILURE);
 						break;
 				} break;
+			case 'n':
+				nIterations = atoi(optarg);
+				break;
 			case 'h':
 			case '?': // getopt will print an error message
 				exit(EXIT_FAILURE);
@@ -113,6 +119,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Gather SPGR data
 	//**************************************************************************
+	SimpleModel spgrMdl(Signal::Components::One, Model::Scaling::None);
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind], Nifti::Mode::Read);
 	if ((maskFile.isOpen() && !maskFile.matchesSpace(spgrFile)) ||
@@ -120,28 +127,20 @@ int main(int argc, char **argv)
 		cerr << "Mask or B1 dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
 	}
-	size_t nSPGR = spgrFile.dim(4);
-	ArrayXd spgrAngles(nSPGR);
-	
 	#ifdef AGILENT
 	ProcPar pp;
 	if (ReadPP(spgrFile, pp)) {
-		spgrTR = pp.realValue("tr");
-		for (size_t i = 0; i < nSPGR; i++) spgrAngles[i] = pp.realValue("flip1", i);
+		spgrMdl.procparseSPGR(pp);
 	} else
 	#endif
 	{
-		cout << "Enter SPGR TR (seconds):"; cin >> spgrTR;
-		cout << "Enter SPGR " << nSPGR << " Flip Angles (degrees):";
-		for (size_t i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
+		spgrMdl.parseSPGR(spgrFile.dim(4), true);
 	}
-	spgrAngles *= M_PI / 180.;
-	if (verbose)
-	{
-		cout << "SPGR TR=" << spgrTR
-		          << " s. Flip-angles: " << spgrAngles.transpose() * 180. / M_PI << endl;
+	if (verbose) {
+		cout << spgrMdl;
 		cout << "Ouput prefix will be: " << outPrefix << endl;
 	}
+	double TR = spgrMdl.m_signals.at(0)->m_TR;
 	//**************************************************************************
 	// Allocate memory for slices
 	//**************************************************************************	
@@ -157,7 +156,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	ThreadPool pool;
+	ThreadPool pool(1);
 	for (size_t slice = 0; slice < spgrFile.dim(3); slice++) {
 		clock_t loopStart;
 		// Read in data
@@ -170,19 +169,37 @@ int main(int argc, char **argv)
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			if (!maskFile.isOpen() || (maskVol.at(sliceOffset + vox))) {
 				voxCount++;
-				ArrayXd localAngles(spgrAngles);
-				if (B1File.isOpen()) { // Correct for B1
-					localAngles *= B1Vol.at(sliceOffset + vox);
-				}
+				//cout << spgrMdl.m_signals[0]->m_flip.transpose() << endl;
+				double B1 = B1File.isOpen() ? B1Vol.at(sliceOffset + vox) : 1.;
+				ArrayXd localAngles(spgrMdl.m_signals.at(0)->B1flip(B1));
+				//cout << localAngles.transpose() << endl;
+				double T1, PD, SoS;
 				ArrayXd signal = spgrVol.series(sliceOffset + vox).cast<double>();
 				VectorXd Y = signal / localAngles.sin();
 				MatrixXd X(Y.rows(), 2);
 				X.col(0) = signal / localAngles.tan();
 				X.col(1).setOnes();
 				VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
-				T1Vol.at(sliceOffset + vox) = static_cast<float>(-spgrTR / log(b[0]));
-				PDVol.at(sliceOffset + vox) = static_cast<float>(b[1] / (1. - b[0]));
-				SoSVol.at(sliceOffset + vox) = static_cast<float>((Y - X*b).array().square().sum());
+				if (algo == Algos::WLLS) {
+					VectorXd W(spgrMdl.size());
+					for (size_t n = 0; n < nIterations; n++) {
+						T1 = -TR / log(b[0]);
+						W = (localAngles.sin() / (1. - (exp(-TR/T1)*localAngles.cos()))).square();
+						b = (X.transpose() * W.asDiagonal() * X).partialPivLu().solve(X.transpose() * W.asDiagonal() * Y);
+					}
+				} else if (algo == Algos::NLLS) {
+					/*DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal, B1, false);
+					NumericalDiff<DESPOTFunctor> nDiff(f);
+					LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
+					*/
+				}
+				T1 = -TR / log(b[0]);
+				PD = b[1] / (1. - b[0]);
+				ArrayXd theory = spgrMdl.signal(Vector2d(T1, 0.), B1) * PD;
+				SoS = (signal - theory).square().sum();
+				T1Vol.at(sliceOffset + vox) = static_cast<float>(T1);
+				PDVol.at(sliceOffset + vox) = static_cast<float>(PD);
+				SoSVol.at(sliceOffset + vox) = static_cast<float>(SoS);
 			}
 		};
 		pool.for_loop(processVox, voxelsPerSlice);
