@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	size_t nSPGR = spgrFile.dim(4);
-	VectorXd spgrAngles(nSPGR);
+	ArrayXd spgrAngles(nSPGR);
 	
 	#ifdef AGILENT
 	ProcPar pp;
@@ -146,19 +146,18 @@ int main(int argc, char **argv)
 	// Allocate memory for slices
 	//**************************************************************************	
 	size_t voxelsPerSlice = spgrFile.dims().head(2).prod();
-	size_t voxelsPerVolume = spgrFile.dims().head(3).prod();
 	cout << "Reading SPGR data..." << flush;
 	spgrVol.readFrom(spgrFile);
 	cout << "done." << endl;
 	//**************************************************************************
 	// Create results data storage
 	//**************************************************************************
-	#define NR 3
-	vector<Volume<float>> resultsData(NR, Volume<float>(spgrVol.dims().head(3)));
+	Volume<float> T1Vol(spgrVol.dims().head(3)), PDVol(spgrVol.dims().head(3)),
+	              SoSVol(spgrVol.dims().head(3));
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	ThreadPool pool(1);
+	ThreadPool pool;
 	for (size_t slice = 0; slice < spgrFile.dim(3); slice++) {
 		clock_t loopStart;
 		// Read in data
@@ -169,17 +168,22 @@ int main(int argc, char **argv)
 		size_t sliceOffset = slice * voxelsPerSlice;
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
-			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
 			if (!maskFile.isOpen() || (maskVol.at(sliceOffset + vox))) {
 				voxCount++;
-				if (B1File.isOpen())
-					B1 = B1Vol.at(sliceOffset + vox);
-				ArrayXd spgrs = spgrVol.series(sliceOffset + vox).cast<double>();
-				res = classicDESPOT1(spgrAngles, spgrs, spgrTR, B1, M0, T1);
+				ArrayXd localAngles(spgrAngles);
+				if (B1File.isOpen()) { // Correct for B1
+					localAngles *= B1Vol.at(sliceOffset + vox);
+				}
+				ArrayXd signal = spgrVol.series(sliceOffset + vox).cast<double>();
+				VectorXd Y = signal / localAngles.sin();
+				MatrixXd X(Y.rows(), 2);
+				X.col(0) = signal / localAngles.tan();
+				X.col(1).setOnes();
+				VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
+				T1Vol.at(sliceOffset + vox) = static_cast<float>(-spgrTR / log(b[0]));
+				PDVol.at(sliceOffset + vox) = static_cast<float>(b[1] / (1. - b[0]));
+				SoSVol.at(sliceOffset + vox) = static_cast<float>((Y - X*b).array().square().sum());
 			}
-			resultsData.at(0).at(sliceOffset + vox) = static_cast<float>(M0);
-			resultsData.at(1).at(sliceOffset + vox) = static_cast<float>(T1);
-			resultsData.at(2).at(sliceOffset + vox) = static_cast<float>(res);
 		};
 		pool.for_loop(processVox, voxelsPerSlice);
 		
@@ -191,17 +195,21 @@ int main(int argc, char **argv)
 			cout << "finished." << endl;
 		}
 	}
-	const string names[NR] = { "D1_PD", "D1_T1", "D1_SoS" };
+
+	if (verbose)
+		cout << "Writing results." << endl;
 	Nifti outFile(spgrFile, 1);
 	outFile.description = version;
-	for (int r = 0; r < NR; r++) {
-		string outName = outPrefix + names[r] + ".nii.gz";
-		if (verbose)
-			cout << "Writing result header: " << outName << endl;
-		outFile.open(outName, Nifti::Mode::Write);
-		resultsData.at(r).writeTo(outFile);
-		outFile.close();
-	}
+	outFile.open(outPrefix + "D1_T1.nii.gz", Nifti::Mode::Write);
+	T1Vol.writeTo(outFile);
+	outFile.close();
+	outFile.open(outPrefix + "D1_PD.nii.gz", Nifti::Mode::Write);
+	PDVol.writeTo(outFile);
+	outFile.close();
+	outFile.open(outPrefix + "D1_SoS.nii.gz", Nifti::Mode::Write);
+	SoSVol.writeTo(outFile);
+	outFile.close();
+
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
 }
