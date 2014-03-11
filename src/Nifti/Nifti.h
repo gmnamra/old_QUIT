@@ -206,4 +206,4 @@ class Nifti {
 
 #include "Nifti-inl.h"
 
-#endif // NIFTI_IMAGE
+#endif // NIFTI_NIFTI
