@@ -223,16 +223,16 @@ const void CalcExchange(const double tau_a, const double f_a, const double f_b, 
 #pragma mark One Component Signals
 // Parameters are { T1, T2 } or T2*
 //******************************************************************************
-MagVector One_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1) {
+MagVector One_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR) {
 	MagVector M(3, flip.size()); M.setZero();
-	ArrayXd sa = (flip * B1).sin();
-	ArrayXd ca = (flip * B1).cos();
+	ArrayXd sa = flip.sin();
+	ArrayXd ca = flip.cos();
 	double expT1 = exp(-TR / p[0]);
 	M.row(1) = ((1. - expT1) * sa) / (1. - expT1*ca);
 	return M;
 }
 
-MagVector One_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double phase, const double B1) {
+MagVector One_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double phase) {
 	Vector3d M0, Mobs;
 	M0 << 0., 0., 1.;
 	Matrix3d L = (-(Relax(p[0], p[1]) + OffResonance(p[2]))*TR).exp();
@@ -240,7 +240,7 @@ MagVector One_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, cons
 	MagVector theory(3, flip.size());
 	Matrix3d R_rf;
 	for (int i = 0; i < flip.size(); i++) {
-		const Matrix3d R_rf = RF(B1 * flip[i], phase);
+		const Matrix3d R_rf = RF(flip[i], phase);
 		theory.col(i) = (Matrix3d::Identity() - (L * R_rf)).partialPivLu().solve(RHS);
 	}
 	return theory;
@@ -249,7 +249,7 @@ MagVector One_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, cons
 // Parameters are { T1, T2, f0 }
 MagVector One_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spoil,
                           const double TR, const double Trf, const double inTE,
-						  const double phase, const double B1) {
+						  const double phase) {
 	const Matrix3d I = Matrix3d::Identity();
 	const Matrix3d O = OffResonance(p[2]);
 	Matrix3d P, R = Relax(p[0], p[1]);
@@ -271,7 +271,7 @@ MagVector One_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spo
 	Matrix3d E_r;
 	MagVector result(3, flip.size());
 	for (int i = 0; i < flip.size(); i++) {
-		const Matrix3d A = InfinitesimalRF(B1 * flip(i) / Trf);
+		const Matrix3d A = InfinitesimalRF(flip(i) / Trf);
 		E_r.noalias() = (-Trf * (RpO + A)).exp();
 		Vector3d m_rinf = (RpO + A).partialPivLu().solve(R * m_inf);
 		Vector3d m_r = (I - E_r*P*E).partialPivLu().solve(E_r*P*(I-E)*m_inf + (I-E_r)*m_rinf);
@@ -285,7 +285,7 @@ MagVector One_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spo
 #pragma mark Two Component Signals
 //******************************************************************************
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0 }
-MagVector Two_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1) {
+MagVector Two_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR) {
 	Matrix2d A, eATR;
 	Vector2d M0, Mobs;
 	MagVector signal(3, flip.size()); signal.setZero();
@@ -297,14 +297,14 @@ MagVector Two_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, cons
 	eATR = (A*TR).exp();
 	const Vector2d RHS = (Matrix2d::Identity() - eATR) * M0;
 	for (int i = 0; i < flip.size(); i++) {
-		double a = flip[i] * B1;
-		Mobs = (Matrix2d::Identity() - eATR*cos(a)).partialPivLu().solve(RHS * sin(B1 * a));
+		double a = flip[i];
+		Mobs = (Matrix2d::Identity() - eATR*cos(a)).partialPivLu().solve(RHS * sin(a));
 		signal(1, i) = Mobs.sum();
 	}
 	return signal;
 }
 
-MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double phase, const double B1) {
+MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double phase) {
 	MagVector signal(3, flip.size());
 	Vector6d M0; M0 << 0., 0., p[5], 0., 0., (1. - p[5]);
 	Matrix6d R = Matrix6d::Zero();
@@ -318,7 +318,7 @@ MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, cons
 	const Vector6d eyemaM0 = (Matrix6d::Identity() - L) * M0;
 	Matrix6d A = Matrix6d::Zero();
 	for (int i = 0; i < flip.size(); i++) {
-		const Matrix3d Ab = RF(B1 * flip[i], phase);
+		const Matrix3d Ab = RF(flip[i], phase);
 		A.block(0, 0, 3, 3) = Ab;
 		A.block(3, 3, 3, 3) = Ab;
 		Vector6d MTR = (Matrix6d::Identity() - L * A).partialPivLu().solve(eyemaM0);
@@ -330,7 +330,7 @@ MagVector Two_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, cons
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0 }
 MagVector Two_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spoil,
                           const double TR, const double Trf, const double inTE,
-						  const double phase, const double B1) {
+						  const double phase) {
 	const Matrix6d I = Matrix6d::Identity();
 	Matrix6d R = Matrix6d::Zero(), C = Matrix6d::Zero();
 	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(p[6]);
@@ -368,7 +368,7 @@ MagVector Two_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spo
 	Matrix6d A = Matrix6d::Zero();
 	
 	for (int i = 0; i < flip.size(); i++) {
-		A.block(0,0,3,3) = A.block(3,3,3,3) = InfinitesimalRF(B1 * flip(i) / Trf);
+		A.block(0,0,3,3) = A.block(3,3,3,3) = InfinitesimalRF(flip(i) / Trf);
 		l1 = (-(RpOpK+A)*Trf).exp();
 		Vector6d m1 = (RpO + A).partialPivLu().solve(Rm0);
 		mp.noalias() = Cm2 + (I - l1*C*l2).partialPivLu().solve((I - l1)*(m1 - Cm2));
@@ -391,20 +391,20 @@ void splitParameters(const VectorXd &p, Ref<VectorXd> p_ab, Ref<VectorXd> p_c) {
 	p_c(0) = p(4); p_c(1) = p(5); p_c(2) = p(9);
 }
 
-MagVector Three_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR, const double B1) {
+MagVector Three_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR) {
 	VectorXd p_ab(7), p_c(3);
 	splitParameters(p, p_ab, p_c);
-	MagVector m_ab = Two_SPGR(p_ab, flip, TR, B1);
-	MagVector m_c  = One_SPGR(p_c, flip, TR, B1);
+	MagVector m_ab = Two_SPGR(p_ab, flip, TR);
+	MagVector m_c  = One_SPGR(p_c, flip, TR);
 	MagVector r = (m_ab * (1. - p(8))) + (m_c * p(8));
 	return r;
 }
 
-MagVector Three_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double phase, const double B1) {
+MagVector Three_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, const double phase) {
 	VectorXd p_ab(7), p_c(3);
 	splitParameters(p, p_ab, p_c);
-	MagVector m_ab = Two_SSFP(p_ab, flip, TR, phase, B1);
-	MagVector m_c  = One_SSFP(p_c, flip, TR, phase, B1);
+	MagVector m_ab = Two_SSFP(p_ab, flip, TR, phase);
+	MagVector m_c  = One_SSFP(p_c, flip, TR, phase);
 	MagVector r = (m_ab * (1. - p(8))) + (m_c * p(8));
 	return r;
 }
@@ -412,11 +412,11 @@ MagVector Three_SSFP(const VectorXd &p, const ArrayXd &flip, const double TR, co
 // Parameters are { T1a, T2a, T1b, T2b, T1c, T2c, tau_a, f_a, f_c, f0 }
 MagVector Three_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spoil,
                             const double TR, const double Trf, const double TE,
-						    const double ph, const double B1) {
+						    const double ph) {
 	VectorXd p_ab(7), p_c(3);
 	splitParameters(p, p_ab, p_c);
-	MagVector m_ab = Two_SSFP_Finite(p_ab, flip, spoil, TR, Trf, TE, ph, B1);
-	MagVector m_c  = One_SSFP_Finite(p_c,  flip, spoil, TR, Trf, TE, ph, B1);
+	MagVector m_ab = Two_SSFP_Finite(p_ab, flip, spoil, TR, Trf, TE, ph);
+	MagVector m_c  = One_SSFP_Finite(p_c,  flip, spoil, TR, Trf, TE, ph);
 	MagVector r = (m_ab * (1. - p(8))) + (m_c * p(8));
 	return r;
 }
