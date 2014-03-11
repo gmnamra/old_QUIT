@@ -17,6 +17,7 @@
 #include <Eigen/Dense>
 
 #include "Nifti/Nifti.h"
+#include "Nifti/Volume.h"
 #include "DESPOT.h"
 #include "ThreadPool.h"
 
@@ -35,15 +36,20 @@ const string usage {
 "Usage is: despot1 [options] spgr_input \n\
 \
 Options:\n\
-	-m, --mask file : Mask input with specified file.\n\
-	-o, --out path  : Add a prefix to the output filenames.\n\
-	-b, --B1 file   : Correct flip angles with specified B1 ratio.\n\
-	-v, --verbose   : Print out more messages.\n\
-	-d, --drop      : Drop certain flip-angles (Read from stdin).\n"
+	--help, -h        : Print this message\n\
+	--verbose, -v     : Print writeResiduals information\n\
+	--mask, -m file   : Mask input with specified file\n\
+	--out, -o path    : Add a prefix to the output filenames\n\
+	--B1, -b file     : B1 Map file (ratio)\n\
+	--algo, -a l      : LLS algorithm (default)\n\
+	           w      : WLLS algorithm\n\
+			   n      : NLLS algorithm\n"
 };
 
-static int verbose = false, drop = false;
+enum class Algos { LLS, WLLS, NLLS };
+static int verbose = false;
 static string outPrefix;
+static Algos algo;
 static struct option long_options[] =
 {
 	{"B1", required_argument, 0, 'b'},
@@ -62,30 +68,39 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << version << endl << credit_shared << endl;
 	double spgrTR = 0.;
-	vector<double> B1Data, maskData;
 	Nifti spgrFile, B1File, maskFile;
+	Volume<float> spgrVol, B1Vol;
+	Volume<bool> maskVol;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "b:m:o:vd", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:b:a:", long_options, &indexptr)) != -1) {
 		switch (c) {
-			case 'b':
-				cout << "Opening B1 file: " << optarg << endl;
-				B1File.open(optarg, Nifti::Mode::Read);
-				B1Data.resize(B1File.dims().head(3).prod());
-				B1File.readVolumes(0, 1, B1Data);
-				break;
+			case 'v': verbose = true; break;
 			case 'm':
-				cout << "Opening mask file: " << optarg << endl;
+				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData.resize(maskFile.dims().head(3).prod());
-				maskFile.readVolumes(0, 1, maskData);
+				maskVol.readFrom(maskFile);
 				break;
 			case 'o':
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
-			case 'v': verbose = true; break;
-			case 'd': drop = true; break;
+			case 'b':
+				cout << "Reading B1 file: " << optarg << endl;
+				B1File.open(optarg, Nifti::Mode::Read);
+				B1Vol.readFrom(B1File);
+				break;
+			case 'a':
+				switch (*optarg) {
+					case 'l': algo = Algos::LLS; break;
+					case 'w': algo = Algos::WLLS; break;
+					case 'n': algo = Algos::NLLS; break;
+					default:
+						cout << "Unknown algorithm type " << optarg << endl;
+						exit(EXIT_FAILURE);
+						break;
+				} break;
+			case 'h':
 			case '?': // getopt will print an error message
 				exit(EXIT_FAILURE);
 		}
@@ -121,20 +136,6 @@ int main(int argc, char **argv)
 		for (size_t i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
 	}
 	spgrAngles *= M_PI / 180.;
-	//**************************************************************************
-	#pragma mark Select which angles to use in the analysis
-	//**************************************************************************	
-	VectorXi spgrKeep(nSPGR);
-	spgrKeep.setOnes();
-	if (drop) {
-		cout << "Choose SPGR angles to use (1 to keep, 0 to drop, " << nSPGR << " values): ";
-		for (size_t i = 0; i < nSPGR; i++) cin >> spgrKeep[i];
-		VectorXd temp = spgrAngles;
-		spgrAngles.resize(spgrKeep.sum());
-		int angle = 0;
-		for (size_t i = 0; i < nSPGR; i++)
-			if (spgrKeep(i)) spgrAngles(angle++) = temp(i);
-	}
 	if (verbose)
 	{
 		cout << "SPGR TR=" << spgrTR
@@ -146,23 +147,18 @@ int main(int argc, char **argv)
 	//**************************************************************************	
 	size_t voxelsPerSlice = spgrFile.dims().head(2).prod();
 	size_t voxelsPerVolume = spgrFile.dims().head(3).prod();
-	
 	cout << "Reading SPGR data..." << flush;
-	vector<double> spgrData(voxelsPerVolume * nSPGR);
-	spgrFile.readVolumes(0, nSPGR, spgrData);
-	spgrFile.close();
+	spgrVol.readFrom(spgrFile);
 	cout << "done." << endl;
 	//**************************************************************************
 	// Create results data storage
 	//**************************************************************************
 	#define NR 3
-	vector<vector<double>> resultsData(NR);
-	for (int i = 0; i < NR; i++)
-		resultsData[i].resize(voxelsPerVolume);
+	vector<Volume<float>> resultsData(NR, Volume<float>(spgrVol.dims().head(3)));
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	ThreadPool pool;
+	ThreadPool pool(1);
 	for (size_t slice = 0; slice < spgrFile.dim(3); slice++) {
 		clock_t loopStart;
 		// Read in data
@@ -174,22 +170,16 @@ int main(int argc, char **argv)
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
-			if (!maskFile.isOpen() || (maskData[sliceOffset + vox] > 0.))
-			{
+			if (!maskFile.isOpen() || (maskVol.at(sliceOffset + vox))) {
 				voxCount++;
 				if (B1File.isOpen())
-					B1 = B1Data[sliceOffset + vox];
-				ArrayXd spgrs(nSPGR);
-				int vol = 0;
-				for (size_t img = 0; img < nSPGR; img++) {
-					if (spgrKeep(img))
-						spgrs[vol++] = spgrData[img * voxelsPerVolume + sliceOffset + vox];
-				}
+					B1 = B1Vol.at(sliceOffset + vox);
+				ArrayXd spgrs = spgrVol.series(sliceOffset + vox).cast<double>();
 				res = classicDESPOT1(spgrAngles, spgrs, spgrTR, B1, M0, T1);
 			}
-			resultsData[0][sliceOffset + vox] = M0;
-			resultsData[1][sliceOffset + vox] = T1;
-			resultsData[2][sliceOffset + vox] = res;
+			resultsData.at(0).at(sliceOffset + vox) = static_cast<float>(M0);
+			resultsData.at(1).at(sliceOffset + vox) = static_cast<float>(T1);
+			resultsData.at(2).at(sliceOffset + vox) = static_cast<float>(res);
 		};
 		pool.for_loop(processVox, voxelsPerSlice);
 		
@@ -209,7 +199,7 @@ int main(int argc, char **argv)
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
 		outFile.open(outName, Nifti::Mode::Write);
-		outFile.writeVolumes<double>(0, 1, resultsData[r]);
+		resultsData.at(r).writeTo(outFile);
 		outFile.close();
 	}
 	cout << "All done." << endl;
