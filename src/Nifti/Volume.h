@@ -43,8 +43,6 @@ class Volume {
 		const Tp &operator[](const std::vector<size_t> indices) const;
 		Tp &operator[](const std::vector<size_t> indices);
 		
-		
-		
 		VectorTp series(const size_t index) const;
 		VectorTp series(const std::vector<size_t> indices) const;
 		

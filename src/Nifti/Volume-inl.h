@@ -65,27 +65,6 @@ void Volume<Tp>::calcStrides() {
 		m_strides[i] = m_strides[i - 1] * m_dims[i - 1];
 }
 
-/*template<typename Tp>
-const Tp &Volume<Tp>::at(const size_t index) const {
-	return m_data.at(index);
-}
-
-template<typename Tp>
-Tp &Volume<Tp>::at(const size_t index) {
-	return const_cast<Tp &>(static_cast<const Volume<Tp> &>(*this).at(index) );
-}*/
-
-/*template<typename Tp>
-const Tp &Volume<Tp>::get(const std::vector<size_t> indices) const {
-	IndexArray aind(indices.size());
-	for (size_t i = 0; i < indices.size(); i++)
-		aind[i] = indices[i];
-	if (!(aind < m_dims).all())
-		throw (std::out_of_range("Requested index outside of volume."));
-	size_t index = (aind * m_strides).sum();
-	return m_data.at(index);
-}*/
-
 template<typename Tp>
 size_t Volume<Tp>::calcIndex(const std::vector<size_t> indices) const {
 	IndexArray aind(indices.size());
