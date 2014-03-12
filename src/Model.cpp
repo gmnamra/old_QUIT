@@ -58,9 +58,9 @@ void SPGRFinite::write(ostream &os) const {
 }
 ArrayXd SPGRFinite::signal(const Components nC, const VectorXd &p, const double B1) const {
 	switch (nC) {
-		case (Components::One) : return SigMag(One_SSFP_Finite(p, B1flip(B1), true, m_TR, m_Trf, m_TE, 0));
-		case (Components::Two) : return SigMag(Two_SSFP_Finite(p, B1flip(B1), true, m_TR, m_Trf, m_TE, 0));
-		case (Components::Three) : return SigMag(Three_SSFP_Finite(p, B1flip(B1), true, m_TR, m_Trf, m_TE, 0));
+		case (Components::One) : return SigMag(One_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3]));
+		case (Components::Two) : return SigMag(Two_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]));
+		case (Components::Three) : return SigMag(Three_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10]));
 	}
 }
 
@@ -77,9 +77,9 @@ ArrayXd SSFPSimple::signal(const Components nC, const VectorXd &p, const double 
 	ArrayXd::Index start = 0;
 	for (ArrayXd::Index i = 0; i < m_phases.rows(); i++) {
 		switch (nC) {
-			case (Components::One) : s.segment(start, m_flip.rows()) = SigMag(One_SSFP(p, B1flip(B1), m_TR, m_phases(i))); break;
-			case (Components::Two) : s.segment(start, m_flip.rows()) = SigMag(Two_SSFP(p, B1flip(B1), m_TR, m_phases(i))); break;
-			case (Components::Three) : s.segment(start, m_flip.rows()) = SigMag(Three_SSFP(p, B1flip(B1), m_TR, m_phases(i))); break;
+			case (Components::One) : s.segment(start, m_flip.rows()) = SigMag(One_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3])); break;
+			case (Components::Two) : s.segment(start, m_flip.rows()) = SigMag(Two_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7])); break;
+			case (Components::Three) : s.segment(start, m_flip.rows()) = SigMag(Three_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10])); break;
 		}
 		start += m_flip.rows();
 	}
@@ -97,9 +97,9 @@ ArrayXd SSFPFinite::signal(const Components nC, const VectorXd &p, const double 
 	ArrayXd::Index start = 0;
 	for (ArrayXd::Index i = 0; i < m_phases.rows(); i++) {
 		switch (nC) {
-			case (Components::One) : s.segment(start, m_flip.rows()) = SigMag(One_SSFP_Finite(p, B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i))); break;
-			case (Components::Two) : s.segment(start, m_flip.rows()) = SigMag(Two_SSFP_Finite(p, B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i))); break;
-			case (Components::Three) : s.segment(start, m_flip.rows()) = SigMag(Three_SSFP_Finite(p, B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i))); break;
+			case (Components::One) : s.segment(start, m_flip.rows()) = SigMag(One_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3])); break;
+			case (Components::Two) : s.segment(start, m_flip.rows()) = SigMag(Two_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7])); break;
+			case (Components::Three) : s.segment(start, m_flip.rows()) = SigMag(Three_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10])); break;
 		}
 		start += m_flip.rows();
 	}

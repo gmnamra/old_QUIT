@@ -197,13 +197,9 @@ int main(int argc, char **argv)
 					LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
 					lm.parameters.maxfev = nIterations;
 					VectorXd p(4);
-					//cout << "Start " << start.transpose() << endl;
-					p << PD, T1, 0., 0.;
+					p << PD, T1, 0., 0.; // Don't need T2 of f0 for this (yet)
 					lm.lmder1(p);
-					//VectorXd final = lm.fvec;
-					//cout << "End " << start.transpose() << "\t Final " << final.transpose() << endl;
-					PD = p(0);
-					T1 = p(1);
+					PD = p(0); T1 = p(1);
 				}
 				ArrayXd theory = spgrMdl.signal(Vector4d(PD, T1, 0., 0.), B1);
 				SoS = (signal - theory).square().sum();
