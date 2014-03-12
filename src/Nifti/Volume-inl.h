@@ -65,7 +65,7 @@ void Volume<Tp>::calcStrides() {
 		m_strides[i] = m_strides[i - 1] * m_dims[i - 1];
 }
 
-template<typename Tp>
+/*template<typename Tp>
 const Tp &Volume<Tp>::at(const size_t index) const {
 	return m_data.at(index);
 }
@@ -73,10 +73,10 @@ const Tp &Volume<Tp>::at(const size_t index) const {
 template<typename Tp>
 Tp &Volume<Tp>::at(const size_t index) {
 	return const_cast<Tp &>(static_cast<const Volume<Tp> &>(*this).at(index) );
-}
+}*/
 
-template<typename Tp>
-Tp &Volume<Tp>::at(const std::vector<size_t> indices) {
+/*template<typename Tp>
+const Tp &Volume<Tp>::get(const std::vector<size_t> indices) const {
 	IndexArray aind(indices.size());
 	for (size_t i = 0; i < indices.size(); i++)
 		aind[i] = indices[i];
@@ -84,6 +84,27 @@ Tp &Volume<Tp>::at(const std::vector<size_t> indices) {
 		throw (std::out_of_range("Requested index outside of volume."));
 	size_t index = (aind * m_strides).sum();
 	return m_data.at(index);
+}*/
+
+template<typename Tp>
+size_t Volume<Tp>::calcIndex(const std::vector<size_t> indices) const {
+	IndexArray aind(indices.size());
+	for (size_t i = 0; i < indices.size(); i++)
+		aind[i] = indices[i];
+	if (!(aind < m_dims.head(aind.size())).all())
+		throw (std::out_of_range("Requested index outside of volume."));
+	size_t index = (aind * m_strides.head(aind.size())).sum();
+	return index;
+}
+
+template<typename Tp>
+const Tp &Volume<Tp>::operator[](const std::vector<size_t> indices) const {
+	return m_data[calcIndex(indices)];
+}
+
+template<typename Tp>
+Tp &Volume<Tp>::operator[](const std::vector<size_t> indices) {
+	return m_data[calcIndex(indices)];
 }
 
 template<typename Tp>
@@ -99,13 +120,8 @@ typename Volume<Tp>::VectorTp Volume<Tp>::series(const size_t index) const {
 
 template<typename Tp>
 typename Volume<Tp>::VectorTp Volume<Tp>::series(const std::vector<size_t> indices) const {
-	VectorTp s;
-	Eigen::Array<size_t, 3, 1> aind;
-	for (size_t i = 0; i < 3; i++)
-		aind[i] = indices[i];
-	if (!(aind < m_dims.head(3)).all())
-		throw (std::out_of_range("Requested index outside of volume."));
-	size_t idx = (aind * m_strides.head(3)).sum();
+	VectorTp s(m_dims[3]);
+	size_t idx = calcIndex(indices);
 	for (size_t i = 0; i < m_dims[3]; i++) {
 		s[i] = m_data.at(idx);
 		idx += m_strides[3];

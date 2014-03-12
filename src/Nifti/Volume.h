@@ -30,7 +30,7 @@ class Volume {
 		IndexArray      m_dims, m_strides;
 		
 		void calcStrides();
-
+		size_t calcIndex(const std::vector<size_t> indices) const;
 	public:
 		Volume();
 		Volume(const std::vector<size_t> dims);
@@ -40,9 +40,10 @@ class Volume {
 		void readFrom(Nifti &img);
 		void writeTo(Nifti &img);
 		
-		const Tp &at(const size_t index) const;
-		Tp &at(const size_t index);
-		Tp &at(const std::vector<size_t> indices);
+		const Tp &operator[](const std::vector<size_t> indices) const;
+		Tp &operator[](const std::vector<size_t> indices);
+		
+		
 		
 		VectorTp series(const size_t index) const;
 		VectorTp series(const std::vector<size_t> indices) const;
