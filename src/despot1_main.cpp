@@ -46,6 +46,7 @@ Options:\n\
 	--B1, -b file     : B1 Map file (ratio)\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
+			   n      : NLLS (Levenberg-Marquardt)\n\
 	--nits, -n N      : Max iterations for WLLS (default 4)\n"
 };
 
@@ -97,7 +98,7 @@ int main(int argc, char **argv)
 				switch (*optarg) {
 					case 'l': algo = Algos::LLS; break;
 					case 'w': algo = Algos::WLLS; break;
-					//case 'n': algo = Algos::NLLS; break;
+					case 'n': algo = Algos::NLLS; break;
 					default:
 						cout << "Unknown algorithm type " << optarg << endl;
 						exit(EXIT_FAILURE);
@@ -156,7 +157,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	ThreadPool pool(1);
+	ThreadPool pool;
 	for (size_t slice = 0; slice < spgrFile.dim(3); slice++) {
 		clock_t loopStart;
 		// Read in data
@@ -180,22 +181,31 @@ int main(int argc, char **argv)
 				X.col(0) = signal / localAngles.tan();
 				X.col(1).setOnes();
 				VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
+				T1 = -TR / log(b[0]);
+				PD = b[1] / (1. - b[0]);
 				if (algo == Algos::WLLS) {
 					VectorXd W(spgrMdl.size());
 					for (size_t n = 0; n < nIterations; n++) {
-						T1 = -TR / log(b[0]);
 						W = (localAngles.sin() / (1. - (exp(-TR/T1)*localAngles.cos()))).square();
 						b = (X.transpose() * W.asDiagonal() * X).partialPivLu().solve(X.transpose() * W.asDiagonal() * Y);
+						T1 = -TR / log(b[0]);
+						PD = b[1] / (1. - b[0]);
 					}
 				} else if (algo == Algos::NLLS) {
-					/*DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal, B1, false);
+					DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal, B1, false);
 					NumericalDiff<DESPOTFunctor> nDiff(f);
 					LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
-					*/
+					lm.parameters.maxfev = nIterations;
+					VectorXd p(4);
+					//cout << "Start " << start.transpose() << endl;
+					p << PD, T1, 0., 0.;
+					lm.lmder1(p);
+					//VectorXd final = lm.fvec;
+					//cout << "End " << start.transpose() << "\t Final " << final.transpose() << endl;
+					PD = p(0);
+					T1 = p(1);
 				}
-				T1 = -TR / log(b[0]);
-				PD = b[1] / (1. - b[0]);
-				ArrayXd theory = spgrMdl.signal(Vector2d(T1, 0.), B1) * PD;
+				ArrayXd theory = spgrMdl.signal(Vector4d(PD, T1, 0., 0.), B1);
 				SoS = (signal - theory).square().sum();
 				T1Vol.at(sliceOffset + vox) = static_cast<float>(T1);
 				PDVol.at(sliceOffset + vox) = static_cast<float>(PD);

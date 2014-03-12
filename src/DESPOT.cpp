@@ -221,14 +221,14 @@ const void CalcExchange(const double tau_a, const double f_a, const double f_b, 
 
 //******************************************************************************
 #pragma mark One Component Signals
-// Parameters are { T1, T2 } or T2*
 //******************************************************************************
-MagVector One_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR) {
+MagVector One_SPGR(const ArrayXd &flip, const double TR,
+                   const double PD, const double T1) {
 	MagVector M(3, flip.size()); M.setZero();
 	ArrayXd sa = flip.sin();
 	ArrayXd ca = flip.cos();
-	double expT1 = exp(-TR / p[0]);
-	M.row(1) = ((1. - expT1) * sa) / (1. - expT1*ca);
+	double expT1 = exp(-TR / T1);
+	M.row(1) = PD * ((1. - expT1) * sa) / (1. - expT1*ca);
 	return M;
 }
 
@@ -285,21 +285,23 @@ MagVector One_SSFP_Finite(const VectorXd &p, const ArrayXd &flip, const bool spo
 #pragma mark Two Component Signals
 //******************************************************************************
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0 }
-MagVector Two_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR) {
+MagVector Two_SPGR(const ArrayXd &flip, const double TR, const double PD,
+                   const double T1_a, const double T1_b,
+				   const double tau_a, const double f_a) {
 	Matrix2d A, eATR;
 	Vector2d M0, Mobs;
 	MagVector signal(3, flip.size()); signal.setZero();
-	double k_ab, k_ba, f_a = p[5], f_b = 1. - f_a;
-	CalcExchange(p[4], f_a, f_b, k_ab, k_ba);
+	double k_ab, k_ba, f_b = 1. - f_a;
+	CalcExchange(tau_a, f_a, f_b, k_ab, k_ba);
 	M0 << f_a, f_b;
-	A << -((1./p[0]) + k_ab),                    k_ba,
-				        k_ab,      -((1./p[2]) + k_ba);
+	A << -((1./T1_a) + k_ab),                    k_ba,
+				       k_ab,      -((1./T1_b) + k_ba);
 	eATR = (A*TR).exp();
 	const Vector2d RHS = (Matrix2d::Identity() - eATR) * M0;
 	for (int i = 0; i < flip.size(); i++) {
 		double a = flip[i];
 		Mobs = (Matrix2d::Identity() - eATR*cos(a)).partialPivLu().solve(RHS * sin(a));
-		signal(1, i) = Mobs.sum();
+		signal(1, i) = PD * Mobs.sum();
 	}
 	return signal;
 }
@@ -391,12 +393,13 @@ void splitParameters(const VectorXd &p, Ref<VectorXd> p_ab, Ref<VectorXd> p_c) {
 	p_c(0) = p(4); p_c(1) = p(5); p_c(2) = p(9);
 }
 
-MagVector Three_SPGR(const VectorXd &p, const ArrayXd &flip, const double TR) {
-	VectorXd p_ab(7), p_c(3);
-	splitParameters(p, p_ab, p_c);
-	MagVector m_ab = Two_SPGR(p_ab, flip, TR);
-	MagVector m_c  = One_SPGR(p_c, flip, TR);
-	MagVector r = (m_ab * (1. - p(8))) + (m_c * p(8));
+MagVector Three_SPGR(const ArrayXd &flip, const double TR, const double PD,
+                     const double T1_a, const double T1_b, const double T1_c,
+					 const double tau_a, const double f_a, const double f_c) {
+	double f_ab = 1. - f_c;
+	MagVector m_ab = Two_SPGR(flip, TR, PD, T1_a, T1_b, tau_a, f_a / f_ab);
+	MagVector m_c  = One_SPGR(flip, TR, PD, T1_c);
+	MagVector r = (m_ab * f_ab) + (m_c * f_c);
 	return r;
 }
 

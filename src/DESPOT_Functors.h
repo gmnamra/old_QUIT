@@ -56,7 +56,7 @@ class Functor {
 		virtual const long inputs() const { return m_inputs; }
 		virtual const long values() const { return m_values; }
 		
-		virtual int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) = 0;
+		virtual int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const = 0;
 };
 
 //******************************************************************************
@@ -78,7 +78,7 @@ class DESPOTFunctor : public Functor<double> {
 		DESPOTFunctor(shared_ptr<Model> m, const ArrayXd &d, const double B1, const bool debug = false);
 		
 		const bool constraint(const VectorXd &params) const;
-		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) override;
+		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const override;
 };
 
 #endif
