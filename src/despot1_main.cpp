@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	cout << version << endl << credit_shared << endl;
 	Nifti spgrFile, B1File, maskFile;
 	Volume<float> spgrVol, B1Vol;
-	Volume<bool> maskVol;
+	Volume<char> maskVol;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvm:o:b:a:n", long_options, &indexptr)) != -1) {
@@ -144,8 +144,7 @@ int main(int argc, char **argv)
 	double TR = spgrMdl.m_signals.at(0)->m_TR;
 	//**************************************************************************
 	// Allocate memory for slices
-	//**************************************************************************	
-	size_t voxelsPerSlice = spgrFile.dims().head(2).prod();
+	//**************************************************************************
 	cout << "Reading SPGR data..." << flush;
 	spgrVol.readFrom(spgrFile);
 	cout << "done." << endl;
@@ -158,57 +157,59 @@ int main(int argc, char **argv)
 	// Do the fitting
 	//**************************************************************************
 	ThreadPool pool;
-	for (size_t slice = 0; slice < spgrFile.dim(3); slice++) {
+	for (size_t k = 0; k < spgrFile.dim(3); k++) {
 		clock_t loopStart;
 		// Read in data
 		if (verbose)
-			cout << "Starting slice " << slice << "..." << flush;
+			cout << "Starting slice " << k << "..." << flush;
 		loopStart = clock();
 		atomic<int> voxCount{0};
-		size_t sliceOffset = slice * voxelsPerSlice;
 		
-		function<void (const int&)> processVox = [&] (const int &vox) {
-			if (!maskFile.isOpen() || (maskVol.at(sliceOffset + vox))) {
-				voxCount++;
-				//cout << spgrMdl.m_signals[0]->m_flip.transpose() << endl;
-				double B1 = B1File.isOpen() ? B1Vol.at(sliceOffset + vox) : 1.;
-				ArrayXd localAngles(spgrMdl.m_signals.at(0)->B1flip(B1));
-				//cout << localAngles.transpose() << endl;
-				double T1, PD, SoS;
-				ArrayXd signal = spgrVol.series(sliceOffset + vox).cast<double>();
-				VectorXd Y = signal / localAngles.sin();
-				MatrixXd X(Y.rows(), 2);
-				X.col(0) = signal / localAngles.tan();
-				X.col(1).setOnes();
-				VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
-				T1 = -TR / log(b[0]);
-				PD = b[1] / (1. - b[0]);
-				if (algo == Algos::WLLS) {
-					VectorXd W(spgrMdl.size());
-					for (size_t n = 0; n < nIterations; n++) {
-						W = (localAngles.sin() / (1. - (exp(-TR/T1)*localAngles.cos()))).square();
-						b = (X.transpose() * W.asDiagonal() * X).partialPivLu().solve(X.transpose() * W.asDiagonal() * Y);
-						T1 = -TR / log(b[0]);
-						PD = b[1] / (1. - b[0]);
+		for (size_t j = 0; j < spgrFile.dim(2); j++) {
+			function<void (const size_t)> processVox = [&] (const size_t i) {
+				if (!maskFile.isOpen() || (maskVol[{i, j, k}])) {
+					voxCount++;
+					//cout << spgrMdl.m_signals[0]->m_flip.transpose() << endl;
+					double B1 = B1File.isOpen() ? B1Vol[{i, j, k}] : 1.;
+					ArrayXd localAngles(spgrMdl.m_signals.at(0)->B1flip(B1));
+					//cout << localAngles.transpose() << endl;
+					double T1, PD, SoS;
+					ArrayXd signal = spgrVol.series({i, j, k}).cast<double>();
+					VectorXd Y = signal / localAngles.sin();
+					MatrixXd X(Y.rows(), 2);
+					X.col(0) = signal / localAngles.tan();
+					X.col(1).setOnes();
+					VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
+					T1 = -TR / log(b[0]);
+					PD = b[1] / (1. - b[0]);
+					if (algo == Algos::WLLS) {
+						VectorXd W(spgrMdl.size());
+						for (size_t n = 0; n < nIterations; n++) {
+							W = (localAngles.sin() / (1. - (exp(-TR/T1)*localAngles.cos()))).square();
+							b = (X.transpose() * W.asDiagonal() * X).partialPivLu().solve(X.transpose() * W.asDiagonal() * Y);
+							T1 = -TR / log(b[0]);
+							PD = b[1] / (1. - b[0]);
+						}
+					} else if (algo == Algos::NLLS) {
+						DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal, B1, false);
+						NumericalDiff<DESPOTFunctor> nDiff(f);
+						LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
+						lm.parameters.maxfev = nIterations;
+						VectorXd p(4);
+						p << PD, T1, 0., 0.; // Don't need T2 of f0 for this (yet)
+						lm.lmder1(p);
+						PD = p(0); T1 = p(1);
 					}
-				} else if (algo == Algos::NLLS) {
-					DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal, B1, false);
-					NumericalDiff<DESPOTFunctor> nDiff(f);
-					LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
-					lm.parameters.maxfev = nIterations;
-					VectorXd p(4);
-					p << PD, T1, 0., 0.; // Don't need T2 of f0 for this (yet)
-					lm.lmder1(p);
-					PD = p(0); T1 = p(1);
+					ArrayXd theory = spgrMdl.signal(Vector4d(PD, T1, 0., 0.), B1);
+					SoS = (signal - theory).square().sum();
+					T1Vol[{i, j, k}]  = static_cast<float>(T1);
+					PDVol[{i, j, k}]  = static_cast<float>(PD);
+					SoSVol[{i, j, k}] = static_cast<float>(SoS);
 				}
-				ArrayXd theory = spgrMdl.signal(Vector4d(PD, T1, 0., 0.), B1);
-				SoS = (signal - theory).square().sum();
-				T1Vol.at(sliceOffset + vox) = static_cast<float>(T1);
-				PDVol.at(sliceOffset + vox) = static_cast<float>(PD);
-				SoSVol.at(sliceOffset + vox) = static_cast<float>(SoS);
-			}
-		};
-		pool.for_loop(processVox, voxelsPerSlice);
+			};
+			
+			pool.for_loop(processVox, spgrFile.dim(1));
+		}
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
