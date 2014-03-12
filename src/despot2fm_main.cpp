@@ -313,12 +313,11 @@ int main(int argc, char **argv)
 					localBounds.row(2).setConstant(f0Vol[vox]);
 				}
 				double B1 = B1File.isOpen() ? B1Vol[sliceOffset + vox] : 1.;
-				size_t rSeed = time(NULL) + vox; // Add the voxel number to the time to get a decent random seed
 				DESPOTFunctor func(model, signal, B1, false);
 				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, thresh,
 											        samples, retain, contract, expand, (voxI != -1));
 				ArrayXd params(model->nParameters()); params.setZero();
-				rc.optimise(params);
+				rc.optimise(params, time(NULL) + vox); // Add the voxel number to the time to get a decent random seed
 				for (ArrayXd::Index p = 0; p < params.size(); p++)
 					paramsVols.at(p).at(sliceOffset + vox) = params(p);
 				SoSVol.at(sliceOffset + vox) = rc.SoS();

@@ -38,6 +38,7 @@ class Signal {
 		double m_TR;
 		ArrayXd m_flip;
 		Signal(const ArrayXd &flip, const double TR);
+		ArrayXd B1flip(const double B1) const;
 		virtual ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const = 0;
 		virtual size_t size() const { return m_flip.rows(); }
 		virtual void write(ostream &os) const = 0;

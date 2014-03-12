@@ -29,6 +29,13 @@ ostream& operator<<(ostream& os, const Signal& s) {
 	return os;
 }
 
+ArrayXd Signal::B1flip(const double B1) const {
+	return B1 * m_flip;
+}
+
+// Parameters are PD, T1, T2, f0
+//                PD, T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0
+//				  PD, T1_a, T2_a, T1_b, T2_b, T1_c, T2_c, tau_a, f_a, f_c, f0
 SPGRSimple::SPGRSimple(const ArrayXd &flip, const double TR) : Signal(flip, TR) {}
 void SPGRSimple::write(ostream &os) const {
 	os << "SPGR Simple" << endl;
@@ -37,9 +44,9 @@ void SPGRSimple::write(ostream &os) const {
 }
 ArrayXd SPGRSimple::signal(const Components nC, const VectorXd &p, const double B1) const {
 	switch (nC) {
-		case (Components::One) : return SigMag(One_SPGR(p, m_flip, m_TR, B1));
-		case (Components::Two) : return SigMag(Two_SPGR(p, m_flip, m_TR, B1));
-		case (Components::Three) : return SigMag(Three_SPGR(p, m_flip, m_TR, B1));
+		case (Components::One) : return SigMag(One_SPGR(B1flip(B1), m_TR, p[0], p[1]));
+		case (Components::Two) : return SigMag(Two_SPGR(B1flip(B1), m_TR, p[0], p[1], p[3], p[5], p[6]));
+		case (Components::Three) : return SigMag(Three_SPGR(B1flip(B1), m_TR, p[0], p[1], p[3], p[5], p[7], p[8], p[9]));
 	}
 }
 
@@ -51,9 +58,9 @@ void SPGRFinite::write(ostream &os) const {
 }
 ArrayXd SPGRFinite::signal(const Components nC, const VectorXd &p, const double B1) const {
 	switch (nC) {
-		case (Components::One) : return SigMag(One_SSFP_Finite(p, m_flip, true, m_TR, m_Trf, m_TE, 0, B1));
-		case (Components::Two) : return SigMag(Two_SSFP_Finite(p, m_flip, true, m_TR, m_Trf, m_TE, 0, B1));
-		case (Components::Three) : return SigMag(Three_SSFP_Finite(p, m_flip, true, m_TR, m_Trf, m_TE, 0, B1));
+		case (Components::One) : return SigMag(One_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3]));
+		case (Components::Two) : return SigMag(Two_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]));
+		case (Components::Three) : return SigMag(Three_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10]));
 	}
 }
 
@@ -70,9 +77,9 @@ ArrayXd SSFPSimple::signal(const Components nC, const VectorXd &p, const double 
 	ArrayXd::Index start = 0;
 	for (ArrayXd::Index i = 0; i < m_phases.rows(); i++) {
 		switch (nC) {
-			case (Components::One) : s.segment(start, m_flip.rows()) = SigMag(One_SSFP(p, m_flip, m_TR, m_phases(i), B1)); break;
-			case (Components::Two) : s.segment(start, m_flip.rows()) = SigMag(Two_SSFP(p, m_flip, m_TR, m_phases(i), B1)); break;
-			case (Components::Three) : s.segment(start, m_flip.rows()) = SigMag(Three_SSFP(p, m_flip, m_TR, m_phases(i), B1)); break;
+			case (Components::One) : s.segment(start, m_flip.rows()) = SigMag(One_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3])); break;
+			case (Components::Two) : s.segment(start, m_flip.rows()) = SigMag(Two_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7])); break;
+			case (Components::Three) : s.segment(start, m_flip.rows()) = SigMag(Three_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10])); break;
 		}
 		start += m_flip.rows();
 	}
@@ -90,9 +97,9 @@ ArrayXd SSFPFinite::signal(const Components nC, const VectorXd &p, const double 
 	ArrayXd::Index start = 0;
 	for (ArrayXd::Index i = 0; i < m_phases.rows(); i++) {
 		switch (nC) {
-			case (Components::One) : s.segment(start, m_flip.rows()) = SigMag(One_SSFP_Finite(p, m_flip, false, m_TR, m_Trf, 0., m_phases(i), B1)); break;
-			case (Components::Two) : s.segment(start, m_flip.rows()) = SigMag(Two_SSFP_Finite(p, m_flip, false, m_TR, m_Trf, 0., m_phases(i), B1)); break;
-			case (Components::Three) : s.segment(start, m_flip.rows()) = SigMag(Three_SSFP_Finite(p, m_flip, false, m_TR, m_Trf, 0., m_phases(i), B1)); break;
+			case (Components::One) : s.segment(start, m_flip.rows()) = SigMag(One_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3])); break;
+			case (Components::Two) : s.segment(start, m_flip.rows()) = SigMag(Two_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7])); break;
+			case (Components::Three) : s.segment(start, m_flip.rows()) = SigMag(Three_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10])); break;
 		}
 		start += m_flip.rows();
 	}
@@ -154,16 +161,16 @@ const ArrayXd Model::signal(const VectorXd &p, const double B1) const {
 
 const size_t Model::nParameters() const {
 	switch (m_nC) {
-		case Signal::Components::One: return 3;
-		case Signal::Components::Two: return 7;
-		case Signal::Components::Three: return 10;
+		case Signal::Components::One: return 4;
+		case Signal::Components::Two: return 8;
+		case Signal::Components::Three: return 11;
 	}
 }
 
 const vector<string> &Model::names() const {
-	static vector<string> n1 {"T1", "T2", "f0"},
-	                      n2 {"T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a", "f0"},
-				          n3 {"T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c", "f0"};
+	static vector<string> n1 {"PD", "T1", "T2", "f0"},
+	                      n2 {"PD", "T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a", "f0"},
+				          n3 {"PD", "T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c", "f0"};
 	
 	switch (m_nC) {
 		case Signal::Components::One: return n1;
@@ -178,15 +185,15 @@ const ArrayXXd Model::bounds(const FieldStrength f) const {
 	switch (f) {
 		case FieldStrength::Three:
 			switch (m_nC) {
-				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 0.1, 4.5, 0.010, 2.500; break;
-				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 0.1, 0.5, 0.001, 0.030, 0.700, 4.500, 0.050, 0.200, 0.025, 0.600, 0.00, 1.0; break;
-				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 0.1, 0.5, 0.001, 0.030, 0.700, 2.000, 0.050, 0.200, 3.000, 4.500, 1.50, 2.50, 0.025, 0.600, 0.0, 1.0, 0, 1.0; break;
+				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 4.5, 0.010, 2.500; break;
+				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.030, 0.700, 4.500, 0.050, 0.200, 0.025, 0.600, 0.00, 1.0; break;
+				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.030, 0.700, 2.000, 0.050, 0.200, 3.000, 4.500, 1.50, 2.50, 0.025, 0.600, 0.0, 1.0, 0, 1.0; break;
 			} break;
 		case FieldStrength::Seven:
 			switch (m_nC) {
-				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 0.1, 4.5, 0.010, 2.500; break;
-				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 0.1, 0.5, 0.001, 0.025, 1.5, 4.5, 0.04, 0.20, 0.025, 0.600, 0.0, 1.0; break;
-				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 0.1, 0.5, 0.001, 0.025, 1.5, 2.5, 0.04, 0.20, 3.000, 4.500, 1.5, 2.5, 0.025, 0.600, 0.0, 1.0, 0.0, 1.0; break;
+				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 4.5, 0.010, 2.500; break;
+				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.025, 1.5, 4.5, 0.04, 0.20, 0.025, 0.600, 0.0, 1.0; break;
+				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.025, 1.5, 2.5, 0.04, 0.20, 3.000, 4.500, 1.5, 2.5, 0.025, 0.600, 0.0, 1.0, 0.0, 1.0; break;
 			} break;
 		case FieldStrength::User:
 			switch (m_nC) {

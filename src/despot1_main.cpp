@@ -17,8 +17,12 @@
 #include <Eigen/Dense>
 
 #include "Nifti/Nifti.h"
-#include "DESPOT.h"
+#include "Nifti/Volume.h"
 #include "ThreadPool.h"
+#include "Model.h"
+#include "DESPOT_Functors.h"
+#include "unsupported/Eigen/NonLinearOptimization"
+#include "unsupported/Eigen/NumericalDiff"
 
 #ifdef AGILENT
 #include "procpar.h"
@@ -35,15 +39,22 @@ const string usage {
 "Usage is: despot1 [options] spgr_input \n\
 \
 Options:\n\
-	-m, --mask file : Mask input with specified file.\n\
-	-o, --out path  : Add a prefix to the output filenames.\n\
-	-b, --B1 file   : Correct flip angles with specified B1 ratio.\n\
-	-v, --verbose   : Print out more messages.\n\
-	-d, --drop      : Drop certain flip-angles (Read from stdin).\n"
+	--help, -h        : Print this message\n\
+	--verbose, -v     : Print writeResiduals information\n\
+	--mask, -m file   : Mask input with specified file\n\
+	--out, -o path    : Add a prefix to the output filenames\n\
+	--B1, -b file     : B1 Map file (ratio)\n\
+	--algo, -a l      : LLS algorithm (default)\n\
+	           w      : WLLS algorithm\n\
+			   n      : NLLS (Levenberg-Marquardt)\n\
+	--nits, -n N      : Max iterations for WLLS (default 4)\n"
 };
 
-static int verbose = false, drop = false;
+enum class Algos { LLS, WLLS, NLLS };
+static bool verbose = false;
+static size_t nIterations = 4;
 static string outPrefix;
+static Algos algo;
 static struct option long_options[] =
 {
 	{"B1", required_argument, 0, 'b'},
@@ -61,31 +72,42 @@ int main(int argc, char **argv)
 	// Argument Processing
 	//**************************************************************************
 	cout << version << endl << credit_shared << endl;
-	double spgrTR = 0.;
-	vector<double> B1Data, maskData;
 	Nifti spgrFile, B1File, maskFile;
+	Volume<float> spgrVol, B1Vol;
+	Volume<bool> maskVol;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "b:m:o:vd", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:b:a:n", long_options, &indexptr)) != -1) {
 		switch (c) {
-			case 'b':
-				cout << "Opening B1 file: " << optarg << endl;
-				B1File.open(optarg, Nifti::Mode::Read);
-				B1Data.resize(B1File.dims().head(3).prod());
-				B1File.readVolumes(0, 1, B1Data);
-				break;
+			case 'v': verbose = true; break;
 			case 'm':
-				cout << "Opening mask file: " << optarg << endl;
+				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData.resize(maskFile.dims().head(3).prod());
-				maskFile.readVolumes(0, 1, maskData);
+				maskVol.readFrom(maskFile);
 				break;
 			case 'o':
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
-			case 'v': verbose = true; break;
-			case 'd': drop = true; break;
+			case 'b':
+				cout << "Reading B1 file: " << optarg << endl;
+				B1File.open(optarg, Nifti::Mode::Read);
+				B1Vol.readFrom(B1File);
+				break;
+			case 'a':
+				switch (*optarg) {
+					case 'l': algo = Algos::LLS; break;
+					case 'w': algo = Algos::WLLS; break;
+					case 'n': algo = Algos::NLLS; break;
+					default:
+						cout << "Unknown algorithm type " << optarg << endl;
+						exit(EXIT_FAILURE);
+						break;
+				} break;
+			case 'n':
+				nIterations = atoi(optarg);
+				break;
+			case 'h':
 			case '?': // getopt will print an error message
 				exit(EXIT_FAILURE);
 		}
@@ -98,6 +120,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Gather SPGR data
 	//**************************************************************************
+	SimpleModel spgrMdl(Signal::Components::One, Model::Scaling::None);
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind], Nifti::Mode::Read);
 	if ((maskFile.isOpen() && !maskFile.matchesSpace(spgrFile)) ||
@@ -105,60 +128,32 @@ int main(int argc, char **argv)
 		cerr << "Mask or B1 dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
 	}
-	size_t nSPGR = spgrFile.dim(4);
-	VectorXd spgrAngles(nSPGR);
-	
 	#ifdef AGILENT
 	ProcPar pp;
 	if (ReadPP(spgrFile, pp)) {
-		spgrTR = pp.realValue("tr");
-		for (size_t i = 0; i < nSPGR; i++) spgrAngles[i] = pp.realValue("flip1", i);
+		spgrMdl.procparseSPGR(pp);
 	} else
 	#endif
 	{
-		cout << "Enter SPGR TR (seconds):"; cin >> spgrTR;
-		cout << "Enter SPGR " << nSPGR << " Flip Angles (degrees):";
-		for (size_t i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
+		spgrMdl.parseSPGR(spgrFile.dim(4), true);
 	}
-	spgrAngles *= M_PI / 180.;
-	//**************************************************************************
-	#pragma mark Select which angles to use in the analysis
-	//**************************************************************************	
-	VectorXi spgrKeep(nSPGR);
-	spgrKeep.setOnes();
-	if (drop) {
-		cout << "Choose SPGR angles to use (1 to keep, 0 to drop, " << nSPGR << " values): ";
-		for (size_t i = 0; i < nSPGR; i++) cin >> spgrKeep[i];
-		VectorXd temp = spgrAngles;
-		spgrAngles.resize(spgrKeep.sum());
-		int angle = 0;
-		for (size_t i = 0; i < nSPGR; i++)
-			if (spgrKeep(i)) spgrAngles(angle++) = temp(i);
-	}
-	if (verbose)
-	{
-		cout << "SPGR TR=" << spgrTR
-		          << " s. Flip-angles: " << spgrAngles.transpose() * 180. / M_PI << endl;
+	if (verbose) {
+		cout << spgrMdl;
 		cout << "Ouput prefix will be: " << outPrefix << endl;
 	}
+	double TR = spgrMdl.m_signals.at(0)->m_TR;
 	//**************************************************************************
 	// Allocate memory for slices
 	//**************************************************************************	
 	size_t voxelsPerSlice = spgrFile.dims().head(2).prod();
-	size_t voxelsPerVolume = spgrFile.dims().head(3).prod();
-	
 	cout << "Reading SPGR data..." << flush;
-	vector<double> spgrData(voxelsPerVolume * nSPGR);
-	spgrFile.readVolumes(0, nSPGR, spgrData);
-	spgrFile.close();
+	spgrVol.readFrom(spgrFile);
 	cout << "done." << endl;
 	//**************************************************************************
 	// Create results data storage
 	//**************************************************************************
-	#define NR 3
-	vector<vector<double>> resultsData(NR);
-	for (int i = 0; i < NR; i++)
-		resultsData[i].resize(voxelsPerVolume);
+	Volume<float> T1Vol(spgrVol.dims().head(3)), PDVol(spgrVol.dims().head(3)),
+	              SoSVol(spgrVol.dims().head(3));
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -173,23 +168,45 @@ int main(int argc, char **argv)
 		size_t sliceOffset = slice * voxelsPerSlice;
 		
 		function<void (const int&)> processVox = [&] (const int &vox) {
-			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Place to restore per-voxel return values, assume B1 field is uniform for classic DESPOT
-			if (!maskFile.isOpen() || (maskData[sliceOffset + vox] > 0.))
-			{
+			if (!maskFile.isOpen() || (maskVol.at(sliceOffset + vox))) {
 				voxCount++;
-				if (B1File.isOpen())
-					B1 = B1Data[sliceOffset + vox];
-				ArrayXd spgrs(nSPGR);
-				int vol = 0;
-				for (size_t img = 0; img < nSPGR; img++) {
-					if (spgrKeep(img))
-						spgrs[vol++] = spgrData[img * voxelsPerVolume + sliceOffset + vox];
+				//cout << spgrMdl.m_signals[0]->m_flip.transpose() << endl;
+				double B1 = B1File.isOpen() ? B1Vol.at(sliceOffset + vox) : 1.;
+				ArrayXd localAngles(spgrMdl.m_signals.at(0)->B1flip(B1));
+				//cout << localAngles.transpose() << endl;
+				double T1, PD, SoS;
+				ArrayXd signal = spgrVol.series(sliceOffset + vox).cast<double>();
+				VectorXd Y = signal / localAngles.sin();
+				MatrixXd X(Y.rows(), 2);
+				X.col(0) = signal / localAngles.tan();
+				X.col(1).setOnes();
+				VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
+				T1 = -TR / log(b[0]);
+				PD = b[1] / (1. - b[0]);
+				if (algo == Algos::WLLS) {
+					VectorXd W(spgrMdl.size());
+					for (size_t n = 0; n < nIterations; n++) {
+						W = (localAngles.sin() / (1. - (exp(-TR/T1)*localAngles.cos()))).square();
+						b = (X.transpose() * W.asDiagonal() * X).partialPivLu().solve(X.transpose() * W.asDiagonal() * Y);
+						T1 = -TR / log(b[0]);
+						PD = b[1] / (1. - b[0]);
+					}
+				} else if (algo == Algos::NLLS) {
+					DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal, B1, false);
+					NumericalDiff<DESPOTFunctor> nDiff(f);
+					LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
+					lm.parameters.maxfev = nIterations;
+					VectorXd p(4);
+					p << PD, T1, 0., 0.; // Don't need T2 of f0 for this (yet)
+					lm.lmder1(p);
+					PD = p(0); T1 = p(1);
 				}
-				res = classicDESPOT1(spgrAngles, spgrs, spgrTR, B1, M0, T1);
+				ArrayXd theory = spgrMdl.signal(Vector4d(PD, T1, 0., 0.), B1);
+				SoS = (signal - theory).square().sum();
+				T1Vol.at(sliceOffset + vox) = static_cast<float>(T1);
+				PDVol.at(sliceOffset + vox) = static_cast<float>(PD);
+				SoSVol.at(sliceOffset + vox) = static_cast<float>(SoS);
 			}
-			resultsData[0][sliceOffset + vox] = M0;
-			resultsData[1][sliceOffset + vox] = T1;
-			resultsData[2][sliceOffset + vox] = res;
 		};
 		pool.for_loop(processVox, voxelsPerSlice);
 		
@@ -201,17 +218,21 @@ int main(int argc, char **argv)
 			cout << "finished." << endl;
 		}
 	}
-	const string names[NR] = { "D1_PD", "D1_T1", "D1_SoS" };
+
+	if (verbose)
+		cout << "Writing results." << endl;
 	Nifti outFile(spgrFile, 1);
 	outFile.description = version;
-	for (int r = 0; r < NR; r++) {
-		string outName = outPrefix + names[r] + ".nii.gz";
-		if (verbose)
-			cout << "Writing result header: " << outName << endl;
-		outFile.open(outName, Nifti::Mode::Write);
-		outFile.writeVolumes<double>(0, 1, resultsData[r]);
-		outFile.close();
-	}
+	outFile.open(outPrefix + "D1_T1.nii.gz", Nifti::Mode::Write);
+	T1Vol.writeTo(outFile);
+	outFile.close();
+	outFile.open(outPrefix + "D1_PD.nii.gz", Nifti::Mode::Write);
+	PDVol.writeTo(outFile);
+	outFile.close();
+	outFile.open(outPrefix + "D1_SoS.nii.gz", Nifti::Mode::Write);
+	SoSVol.writeTo(outFile);
+	outFile.close();
+
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
 }

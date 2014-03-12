@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 		cout << *model;
 		cout << "Bounds:" << endl <<  bounds.transpose() << endl;
 		ofstream boundsFile(outPrefix + "bounds.txt");
-		for (int p = 0; p < model->nParameters(); p++) {
+		for (size_t p = 0; p < model->nParameters(); p++) {
 			boundsFile << model->names()[p] << "\t" << bounds.row(p) << endl;
 		}
 		boundsFile.close();
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
 				}
 				SoSVol.at(sliceOffset + vox) = rc.SoS();
 				if (writeResiduals) {
-					for (int i = 0; i < model->size(); i++) {
+					for (size_t i = 0; i < model->size(); i++) {
 						residualVols.at(i).at(sliceOffset + vox) = rc.residuals()[i];
 					}
 				}

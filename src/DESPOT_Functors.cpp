@@ -17,7 +17,7 @@ DESPOTFunctor::DESPOTFunctor(shared_ptr<Model> m, const ArrayXd &data, const dou
 	assert(m_data.rows() == m_nV);
 }
 
-int DESPOTFunctor::operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) {
+int DESPOTFunctor::operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 	eigen_assert(diffs.size() == values());
 	ArrayXd s = m_model->signal(params, m_B1);
 	diffs = s - m_data;
