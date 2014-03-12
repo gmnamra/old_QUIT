@@ -5,27 +5,17 @@
 #
 ###################################################
 
-# Platform/system specific
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Linux)
-	HAVE_ICC := $(shell which icc &> /dev/null ; echo $$?)
-	ifeq ($(HAVE_ICC), 0)
-		CXX     := icc
-	else
-		CXXPATH := /software/system/gcc/gcc-4.8.0
-		LDPATH  := LD_RUN_PATH=$(CXXPATH)/lib64
-		CXX     := $(LDPATH) $(CXXPATH)/bin/g++
-	endif
+# C++11 settings are compiler specific
+CXX_VER := $(shell cpp --version)
+ifneq (,$(findstring clang,$(CXX_VER)))
+	STDLIB      := -stdlib=libc++
+	EIGEN       := $(HOME)/Code/eigen
+	INSTALL_DIR := $(HOME)/Code/MR
+else
 	THREADS     := -pthread
 	STDLIB      := -lstdc++
 	INSTALL_DIR := $(HOME)/Code
 	EIGEN       := $(INSTALL_DIR)/eigen
-endif
-ifeq ($(UNAME_S),Darwin)
-	# Defaults work okay on Apple
-	STDLIB      := -stdlib=libc++
-	INSTALL_DIR := $(HOME)/Code/MR
-	EIGEN       := $(HOME)/Code/eigen
 endif
 
 # Set up Paths
