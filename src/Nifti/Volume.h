@@ -25,6 +25,8 @@ class Volume {
 	public:
 		typedef Eigen::Array<size_t, Eigen::Dynamic, 1> IndexArray;
 		typedef Eigen::Array<Tp, Eigen::Dynamic, 1> VectorTp;
+		typedef typename std::vector<Tp>::const_reference ConstTpRef;
+		typedef typename std::vector<Tp>::reference TpRef;
 	private:
 		std::vector<Tp> m_data;
 		IndexArray      m_dims, m_strides;
@@ -40,8 +42,8 @@ class Volume {
 		void readFrom(Nifti &img);
 		void writeTo(Nifti &img);
 		
-		const Tp &operator[](const std::vector<size_t> indices) const;
-		Tp &operator[](const std::vector<size_t> indices);
+		ConstTpRef operator[](const std::vector<size_t> indices) const;
+		TpRef operator[](const std::vector<size_t> indices);
 		
 		VectorTp series(const size_t index) const;
 		VectorTp series(const std::vector<size_t> indices) const;

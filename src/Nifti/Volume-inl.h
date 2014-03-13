@@ -77,12 +77,12 @@ size_t Volume<Tp>::calcIndex(const std::vector<size_t> indices) const {
 }
 
 template<typename Tp>
-const Tp &Volume<Tp>::operator[](const std::vector<size_t> indices) const {
+typename Volume<Tp>::ConstTpRef Volume<Tp>::operator[](const std::vector<size_t> indices) const {
 	return m_data[calcIndex(indices)];
 }
 
 template<typename Tp>
-Tp &Volume<Tp>::operator[](const std::vector<size_t> indices) {
+typename Volume<Tp>::TpRef Volume<Tp>::operator[](const std::vector<size_t> indices) {
 	return m_data[calcIndex(indices)];
 }
 
