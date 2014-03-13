@@ -41,13 +41,13 @@ const string usage {
 Options:\n\
 	--help, -h        : Print this message\n\
 	--verbose, -v     : Print writeResiduals information\n\
-	--mask, -m file   : Mask input with specified file\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
+	--mask, -m file   : Mask input with specified file\n\
 	--B1, -b file     : B1 Map file (ratio)\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
 			   n      : NLLS (Levenberg-Marquardt)\n\
-	--nits, -n N      : Max iterations for WLLS (default 4)\n"
+	--its, -i N      : Max iterations for WLLS (default 4)\n"
 };
 
 enum class Algos { LLS, WLLS, NLLS };
@@ -57,10 +57,13 @@ static string outPrefix;
 static Algos algo;
 static struct option long_options[] =
 {
-	{"B1", required_argument, 0, 'b'},
-	{"mask", required_argument, 0, 'm'},
-	{"out", required_argument, 0, 'o'},
+	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
+	{"out", required_argument, 0, 'o'},
+	{"mask", required_argument, 0, 'm'},
+	{"B1", required_argument, 0, 'b'},
+	{"algo", required_argument, 0, 'a'},
+	{"its", required_argument, 0, 'i'},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
@@ -77,7 +80,7 @@ int main(int argc, char **argv)
 	Volume<bool> maskVol;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:b:a:n:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:b:a:i:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
