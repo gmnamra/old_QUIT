@@ -15,19 +15,17 @@ Volume<Tp>::Volume() {
 }
 
 template<typename Tp>
-Volume<Tp>::Volume(std::vector<size_t> inDims) {
-	assert(inDims.size() <= 4);
-	m_dims.resize(inDims.size());
-	for (size_t i = 0; i < inDims.size(); i++)
-		m_dims[i] = inDims[i];
+Volume<Tp>::Volume(const IndexArray &inDims) {
+	m_dims = inDims;
 	calcStrides();
 	m_data.resize(m_dims.prod());
 }
 	
 template<typename Tp>
-Volume<Tp>::Volume(const Volume<Tp>::IndexArray inDims) {
-	assert(inDims.size() <= 4);
-	m_dims = inDims;
+Volume<Tp>::Volume(const Eigen::Array<size_t, 3, 1> dims, const size_t nt) {
+	assert(nt > 0);
+	m_dims.head(3) = dims;
+	m_dims(3) = nt;
 	calcStrides();
 	m_data.resize(m_dims.prod());
 }
@@ -40,7 +38,8 @@ Volume<Tp>::Volume(Nifti &img) {
 template<typename Tp>
 void Volume<Tp>::readFrom(Nifti &img) {
 	assert(img.rank() <= 4);
-	m_dims = img.dims();
+	m_dims.setOnes();
+	m_dims.head(img.dims().size()) = img.dims();
 	calcStrides();
 	m_data.resize(m_dims.prod());
 	img.readVolumes(0, img.dim(4), m_data);
@@ -66,10 +65,7 @@ void Volume<Tp>::calcStrides() {
 }
 
 template<typename Tp>
-size_t Volume<Tp>::calcIndex(const std::vector<size_t> &indices) const {
-	IndexArray aind(indices.size());
-	for (size_t i = 0; i < indices.size(); i++)
-		aind[i] = indices[i];
+size_t Volume<Tp>::calcIndex(const IndexArray &aind) const {
 	if (!(aind < m_dims.head(aind.size())).all())
 		throw (std::out_of_range("Requested index outside of volume."));
 	size_t index = (aind * m_strides.head(aind.size())).sum();
@@ -77,23 +73,26 @@ size_t Volume<Tp>::calcIndex(const std::vector<size_t> &indices) const {
 }
 
 template<typename Tp>
-typename Volume<Tp>::ConstTpRef Volume<Tp>::operator[](const std::vector<size_t> &indices) const {
+typename Volume<Tp>::ConstTpRef Volume<Tp>::operator[](const IndexArray &indices) const {
 	return m_data[calcIndex(indices)];
 }
 
 template<typename Tp>
-typename Volume<Tp>::TpRef Volume<Tp>::operator[](const std::vector<size_t> &indices) {
+typename Volume<Tp>::TpRef Volume<Tp>::operator[](const IndexArray &indices) {
 	return m_data[calcIndex(indices)];
 }
 
 template<typename Tp>
-typename Volume<Tp>::VectorTp Volume<Tp>::series(const std::vector<size_t> &indices) const {
-	VectorTp s(m_dims[3]);
+const typename Volume<Tp>::SeriesTp Volume<Tp>::series(const IndexArray &indices) const {
 	size_t idx = calcIndex(indices);
-	for (size_t i = 0; i < m_dims[3]; i++) {
-		s[i] = m_data.at(idx);
-		idx += m_strides[3];
-	}
+	const SeriesTp s(m_data.data() + idx, m_dims[3], Eigen::InnerStride<>(m_strides[3]));
+	return s;
+}
+
+template<typename Tp>
+typename Volume<Tp>::SeriesTp Volume<Tp>::series(const IndexArray &indices) {
+	size_t idx = calcIndex(indices);
+	SeriesTp s(m_data.data() + idx, m_dims[3], Eigen::InnerStride<>(m_strides[3]));
 	return s;
 }
 

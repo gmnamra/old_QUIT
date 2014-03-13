@@ -23,8 +23,8 @@
 template<typename Tp>
 class Volume {
 	public:
-		typedef Eigen::Array<size_t, Eigen::Dynamic, 1> IndexArray;
-		typedef Eigen::Array<Tp, Eigen::Dynamic, 1> VectorTp;
+		typedef Eigen::Array<size_t, 4, 1> IndexArray;
+		typedef Eigen::Map<Eigen::Array<Tp, Eigen::Dynamic, 1>, 0, Eigen::InnerStride<>> SeriesTp;
 		typedef typename std::vector<Tp>::const_reference ConstTpRef;
 		typedef typename std::vector<Tp>::reference TpRef;
 	private:
@@ -32,20 +32,22 @@ class Volume {
 		IndexArray      m_dims, m_strides;
 		
 		void calcStrides();
-		size_t calcIndex(const std::vector<size_t> &indices) const;
+		size_t calcIndex(const IndexArray &indices) const;
 	public:
 		Volume();
-		Volume(const std::vector<size_t> dims);
-		Volume(const IndexArray dims);
+		Volume(const Eigen::Array<size_t, 3, 1> dims, const size_t nt);
+		Volume(const IndexArray &dims);
+		//Volume(const IndexArray dims);
 		Volume(Nifti &img);
 		
 		void readFrom(Nifti &img);
 		void writeTo(Nifti &img);
 		
-		ConstTpRef operator[](const std::vector<size_t> &indices) const;
-		TpRef operator[](const std::vector<size_t> &indices);
+		ConstTpRef operator[](const IndexArray &indices) const;
+		TpRef operator[](const IndexArray &indices);
 		
-		VectorTp series(const std::vector<size_t> &indices) const;
+		const SeriesTp series(const IndexArray &indices) const;
+		SeriesTp series(const IndexArray &indices);
 		
 		size_t size() const;
 		const IndexArray &dims() const;
