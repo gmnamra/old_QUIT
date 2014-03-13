@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	cout << version << endl << credit_shared << endl;
 	Nifti spgrFile, B1File, maskFile;
 	Volume<float> spgrVol, B1Vol;
-	Volume<char> maskVol;
+	Volume<bool> maskVol;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvm:o:b:a:n", long_options, &indexptr)) != -1) {
