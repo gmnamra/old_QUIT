@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 	Volume<bool> maskVol;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:b:a:n", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:b:a:n:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
