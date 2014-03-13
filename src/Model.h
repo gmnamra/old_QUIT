@@ -19,6 +19,7 @@
 #include <memory>
 #include <Eigen/Dense>
 
+#include "Nifti/Volume.h"
 #include "DESPOT.h"
 #ifdef AGILENT
 #include "procpar.h"
@@ -105,7 +106,7 @@ public:
 	const vector<string> &names() const;
 	const ArrayXXd bounds(const FieldStrength f) const;
 	
-	ArrayXd loadSignals(const vector<vector<double>> &sigSlices, const size_t voxelsPerSlice, const size_t vox) const;
+	ArrayXd loadSignals(vector<Volume<float>> &vols, const typename Volume<float>::IndexArray &index) const;
 	
 	virtual void parseSPGR(const size_t nFlip, const bool prompt) = 0;
 	virtual void parseSSFP(const size_t nFlip, const size_t nPhase, const bool prompt) = 0;

@@ -99,9 +99,9 @@ int main(int argc, char **argv)
 				break;
 			case 'a':
 				switch (*optarg) {
-					case 'l': algo = Algos::LLS; break;
-					case 'w': algo = Algos::WLLS; break;
-					case 'n': algo = Algos::NLLS; break;
+					case 'l': algo = Algos::LLS;  cout << "LLS algorithm selected." << endl; break;
+					case 'w': algo = Algos::WLLS; cout << "WLLS algorithm selected." << endl; break;
+					case 'n': algo = Algos::NLLS; cout << "NLLS algorithm selected." << endl; break;
 					default:
 						cout << "Unknown algorithm type " << optarg << endl;
 						exit(EXIT_FAILURE);
@@ -154,8 +154,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Create results data storage
 	//**************************************************************************
-	Volume<float> T1Vol(spgrVol.dims().head(3)), PDVol(spgrVol.dims().head(3)),
-	              SoSVol(spgrVol.dims().head(3));
+	Volume<float> T1Vol(spgrVol.dims().head(3), 1), PDVol(spgrVol.dims().head(3), 1),
+	              SoSVol(spgrVol.dims().head(3), 1);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -170,14 +170,15 @@ int main(int argc, char **argv)
 		
 		for (size_t j = 0; j < spgrFile.dim(2); j++) {
 			function<void (const size_t)> processVox = [&] (const size_t i) {
-				if (!maskFile.isOpen() || (maskVol[{i, j, k}])) {
+				const typename Volume<float>::IndexArray vox{i, j, k, 0};
+				if (!maskFile.isOpen() || (maskVol[vox])) {
 					voxCount++;
 					//cout << spgrMdl.m_signals[0]->m_flip.transpose() << endl;
-					double B1 = B1File.isOpen() ? B1Vol[{i, j, k}] : 1.;
+					double B1 = B1File.isOpen() ? B1Vol[vox] : 1.;
 					ArrayXd localAngles(spgrMdl.m_signals.at(0)->B1flip(B1));
 					//cout << localAngles.transpose() << endl;
 					double T1, PD, SoS;
-					ArrayXd signal = spgrVol.series({i, j, k}).cast<double>();
+					ArrayXd signal = spgrVol.series(vox).cast<double>();
 					VectorXd Y = signal / localAngles.sin();
 					MatrixXd X(Y.rows(), 2);
 					X.col(0) = signal / localAngles.tan();
@@ -205,9 +206,9 @@ int main(int argc, char **argv)
 					}
 					ArrayXd theory = spgrMdl.signal(Vector4d(PD, T1, 0., 0.), B1);
 					SoS = (signal - theory).square().sum();
-					T1Vol[{i, j, k}]  = static_cast<float>(T1);
-					PDVol[{i, j, k}]  = static_cast<float>(PD);
-					SoSVol[{i, j, k}] = static_cast<float>(SoS);
+					T1Vol[vox]  = static_cast<float>(T1);
+					PDVol[vox]  = static_cast<float>(PD);
+					SoSVol[vox] = static_cast<float>(SoS);
 				}
 			};
 			

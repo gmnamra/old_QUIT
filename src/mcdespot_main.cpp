@@ -122,8 +122,8 @@ Nifti openAndCheck(const string &path, const Nifti &saved) {
 	return in;
 }
 
-Nifti parseInput(shared_ptr<Model> &mdl, vector<vector<double>> &signalVols);
-Nifti parseInput(shared_ptr<Model> &mdl, vector<vector<double>> &signalVols)
+Nifti parseInput(shared_ptr<Model> &mdl, vector<Volume<float>> &signalVols);
+Nifti parseInput(shared_ptr<Model> &mdl, vector<Volume<float>> &signalVols)
 {
 	Nifti templateFile, inFile;
 	string type, path;
@@ -162,8 +162,7 @@ Nifti parseInput(shared_ptr<Model> &mdl, vector<vector<double>> &signalVols)
 				mdl->parseSSFP(inFile.dim(4) / nPhases, nPhases, prompt);
 			}
 		}
-		signalVols.emplace_back(vector<double>(inFile.dims().head(4).prod()));
-		inFile.readVolumes(0, inFile.dim(4), signalVols.back());
+		signalVols.emplace_back(Volume<float>(inFile));
 		inFile.close();
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
@@ -184,7 +183,8 @@ int main(int argc, char **argv)
 	try { // To fix uncaught exceptions on Mac
 	
 	Nifti maskFile, f0File, B1File, templateFile;
-	vector<double> maskData(0), f0Vol(0), B1Vol(0);
+	Volume<bool> maskVol;
+	Volume<float> f0Vol, B1Vol;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:M:crn123i:j:", long_options, &indexptr)) != -1) {
@@ -197,8 +197,7 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData.resize(maskFile.dims().head(3).prod());
-				maskFile.readVolumes(0, 1, maskData);
+				maskVol.readFrom(maskFile);
 				maskFile.close();
 				break;
 			case 'o':
@@ -213,16 +212,14 @@ int main(int argc, char **argv)
 				} else {
 					cout << "Reading f0 file: " << optarg << endl;
 					f0File.open(optarg, Nifti::Mode::Read);
-					f0Vol.resize(f0File.dims().head(3).prod());
-					f0File.readVolumes(0, 1, f0Vol);
+					f0Vol.readFrom(f0File);
 					f0fit = OffRes::Map;
 				}
 				break;
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol.resize(B1File.dims().head(3).prod());
-				B1File.readVolumes(0, 1, B1Vol);
+				B1Vol.readFrom(B1File);
 				break;
 			case 's': start_slice = atoi(optarg); break;
 			case 'p': stop_slice = atoi(optarg); break;
@@ -287,7 +284,7 @@ int main(int argc, char **argv)
 		case ModelTypes::Simple : model = make_shared<SimpleModel>(components, scale); break;
 		case ModelTypes::Finite : model = make_shared<FiniteModel>(components, scale); break;
 	}
-	vector<vector<double>> signalVols(0);
+	vector<Volume<float>> signalVols;
 	templateFile = parseInput(model, signalVols);
 	if ((maskFile.isOpen() && !templateFile.matchesSpace(maskFile)) ||
 		(f0File.isOpen() && !templateFile.matchesSpace(f0File)) ||
@@ -298,20 +295,11 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	//**************************************************************************
-	ArrayXd threshes(model->nParameters()); threshes.setConstant(0.05);
-	size_t voxelsPerSlice = templateFile.dims().head(2).prod();
-	size_t voxelsPerVolume = templateFile.dims().head(3).prod();
-
-	vector<vector<double>> paramsVols(model->nParameters()), residualVols;
-	for (auto &p : paramsVols)
-		p.resize(voxelsPerVolume, 0.);
-	if (writeResiduals) {
-		residualVols.resize(model->size());
-		for (auto &r : residualVols)
-			r.resize(voxelsPerVolume, 0.);
-	}
-	vector<double> SoSVol(voxelsPerVolume, 0.);
+	vector<Volume<float>> paramsVols(model->nParameters(), Volume<float>(templateFile.dims().head(3), 1));
+	Volume<float> residualVols(templateFile.dims().head(3), model->size());;
+	Volume<float> SoSVol(templateFile.dims().head(3), 1);
 	
+	ArrayXd threshes(model->nParameters()); threshes.setConstant(0.05);
 	ArrayXXd bounds = model->bounds(tesla);
 	if (tesla == Model::FieldStrength::User) {
 		if (prompt) cout << "Enter parameter pairs (low then high)" << endl;
@@ -346,53 +334,44 @@ int main(int argc, char **argv)
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
-	for (size_t slice = start_slice; slice < stop_slice; slice++) {
-		if (verbose) cout << "Processing slice " << slice << "..." << flush;
+	for (size_t k = start_slice; k < stop_slice; k++) {
+		if (verbose) cout << "Processing slice " << k << "..." << flush;
 		atomic<int> voxCount{0};
-		const size_t sliceOffset = slice * voxelsPerSlice;
 		clock_t loopStart = clock();
 		
-		function<void (const size_t&)> processVox = [&] (const size_t &vox) {
-			if ((maskData.size() == 0) || (maskData[sliceOffset + vox] > 0.)) {
-				voxCount++;
-				ArrayXd signal = model->loadSignals(signalVols, voxelsPerVolume, sliceOffset + vox);
-				ArrayXXd localBounds = bounds;
-				if (f0fit == OffRes::Map) {
-					localBounds.row(model->nParameters() - 1).setConstant(f0Vol[sliceOffset + vox]);
-				}
-				double B1 = B1File.isOpen() ? B1Vol[sliceOffset + vox] : 1.;
-				DESPOTFunctor func(model, signal, B1, false);
-				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
-											        samples, retain, contract, expand, (voxI != -1));
-				ArrayXd params(model->nParameters());
-				rc.optimise(params, time(NULL) + vox); // Add the voxel number to the time to get a decent random seed
-				if (voxI != -1)
-				if (verbose && (rc.status() == RegionContraction<DESPOTFunctor>::Status::ErrorResidual)) {
-					cerr << "Thread ID: " << this_thread::get_id() << endl;
-					cerr << "RC address: " << &rc << endl;
-					cerr << "Slice: " << slice << "\tVoxel: " << vox << endl;
-					cerr << "B1: " << B1 << endl;
-					cerr << "nContract: " << rc.contractions() << endl;
-					cerr << "Params: " << params.transpose() << endl;
-					cerr << "Theory: " << model->signal(params, B1).transpose() << endl;
-				}
-				for (size_t p = 0; p < paramsVols.size(); p++) {
-					paramsVols.at(p).at(sliceOffset + vox) = params[p];
-				}
-				SoSVol.at(sliceOffset + vox) = rc.SoS();
-				if (writeResiduals) {
-					for (size_t i = 0; i < model->size(); i++) {
-						residualVols.at(i).at(sliceOffset + vox) = rc.residuals()[i];
+		for (size_t j = voxJ; j < templateFile.dim(2); j++) {
+			function<void (const size_t&)> processVox = [&] (const size_t &i) {
+				const Volume<float>::IndexArray vox{i, j, k, 0};
+				if (maskFile.isOpen() || maskVol[vox]) {
+					voxCount++;
+					ArrayXd signal = model->loadSignals(signalVols, vox);
+					ArrayXXd localBounds = bounds;
+					if (f0fit == OffRes::Map) {
+						localBounds.row(model->nParameters() - 1).setConstant(f0Vol[vox]);
+					}
+					double B1 = B1File.isOpen() ? B1Vol[vox] : 1.;
+					DESPOTFunctor func(model, signal, B1, false);
+					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
+														samples, retain, contract, expand, (voxI != -1));
+					ArrayXd params(model->nParameters());
+					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
+					for (size_t p = 0; p < paramsVols.size(); p++) {
+						paramsVols.at(p)[vox] = static_cast<float>(params[p]);
+					}
+					SoSVol[vox] = static_cast<float>(rc.SoS());
+					if (writeResiduals) {
+						for (size_t i = 0; i < model->size(); i++) {
+							residualVols.series(vox) = rc.residuals().cast<float>();
+						}
 					}
 				}
+			};
+			if (voxI == -1)
+				threads.for_loop(processVox, templateFile.dim(1));
+			else {
+				processVox(voxI);
+				exit(0);
 			}
-		};
-		if (voxI == -1)
-			threads.for_loop(processVox, voxelsPerSlice);
-		else {
-			size_t voxInd = templateFile.dim(1) * voxJ + voxI;
-			processVox(voxInd);
-			exit(0);
 		}
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -413,19 +392,18 @@ int main(int argc, char **argv)
 	templateFile.setDim(4, 1);
 	templateFile.setDatatype(Nifti::DataType::FLOAT32);
 	templateFile.description = version;
-	for (int p = 0; p < model->nParameters(); p++) {
+	for (size_t p = 0; p < model->nParameters(); p++) {
 		templateFile.open(outPrefix + model->names().at(p) + ".nii.gz", Nifti::Mode::Write);
-		templateFile.writeVolumes(0, 1, paramsVols.at(p));
+		paramsVols.at(p).writeTo(templateFile);
 		templateFile.close();
 	}
 	templateFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);
-	templateFile.writeVolumes(0, 1, SoSVol);
+	SoSVol.writeTo(templateFile);
 	templateFile.close();
 	if (writeResiduals) {
-		templateFile.setDim(4, static_cast<int>(residualVols.size()));
+		templateFile.setDim(4, static_cast<int>(model->size()));
 		templateFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
-		for (size_t i = 0; i < residualVols.size(); i++)
-			templateFile.writeVolumes(i, 1, residualVols.at(i));
+		residualVols.writeTo(templateFile);
 		templateFile.close();
 	}
 	cout << "Finished writing data." << endl;
