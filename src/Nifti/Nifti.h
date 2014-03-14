@@ -115,10 +115,10 @@ class Nifti {
 		public:
 			typedef typename std::vector<T>::iterator it;
 			static void FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-			                      const T sc_sl, const T sc_in,
+			                      const float sc_sl, const float sc_in,
 								  const it begin, const it end);
 			static void ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-								const T sc_sl, const T sc_in,
+								const float sc_sl, const float sc_in,
 								const it begin, const it end);
 		};
 		
@@ -126,10 +126,10 @@ class Nifti {
 		public:
 			typedef typename std::vector<std::complex<T>>::iterator it;
 			static void FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-			                      const T sc_sl, const T sc_in,
+			                      const float sc_sl, const float sc_in,
 								  const it begin, const it end);
 			static void ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-								const T sc_sl, const T sc_in,
+								const float sc_sl, const float sc_in,
 								const it begin, const it end);
 		};			
 		

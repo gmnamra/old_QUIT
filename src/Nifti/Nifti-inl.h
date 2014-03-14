@@ -28,14 +28,14 @@
   */
 template<typename T>
 void Nifti::Converter<T>::FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-                                    const T sc_sl, const T sc_in,
+                                    const float sc_sl, const float sc_in,
                                     const it begin, const it end) {
 	typename it::difference_type nEl = bytes.size() / tInfo.size;
 	assert(nEl == std::distance(begin, end));
 	auto el = begin;
 	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<const BYTE_TYPE *>(bytes.data())
-	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR(BYTE_TYPE); while (el != end) { *el = sc_in + sc_sl * static_cast<T>(*p); el++; p++; }
-	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR(std::complex<BYTE_TYPE>); while (el != end) { *el = sc_in + sc_sl * static_cast<T>(abs(*p)); el++; p++; }
+	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR(BYTE_TYPE); while (el != end) { *el = static_cast<T>(sc_in + sc_sl * (*p)); el++; p++; }
+	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR(std::complex<BYTE_TYPE>); while (el != end) { *el = static_cast<T>(sc_in + sc_sl * abs(*p)); el++; p++; }
 	switch (tInfo.type) {
 		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
 		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
@@ -61,9 +61,9 @@ void Nifti::Converter<T>::FromBytes(const std::vector<char> &bytes, const Nifti:
 
 template<typename T>
 void Nifti::Converter<std::complex<T>>::FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-				                                  const T sc_sl, const T sc_in, const it begin, const it end) {
+				                                  const float sc_sl, const float sc_in, const it begin, const it end) {
 	size_t nEl = bytes.size() / tInfo.size;
-	assert(nEl == std::distance(begin, end));
+	assert(nEl == static_cast<size_t>(std::distance(begin, end)));
 	auto el = begin;
 	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<const BYTE_TYPE *>(bytes.data())
 	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR(BYTE_TYPE); while (el != end) { *el = std::complex<T>(sc_in + sc_sl * static_cast<T>(*p), 0.); el++; p++; }
@@ -109,7 +109,7 @@ void Nifti::Converter<std::complex<T>>::FromBytes(const std::vector<char> &bytes
   */
 template<typename T>
 void Nifti::Converter<T>::ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-							      const T sc_sl, const T sc_in,
+							      const float sc_sl, const float sc_in,
 							      const it begin, const it end) {
 	size_t nEl = std::distance(begin, end);
 	assert(nEl == bytes.size() / tInfo.size);
@@ -142,7 +142,7 @@ void Nifti::Converter<T>::ToBytes(std::vector<char> &bytes, const Nifti::DataTyp
 
 template<typename T>
 void Nifti::Converter<std::complex<T>>::ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-							                    const T sc_sl, const T sc_in,
+							                    const float sc_sl, const float sc_in,
 							                    const it begin, const it end) {
 	size_t nEl = std::distance(begin, end);
 	assert(nEl == bytes.size() / tInfo.size);
