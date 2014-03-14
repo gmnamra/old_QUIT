@@ -42,7 +42,7 @@ All times (TR) are in SECONDS. All angles are in degrees.\n\
 \n\
 Options:\n\
 	--help, -h        : Print this message\n\
-	--verbose, -v     : Print writeResiduals information\n\
+	--verbose, -v     : Print more information\n\
 	--mask, -m file   : Mask input with specified file\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
 	--f0, -f SYM     : Fit symmetric f0 map (default)\n\

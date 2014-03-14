@@ -40,7 +40,7 @@ const string usage {
 \
 Options:\n\
 	--help, -h        : Print this message\n\
-	--verbose, -v     : Print writeResiduals information\n\
+	--verbose, -v     : Print more information\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
 	--mask, -m file   : Mask input with specified file\n\
 	--B1, -b file     : B1 Map file (ratio)\n\
