@@ -93,7 +93,12 @@ VolumeSeries<Tp>::VolumeSeries(Nifti &img) {
 
 template<typename Tp>
 void VolumeSeries<Tp>::readFrom(Nifti &img) {
-	m_dims = img.dims().head(4);
+	if (img.rank() < 4) {
+		m_dims.setOnes();
+		m_dims.head(img.rank()) = img.dims();
+	} else {
+		m_dims = img.dims().head(4);
+	}
 	calcStrides();
 	m_data.resize(m_dims.prod());
 	img.readVolumes<Tp>(0, img.dim(4), m_data.begin(), m_data.end());
