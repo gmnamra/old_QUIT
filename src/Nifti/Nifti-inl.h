@@ -26,18 +26,17 @@
   *   @param data   - Storage for converted data. Must contain enough space.
   *   @param offset - Location in data to start writing.
   */
-template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes,
-                                                  const typename std::vector<T>::iterator begin,
-												  const typename std::vector<T>::iterator end) {
-	typename std::vector<T>::iterator::difference_type nEl = bytes.size() / m_typeinfo.size;
+template<typename T>
+void Nifti::Converter<T>::FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
+                                    const T sc_sl, const T sc_in,
+                                    const it begin, const it end) {
+	typename it::difference_type nEl = bytes.size() / tInfo.size;
 	assert(nEl == std::distance(begin, end));
-	T sc_sl = static_cast<T>(scaling_slope);
-	T sc_in = static_cast<T>(scaling_inter);
 	auto el = begin;
 	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<const BYTE_TYPE *>(bytes.data())
 	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR(BYTE_TYPE); while (el != end) { *el = sc_in + sc_sl * static_cast<T>(*p); el++; p++; }
 	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR(std::complex<BYTE_TYPE>); while (el != end) { *el = sc_in + sc_sl * static_cast<T>(abs(*p)); el++; p++; }
-	switch (m_typeinfo.type) {
+	switch (tInfo.type) {
 		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
 		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
 		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
@@ -60,18 +59,16 @@ template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes
 	#undef DECL_PTR
 }
 
-template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes,
-                                                  const typename std::vector<std::complex<T>>::iterator begin,
-												  const typename std::vector<std::complex<T>>::iterator end) {
-	size_t nEl = bytes.size() / m_typeinfo.size;
+template<typename T>
+void Nifti::Converter<std::complex<T>>::FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
+				                                  const T sc_sl, const T sc_in, const it begin, const it end) {
+	size_t nEl = bytes.size() / tInfo.size;
 	assert(nEl == std::distance(begin, end));
-	T sc_sl = static_cast<T>(scaling_slope);
-	T sc_in = static_cast<T>(scaling_inter);
 	auto el = begin;
 	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<const BYTE_TYPE *>(bytes.data())
 	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR(BYTE_TYPE); while (el != end) { *el = std::complex<T>(sc_in + sc_sl * static_cast<T>(*p), 0.); el++; p++; }
 	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR(std::complex<BYTE_TYPE>); while (el != end) { *el = sc_in + sc_sl * static_cast<std::complex<T>>(*p); el++; p++; }
-	switch (m_typeinfo.type) {
+	switch (tInfo.type) {
 		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
 		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
 		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
@@ -110,18 +107,17 @@ template<typename T> void Nifti::convertFromBytes(const std::vector<char> &bytes
   *   @param data   - Storage for converted data. Must contain enough space.
   *   @param offset - Location in data to start writing.
   */
-template<typename T> void Nifti::convertToBytes(const typename std::vector<T>::iterator begin,
-                                                const typename std::vector<T>::iterator end,
-												std::vector<char> &bytes) {
+template<typename T>
+void Nifti::Converter<T>::ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
+							      const T sc_sl, const T sc_in,
+							      const it begin, const it end) {
 	size_t nEl = std::distance(begin, end);
-	assert(nEl == bytes.size() / m_typeinfo.size);
-	T sc_sl = static_cast<T>(scaling_slope);
-	T sc_in = static_cast<T>(scaling_inter);
+	assert(nEl == bytes.size() / tInfo.size);
 	auto el = begin;
 	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<BYTE_TYPE *>(bytes.data())
 	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR( BYTE_TYPE ); while (el != end) { *p = static_cast<BYTE_TYPE>(*el / sc_sl - sc_in); el++; p++; }
 	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR( std::complex<BYTE_TYPE> ); while (el != end) { *p = std::complex<BYTE_TYPE>(static_cast<BYTE_TYPE>(*el / sc_sl - sc_in), 0.); el++; p++; }
-	switch (m_typeinfo.type) {
+	switch (tInfo.type) {
 		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
 		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
 		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
@@ -144,18 +140,17 @@ template<typename T> void Nifti::convertToBytes(const typename std::vector<T>::i
 	#undef DECL_PTR
 }
 
-template<typename T> void Nifti::convertToBytes(const typename std::vector<std::complex<T>>::iterator begin,
-												const typename std::vector<std::complex<T>>::iterator end,
-												std::vector<char> &bytes) {
+template<typename T>
+void Nifti::Converter<std::complex<T>>::ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
+							                    const T sc_sl, const T sc_in,
+							                    const it begin, const it end) {
 	size_t nEl = std::distance(begin, end);
-	assert(nEl == bytes.size() / m_typeinfo.size);
-	T sc_sl = static_cast<T>(scaling_slope);
-	T sc_in = static_cast<T>(scaling_inter);
+	assert(nEl == bytes.size() / tInfo.size);
 	auto el = begin;
 	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<BYTE_TYPE *>(bytes.data())
 	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR( BYTE_TYPE ); while (el != end) { *p = static_cast<BYTE_TYPE>(abs(*el) / sc_sl - sc_in); el++; p++; }
 	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR( std::complex<BYTE_TYPE> ); while (el != end) { *p = static_cast<std::complex<BYTE_TYPE>>(*el / sc_sl - sc_in); el++; p++; }
-	switch (m_typeinfo.type) {
+	switch (tInfo.type) {
 		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
 		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
 		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
@@ -195,7 +190,7 @@ template<typename T> void Nifti::convertToBytes(const typename std::vector<std::
  */
 template<typename T>
 void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &inSize,
-                            typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end) {
+                            typename Converter<T>::it begin, typename Converter<T>::it end) {
 	ArrayXs size = inSize;
 	for (ArrayXs::Index i = 0; i < size.rows(); i++)
 		if (size(i) == 0) size(i) = m_dim(i);
@@ -203,7 +198,7 @@ void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<A
 	if (start.rows() != size.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
 	if (start.rows() > m_dim.rows()) throw(std::out_of_range("Too many read/write dimensions specified in image: " + imagePath()));
 	if (((start + size) > m_dim.head(start.rows())).any()) throw(std::out_of_range("Read/write past image dimensions requested: " + imagePath()));
-	if (size.prod() < (end - begin)) throw(std::out_of_range("Storage size does not match requested read/write size in image: " + imagePath()));
+	if (size.prod() < static_cast<unsigned long>(end - begin)) throw(std::out_of_range("Storage size does not match requested read/write size in image: " + imagePath()));
 	
 	ArrayXs::Index firstDim = 0; // We can always read first dimension in one go
 	ArrayXs::Index blockSize = size(firstDim);
@@ -220,9 +215,9 @@ void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<A
 			seekToVoxel(blockStart);
 			if (m_mode == Nifti::Mode::Read) {
 				readBytes(block);
-				convertFromBytes<T>(block, dataIt, dataIt + blockSize);
+				Converter<T>::FromBytes(block, m_typeinfo, scaling_slope, scaling_inter, dataIt, dataIt + blockSize);
 			} else {
-				convertToBytes<T>(dataIt, dataIt + blockSize, block);
+				Converter<T>::ToBytes(block, m_typeinfo, scaling_slope, scaling_inter, dataIt, dataIt + blockSize);
 				writeBytes(block);
 			}
 			dataIt += blockSize;

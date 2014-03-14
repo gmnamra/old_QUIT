@@ -110,13 +110,32 @@ class Nifti {
 		void seekToVoxel(const ArrayXs &target);
 		void readBytes(std::vector<char> &data);
 		void writeBytes(const std::vector<char> & data);
-		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const typename std::vector<T>::iterator begin, const typename std::vector<T>::iterator end);
-		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const typename std::vector<std::complex<T>>::iterator begin, const typename std::vector<std::complex<T>>::iterator end);
-		template<typename T> void convertToBytes(const typename std::vector<T>::iterator begin, const typename std::vector<T>::iterator end, std::vector<char> &bytes);
-		template<typename T> void convertToBytes(const typename std::vector<std::complex<T>>::iterator begin, const typename std::vector<std::complex<T>>::iterator end, std::vector<char> &bytes);
+		
+		template<typename T> class Converter {
+		public:
+			typedef typename std::vector<T>::iterator it;
+			static void FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
+			                      const T sc_sl, const T sc_in,
+								  const it begin, const it end);
+			static void ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
+								const T sc_sl, const T sc_in,
+								const it begin, const it end);
+		};
+		
+		template<typename T> class Converter<std::complex<T>> {
+		public:
+			typedef typename std::vector<std::complex<T>>::iterator it;
+			static void FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
+			                      const T sc_sl, const T sc_in,
+								  const it begin, const it end);
+			static void ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
+								const T sc_sl, const T sc_in,
+								const it begin, const it end);
+		};			
+		
 		template<typename T>
 		void readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size,
-						     typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end);
+						     typename Converter<T>::it begin, typename Converter<T>::it end);
 		
 	#pragma mark Public Class Methods
 	public:
