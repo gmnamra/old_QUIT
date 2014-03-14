@@ -163,12 +163,12 @@ int main(int argc, char **argv)
 							
 							I1.real() = mag.head(nFlip) * ph.head(nFlip).cos();
 							I1.imag() = mag.head(nFlip) * ph.head(nFlip).sin();
-							I1.real() = mag.segment(nFlip, nFlip) * ph.segment(nFlip, nFlip).cos();
-							I1.imag() = mag.segment(nFlip, nFlip) * ph.segment(nFlip, nFlip).sin();
-							I1.real() = mag.segment(2*nFlip, nFlip) * ph.segment(2*nFlip, nFlip).cos();
-							I1.imag() = mag.segment(2*nFlip, nFlip) * ph.segment(2*nFlip, nFlip).sin();
-							I1.real() = mag.tail(nFlip) * ph.tail(nFlip).cos();
-							I1.imag() = mag.tail(nFlip) * ph.tail(nFlip).sin();
+							I2.real() = mag.segment(nFlip, nFlip) * ph.segment(nFlip, nFlip).cos();
+							I2.imag() = mag.segment(nFlip, nFlip) * ph.segment(nFlip, nFlip).sin();
+							I3.real() = mag.segment(2*nFlip, nFlip) * ph.segment(2*nFlip, nFlip).cos();
+							I3.imag() = mag.segment(2*nFlip, nFlip) * ph.segment(2*nFlip, nFlip).sin();
+							I4.real() = mag.tail(nFlip) * ph.tail(nFlip).cos();
+							I4.imag() = mag.tail(nFlip) * ph.tail(nFlip).sin();
 						}	break;
 						case (Type::Imag): {
 							ArrayXd re = input1.series(vox).cast<double>();
@@ -176,12 +176,12 @@ int main(int argc, char **argv)
 							
 							I1.real() = re.head(nFlip);
 							I1.imag() = im.head(nFlip);
-							I1.real() = re.segment(nFlip, nFlip);
-							I1.imag() = im.segment(nFlip, nFlip);
-							I1.real() = re.segment(2*nFlip, nFlip);
-							I1.imag() = im.segment(2*nFlip, nFlip);
-							I1.real() = re.tail(nFlip);
-							I1.imag() = im.tail(nFlip);
+							I2.real() = re.segment(nFlip, nFlip);
+							I2.imag() = im.segment(nFlip, nFlip);
+							I3.real() = re.segment(2*nFlip, nFlip);
+							I3.imag() = im.segment(2*nFlip, nFlip);
+							I4.real() = re.tail(nFlip);
+							I4.imag() = im.tail(nFlip);
 						 }	break;
 						case (Type::Complex): {
 							ArrayXcd input = inputC.series(vox).cast<complex<double>>();
@@ -192,11 +192,8 @@ int main(int argc, char **argv)
 						}	break;
 					}
 					
-					ArrayXcd l1 = I3 - I1;
-					ArrayXcd l2 = I4 - I2;
-					
-					ArrayXcd crossPoint = (I2 - I1) / (l2 - l1);
-					
+					ArrayXcd crossPoint = (I1.real()*I3.imag() - I3.real()*I1.imag())*(I2 - I4) - (I2.real()*I4.imag() - I4.real()*I2.imag())*(I1 - I3) /
+					                      ((I1.real() - I3.real())*(I2.imag() - I4.imag()) + (I2.real() - I4.real())*(I3.imag() - I1.imag()));
 					noBands.series(vox) = crossPoint.abs().cast<float>();
 				}
 			};
