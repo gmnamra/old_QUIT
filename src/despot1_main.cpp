@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << version << endl << credit_shared << endl;
 	Nifti spgrFile, B1File, maskFile;
-	Volume<float> spgrVol, B1Vol;
+	Volume<float> B1Vol;
 	Volume<bool> maskVol;
 	
 	int indexptr = 0, c;
@@ -149,13 +149,13 @@ int main(int argc, char **argv)
 	// Allocate memory for slices
 	//**************************************************************************
 	cout << "Reading SPGR data..." << flush;
-	spgrVol.readFrom(spgrFile);
+	VolumeSeries<float> spgrVol(spgrFile);
 	cout << "done." << endl;
 	//**************************************************************************
 	// Create results data storage
 	//**************************************************************************
-	Volume<float> T1Vol(spgrVol.dims().head(3), 1), PDVol(spgrVol.dims().head(3), 1),
-	              SoSVol(spgrVol.dims().head(3), 1);
+	Volume<float> T1Vol(spgrVol.dims().head(3)), PDVol(spgrVol.dims().head(3)),
+	              SoSVol(spgrVol.dims().head(3));
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 		
 		for (size_t j = 0; j < spgrFile.dim(2); j++) {
 			function<void (const size_t)> processVox = [&] (const size_t i) {
-				const typename Volume<float>::IndexArray vox{i, j, k, 0};
+				const typename Volume<float>::IndexArray vox{i, j, k};
 				if (!maskFile.isOpen() || (maskVol[vox])) {
 					voxCount++;
 					//cout << spgrMdl.m_signals[0]->m_flip.transpose() << endl;

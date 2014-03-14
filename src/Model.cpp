@@ -241,11 +241,11 @@ const bool Model::validParameters(const VectorXd &params) const {
 	}
 }
 
-ArrayXd Model::loadSignals(vector<Volume<float>> &vols, const typename Volume<float>::IndexArray &vox) const {
+ArrayXd Model::loadSignals(vector<VolumeSeries<float>> &sigs, const typename Volume<float>::IndexArray &vox) const {
 	ArrayXd signal(size());
 	size_t start = 0;
 	for (size_t i = 0; i < m_signals.size(); i++) {
-		ArrayXd thisSig = vols.at(i).series(vox).cast<double>();
+		ArrayXd thisSig = sigs.at(i).series(vox).cast<double>();
 		if (m_scaling == Scaling::NormToMean)
 			thisSig /= thisSig.mean();
 		signal.segment(start, thisSig.rows()) = thisSig;

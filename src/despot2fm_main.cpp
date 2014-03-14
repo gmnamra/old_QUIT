@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 	// Gather SSFP Data
 	//**************************************************************************
 	size_t nFiles = argc - optind;
-	vector<Volume<float>> ssfpData(nFiles);
+	vector<VolumeSeries<float>> ssfpData(nFiles);
 	shared_ptr<Model> model;
 	switch (modelType) {
 		case ModelTypes::Simple: model = make_shared<SimpleModel>(Signal::Components::One, scale); break;
@@ -272,8 +272,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
-	vector<Volume<float>> paramsVols(model->nParameters(), Volume<float>(T1Data.dims()));
-	Volume<float> residualVols(templateFile.dims().head(3), model->size());
+	VolumeSeries<float> paramsVols(templateFile.dims().head(3), 2);
+	VolumeSeries<float> residualVols(templateFile.dims().head(3), model->size());
 	Volume<float> SoSVol(T1Data.dims());
 	//**************************************************************************
 	// Do the fitting
@@ -295,7 +295,7 @@ int main(int argc, char **argv)
 
 		for (size_t j = voxJ; j < templateFile.dim(2); j++) {
 			function<void (const size_t&)> processVox = [&] (const size_t &i) {
-				const typename Volume<float>::IndexArray vox{i, j, k, 0};
+				const typename Volume<float>::IndexArray vox{i, j, k};
 				if (!maskFile.isOpen() || (maskData[vox] && T1Data[vox] > 0.)) {
 					// -ve T1 is nonsensical, no point fitting
 					voxCount++;
@@ -308,18 +308,17 @@ int main(int argc, char **argv)
 					double B1 = B1File.isOpen() ? B1Vol[vox] : 1.;
 					DESPOTFunctor func(model, signal, B1, false);
 					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, thresh,
-														samples, retain, contract, expand, (voxI != -1));
+														samples, retain, contract, expand, (voxI > 0));
 					ArrayXd params(model->nParameters()); params.setZero();
 					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
-					for (ArrayXd::Index p = 0; p < params.size(); p++)
-						paramsVols.at(p)[vox] = static_cast<float>(params(p));
+					paramsVols.series(vox) = params.tail(2).cast<float>(); // Skip PD & T1
 					SoSVol[vox] = static_cast<float>(rc.SoS());
 					if (writeResiduals) {
 						residualVols.series(vox) = rc.residuals().cast<float>();
 					}
 				}
 			};
-			if (voxI == -1)
+			if (voxI == 0)
 				threads.for_loop(processVox, templateFile.dim(1));
 			else {
 				processVox(voxI);
@@ -344,11 +343,12 @@ int main(int argc, char **argv)
 	
 	outPrefix = outPrefix + "FM_";
 	templateFile.description = version;
-	for (size_t p = 2; p < model->nParameters(); p++) { // Skip PD & T1
-		templateFile.open(outPrefix + model->names().at(p) + ".nii.gz", Nifti::Mode::Write);
-		paramsVols.at(p).writeTo(templateFile);
-		templateFile.close();
-	}
+	templateFile.open(outPrefix + model->names().at(2) + ".nii.gz", Nifti::Mode::Write);
+	paramsVols.writeVolumesTo(templateFile, 0, 1);
+	templateFile.close();
+	templateFile.open(outPrefix + model->names().at(3) + ".nii.gz", Nifti::Mode::Write);
+	paramsVols.writeVolumesTo(templateFile, 1, 1);
+	templateFile.close();
 	templateFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);
 	SoSVol.writeTo(templateFile);
 	templateFile.close();

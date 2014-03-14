@@ -122,8 +122,8 @@ Nifti openAndCheck(const string &path, const Nifti &saved) {
 	return in;
 }
 
-Nifti parseInput(shared_ptr<Model> &mdl, vector<Volume<float>> &signalVols);
-Nifti parseInput(shared_ptr<Model> &mdl, vector<Volume<float>> &signalVols)
+Nifti parseInput(shared_ptr<Model> &mdl, vector<VolumeSeries<float>> &signalVols);
+Nifti parseInput(shared_ptr<Model> &mdl, vector<VolumeSeries<float>> &signalVols)
 {
 	Nifti templateFile, inFile;
 	string type, path;
@@ -162,7 +162,7 @@ Nifti parseInput(shared_ptr<Model> &mdl, vector<Volume<float>> &signalVols)
 				mdl->parseSSFP(inFile.dim(4) / nPhases, nPhases, prompt);
 			}
 		}
-		signalVols.emplace_back(Volume<float>(inFile));
+		signalVols.emplace_back(VolumeSeries<float>(inFile));
 		inFile.close();
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
 		case ModelTypes::Simple : model = make_shared<SimpleModel>(components, scale); break;
 		case ModelTypes::Finite : model = make_shared<FiniteModel>(components, scale); break;
 	}
-	vector<Volume<float>> signalVols;
+	vector<VolumeSeries<float>> signalVols;
 	templateFile = parseInput(model, signalVols);
 	if ((maskFile.isOpen() && !templateFile.matchesSpace(maskFile)) ||
 		(f0File.isOpen() && !templateFile.matchesSpace(f0File)) ||
@@ -295,9 +295,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	//**************************************************************************
-	vector<Volume<float>> paramsVols(model->nParameters(), Volume<float>(templateFile.dims().head(3), 1));
-	Volume<float> residualVols(templateFile.dims().head(3), model->size());;
-	Volume<float> SoSVol(templateFile.dims().head(3), 1);
+	VolumeSeries<float> paramsVols(templateFile.dims().head(3), model->nParameters());
+	VolumeSeries<float> residualVols(templateFile.dims().head(3), model->size());;
+	Volume<float> SoSVol(templateFile.dims().head(3));
 	
 	ArrayXd threshes(model->nParameters()); threshes.setConstant(0.05);
 	ArrayXXd bounds = model->bounds(tesla);
@@ -341,7 +341,7 @@ int main(int argc, char **argv)
 		
 		for (size_t j = voxJ; j < templateFile.dim(2); j++) {
 			function<void (const size_t&)> processVox = [&] (const size_t &i) {
-				const Volume<float>::IndexArray vox{i, j, k, 0};
+				const Volume<float>::IndexArray vox{i, j, k};
 				if (maskFile.isOpen() || maskVol[vox]) {
 					voxCount++;
 					ArrayXd signal = model->loadSignals(signalVols, vox);
@@ -355,15 +355,9 @@ int main(int argc, char **argv)
 														samples, retain, contract, expand, (voxI != -1));
 					ArrayXd params(model->nParameters());
 					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
-					for (size_t p = 0; p < paramsVols.size(); p++) {
-						paramsVols.at(p)[vox] = static_cast<float>(params[p]);
-					}
+					paramsVols.series(vox) = params.cast<float>();
+					residualVols.series(vox) = rc.residuals().cast<float>();
 					SoSVol[vox] = static_cast<float>(rc.SoS());
-					if (writeResiduals) {
-						for (size_t i = 0; i < model->size(); i++) {
-							residualVols.series(vox) = rc.residuals().cast<float>();
-						}
-					}
 				}
 			};
 			if (voxI == -1)
@@ -392,9 +386,9 @@ int main(int argc, char **argv)
 	templateFile.setDim(4, 1);
 	templateFile.setDatatype(Nifti::DataType::FLOAT32);
 	templateFile.description = version;
-	for (size_t p = 0; p < model->nParameters(); p++) {
+	for (size_t p = 1; p < model->nParameters(); p++) { // Skip PD for now
 		templateFile.open(outPrefix + model->names().at(p) + ".nii.gz", Nifti::Mode::Write);
-		paramsVols.at(p).writeTo(templateFile);
+		paramsVols.writeVolumesTo(templateFile, p, 1);
 		templateFile.close();
 	}
 	templateFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);
