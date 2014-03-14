@@ -109,6 +109,10 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	Nifti templateFile(inputFile, 1);
+	if ((inputFile.rank() < 4) || ((inputFile.dim(4) % 4) != 0)) {
+		cout << "Input must contain 4 phase-cycles (0, 90, 180, 270)." << endl;
+		exit(EXIT_FAILURE);
+	}
 	size_t nFlip = inputFile.dim(4) / 4;
 	
 	VolumeSeries<float> input1, input2;
