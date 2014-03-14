@@ -98,11 +98,6 @@ int main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 		}
 	}
-	if ((argc - optind) != 1) {
-		cout << "Incorrect number of arguments." << endl << usage << endl;
-		exit(EXIT_FAILURE);
-	}
-	
 	//**************************************************************************
 	#pragma mark Gather data
 	//**************************************************************************
@@ -131,6 +126,10 @@ int main(int argc, char **argv)
 	} else {
 		inputC.readFrom(inputFile);
 		inputFile.close();
+	}
+	if ((argc - optind) != 0) {
+		cout << "Incorrect number of arguments." << endl << usage << endl;
+		exit(EXIT_FAILURE);
 	}
 	// Results storage
 	VolumeSeries<float> noBands(input1.dims().head(3), nFlip);

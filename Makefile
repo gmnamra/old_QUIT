@@ -54,7 +54,7 @@ $(BLD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BLD_DIR)
 $(BLD_DIR) $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB):
 	mkdir -p $@
 
-TARGETS = despot1 despot1hifi despot2 despot2fm mcdespot mcsignal phasemap afi
+TARGETS = despot1 despot1hifi despot2 despot2fm mcdespot mcsignal phasemap afi ssfpbands
 
 all	: $(TARGETS)
 
