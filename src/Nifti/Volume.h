@@ -63,6 +63,7 @@ class VolumeSeries {
 		
 		void readFrom(Nifti &img);
 		void writeTo(Nifti &img);
+		void writeVolumesTo(Nifti &img, size_t first, size_t n);
 		
 		const IndexArray &dims() const;
 		

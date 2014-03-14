@@ -106,6 +106,14 @@ void VolumeSeries<Tp>::writeTo(Nifti &img) {
 }
 
 template<typename Tp>
+void VolumeSeries<Tp>::writeVolumesTo(Nifti &img, size_t first, size_t n) {
+	assert (img.dim(4) == n);
+	auto b = m_data.begin() + m_strides[3]*first;
+	auto e = b + m_strides[3]*n;
+	img.writeVolumes<Tp>(0, n, b, e);
+}
+
+template<typename Tp>
 void VolumeSeries<Tp>::calcStrides() {
 	m_strides[0] = 1;
 	for (IndexArray::Index i = 1; i < m_dims.size(); i++)
