@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 						}	break;
 					}
 					
-					ArrayXcd crossPoint = (I1.real()*I3.imag() - I3.real()*I1.imag())*(I2 - I4) - (I2.real()*I4.imag() - I4.real()*I2.imag())*(I1 - I3) /
+					ArrayXcd crossPoint = ((I1.real()*I3.imag() - I3.real()*I1.imag())*(I2 - I4) - (I2.real()*I4.imag() - I4.real()*I2.imag())*(I1 - I3)) /
 					                      ((I1.real() - I3.real())*(I2.imag() - I4.imag()) + (I2.real() - I4.real())*(I3.imag() - I1.imag()));
 					noBands.series(vox) = crossPoint.abs().cast<float>();
 				}
