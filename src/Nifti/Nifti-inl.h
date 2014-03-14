@@ -193,7 +193,9 @@ template<typename T> void Nifti::convertToBytes(const typename std::vector<std::
  *   @param size  The size of the desired subregion.
  *   @param data  Storage for the data to read/write. Must be sufficiently large.
  */
-template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &inSize, std::vector<T> &data) {
+template<typename T>
+void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &inSize,
+                            typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end) {
 	ArrayXs size = inSize;
 	for (ArrayXs::Index i = 0; i < size.rows(); i++)
 		if (size(i) == 0) size(i) = m_dim(i);
@@ -201,11 +203,11 @@ template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &star
 	if (start.rows() != size.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
 	if (start.rows() > m_dim.rows()) throw(std::out_of_range("Too many read/write dimensions specified in image: " + imagePath()));
 	if (((start + size) > m_dim.head(start.rows())).any()) throw(std::out_of_range("Read/write past image dimensions requested: " + imagePath()));
-	if (size.prod() < data.size()) throw(std::out_of_range("Allocated memory is insufficient for read/write in image: " + imagePath()));
+	if (size.prod() < (end - begin)) throw(std::out_of_range("Storage size does not match requested read/write size in image: " + imagePath()));
 	
 	ArrayXs::Index firstDim = 0; // We can always read first dimension in one go
 	ArrayXs::Index blockSize = size(firstDim);
-	auto dataIt = data.begin();
+	auto dataIt = begin;
 	while ((size(firstDim) == m_dim(firstDim)) && (firstDim < size.rows() - 1)) {
 		firstDim++;
 		blockSize *= size(firstDim);
@@ -234,40 +236,44 @@ template<typename T> void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &star
 	dimLoop(start.rows() - 1);
 }
 
-template<typename T> void Nifti::readVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data) {
+template<typename T>
+void Nifti::readVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size,
+					   typename std::vector<T>::iterator begin,
+					   typename std::vector<T>::iterator end) {
 	if (!(m_mode == Mode::Read))
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
-	readWriteVoxels(start, size, data);
+	readWriteVoxels<T>(start, size, begin, end);
 }
 
-template<typename T> void Nifti::readVolumes(const size_t first, const size_t nvol, std::vector<T> &data) {
+template<typename T>
+void Nifti::readVolumes(const size_t first, const size_t nvol,
+                        typename std::vector<T>::iterator begin,
+						typename std::vector<T>::iterator end) {
 	if (!(m_mode == Mode::Read))
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
-	if (data.size() != (m_dim.head(3).prod() * nvol))
-		throw(std::runtime_error("Insufficient storage allocated for read: " + basePath()));
-	
-	Eigen::Array<size_t, 4, 1> start, size;
-	start << 0, 0, 0, first;
-	size << dim(1), dim(2), dim(3), nvol;
-	readWriteVoxels(start, size, data);
+	Eigen::Array<size_t, 4, 1> start{0, 0, 0, first};
+	Eigen::Array<size_t, 4, 1> size{dim(1), dim(2), dim(3), nvol};
+	readWriteVoxels<T>(start, size, begin, end);
 }
 
-template<typename T> void Nifti::writeVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data) {
+template<typename T>
+void Nifti::writeVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size,
+                        typename std::vector<T>::iterator begin,
+						typename std::vector<T>::iterator end) {
 	if (!(m_mode == Mode::Write))
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
-	readWriteVoxels(start, size, data);
+	readWriteVoxels<T>(start, size, begin, end);
 }
 
-template<typename T> void Nifti::writeVolumes(const size_t first, const size_t nvol, std::vector<T> &data) {
+template<typename T>
+void Nifti::writeVolumes(const size_t first, const size_t nvol,
+                         typename std::vector<T>::iterator begin,
+						 typename std::vector<T>::iterator end) {
 	if (!(m_mode == Mode::Write))
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
-	if (data.size() != (m_dim.head(3).prod() * nvol))
-		throw(std::runtime_error("Insufficient data for write: " + basePath()));
-	
-	Eigen::Array<size_t, 4, 1> start, size;
-	start << 0, 0, 0, first;
-	size << dim(1), dim(2), dim(3), nvol;
-	readWriteVoxels(start, size, data);
+	Eigen::Array<size_t, 4, 1> start{0, 0, 0, first};
+	Eigen::Array<size_t, 4, 1> size{dim(1), dim(2), dim(3), nvol};
+	readWriteVoxels<T>(start, size, begin, end);
 }
 
 #endif // NIFTI_NIFTI_INL

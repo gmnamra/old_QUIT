@@ -114,7 +114,9 @@ class Nifti {
 		template<typename T> void convertFromBytes(const std::vector<char> &bytes, const typename std::vector<std::complex<T>>::iterator begin, const typename std::vector<std::complex<T>>::iterator end);
 		template<typename T> void convertToBytes(const typename std::vector<T>::iterator begin, const typename std::vector<T>::iterator end, std::vector<char> &bytes);
 		template<typename T> void convertToBytes(const typename std::vector<std::complex<T>>::iterator begin, const typename std::vector<std::complex<T>>::iterator end, std::vector<char> &bytes);
-		template<typename T> void readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data);
+		template<typename T>
+		void readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size,
+						     typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end);
 		
 	#pragma mark Public Class Methods
 	public:
@@ -163,11 +165,14 @@ class Nifti {
 		bool matchesSpace(const Nifti &other) const;  //!< Check if voxel dimensions, data size and XForm match
 		bool matchesVoxels(const Nifti &other) const; //!< Looser check if voxel dimensions and data size match
 		
-		template<typename T> void readVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data);
-		template<typename T> void readVolumes(const size_t first, const size_t nvol, std::vector<T> &data);
-		template<typename T> void writeVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, std::vector<T> &data);
-		template<typename T> void writeVolumes(const size_t vol, const size_t nvol, std::vector<T> &data);
-		
+		template<typename T> void readVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size,
+						                     typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end);
+		template<typename T> void readVolumes(const size_t first, const size_t nvol,
+						                      typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end);
+		template<typename T> void writeVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size,
+						                      typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end);
+		template<typename T> void writeVolumes(const size_t vol, const size_t nvol,
+						                       typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end);
 		void addExtension(const int code, const std::vector<char> &data);
 		void addExtension(const Extension &e);
 		const std::list<Extension> &extensions() const;
