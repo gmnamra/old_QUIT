@@ -136,7 +136,8 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	// Results storage
-	VolumeSeries<float> noBands(input1.dims().head(3), nFlip);
+	VolumeSeries<float> outMag(input1.dims().head(3), nFlip);
+	VolumeSeries<float> outPhase(input1.dims().head(3), nFlip);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -194,7 +195,8 @@ int main(int argc, char **argv)
 					
 					ArrayXcd crossPoint = ((I1.real()*I3.imag() - I3.real()*I1.imag())*(I2 - I4) - (I2.real()*I4.imag() - I4.real()*I2.imag())*(I1 - I3)) /
 					                      ((I1.real() - I3.real())*(I2.imag() - I4.imag()) + (I2.real() - I4.real())*(I3.imag() - I1.imag()));
-					noBands.series(vox) = crossPoint.abs().cast<float>();
+					outMag.series(vox) = crossPoint.abs().cast<float>();
+					outPhase.series(vox) = crossPoint.imag().binaryExpr(crossPoint.real(), ptr_fun<double,double,double>(atan2)).cast<float>();
 				}
 			};
 			
@@ -213,8 +215,11 @@ int main(int argc, char **argv)
 	if (verbose)
 		cout << "Writing results." << endl;
 	templateFile.setDim(4, nFlip);
-	templateFile.open("no_bands.nii.gz", Nifti::Mode::Write);
-	noBands.writeTo(templateFile);
+	templateFile.open("no_bands_mag.nii.gz", Nifti::Mode::Write);
+	outMag.writeTo(templateFile);
+	templateFile.close();
+	templateFile.open("no_bands_ph.nii.gz", Nifti::Mode::Write);
+	outPhase.writeTo(templateFile);
 	templateFile.close();
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
