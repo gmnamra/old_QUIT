@@ -101,6 +101,10 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Gather data
 	//**************************************************************************
+	if ((argc - optind) < 1) {
+		cout << "No input file specified." << endl << usage << endl;
+		exit(EXIT_FAILURE);
+	}
 	cout << "Opening input file: " << argv[optind] << endl;
 	Nifti inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
