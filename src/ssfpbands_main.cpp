@@ -219,10 +219,10 @@ int main(int argc, char **argv)
 	if (verbose)
 		cout << "Writing results." << endl;
 	templateFile.setDim(4, nFlip);
-	templateFile.open("no_bands_mag.nii.gz", Nifti::Mode::Write);
+	templateFile.open(outPrefix + "no_bands_mag.nii.gz", Nifti::Mode::Write);
 	outMag.writeTo(templateFile);
 	templateFile.close();
-	templateFile.open("no_bands_ph.nii.gz", Nifti::Mode::Write);
+	templateFile.open(outPrefix + "no_bands_ph.nii.gz", Nifti::Mode::Write);
 	outPhase.writeTo(templateFile);
 	templateFile.close();
 	cout << "All done." << endl;
