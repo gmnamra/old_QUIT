@@ -43,7 +43,7 @@ class App:
 		Tk.Label(input, text = 'Input:').grid(row = 0, sticky=Tk.E)
 		Tk.Label(input, text = 'Output:').grid(row = 1, sticky=Tk.E)
 		self.in_dir = Tk.StringVar()
-		self.in_dir.set("/data/blinded/OSIRIS/")
+		self.in_dir.set("/data/blinded/")
 		self.out_dir = Tk.StringVar()
 		self.out_dir.set(os.getcwd())
 		self.in_entry  = Tk.Entry(input, width = 64, textvariable = self.in_dir)
