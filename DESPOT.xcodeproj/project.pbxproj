@@ -1420,6 +1420,7 @@
 				F6E69DB918D3433F008382E2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F6EA0A8915DE3C490059E436 /* Build configuration list for PBXNativeTarget "test_despot" */ = {
 			isa = XCConfigurationList;

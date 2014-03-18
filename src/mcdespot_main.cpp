@@ -122,8 +122,8 @@ Nifti openAndCheck(const string &path, const Nifti &saved) {
 	return in;
 }
 
-Nifti parseInput(shared_ptr<Model> &mdl, vector<VolumeSeries<float>> &signalVols);
-Nifti parseInput(shared_ptr<Model> &mdl, vector<VolumeSeries<float>> &signalVols)
+Nifti parseInput(shared_ptr<Model> &mdl, vector<VolumeSeries<complex<float>>> &signalVols);
+Nifti parseInput(shared_ptr<Model> &mdl, vector<VolumeSeries<complex<float>>> &signalVols)
 {
 	Nifti templateFile, inFile;
 	string type, path;
@@ -162,7 +162,7 @@ Nifti parseInput(shared_ptr<Model> &mdl, vector<VolumeSeries<float>> &signalVols
 				mdl->parseSSFP(inFile.dim(4) / nPhases, nPhases, prompt);
 			}
 		}
-		signalVols.emplace_back(VolumeSeries<float>(inFile));
+		signalVols.emplace_back(VolumeSeries<complex<float>>(inFile));
 		inFile.close();
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
 		case ModelTypes::Simple : model = make_shared<SimpleModel>(components, scale); break;
 		case ModelTypes::Finite : model = make_shared<FiniteModel>(components, scale); break;
 	}
-	vector<VolumeSeries<float>> signalVols;
+	vector<VolumeSeries<complex<float>>> signalVols;
 	templateFile = parseInput(model, signalVols);
 	if ((maskFile.isOpen() && !templateFile.matchesSpace(maskFile)) ||
 		(f0File.isOpen() && !templateFile.matchesSpace(f0File)) ||
@@ -344,7 +344,7 @@ int main(int argc, char **argv)
 				const Volume<float>::IndexArray vox{i, j, k};
 				if (maskFile.isOpen() || maskVol[vox]) {
 					voxCount++;
-					ArrayXd signal = model->loadSignals(signalVols, vox);
+					ArrayXcd signal = model->loadSignals(signalVols, vox);
 					ArrayXXd localBounds = bounds;
 					if (f0fit == OffRes::Map) {
 						localBounds.row(model->nParameters() - 1).setConstant(f0Vol[vox]);

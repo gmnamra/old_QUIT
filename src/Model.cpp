@@ -42,11 +42,11 @@ void SPGRSimple::write(ostream &os) const {
 	os << "TR: " << m_TR << endl;
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
-ArrayXd SPGRSimple::signal(const Components nC, const VectorXd &p, const double B1) const {
+ArrayXcd SPGRSimple::signal(const Components nC, const VectorXd &p, const double B1) const {
 	switch (nC) {
-		case (Components::One) : return SigMag(One_SPGR(B1flip(B1), m_TR, p[0], p[1]));
-		case (Components::Two) : return SigMag(Two_SPGR(B1flip(B1), m_TR, p[0], p[1], p[3], p[5], p[6]));
-		case (Components::Three) : return SigMag(Three_SPGR(B1flip(B1), m_TR, p[0], p[1], p[3], p[5], p[7], p[8], p[9]));
+		case (Components::One) : return SigComplex(One_SPGR(B1flip(B1), m_TR, p[0], p[1]));
+		case (Components::Two) : return SigComplex(Two_SPGR(B1flip(B1), m_TR, p[0], p[1], p[3], p[5], p[6]));
+		case (Components::Three) : return SigComplex(Three_SPGR(B1flip(B1), m_TR, p[0], p[1], p[3], p[5], p[7], p[8], p[9]));
 	}
 }
 
@@ -56,11 +56,11 @@ void SPGRFinite::write(ostream &os) const {
 	os << "TR: " << m_TR << "\tTrf: " << m_Trf << "\tTE: " << m_TE << endl;
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
-ArrayXd SPGRFinite::signal(const Components nC, const VectorXd &p, const double B1) const {
+ArrayXcd SPGRFinite::signal(const Components nC, const VectorXd &p, const double B1) const {
 	switch (nC) {
-		case (Components::One) : return SigMag(One_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3]));
-		case (Components::Two) : return SigMag(Two_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]));
-		case (Components::Three) : return SigMag(Three_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10]));
+		case (Components::One) : return SigComplex(One_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3]));
+		case (Components::Two) : return SigComplex(Two_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]));
+		case (Components::Three) : return SigComplex(Three_SSFP_Finite(B1flip(B1), true, m_TR, m_Trf, m_TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10]));
 	}
 }
 
@@ -72,14 +72,14 @@ void SSFPSimple::write(ostream &os) const {
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
 size_t SSFPSimple::size() const { return m_flip.rows() * m_phases.rows(); }
-ArrayXd SSFPSimple::signal(const Components nC, const VectorXd &p, const double B1) const {
-	ArrayXd s(size());
-	ArrayXd::Index start = 0;
-	for (ArrayXd::Index i = 0; i < m_phases.rows(); i++) {
+ArrayXcd SSFPSimple::signal(const Components nC, const VectorXd &p, const double B1) const {
+	ArrayXcd s(size());
+	ArrayXcd::Index start = 0;
+	for (ArrayXcd::Index i = 0; i < m_phases.rows(); i++) {
 		switch (nC) {
-			case (Components::One) : s.segment(start, m_flip.rows()) = SigMag(One_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3])); break;
-			case (Components::Two) : s.segment(start, m_flip.rows()) = SigMag(Two_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7])); break;
-			case (Components::Three) : s.segment(start, m_flip.rows()) = SigMag(Three_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10])); break;
+			case (Components::One) : s.segment(start, m_flip.rows()) = SigComplex(One_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3])); break;
+			case (Components::Two) : s.segment(start, m_flip.rows()) = SigComplex(Two_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7])); break;
+			case (Components::Three) : s.segment(start, m_flip.rows()) = SigComplex(Three_SSFP(B1flip(B1), m_TR, m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10])); break;
 		}
 		start += m_flip.rows();
 	}
@@ -92,14 +92,14 @@ void SSFPFinite::write(ostream &os) const {
 	os << "TR: " << m_TR << "\tTrf: " << m_Trf << "\tPhases: " << (m_phases * 180. / M_PI).transpose() << endl;
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
-ArrayXd SSFPFinite::signal(const Components nC, const VectorXd &p, const double B1) const {
-	ArrayXd s(size());
-	ArrayXd::Index start = 0;
-	for (ArrayXd::Index i = 0; i < m_phases.rows(); i++) {
+ArrayXcd SSFPFinite::signal(const Components nC, const VectorXd &p, const double B1) const {
+	ArrayXcd s(size());
+	ArrayXcd::Index start = 0;
+	for (ArrayXcd::Index i = 0; i < m_phases.rows(); i++) {
 		switch (nC) {
-			case (Components::One) : s.segment(start, m_flip.rows()) = SigMag(One_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3])); break;
-			case (Components::Two) : s.segment(start, m_flip.rows()) = SigMag(Two_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7])); break;
-			case (Components::Three) : s.segment(start, m_flip.rows()) = SigMag(Three_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10])); break;
+			case (Components::One) : s.segment(start, m_flip.rows()) = SigComplex(One_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3])); break;
+			case (Components::Two) : s.segment(start, m_flip.rows()) = SigComplex(Two_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7])); break;
+			case (Components::Three) : s.segment(start, m_flip.rows()) = SigComplex(Three_SSFP_Finite(B1flip(B1), false, m_TR, m_Trf, 0., m_phases(i), p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10])); break;
 		}
 		start += m_flip.rows();
 	}
@@ -144,14 +144,14 @@ const size_t Model::size() const {
 	return sz;
 }
 
-const ArrayXd Model::signal(const VectorXd &p, const double B1) const {
-	ArrayXd result(size());
+const ArrayXcd Model::signal(const VectorXd &p, const double B1) const {
+	ArrayXcd result(size());
 	size_t start = 0;
 	for (auto &sig : m_signals) {
-		ArrayXd thisResult = sig->signal(m_nC, p, B1);
+		ArrayXcd thisResult = sig->signal(m_nC, p, B1);
 		switch (m_scaling) {
 			case Scaling::None :       break;
-			case Scaling::NormToMean : thisResult /= thisResult.mean();
+			case Scaling::NormToMean : thisResult /= thisResult.abs().mean();
 		}
 		result.segment(start, sig->size()) = thisResult;
 		start += sig->size();
@@ -241,13 +241,13 @@ const bool Model::validParameters(const VectorXd &params) const {
 	}
 }
 
-ArrayXd Model::loadSignals(vector<VolumeSeries<float>> &sigs, const typename Volume<float>::IndexArray &vox) const {
-	ArrayXd signal(size());
+ArrayXcd Model::loadSignals(vector<VolumeSeries<complex<float>>> &sigs, const typename Volume<complex<float>>::IndexArray &vox) const {
+	ArrayXcd signal(size());
 	size_t start = 0;
 	for (size_t i = 0; i < m_signals.size(); i++) {
-		ArrayXd thisSig = sigs.at(i).series(vox).cast<double>();
+		ArrayXcd thisSig = sigs.at(i).series(vox).cast<complex<double>>();
 		if (m_scaling == Scaling::NormToMean)
-			thisSig /= thisSig.mean();
+			thisSig /= thisSig.abs().mean();
 		signal.segment(start, thisSig.rows()) = thisSig;
 		start += thisSig.rows();
 	}

@@ -153,6 +153,14 @@ const MagVector SumMC(const MatrixXd &M_in) {
 	return M_out;
 }
 
+// Turn a full XYZ magnetisation vector into a complex transverse magnetisation
+const VectorXcd SigComplex(const MagVector &M_in) {
+	VectorXcd cs(M_in.cols());
+	cs.real() = M_in.topRows(1).transpose();
+	cs.imag() = M_in.block(1, 0, 1, M_in.cols()).transpose();
+	return cs;
+}
+
 const VectorXd SigMag(const MagVector &M_in) {
 	VectorXd s = M_in.topRows(2).colwise().norm();
 	return s;

@@ -80,6 +80,7 @@ typedef Matrix<double, 9, 1> Vector9d;
 typedef Matrix<double, 3, Dynamic> MagVector;
 
 const VectorXd SigMag(const MagVector &M_in);
+const VectorXcd SigComplex(const MagVector &M_in);
 const MagVector SumMC(const MatrixXd &M_in);
 
 const Matrix3d RF(cdbl &alpha, cdbl &beta);

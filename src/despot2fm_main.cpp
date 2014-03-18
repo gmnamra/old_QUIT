@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 	// Gather SSFP Data
 	//**************************************************************************
 	size_t nFiles = argc - optind;
-	vector<VolumeSeries<float>> ssfpData(nFiles);
+	vector<VolumeSeries<complex<float>>> ssfpData(nFiles);
 	shared_ptr<Model> model;
 	switch (modelType) {
 		case ModelTypes::Simple: model = make_shared<SimpleModel>(Signal::Components::One, scale); break;
@@ -299,7 +299,7 @@ int main(int argc, char **argv)
 				if (!maskFile.isOpen() || (maskData[vox] && T1Data[vox] > 0.)) {
 					// -ve T1 is nonsensical, no point fitting
 					voxCount++;
-					ArrayXd signal = model->loadSignals(ssfpData, vox);
+					ArrayXcd signal = model->loadSignals(ssfpData, vox);
 					ArrayXXd localBounds = bounds;
 					localBounds.row(1).setConstant(T1Data[vox]);
 					if (f0fit == OffRes::Map) {

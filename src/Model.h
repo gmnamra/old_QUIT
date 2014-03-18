@@ -40,7 +40,7 @@ class Signal {
 		ArrayXd m_flip;
 		Signal(const ArrayXd &flip, const double TR);
 		ArrayXd B1flip(const double B1) const;
-		virtual ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const = 0;
+		virtual ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const = 0;
 		virtual size_t size() const { return m_flip.rows(); }
 		virtual void write(ostream &os) const = 0;
 		virtual const string name() const = 0;
@@ -50,7 +50,7 @@ ostream& operator<<(ostream& os, const Signal& s);
 class SPGRSimple : public Signal {
 	public:
 		SPGRSimple(const ArrayXd &flip, const double TR);
-		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
+		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		const string name() const override { return "SPGR"; } ;
 };
@@ -58,7 +58,7 @@ class SPGRFinite : public Signal {
 	public:
 		double m_Trf, m_TE;
 		SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE);
-		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
+		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		const string name() const override { return "SPGR_Finite"; } ;
 };
@@ -66,7 +66,7 @@ class SSFPSimple : public Signal {
 	public:
 		ArrayXd m_phases;
 		SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases);
-		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
+		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		size_t size() const override;
 		void write(ostream& os) const override;
 		const string name() const override { return "SSFP"; } ;
@@ -75,7 +75,7 @@ class SSFPFinite : public SSFPSimple {
 	public:
 		double m_Trf;
 		SSFPFinite(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases);
-		ArrayXd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
+		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		const string name() const override { return "SSFP_Finite"; } ;
 };
@@ -98,7 +98,7 @@ public:
 	Model(const Signal::Components c, const Scaling s);
 	friend ostream& operator<<(ostream& os, const Model& m);
 
-	const ArrayXd signal(const VectorXd &p, const double B1) const;
+	const ArrayXcd signal(const VectorXd &p, const double B1) const;
 	const size_t size() const;
 	
 	const size_t nParameters() const;
@@ -106,7 +106,7 @@ public:
 	const vector<string> &names() const;
 	const ArrayXXd bounds(const FieldStrength f) const;
 	
-	ArrayXd loadSignals(vector<VolumeSeries<float>> &vols, const typename Volume<float>::IndexArray &index) const;
+	ArrayXcd loadSignals(vector<VolumeSeries<complex<float>>> &vols, const typename Volume<complex<float>>::IndexArray &index) const;
 	
 	virtual void parseSPGR(const size_t nFlip, const bool prompt) = 0;
 	virtual void parseSSFP(const size_t nFlip, const size_t nPhase, const bool prompt) = 0;

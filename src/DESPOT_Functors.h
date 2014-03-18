@@ -66,7 +66,7 @@ class DESPOTFunctor : public Functor<double> {
 	protected:
 		shared_ptr<Model> m_model;
 		size_t m_nV;
-		ArrayXd m_data;
+		ArrayXcd m_data;
 		
 	public:
 		bool m_debug;
@@ -75,7 +75,7 @@ class DESPOTFunctor : public Functor<double> {
 		const long inputs() const override { return m_model->nParameters(); }
 		const long values() const override { return m_nV; }
 		
-		DESPOTFunctor(shared_ptr<Model> m, const ArrayXd &d, const double B1, const bool debug = false);
+		DESPOTFunctor(shared_ptr<Model> m, const ArrayXcd &d, const double B1, const bool debug = false);
 		
 		const bool constraint(const VectorXd &params) const;
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const override;

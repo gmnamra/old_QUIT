@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 	// Allocate memory for slices
 	//**************************************************************************
 	cout << "Reading SPGR data..." << flush;
-	VolumeSeries<float> spgrVol(spgrFile);
+	VolumeSeries<complex<float>> spgrVol(spgrFile);
 	cout << "done." << endl;
 	//**************************************************************************
 	// Create results data storage
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 					ArrayXd localAngles(spgrMdl.m_signals.at(0)->B1flip(B1));
 					//cout << localAngles.transpose() << endl;
 					double T1, PD, SoS;
-					ArrayXd signal = spgrVol.series(vox).cast<double>();
+					ArrayXd signal = spgrVol.series(vox).abs().cast<double>();
 					VectorXd Y = signal / localAngles.sin();
 					MatrixXd X(Y.rows(), 2);
 					X.col(0) = signal / localAngles.tan();
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
 							PD = b[1] / (1. - b[0]);
 						}
 					} else if (algo == Algos::NLLS) {
-						DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal, B1, false);
+						DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal.cast<complex<double>>(), B1, false);
 						NumericalDiff<DESPOTFunctor> nDiff(f);
 						LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
 						lm.parameters.maxfev = nIterations;
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
 						lm.lmder1(p);
 						PD = p(0); T1 = p(1);
 					}
-					ArrayXd theory = spgrMdl.signal(Vector4d(PD, T1, 0., 0.), B1);
+					ArrayXd theory = spgrMdl.signal(Vector4d(PD, T1, 0., 0.), B1).abs();
 					SoS = (signal - theory).square().sum();
 					T1Vol[vox]  = static_cast<float>(T1);
 					PDVol[vox]  = static_cast<float>(PD);
