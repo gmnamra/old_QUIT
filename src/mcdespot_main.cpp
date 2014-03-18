@@ -189,7 +189,7 @@ int main(int argc, char **argv)
 	Volume<float> f0Vol, B1Vol;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:M:crn123i:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:M:xcrn123i:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
