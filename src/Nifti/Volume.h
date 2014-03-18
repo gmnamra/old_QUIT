@@ -12,6 +12,7 @@
 #include <iostream>
 #include <vector>
 #include <array>
+#include <memory>
 #include <exception>
 #include <stdexcept>
 
@@ -26,20 +27,31 @@ class Volume {
 		typedef Eigen::Array<size_t, 3, 1> IndexArray;
 		typedef typename std::vector<Tp>::const_reference ConstTpRef;
 		typedef typename std::vector<Tp>::reference TpRef;
+		static const size_t MaxIndex{std::numeric_limits<size_t>::max()};
 	protected:
-		std::vector<Tp> m_data;
-		IndexArray      m_dims, m_strides;
+		std::shared_ptr<std::vector<Tp>> m_ptr;
+		size_t      m_offset;
+		IndexArray  m_dims, m_strides;
 		
 		void calcStrides();
 	public:
 		Volume();
+		Volume(const Volume &ov);
+		Volume(const Volume &&ov);
 		Volume(const IndexArray &dims);
 		Volume(Nifti &img, const size_t vol=0);
+		
+		Volume view(const IndexArray &start, const IndexArray &end = IndexArray{MaxIndex, MaxIndex, MaxIndex}, const IndexArray &stride = IndexArray{1, 1, 1});
+		Volume copy(const IndexArray &start, const IndexArray &end, const IndexArray &stride);
 		
 		void readFrom(Nifti &img, const size_t vol=0);
 		void writeTo(Nifti &img, const size_t vol=0);
 		
 		const IndexArray &dims() const;
+		size_t size() const;
+		
+		ConstTpRef operator[](const size_t i) const;
+		TpRef operator[](const size_t i);
 		
 		ConstTpRef operator[](const IndexArray &vox) const;
 		TpRef operator[](const IndexArray &vox);
@@ -62,10 +74,15 @@ class VolumeSeries {
 		VolumeSeries(Nifti &img);
 		
 		void readFrom(Nifti &img);
+		void readVolumesFrom(Nifti &img, size_t first, size_t n);
 		void writeTo(Nifti &img);
 		void writeVolumesTo(Nifti &img, size_t first, size_t n);
 		
 		const IndexArray &dims() const;
+		size_t size() const;
+		
+		const SeriesTp series(const size_t i) const;
+		SeriesTp series(const size_t i);
 		
 		const SeriesTp series(const typename Volume<Tp>::IndexArray &vox) const;
 		SeriesTp series(const typename Volume<Tp>::IndexArray &vox);

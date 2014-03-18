@@ -381,6 +381,10 @@
 				HEADER_SEARCH_PATHS = "~/Code/eigen";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-Wno-deprecated-register",
+				);
 				USER_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/src/";
 			};
 			name = Debug;
@@ -404,6 +408,10 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = "~/Code/eigen";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-Wno-deprecated-register",
+				);
 				USER_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/src/";
 			};
 			name = Release;
