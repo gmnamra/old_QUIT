@@ -6,6 +6,7 @@
 ###################################################
 
 # Platform/system specific
+CXX_VER := $(shell cpp --version)
 ifneq (,$(findstring clang,$(CXX_VER)))
 	STDLIB      := -stdlib=libc++
 	EIGEN       := $(HOME)/Code/eigen
@@ -37,9 +38,10 @@ $(BLD_DIR) $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB):
 	mkdir -p $@
 
 # Set up all our compiler options
-CXX_FLAGS := -g -std=c++11 -stdlib=libc++ -m64 -O3 -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors $(DEBUG)
-LD_FLAGS  := -g -std=c++11 -stdlib=libc++ -m64 -O3 -L. -L$(INSTALL_LIB)
-INCLUDE   := -I$(SRC_DIR) -I$(EIGEN) -I$(INSTALL_INC)
+CXX_FLAGS := -std=c++11 $(STDLIB) $(THREADS) -m64 -g -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors -DAGILENT $(DEBUG)
+INCLUDE   := -I$(SRC_DIR) -I$(INSTALL_INC) -I$(EIGEN)
+LD_FLAGS  := -std=c++11 $(STDLIB) $(THREADS) -m64 -g -L$(INSTALL_LIB)
+LD_LIBS   := -lNifti -lz
 
 # Source files for libAgilent
 AG_BASE := util procpar fdf fdfFile FID FIDFile
