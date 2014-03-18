@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
 				cout << "Opening mask file: " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
 				maskData.resize(maskFile.dims().head(3).prod());
-				maskFile.readVolumes(0, 1, maskData);
+				maskFile.readVolumes<double>(0, 1, maskData.begin(), maskData.end());
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -281,8 +281,8 @@ int main(int argc, char **argv) {
 	
 	cout << "Reading image data..." << flush;
 	vector<double> SPGR(voxelsPerVolume * nSPGR), IR(voxelsPerVolume * nIR);
-	spgrFile.readVolumes(0, nSPGR, SPGR);
-	irFile.readVolumes(0, nIR, IR);
+	spgrFile.readVolumes<double>(0, nSPGR, SPGR.begin(), SPGR.end());
+	irFile.readVolumes<double>(0, nIR, IR.begin(), IR.end());
 	spgrFile.close();
 	irFile.close();
 	cout << "done." << endl;
@@ -353,7 +353,7 @@ int main(int argc, char **argv) {
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
 		outFile.open(outName, Nifti::Mode::Write);
-		outFile.writeVolumes(0, 1, resultsData[r]);
+		outFile.writeVolumes<double>(0, 1, resultsData[r].begin(), resultsData[r].end());
 		outFile.close();
 	}
 	cout << "All done." << endl;

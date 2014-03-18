@@ -1168,6 +1168,7 @@
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-ferror-limit=20",
+					"-Wno-deprecated-register",
 				);
 				OTHER_LDFLAGS = "";
 				SDKROOT = macosx;
@@ -1220,6 +1221,7 @@
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-ferror-limit=20",
+					"-Wno-deprecated-register",
 				);
 				OTHER_LDFLAGS = "";
 				SDKROOT = macosx;

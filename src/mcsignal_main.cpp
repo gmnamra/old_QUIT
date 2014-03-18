@@ -103,8 +103,8 @@ int main(int argc, char **argv)
 	try { // To fix uncaught exceptions on Mac
 	
 	Nifti maskFile, B1File;
-	vector<bool> maskData(0);
-	vector<double> B1Vol(0);
+	Volume<bool> maskVol;
+	Volume<float> B1Vol;
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvnm:o:b:123M:", long_options, &indexptr)) != -1) {
 		switch (c) {
@@ -113,9 +113,7 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData.resize(maskFile.dims().head(3).prod());
-				maskFile.readVolumes(0, 1, maskData);
-				maskFile.close();
+				maskVol.readFrom(maskFile);
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -124,8 +122,7 @@ int main(int argc, char **argv)
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol.resize(B1File.dims().head(3).prod());
-				B1File.readVolumes(0, 1, B1Vol);
+				B1Vol.readFrom(B1File);
 				break;
 			case '1': components = Signal::Components::One; break;
 			case '2': components = Signal::Components::Two; break;
@@ -166,7 +163,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << Signal::to_string(components) << " component model." << endl;
-	vector<vector<double>> paramsVols(model->nParameters()), signalVols(model->size());
+	VolumeSeries<float> paramsVols;
 	Nifti saveFile;
 	size_t numVoxels;
 	if (prompt) cout << "Loading parameters." << endl;
@@ -178,6 +175,7 @@ int main(int argc, char **argv)
 
 		if (i == 0) {
 			saveFile = Nifti(input, model->size());
+			paramsVols = VolumeSeries<float>(input.dims().head(3), model->nParameters());
 			numVoxels = input.dims().head(3).prod();
 		} else {
 			if (!input.matchesSpace(saveFile)) {
@@ -185,27 +183,16 @@ int main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 			}
 		}
-
-		paramsVols.at(i).resize(numVoxels);
-		input.readVolumes(0, 1, paramsVols.at(i));
+		paramsVols.readVolumesFrom(input, i, 1);
 	}
-	for (auto &s : signalVols) {
-		s.resize(numVoxels, 0.);
-	}
-
+	VolumeSeries<float> signalVols(saveFile.dims().head(3), model->size());
+	
 	cout << "Started calculating." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &v) {
-		if ((maskData.size() == 0) || (maskData.at(v))) {
-			ArrayXd params(model->nParameters());
-			for (size_t p = 0; p < model->nParameters(); p++) {
-				params(p) = paramsVols.at(p).at(v);
-			}
-			double B1 = B1File.isOpen() ? B1Vol.at(v) : 1.;
-			ArrayXd signal = model->signal(params, B1);
-			for (size_t s = 0; s < model->size(); s++) {
-				signalVols.at(s).at(v) = signal(s);
-			}
-			//cout << "Voxel: " << v << " " << params.transpose() << "->" << signal.transpose() << endl;
+		if ((maskFile.isOpen() == 0) || (maskVol[v])) {
+			ArrayXd params = paramsVols.series(v).cast<double>();
+			double B1 = B1File.isOpen() ? B1Vol[v] : 1.;
+			signalVols.series(v) = model->signal(params, B1).abs().cast<float>();
 		}
 	};
 	ThreadPool threads(1);
@@ -213,9 +200,7 @@ int main(int argc, char **argv)
 	
 	cout << "Finished calculating." << endl;
 	saveFile.open(outPrefix + "mcsigout.nii.gz", Nifti::Mode::Write);
-	for (size_t s = 0; s < model->size(); s++) {
-		saveFile.writeVolumes(s, 1, signalVols.at(s));
-	}
+	signalVols.writeTo(saveFile);
 	saveFile.close();
 	} catch (exception &e) {
 		cerr << e.what() << endl;

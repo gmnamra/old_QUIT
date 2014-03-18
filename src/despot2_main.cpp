@@ -86,19 +86,19 @@ int main(int argc, char **argv)
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
 				maskData.resize(maskFile.dims().head(3).prod());
-				maskFile.readVolumes(0, 1, maskData);
+				maskFile.readVolumes<double>(0, 1, maskData.begin(), maskData.end());
 				break;
 			case '0':
 				cout << "Reading B0 file: " << optarg << endl;
 				B0File.open(optarg, Nifti::Mode::Read);
 				B0Data.resize(B0File.dims().head(3).prod());
-				B0File.readVolumes(0, 1, B0Data);
+				B0File.readVolumes<double>(0, 1, B0Data.begin(), B0Data.end());
 				break;
 			case '1':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
 				B1Data.resize(B1File.dims().head(3).prod());
-				B1File.readVolumes(0, 1, B1Data);
+				B1File.readVolumes<double>(0, 1, B1Data.begin(), B1Data.end());
 				break;
 			case 'v': verbose = true; break;
 			case 'S': start_slice = atoi(optarg); break;
@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 	size_t voxelsPerSlice = inFile.dims().head(2).prod();
 	size_t voxelsPerVolume = inFile.dims().head(3).prod();
 	T1Data.resize(voxelsPerVolume);
-	inFile.readVolumes(0, 1, T1Data);
+	inFile.readVolumes<double>(0, 1, T1Data.begin(), T1Data.end());
 	inFile.close();
 	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
 	    (B0File.isOpen() && !inFile.matchesSpace(B0File)) ||
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 	inFlip *= M_PI / 180.;
 	cout << "Reading SSFP data..." << endl;
 	vector<double> ssfpData(voxelsPerVolume * nFlip);
-	inFile.readVolumes(0, nFlip, ssfpData);
+	inFile.readVolumes<double>(0, nFlip, ssfpData.begin(), ssfpData.end());
 	inFile.close();
 	nResiduals = nFlip;
 	optind++;
@@ -229,13 +229,13 @@ int main(int argc, char **argv)
 	const vector<string> classic_names { "D2_PD", "D2_T2" };
 	outFile.description = version;
 	outFile.open(outPrefix + "D2_PD.nii.gz", Nifti::Mode::Write);
-	outFile.writeVolumes(0, 1, PDData);
+	outFile.writeVolumes<double>(0, 1, PDData.begin(), PDData.end());
 	outFile.close();
 	outFile.open(outPrefix + "D2_T2.nii.gz", Nifti::Mode::Write);
-	outFile.writeVolumes(0, 1, T2Data);
+	outFile.writeVolumes<double>(0, 1, T2Data.begin(), T2Data.end());
 	outFile.close();
 	outFile.open(outPrefix + "D2_Residual.nii.gz", Nifti::Mode::Write);
-	outFile.writeVolumes(0, 1, residualData);
+	outFile.writeVolumes<double>(0, 1, residualData.begin(), residualData.end());
 	outFile.close();
 	cout << "Finished writing data." << endl;
 	exit(EXIT_SUCCESS);
