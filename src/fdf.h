@@ -48,9 +48,9 @@ class fdfImage {
 		
 	public:
 		fdfImage();
-		fdfImage(const string &path, const OpenMode &m = OpenMode::Read);
+		fdfImage(const string &path);
 		
-		void open(const string &path, const OpenMode &m = OpenMode::Read);
+		void open(const string &path);
 		void close();
 		
 		const size_t dim(const size_t d) const;    //!< Return a particular dimension

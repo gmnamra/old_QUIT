@@ -178,7 +178,7 @@ const vector<string> &Parameter::stringValues() const {
 const double &Parameter::realValue(const size_t i = 0) const {
 	if (m_type == Type::String)
 		throw(runtime_error("Tried to read a real value from string parameter " + m_name));
-	if (i < m_realValues.rows())
+	if (i < static_cast<size_t>(m_realValues.rows()))
 		return m_realValues(i);
 	else {
 		throw(out_of_range("Parameter " + m_name + " has " + to_string(m_realValues.size()) + " values, tried to access value " + to_string(i)));

@@ -11,8 +11,8 @@
 namespace Agilent {
 
 fdfImage::fdfImage() { }
-fdfImage::fdfImage(const string &path, const OpenMode &mode) { open(path, mode); }
-void fdfImage::open(const string &path, const OpenMode &mode) {
+fdfImage::fdfImage(const string &path) { open(path); }
+void fdfImage::open(const string &path) {
 	// Remove any trailing / to prevent paths being messed up later, check extension
 	if (path.back() == '/')
 		m_folderPath = path.substr(0, path.size() - 1);
