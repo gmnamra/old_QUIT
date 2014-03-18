@@ -10,17 +10,21 @@
 //******************************************************************************
 #pragma mark DESPOTFunctor
 //******************************************************************************
-DESPOTFunctor::DESPOTFunctor(shared_ptr<Model> m, const ArrayXcd &data, const double B1, const bool debug) :
-	m_model(m), m_data(data), m_B1(B1), m_debug(debug)
+DESPOTFunctor::DESPOTFunctor(shared_ptr<Model> m, const ArrayXcd &data, const double B1, const bool fitComplex, const bool debug) :
+	m_model(m), m_data(data), m_B1(B1), m_complex(fitComplex), m_debug(debug)
 {
 	m_nV = m_model->size();
-	assert(m_data.rows() == m_nV);
+	assert(static_cast<size_t>(m_data.rows()) == m_nV);
 }
 
 int DESPOTFunctor::operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 	eigen_assert(diffs.size() == values());
 	ArrayXcd s = m_model->signal(params, m_B1);
-	diffs = (s - m_data).abs();
+	if (m_complex) {
+		diffs = (s - m_data).abs();
+	} else {
+		diffs = s.abs() - m_data.abs();
+	}
 	if (m_debug) {
 		cout << endl << __PRETTY_FUNCTION__ << endl;
 		cout << "p:     " << params.transpose() << endl;

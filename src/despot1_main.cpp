@@ -195,7 +195,7 @@ int main(int argc, char **argv)
 							PD = b[1] / (1. - b[0]);
 						}
 					} else if (algo == Algos::NLLS) {
-						DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal.cast<complex<double>>(), B1, false);
+						DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal.cast<complex<double>>(), B1, false, false);
 						NumericalDiff<DESPOTFunctor> nDiff(f);
 						LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
 						lm.parameters.maxfev = nIterations;

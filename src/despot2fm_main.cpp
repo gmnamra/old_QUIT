@@ -55,6 +55,7 @@ Options:\n\
 	            u    : User specified boundaries from stdin\n\
 	--model, -M s    : Use simple model (default)\n\
 	            f    : Use finite pulse length correction\n\
+	--complex, -x    : Fit to complex data\n\
 	--contract, -c n : Read contraction settings from stdin (Will prompt)\n"
 };
 
@@ -63,7 +64,7 @@ static auto scale = Model::Scaling::NormToMean;
 static auto tesla = Model::FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
-static int verbose = false, writeResiduals = false,
+static int verbose = false, writeResiduals = false, fitComplex = false,
 		   samples = 2000, retain = 20, contract = 10,
            voxI = 0, voxJ = 0;
 static double expand = 0.;
@@ -80,6 +81,7 @@ static struct option long_options[] = {
 	{"scale", required_argument, 0, 'S'},
 	{"tesla", required_argument, 0, 't'},
 	{"model", no_argument, 0, 'M'},
+	{"complex", no_argument, 0, 'x'},
 	{"contract", no_argument, 0, 'c'},
 	{"resid", no_argument, 0, 'r'},
 	{0, 0, 0, 0}
@@ -88,7 +90,7 @@ static struct option long_options[] = {
 //******************************************************************************
 #pragma mark SIGTERM interrupt handler and Threads
 //******************************************************************************
-ThreadPool threads;
+ThreadPool threads(1);
 bool interrupt_received = false;
 void int_handler(int sig);
 void int_handler(int) {
@@ -116,7 +118,7 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:M:cri:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:M:xcri:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
@@ -175,6 +177,9 @@ int main(int argc, char **argv)
 						exit(EXIT_FAILURE);
 						break;
 				}
+				break;
+			case 'x':
+				fitComplex = true;
 				break;
 			case 'c':
 				cout << "Enter max number of contractions: " << flush; cin >> contract;
@@ -306,7 +311,7 @@ int main(int argc, char **argv)
 						localBounds.row(3).setConstant(f0Vol[vox]);
 					}
 					double B1 = B1File.isOpen() ? B1Vol[vox] : 1.;
-					DESPOTFunctor func(model, signal, B1, false);
+					DESPOTFunctor func(model, signal, B1, fitComplex, false);
 					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, thresh,
 														samples, retain, contract, expand, (voxI > 0));
 					ArrayXd params(model->nParameters()); params.setZero();

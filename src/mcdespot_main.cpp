@@ -58,6 +58,7 @@ Options:\n\
 	            u     : User specified boundaries from stdin\n\
 	--model, -M s     : Use simple model (default)\n\
 	            f     : Use Finite Pulse Length correction\n\
+	--complex, -x    : Fit to complex data\n\
 	--contract, -c n  : Read contraction settings from stdin (Will prompt)\n\
 	--resid, -r       : Write out per-flip angle residuals\n\
 	--no-prompt, -n   : Don't print prompts for input\n\
@@ -70,7 +71,7 @@ static auto scale = Model::Scaling::NormToMean;
 static auto tesla = Model::FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
-static int verbose = false, prompt = true, writeResiduals = false,
+static int verbose = false, prompt = true, writeResiduals = false, fitComplex = false,
            samples = 5000, retain = 50, contract = 10,
            voxI = -1, voxJ = -1;
 static double expand = 0.;
@@ -87,6 +88,7 @@ static struct option long_options[] = {
 	{"scale", required_argument, 0, 'S'},
 	{"tesla", required_argument, 0, 't'},
 	{"model", no_argument, 0, 'M'},
+	{"complex", no_argument, 0, 'x'},
 	{"contract", no_argument, 0, 'c'},
 	{"resid", no_argument, 0, 'r'},
 	{"no-prompt", no_argument, 0, 'n'},
@@ -252,6 +254,9 @@ int main(int argc, char **argv)
 						break;
 				}
 				break;
+			case 'x':
+				fitComplex = true;
+				break;
 			case 'c':
 				cout << "Enter max number of contractions: " << flush; cin >> contract;
 				cout << "Enter number of samples per contraction: " << flush; cin >> samples;
@@ -350,7 +355,7 @@ int main(int argc, char **argv)
 						localBounds.row(model->nParameters() - 1).setConstant(f0Vol[vox]);
 					}
 					double B1 = B1File.isOpen() ? B1Vol[vox] : 1.;
-					DESPOTFunctor func(model, signal, B1, false);
+					DESPOTFunctor func(model, signal, B1, fitComplex, false);
 					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
 														samples, retain, contract, expand, (voxI != -1));
 					ArrayXd params(model->nParameters());
