@@ -111,31 +111,130 @@ class Nifti {
 		void readBytes(std::vector<char> &data);
 		void writeBytes(const std::vector<char> & data);
 		
-		template<typename T> class Converter {
+		template<typename FromTp, typename ToTp, typename TpIter>
+		class ConverterLoop {
 		public:
-			typedef typename std::vector<T>::iterator it;
-			static void FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-			                      const float sc_sl, const float sc_in,
-								  const it begin, const it end);
-			static void ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-								const float sc_sl, const float sc_in,
-								const it begin, const it end);
+			static void From(const std::vector<char> &bytes,
+                             const TpIter &toStart, const TpIter &toEnd,
+                             const float sc_sl, const float sc_in) {
+				auto p = reinterpret_cast<const FromTp *>(bytes.data());
+				TpIter toIt = toStart;
+				while (toIt != toEnd) {
+					*toIt = (sc_in + sc_sl * (*p));
+					p++;
+					toIt++;
+				}
+			}
+			
+			static void To(std::vector<char> &bytes,
+			               const TpIter &fromStart, const TpIter &fromEnd,
+						   const float sc_sl, const float sc_in) {
+				auto p = reinterpret_cast<ToTp *>(bytes.data());
+				TpIter fromIt = fromStart;
+				while (fromIt != fromEnd) {
+					*p = static_cast<ToTp>((*fromIt) / sc_sl - sc_in);
+					p++;
+					fromIt++;
+				}
+			}
 		};
 		
-		template<typename T> class Converter<std::complex<T>> {
+		template<typename FromTp, typename ToTp, typename TpIter>
+		class ConverterLoop<std::complex<FromTp>, ToTp, TpIter> {
+			public:
+			static void From(const std::vector<char> &bytes,
+			                 const TpIter &toStart, const TpIter &toEnd,
+							 const float sc_sl, const float sc_in) {
+				auto p = reinterpret_cast<const FromTp *>(bytes.data());
+				TpIter toIt = toStart;
+				while (toIt != toEnd) {
+					*toIt = (sc_in + sc_sl * std::abs((*p)));
+					p++;
+					toIt++;
+				}
+			}
+			
+			static void To(std::vector<char> &bytes,
+			               const TpIter &fromStart, const TpIter &fromEnd,
+						   const float sc_sl, const float sc_in) {
+				auto p = reinterpret_cast<ToTp *>(bytes.data());
+				TpIter fromIt = fromStart;
+				while (fromIt != fromEnd) {
+					*p = static_cast<ToTp>(abs(*fromIt) / sc_sl - sc_in);
+					p++;
+					fromIt++;
+				}
+			}
+		};
+		
+		template<typename FromTp, typename ToTp, typename TpIter>
+		class ConverterLoop<FromTp, std::complex<ToTp>, TpIter> {
+			public:
+			static void From(const std::vector<char> &bytes, const TpIter &toStart, const TpIter &toEnd,
+			                 const float sc_sl, const float sc_in) {
+				auto p = reinterpret_cast<const FromTp *>(bytes.data());
+				TpIter toIt = toStart;
+				while (toIt != toEnd) {
+					*toIt = std::complex<ToTp>(static_cast<ToTp>(sc_in + sc_sl * (*p)), 0.);
+					p++;
+					toIt++;
+				}
+			}
+			
+			static void To(std::vector<char> &bytes,
+			               const TpIter &fromStart, const TpIter &fromEnd,
+						   const float sc_sl, const float sc_in) {
+				auto p = reinterpret_cast<std::complex<ToTp> *>(bytes.data());
+				TpIter fromIt = fromStart;
+				while (fromIt != fromEnd) {
+					*p = std::complex<ToTp>(static_cast<ToTp>((*fromIt) / sc_sl - sc_in), 0.);
+					p++;
+					fromIt++;
+				}
+			}
+		};
+		
+		template<typename FromTp, typename ToTp, typename TpIter>
+		class ConverterLoop<std::complex<FromTp>, std::complex<ToTp>, TpIter> {
+			public:
+			static void From(const std::vector<char> &bytes, const TpIter &toStart, const TpIter &toEnd,
+			                 const float sc_sl, const float sc_in) {
+				auto p = reinterpret_cast<const std::complex<FromTp> *>(bytes.data());
+				TpIter toIt = toStart;
+				while (toIt != toEnd) {
+					*toIt = static_cast<std::complex<ToTp>>((*p) * std::complex<FromTp>(sc_sl, 0.) + std::complex<FromTp>(sc_in, 0.));
+					p++;
+					toIt++;
+				}
+			}
+			
+			static void To(std::vector<char> &bytes,
+			               const TpIter &fromStart, const TpIter &fromEnd,
+						   const float sc_sl, const float sc_in) {
+				auto p = reinterpret_cast<std::complex<ToTp> *>(bytes.data());
+				TpIter fromIt = fromStart;
+				while (fromIt != fromEnd) {
+					*p = static_cast<std::complex<ToTp>>((*fromIt) / sc_sl - sc_in);
+					p++;
+					fromIt++;
+				}
+			}
+			
+		};
+		
+		template<typename T, typename Iter> class Converter {
 		public:
-			typedef typename std::vector<std::complex<T>>::iterator it;
 			static void FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
 			                      const float sc_sl, const float sc_in,
-								  const it begin, const it end);
+								  const Iter &begin, const Iter &end);
 			static void ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
 								const float sc_sl, const float sc_in,
-								const it begin, const it end);
-		};			
+								const Iter &begin, const Iter &end);
+		};
 		
-		template<typename T>
+		template<typename T, typename Iter>
 		void readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size,
-						     typename Converter<T>::it begin, typename Converter<T>::it end);
+						     const Iter &begin, const Iter &end);
 		
 	#pragma mark Public Class Methods
 	public:

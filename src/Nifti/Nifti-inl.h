@@ -26,69 +26,30 @@
   *   @param data   - Storage for converted data. Must contain enough space.
   *   @param offset - Location in data to start writing.
   */
-template<typename T>
-void Nifti::Converter<T>::FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
+template<typename T, typename Iter>
+void Nifti::Converter<T, Iter>::FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
                                     const float sc_sl, const float sc_in,
-                                    const it begin, const it end) {
-	typename it::difference_type nEl = bytes.size() / tInfo.size;
+                                    const Iter &begin, const Iter &end) {
+	typename Iter::difference_type nEl = bytes.size() / tInfo.size;
 	assert(nEl == std::distance(begin, end));
-	auto el = begin;
-	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<const BYTE_TYPE *>(bytes.data())
-	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR(BYTE_TYPE); while (el != end) { *el = static_cast<T>(sc_in + sc_sl * (*p)); el++; p++; }
-	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR(std::complex<BYTE_TYPE>); while (el != end) { *el = static_cast<T>(sc_in + sc_sl * abs(*p)); el++; p++; }
 	switch (tInfo.type) {
-		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
-		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
-		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
-		case DataType::INT64:      { REAL_LOOP(int64_t); }; break;
-		case DataType::UINT8:      { REAL_LOOP(uint8_t); }; break;
-		case DataType::UINT16:     { REAL_LOOP(uint16_t); }; break;
-		case DataType::UINT32:     { REAL_LOOP(uint32_t); }; break;
-		case DataType::UINT64:     { REAL_LOOP(uint64_t); }; break;
-		case DataType::FLOAT32:    { REAL_LOOP(float); }; break;
-		case DataType::FLOAT64:    { REAL_LOOP(double); }; break;
-		case DataType::FLOAT128:   { REAL_LOOP(long double); }; break;
-		case DataType::COMPLEX64:  { COMP_LOOP(float); }; break;
-		case DataType::COMPLEX128: { COMP_LOOP(double); }; break;
-		case DataType::COMPLEX256: { COMP_LOOP(long double); }; break;
+		case DataType::INT8:       { ConverterLoop<int8_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::INT16:      { ConverterLoop<int16_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::INT32:      { ConverterLoop<int32_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::INT64:      { ConverterLoop<int64_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::UINT8:      { ConverterLoop<uint8_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::UINT16:     { ConverterLoop<uint16_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::UINT32:     { ConverterLoop<uint32_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::UINT64:     { ConverterLoop<uint64_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::FLOAT32:    { ConverterLoop<float, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::FLOAT64:    { ConverterLoop<double, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::FLOAT128:   { ConverterLoop<long double, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::COMPLEX64:  { ConverterLoop<std::complex<float>, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::COMPLEX128: { ConverterLoop<std::complex<double>, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::COMPLEX256: { ConverterLoop<std::complex<long double>, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
 		case DataType::RGB24: case DataType::RGBA32:
 			throw(std::runtime_error("Unsupported datatype.")); break;
 	}
-	#undef COMP_LOOP
-	#undef REAL_LOOP
-	#undef DECL_PTR
-}
-
-template<typename T>
-void Nifti::Converter<std::complex<T>>::FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-				                                  const float sc_sl, const float sc_in, const it begin, const it end) {
-	size_t nEl = bytes.size() / tInfo.size;
-	assert(nEl == static_cast<size_t>(std::distance(begin, end)));
-	auto el = begin;
-	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<const BYTE_TYPE *>(bytes.data())
-	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR(BYTE_TYPE); while (el != end) { *el = std::complex<T>(sc_in + sc_sl * static_cast<T>(*p), 0.); el++; p++; }
-	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR(std::complex<BYTE_TYPE>); while (el != end) { *el = sc_in + sc_sl * static_cast<std::complex<T>>(*p); el++; p++; }
-	switch (tInfo.type) {
-		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
-		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
-		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
-		case DataType::INT64:      { REAL_LOOP(int64_t); }; break;
-		case DataType::UINT8:      { REAL_LOOP(uint8_t); }; break;
-		case DataType::UINT16:     { REAL_LOOP(uint16_t); }; break;
-		case DataType::UINT32:     { REAL_LOOP(uint32_t); }; break;
-		case DataType::UINT64:     { REAL_LOOP(uint64_t); }; break;
-		case DataType::FLOAT32:    { REAL_LOOP(float); }; break;
-		case DataType::FLOAT64:    { REAL_LOOP(double); }; break;
-		case DataType::FLOAT128:   { REAL_LOOP(long double); }; break;
-		case DataType::COMPLEX64:  { COMP_LOOP(float); }; break;
-		case DataType::COMPLEX128: { COMP_LOOP(double); }; break;
-		case DataType::COMPLEX256: { COMP_LOOP(long double); }; break;
-		case DataType::RGB24: case DataType::RGBA32:
-			throw(std::runtime_error("Unsupported datatype.")); break;
-	}
-	#undef COMP_LOOP
-	#undef REAL_LOOP
-	#undef DECL_PTR
 }
 
 /**
@@ -107,70 +68,30 @@ void Nifti::Converter<std::complex<T>>::FromBytes(const std::vector<char> &bytes
   *   @param data   - Storage for converted data. Must contain enough space.
   *   @param offset - Location in data to start writing.
   */
-template<typename T>
-void Nifti::Converter<T>::ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
+template<typename T, typename Iter>
+void Nifti::Converter<T, Iter>::ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
 							      const float sc_sl, const float sc_in,
-							      const it begin, const it end) {
+							      const Iter &begin, const Iter &end) {
 	size_t nEl = std::distance(begin, end);
 	assert(nEl == bytes.size() / tInfo.size);
-	auto el = begin;
-	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<BYTE_TYPE *>(bytes.data())
-	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR( BYTE_TYPE ); while (el != end) { *p = static_cast<BYTE_TYPE>(*el / sc_sl - sc_in); el++; p++; }
-	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR( std::complex<BYTE_TYPE> ); while (el != end) { *p = std::complex<BYTE_TYPE>(static_cast<BYTE_TYPE>(*el / sc_sl - sc_in), 0.); el++; p++; }
 	switch (tInfo.type) {
-		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
-		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
-		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
-		case DataType::INT64:      { REAL_LOOP(int64_t); }; break;
-		case DataType::UINT8:      { REAL_LOOP(uint8_t); }; break;
-		case DataType::UINT16:     { REAL_LOOP(uint16_t); }; break;
-		case DataType::UINT32:     { REAL_LOOP(uint32_t); }; break;
-		case DataType::UINT64:     { REAL_LOOP(uint64_t); }; break;
-		case DataType::FLOAT32:    { REAL_LOOP(float); }; break;
-		case DataType::FLOAT64:    { REAL_LOOP(double); }; break;
-		case DataType::FLOAT128:   { REAL_LOOP(long double); }; break;
-		case DataType::COMPLEX64:  { COMP_LOOP(float); }; break;
-		case DataType::COMPLEX128: { COMP_LOOP(double); }; break;
-		case DataType::COMPLEX256: { COMP_LOOP(long double); }; break;
+		case DataType::INT8:       { ConverterLoop<T, int8_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::INT16:      { ConverterLoop<T, int16_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::INT32:      { ConverterLoop<T, int32_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::INT64:      { ConverterLoop<T, int64_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::UINT8:      { ConverterLoop<T, uint8_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::UINT16:     { ConverterLoop<T, uint16_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::UINT32:     { ConverterLoop<T, uint32_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::UINT64:     { ConverterLoop<T, uint64_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::FLOAT32:    { ConverterLoop<T, float, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::FLOAT64:    { ConverterLoop<T, double, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::FLOAT128:   { ConverterLoop<T, long double, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::COMPLEX64:  { ConverterLoop<T, std::complex<float>, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::COMPLEX128: { ConverterLoop<T, std::complex<double>, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+		case DataType::COMPLEX256: { ConverterLoop<T, std::complex<long double>, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
 		case DataType::RGB24: case DataType::RGBA32:
 			throw(std::runtime_error("Unsupported datatype.")); break;
 	}
-	#undef COMP_LOOP
-	#undef REAL_LOOP
-	#undef DECL_PTR
-}
-
-template<typename T>
-void Nifti::Converter<std::complex<T>>::ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-							                    const float sc_sl, const float sc_in,
-							                    const it begin, const it end) {
-	size_t nEl = std::distance(begin, end);
-	assert(nEl == bytes.size() / tInfo.size);
-	auto el = begin;
-	#define DECL_PTR( BYTE_TYPE ) auto p = reinterpret_cast<BYTE_TYPE *>(bytes.data())
-	#define REAL_LOOP( BYTE_TYPE ) DECL_PTR( BYTE_TYPE ); while (el != end) { *p = static_cast<BYTE_TYPE>(abs(*el) / sc_sl - sc_in); el++; p++; }
-	#define COMP_LOOP( BYTE_TYPE ) DECL_PTR( std::complex<BYTE_TYPE> ); while (el != end) { *p = static_cast<std::complex<BYTE_TYPE>>(*el / sc_sl - sc_in); el++; p++; }
-	switch (tInfo.type) {
-		case DataType::INT8:       { REAL_LOOP(int8_t); }; break;
-		case DataType::INT16:      { REAL_LOOP(int16_t); }; break;
-		case DataType::INT32:      { REAL_LOOP(int32_t); }; break;
-		case DataType::INT64:      { REAL_LOOP(int64_t); }; break;
-		case DataType::UINT8:      { REAL_LOOP(uint8_t); }; break;
-		case DataType::UINT16:     { REAL_LOOP(uint16_t); }; break;
-		case DataType::UINT32:     { REAL_LOOP(uint32_t); }; break;
-		case DataType::UINT64:     { REAL_LOOP(uint64_t); }; break;
-		case DataType::FLOAT32:    { REAL_LOOP(float); }; break;
-		case DataType::FLOAT64:    { REAL_LOOP(double); }; break;
-		case DataType::FLOAT128:   { REAL_LOOP(long double); }; break;
-		case DataType::COMPLEX64:  { COMP_LOOP(float); }; break;
-		case DataType::COMPLEX128: { COMP_LOOP(double); }; break;
-		case DataType::COMPLEX256: { COMP_LOOP(long double); }; break;
-		case DataType::RGB24: case DataType::RGBA32:
-			throw(std::runtime_error("Unsupported datatype.")); break;
-	}
-	#undef COMP_LOOP
-	#undef REAL_LOOP
-	#undef DECL_PTR
 }
 
 /*
@@ -188,9 +109,9 @@ void Nifti::Converter<std::complex<T>>::ToBytes(std::vector<char> &bytes, const 
  *   @param size  The size of the desired subregion.
  *   @param data  Storage for the data to read/write. Must be sufficiently large.
  */
-template<typename T>
+template<typename T, typename Iter>
 void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &inSize,
-                            typename Converter<T>::it begin, typename Converter<T>::it end) {
+                            const Iter &begin, const Iter &end) {
 	ArrayXs size = inSize;
 	for (ArrayXs::Index i = 0; i < size.rows(); i++)
 		if (size(i) == 0) size(i) = m_dim(i);
@@ -215,9 +136,9 @@ void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<A
 			seekToVoxel(blockStart);
 			if (m_mode == Nifti::Mode::Read) {
 				readBytes(block);
-				Converter<T>::FromBytes(block, m_typeinfo, scaling_slope, scaling_inter, dataIt, dataIt + blockSize);
+				Converter<T, Iter>::FromBytes(block, m_typeinfo, scaling_slope, scaling_inter, dataIt, dataIt + blockSize);
 			} else {
-				Converter<T>::ToBytes(block, m_typeinfo, scaling_slope, scaling_inter, dataIt, dataIt + blockSize);
+				Converter<T, Iter>::ToBytes(block, m_typeinfo, scaling_slope, scaling_inter, dataIt, dataIt + blockSize);
 				writeBytes(block);
 			}
 			dataIt += blockSize;
