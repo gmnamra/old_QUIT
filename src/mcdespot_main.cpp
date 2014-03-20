@@ -100,7 +100,7 @@ static struct option long_options[] = {
 //******************************************************************************
 #pragma mark SIGTERM interrupt handler and Threads
 //******************************************************************************
-ThreadPool threads(1);
+ThreadPool threads;
 bool interrupt_received = false;
 void int_handler(int); // Need the int to conform to handler definition but we don't use it
 void int_handler(int) {
