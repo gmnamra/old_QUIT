@@ -26,27 +26,25 @@
   *   @param data   - Storage for converted data. Must contain enough space.
   *   @param offset - Location in data to start writing.
   */
-template<typename T, typename Iter>
-void Nifti::Converter<T, Iter>::FromBytes(const std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-                                    const float sc_sl, const float sc_in,
-                                    const Iter &begin, const Iter &end) {
-	typename Iter::difference_type nEl = bytes.size() / tInfo.size;
+template<typename Iter>
+void Nifti::fromBytes(const std::vector<char> &bytes, Iter begin, Iter end) {
+	typename Iter::difference_type nEl = bytes.size() / m_typeinfo.size;
 	assert(nEl == std::distance(begin, end));
-	switch (tInfo.type) {
-		case DataType::INT8:       { ConverterLoop<int8_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::INT16:      { ConverterLoop<int16_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::INT32:      { ConverterLoop<int32_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::INT64:      { ConverterLoop<int64_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::UINT8:      { ConverterLoop<uint8_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::UINT16:     { ConverterLoop<uint16_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::UINT32:     { ConverterLoop<uint32_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::UINT64:     { ConverterLoop<uint64_t, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::FLOAT32:    { ConverterLoop<float, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::FLOAT64:    { ConverterLoop<double, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::FLOAT128:   { ConverterLoop<long double, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::COMPLEX64:  { ConverterLoop<std::complex<float>, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::COMPLEX128: { ConverterLoop<std::complex<double>, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::COMPLEX256: { ConverterLoop<std::complex<long double>, T, Iter>::From(bytes, begin, end, sc_sl, sc_in); }; break;
+	switch (m_typeinfo.type) {
+		case DataType::INT8:       { fromLoop(reinterpret_cast<const int8_t *>(bytes.data()), begin, end); }; break;
+		case DataType::INT16:      { fromLoop(reinterpret_cast<const int16_t *>(bytes.data()), begin, end); }; break;
+		case DataType::INT32:      { fromLoop(reinterpret_cast<const int32_t *>(bytes.data()), begin, end); }; break;
+		case DataType::INT64:      { fromLoop(reinterpret_cast<const int64_t *>(bytes.data()), begin, end); }; break;
+		case DataType::UINT8:      { fromLoop(reinterpret_cast<const uint8_t *>(bytes.data()), begin, end); }; break;
+		case DataType::UINT16:     { fromLoop(reinterpret_cast<const uint16_t *>(bytes.data()), begin, end); }; break;
+		case DataType::UINT32:     { fromLoop(reinterpret_cast<const uint32_t *>(bytes.data()), begin, end); }; break;
+		case DataType::UINT64:     { fromLoop(reinterpret_cast<const uint64_t *>(bytes.data()), begin, end); }; break;
+		case DataType::FLOAT32:    { fromLoop(reinterpret_cast<const float *>(bytes.data()), begin, end); }; break;
+		case DataType::FLOAT64:    { fromLoop(reinterpret_cast<const double *>(bytes.data()), begin, end); }; break;
+		case DataType::FLOAT128:   { fromLoop(reinterpret_cast<const long double *>(bytes.data()), begin, end); }; break;
+		case DataType::COMPLEX64:  { fromLoop(reinterpret_cast<const std::complex<float> *>(bytes.data()), begin, end); }; break;
+		case DataType::COMPLEX128: { fromLoop(reinterpret_cast<const std::complex<double> *>(bytes.data()), begin, end); }; break;
+		case DataType::COMPLEX256: { fromLoop(reinterpret_cast<const std::complex<long double> *>(bytes.data()), begin, end); }; break;
 		case DataType::RGB24: case DataType::RGBA32:
 			throw(std::runtime_error("Unsupported datatype.")); break;
 	}
@@ -68,27 +66,25 @@ void Nifti::Converter<T, Iter>::FromBytes(const std::vector<char> &bytes, const 
   *   @param data   - Storage for converted data. Must contain enough space.
   *   @param offset - Location in data to start writing.
   */
-template<typename T, typename Iter>
-void Nifti::Converter<T, Iter>::ToBytes(std::vector<char> &bytes, const Nifti::DataTypeInfo &tInfo,
-							      const float sc_sl, const float sc_in,
-							      const Iter &begin, const Iter &end) {
+template<typename Iter>
+void Nifti::toBytes(const Iter begin, const Iter end, std::vector<char> &bytes) {
 	size_t nEl = std::distance(begin, end);
-	assert(nEl == bytes.size() / tInfo.size);
-	switch (tInfo.type) {
-		case DataType::INT8:       { ConverterLoop<T, int8_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::INT16:      { ConverterLoop<T, int16_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::INT32:      { ConverterLoop<T, int32_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::INT64:      { ConverterLoop<T, int64_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::UINT8:      { ConverterLoop<T, uint8_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::UINT16:     { ConverterLoop<T, uint16_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::UINT32:     { ConverterLoop<T, uint32_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::UINT64:     { ConverterLoop<T, uint64_t, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::FLOAT32:    { ConverterLoop<T, float, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::FLOAT64:    { ConverterLoop<T, double, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::FLOAT128:   { ConverterLoop<T, long double, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::COMPLEX64:  { ConverterLoop<T, std::complex<float>, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::COMPLEX128: { ConverterLoop<T, std::complex<double>, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
-		case DataType::COMPLEX256: { ConverterLoop<T, std::complex<long double>, Iter>::To(bytes, begin, end, sc_sl, sc_in); }; break;
+	assert(nEl == bytes.size() / m_typeinfo.size);
+	switch (m_typeinfo.type) {
+		case DataType::INT8:       { toLoop(begin, end, reinterpret_cast<int8_t *>(bytes.data())); }; break;
+		case DataType::INT16:      { toLoop(begin, end, reinterpret_cast<int16_t *>(bytes.data())); }; break;
+		case DataType::INT32:      { toLoop(begin, end, reinterpret_cast<int32_t *>(bytes.data())); }; break;
+		case DataType::INT64:      { toLoop(begin, end, reinterpret_cast<int64_t *>(bytes.data())); }; break;
+		case DataType::UINT8:      { toLoop(begin, end, reinterpret_cast<uint8_t *>(bytes.data())); }; break;
+		case DataType::UINT16:     { toLoop(begin, end, reinterpret_cast<uint16_t *>(bytes.data())); }; break;
+		case DataType::UINT32:     { toLoop(begin, end, reinterpret_cast<uint32_t *>(bytes.data())); }; break;
+		case DataType::UINT64:     { toLoop(begin, end, reinterpret_cast<uint64_t *>(bytes.data())); }; break;
+		case DataType::FLOAT32:    { toLoop(begin, end, reinterpret_cast<float *>(bytes.data())); }; break;
+		case DataType::FLOAT64:    { toLoop(begin, end, reinterpret_cast<double *>(bytes.data())); }; break;
+		case DataType::FLOAT128:   { toLoop(begin, end, reinterpret_cast<long double *>(bytes.data())); }; break;
+		case DataType::COMPLEX64:  { toLoop(begin, end, reinterpret_cast<std::complex<float> *>(bytes.data())); }; break;
+		case DataType::COMPLEX128: { toLoop(begin, end, reinterpret_cast<std::complex<double> *>(bytes.data())); }; break;
+		case DataType::COMPLEX256: { toLoop(begin, end, reinterpret_cast<std::complex<long double> *>(bytes.data())); }; break;
 		case DataType::RGB24: case DataType::RGBA32:
 			throw(std::runtime_error("Unsupported datatype.")); break;
 	}
@@ -109,9 +105,9 @@ void Nifti::Converter<T, Iter>::ToBytes(std::vector<char> &bytes, const Nifti::D
  *   @param size  The size of the desired subregion.
  *   @param data  Storage for the data to read/write. Must be sufficiently large.
  */
-template<typename T, typename Iter>
+template<typename Iter>
 void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &inSize,
-                            const Iter &begin, const Iter &end) {
+                            Iter &begin, Iter &end) {
 	ArrayXs size = inSize;
 	for (ArrayXs::Index i = 0; i < size.rows(); i++)
 		if (size(i) == 0) size(i) = m_dim(i);
@@ -136,9 +132,9 @@ void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<A
 			seekToVoxel(blockStart);
 			if (m_mode == Nifti::Mode::Read) {
 				readBytes(block);
-				Converter<T, Iter>::FromBytes(block, m_typeinfo, scaling_slope, scaling_inter, dataIt, dataIt + blockSize);
+				fromBytes(block, dataIt, dataIt + blockSize);
 			} else {
-				Converter<T, Iter>::ToBytes(block, m_typeinfo, scaling_slope, scaling_inter, dataIt, dataIt + blockSize);
+				toBytes(dataIt, dataIt + blockSize, block);
 				writeBytes(block);
 			}
 			dataIt += blockSize;
@@ -158,7 +154,7 @@ void Nifti::readVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayX
 					   typename std::vector<T>::iterator end) {
 	if (!(m_mode == Mode::Read))
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
-	readWriteVoxels<T>(start, size, begin, end);
+	readWriteVoxels(start, size, begin, end);
 }
 
 template<typename T>
@@ -169,7 +165,7 @@ void Nifti::readVolumes(const size_t first, const size_t nvol,
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
 	Eigen::Array<size_t, 4, 1> start{0, 0, 0, first};
 	Eigen::Array<size_t, 4, 1> size{dim(1), dim(2), dim(3), nvol};
-	readWriteVoxels<T>(start, size, begin, end);
+	readWriteVoxels(start, size, begin, end);
 }
 
 template<typename T>
@@ -178,7 +174,7 @@ void Nifti::writeVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<Array
 						typename std::vector<T>::iterator end) {
 	if (!(m_mode == Mode::Write))
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
-	readWriteVoxels<T>(start, size, begin, end);
+	readWriteVoxels(start, size, begin, end);
 }
 
 template<typename T>
@@ -189,7 +185,7 @@ void Nifti::writeVolumes(const size_t first, const size_t nvol,
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
 	Eigen::Array<size_t, 4, 1> start{0, 0, 0, first};
 	Eigen::Array<size_t, 4, 1> size{dim(1), dim(2), dim(3), nvol};
-	readWriteVoxels<T>(start, size, begin, end);
+	readWriteVoxels(start, size, begin, end);
 }
 
 #endif // NIFTI_NIFTI_INL
