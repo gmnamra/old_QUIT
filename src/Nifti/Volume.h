@@ -66,7 +66,7 @@ class VolumeBase {
 };
 
 typedef VolumeBase<float, 3> Volumef;
-typedef VolumeBase<bool, 3>  Volumeb;
+typedef VolumeBase<uint8_t, 3>  Volumeb;
 typedef VolumeBase<float, 4> Seriesf;
 typedef VolumeBase<std::complex<float>, 4> Seriescf;
 
