@@ -73,7 +73,7 @@ static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, writeResiduals = false, fitComplex = false,
            samples = 5000, retain = 50, contract = 10,
-           voxI = -1, voxJ = -1;
+           voxI = 0, voxJ = 0;
 static double expand = 0.;
 static string outPrefix;
 static struct option long_options[] = {
@@ -100,7 +100,7 @@ static struct option long_options[] = {
 //******************************************************************************
 #pragma mark SIGTERM interrupt handler and Threads
 //******************************************************************************
-ThreadPool threads;
+ThreadPool threads(1);
 bool interrupt_received = false;
 void int_handler(int); // Need the int to conform to handler definition but we don't use it
 void int_handler(int) {
@@ -341,7 +341,6 @@ int main(int argc, char **argv)
 		if (verbose) cout << "Processing slice " << k << "..." << flush;
 		atomic<int> voxCount{0};
 		clock_t loopStart = clock();
-		
 		for (size_t j = voxJ; j < templateFile.dim(2); j++) {
 			function<void (const size_t&)> processVox = [&] (const size_t &i) {
 				const Volume<float>::IndexArray vox{i, j, k};
@@ -355,7 +354,7 @@ int main(int argc, char **argv)
 					double B1 = B1File.isOpen() ? B1Vol[vox] : 1.;
 					DESPOTFunctor func(model, signal, B1, fitComplex, false);
 					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
-														samples, retain, contract, expand, (voxI != -1));
+														samples, retain, contract, expand, (voxI != 0));
 					ArrayXd params(model->nParameters());
 					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
 					paramsVols.series(vox) = params.cast<float>();
