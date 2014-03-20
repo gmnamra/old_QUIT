@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 	try { // To fix uncaught exceptions on Mac
 	
 	Nifti maskFile, f0File, B1File;
-	Volume<bool> maskData;
+	Volume<int8_t> maskData;
 	Volume<float> f0Vol, B1Vol;
 	string procPath;
 	
@@ -218,7 +218,7 @@ int main(int argc, char **argv)
 	// Gather SSFP Data
 	//**************************************************************************
 	size_t nFiles = argc - optind;
-	vector<VolumeSeries<complex<float>>> ssfpData(nFiles);
+	vector<Series<complex<float>>> ssfpData(nFiles);
 	shared_ptr<Model> model;
 	switch (modelType) {
 		case ModelTypes::Simple: model = make_shared<SimpleModel>(Signal::Components::One, scale); break;
@@ -277,8 +277,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
-	VolumeSeries<float> paramsVols(templateFile.dims().head(3), 2);
-	VolumeSeries<float> residualVols(templateFile.dims().head(3), model->size());
+	Series<float> paramsVols(templateFile.dims().head(3), 2);
+	Series<float> residualVols(templateFile.dims().head(3), model->size());
 	Volume<float> SoSVol(T1Data.dims());
 	//**************************************************************************
 	// Do the fitting
@@ -349,10 +349,10 @@ int main(int argc, char **argv)
 	outPrefix = outPrefix + "FM_";
 	templateFile.description = version;
 	templateFile.open(outPrefix + model->names().at(2) + ".nii.gz", Nifti::Mode::Write);
-	paramsVols.writeVolumesTo(templateFile, 0, 1);
+	paramsVols.view(0).writeTo(templateFile);
 	templateFile.close();
 	templateFile.open(outPrefix + model->names().at(3) + ".nii.gz", Nifti::Mode::Write);
-	paramsVols.writeVolumesTo(templateFile, 1, 1);
+	paramsVols.view(1).writeTo(templateFile);
 	templateFile.close();
 	templateFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);
 	SoSVol.writeTo(templateFile);

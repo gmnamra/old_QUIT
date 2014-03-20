@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 	cout << version << endl << credit_shared << endl;
 	Nifti spgrFile, B1File, maskFile;
 	Volume<float> B1Vol;
-	Volume<bool> maskVol;
+	Volume<int8_t> maskVol;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvm:o:b:a:i:", long_options, &indexptr)) != -1) {
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 	// Allocate memory for slices
 	//**************************************************************************
 	cout << "Reading SPGR data..." << flush;
-	VolumeSeries<complex<float>> spgrVol(spgrFile);
+	Series<complex<float>> spgrVol(spgrFile);
 	cout << "done." << endl;
 	//**************************************************************************
 	// Create results data storage

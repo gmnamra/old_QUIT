@@ -241,7 +241,7 @@ const bool Model::validParameters(const VectorXd &params) const {
 	}
 }
 
-ArrayXcd Model::loadSignals(vector<VolumeSeries<complex<float>>> &sigs, const typename Volume<complex<float>>::IndexArray &vox) const {
+ArrayXcd Model::loadSignals(vector<Series<complex<float>>> &sigs, const typename Series<complex<float>>::ViewIndexArray &vox) const {
 	ArrayXcd signal(size());
 	size_t start = 0;
 	for (size_t i = 0; i < m_signals.size(); i++) {

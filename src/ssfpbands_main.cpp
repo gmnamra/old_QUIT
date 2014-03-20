@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << version << endl << credit_me << endl;
 	Nifti maskFile;
-	Volume<bool> maskVol;
+	Volume<int8_t> maskVol;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvo:m:t:", long_options, &indexptr)) != -1) {
@@ -119,8 +119,8 @@ int main(int argc, char **argv)
 	}
 	size_t nFlip = inputFile.dim(4) / 4;
 	
-	VolumeSeries<float> input1, input2;
-	VolumeSeries<complex<float>> inputC;
+	Series<float> input1, input2;
+	Series<complex<float>> inputC;
 	if (inputType != Type::Complex) {
 		input1.readFrom(inputFile);
 		inputFile.close();
@@ -140,8 +140,8 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	// Results storage
-	VolumeSeries<float> outMag(input1.dims().head(3), nFlip);
-	VolumeSeries<float> outPhase(input1.dims().head(3), nFlip);
+	Series<float> outMag(input1.dims().head(3), nFlip);
+	Series<float> outPhase(input1.dims().head(3), nFlip);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************

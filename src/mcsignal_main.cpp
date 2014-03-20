@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 	try { // To fix uncaught exceptions on Mac
 	
 	Nifti maskFile, B1File;
-	Volume<bool> maskVol;
+	Volume<int8_t> maskVol;
 	Volume<float> B1Vol;
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvnm:o:b:123M:", long_options, &indexptr)) != -1) {
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << Signal::to_string(components) << " component model." << endl;
-	VolumeSeries<float> paramsVols;
+	Series<float> paramsVols;
 	Nifti saveFile;
 	size_t numVoxels;
 	if (prompt) cout << "Loading parameters." << endl;
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 
 		if (i == 0) {
 			saveFile = Nifti(input, model->size());
-			paramsVols = VolumeSeries<float>(input.dims().head(3), model->nParameters());
+			paramsVols = Series<float>(input.dims().head(3), model->nParameters());
 			numVoxels = input.dims().head(3).prod();
 		} else {
 			if (!input.matchesSpace(saveFile)) {
@@ -183,9 +183,9 @@ int main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 			}
 		}
-		paramsVols.readVolumesFrom(input, i, 1);
+		paramsVols.view(i).readFrom(input);
 	}
-	VolumeSeries<float> signalVols(saveFile.dims().head(3), model->size());
+	Series<float> signalVols(saveFile.dims().head(3), model->size());
 	
 	cout << "Started calculating." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &v) {
