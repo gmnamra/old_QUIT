@@ -24,49 +24,52 @@
 template<typename Tp, size_t rank>
 class VolumeBase {
 	public:
-		typedef Eigen::Array<size_t, rank, 1> IndexArray;
-		typedef Eigen::Array<size_t, rank - 1, 1> ViewIndexArray;
+		typedef Eigen::Array<size_t, rank, 1> Indx;
+		typedef Eigen::Array<size_t, rank - 1, 1> SliceIndx;
 		typedef std::vector<Tp> StorageTp;
 		typedef std::shared_ptr<StorageTp> PtrTp;
 		typedef typename StorageTp::const_reference ConstTpRef;
 		typedef typename StorageTp::reference TpRef;
-		typedef Eigen::Map<Eigen::Array<Tp, Eigen::Dynamic, 1>, 0, Eigen::InnerStride<>> SeriesTp;
+		typedef VolumeBase<Tp, rank - 1> SliceTp;
+		typedef Eigen::Map<Eigen::Array<Tp, Eigen::Dynamic, 1>, 0, Eigen::InnerStride<>> LineTp;
 		
 		static const size_t MaxIndex{std::numeric_limits<size_t>::max()};
 	protected:
-		PtrTp       m_ptr;
-		size_t      m_offset;
-		IndexArray  m_dims, m_strides;
+		PtrTp   m_ptr;
+		size_t  m_offset;
+		Indx    m_dims, m_strides;
 		
 		void calcStrides();
 	public:
 		VolumeBase();
-		VolumeBase(const IndexArray &dims);
-		VolumeBase(const IndexArray &dims, const size_t offset, const PtrTp &ptr);
-		VolumeBase(const ViewIndexArray &dims, const size_t finalDim);
+		VolumeBase(const Indx &dims);
+		VolumeBase(const Indx &dims, const Indx &strides, const size_t offset, const PtrTp &ptr);
+		VolumeBase(const SliceIndx &dims, const size_t finalDim);
 		VolumeBase(Nifti &img);
-		
-		VolumeBase view(const IndexArray &start, const IndexArray &end = IndexArray{MaxIndex, MaxIndex, MaxIndex}, const IndexArray &stride = IndexArray{1, 1, 1});
-		VolumeBase copy(const IndexArray &start, const IndexArray &end, const IndexArray &stride);
-		VolumeBase<Tp, rank - 1> view(const size_t i);
 		
 		void readFrom(Nifti &img);
 		void writeTo(Nifti &img);
 		
-		const IndexArray &dims() const;
+		const Indx &dims() const;
 		size_t size() const;
 		
 		ConstTpRef operator[](const size_t i) const;
 		TpRef operator[](const size_t i);
 		
-		ConstTpRef operator[](const IndexArray &vox) const;
-		TpRef operator[](const IndexArray &vox);
+		ConstTpRef operator[](const Indx &vox) const;
+		TpRef operator[](const Indx &vox);
 		
-		const SeriesTp series(const size_t i) const;
-		SeriesTp series(const size_t i);
+		SliceTp viewSlice(const size_t i, const size_t d=rank);
 		
-		const SeriesTp series(const ViewIndexArray &vox) const;
-		SeriesTp series(const ViewIndexArray &vox);
+		LineTp line(const SliceIndx &vox, const size_t d=rank) const;
+		LineTp line(const size_t i) const;
+		
+		friend std::ostream &operator<<(std::ostream &os, const VolumeBase &v) {
+			os << "Dims:    " << v.m_dims.transpose() << std::endl;
+			os << "Strides: " << v.m_strides.transpose() << std::endl;
+			os << "Offset:  " << v.m_offset << " Ptr Count: " << v.m_ptr.use_count() << std::endl;
+			return os;
+		}
 };
 
 template<typename Tp> using Volume = VolumeBase<Tp, 3>;
