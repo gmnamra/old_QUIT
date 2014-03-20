@@ -35,6 +35,16 @@ VolumeBase<Tp, rank>::VolumeBase(const IndexArray &inDims) :
 }
 
 template<typename Tp, size_t rank>
+VolumeBase<Tp, rank>::VolumeBase(const ViewIndexArray &inDims, const size_t finalDim) :
+	m_offset{0}
+{
+	m_dims.head(rank - 1) = inDims;
+	m_dims[rank - 1] = finalDim;
+	calcStrides();
+	m_ptr = std::make_shared<std::vector<Tp>>(m_dims.prod());
+}
+
+template<typename Tp, size_t rank>
 VolumeBase<Tp, rank>::VolumeBase(Nifti &img) {
 	readFrom(img);
 }
@@ -51,7 +61,11 @@ void VolumeBase<Tp, rank>::readFrom(Nifti &img) {
 
 template<typename Tp, size_t rank>
 void VolumeBase<Tp, rank>::writeTo(Nifti &img) {
-	img.writeVolumes<Tp>(0, img.dim(4), m_ptr->begin() + m_offset, m_ptr->end());
+	// We might be a view, so work these out
+	auto begin = m_ptr->begin() + m_offset;
+	auto end   = begin + size();
+	assert(end <= m_ptr->end());
+	img.writeVolumes<Tp>(0, img.dim(4), begin, end);
 }
 
 template<typename Tp, size_t rank>
@@ -86,6 +100,17 @@ template<typename Tp, size_t rank>
 typename VolumeBase<Tp, rank>::TpRef VolumeBase<Tp, rank>::operator[](const size_t i) {
 	assert(i < size());
 	return (*m_ptr)[i];
+}
+
+template<typename Tp, size_t rank>
+VolumeBase<Tp, rank>::VolumeBase(const IndexArray &dims, const size_t offset, const PtrTp &ptr) :
+	m_dims{dims}, m_offset(offset), m_ptr(ptr) {
+	calcStrides();
+}
+
+template<typename Tp, size_t rank>
+VolumeBase<Tp, rank - 1> VolumeBase<Tp, rank>::view(const size_t i) {
+	return VolumeBase<Tp, rank - 1>{m_dims.head(rank - 1), m_strides[rank - 1] * i, m_ptr};
 }
 
 /*
@@ -141,7 +166,7 @@ typename VolumeBase<Tp, rank>::SeriesTp VolumeBase<Tp, rank>::series(const size_
 
 
 template<typename Tp, size_t rank>
-const typename VolumeBase<Tp, rank>::SeriesTp VolumeBase<Tp, rank>::series(const typename VolumeBase<Tp, rank>::IndexArray &vox) const {
+const typename VolumeBase<Tp, rank>::SeriesTp VolumeBase<Tp, rank>::series(const typename VolumeBase<Tp, rank>::ViewIndexArray &vox) const {
 	assert(rank > 3);
 	assert((vox < m_dims.head(3)).all());
 	size_t idx = (vox * m_strides.head(3)).sum();
@@ -150,7 +175,7 @@ const typename VolumeBase<Tp, rank>::SeriesTp VolumeBase<Tp, rank>::series(const
 }
 
 template<typename Tp, size_t rank>
-typename VolumeBase<Tp, rank>::SeriesTp VolumeBase<Tp, rank>::series(const typename VolumeBase<Tp, rank>::IndexArray &vox) {
+typename VolumeBase<Tp, rank>::SeriesTp VolumeBase<Tp, rank>::series(const typename VolumeBase<Tp, rank>::ViewIndexArray &vox) {
 	assert(rank > 3);
 	assert((vox.head(3) < m_dims.head(3)).all());
 	size_t idx = (vox.head(3) * m_strides.head(3)).sum();
