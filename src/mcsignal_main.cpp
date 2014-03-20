@@ -183,16 +183,16 @@ int main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 			}
 		}
-		paramsVols.view(i).readFrom(input);
+		paramsVols.viewSlice(i).readFrom(input);
 	}
 	Series<float> signalVols(saveFile.dims().head(3), model->size());
 	
 	cout << "Started calculating." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &v) {
 		if ((maskFile.isOpen() == 0) || (maskVol[v])) {
-			ArrayXd params = paramsVols.series(v).cast<double>();
+			ArrayXd params = paramsVols.line(v).cast<double>();
 			double B1 = B1File.isOpen() ? B1Vol[v] : 1.;
-			signalVols.series(v) = model->signal(params, B1).abs().cast<float>();
+			signalVols.line(v) = model->signal(params, B1).abs().cast<float>();
 		}
 	};
 	ThreadPool threads(1);

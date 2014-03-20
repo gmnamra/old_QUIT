@@ -341,33 +341,36 @@ int main(int argc, char **argv)
 		if (verbose) cout << "Processing slice " << k << "..." << flush;
 		atomic<int> voxCount{0};
 		clock_t loopStart = clock();
-		for (size_t j = voxJ; j < templateFile.dim(2); j++) {
-			function<void (const size_t&)> processVox = [&] (const size_t &i) {
-				const Volume<float>::IndexArray vox{i, j, k};
-				if (maskFile.isOpen() || maskVol[vox]) {
-					voxCount++;
-					ArrayXcd signal = model->loadSignals(signalVols, vox);
-					ArrayXXd localBounds = bounds;
-					if (f0fit == OffRes::Map) {
-						localBounds.row(model->nParameters() - 1).setConstant(f0Vol[vox]);
-					}
-					double B1 = B1File.isOpen() ? B1Vol[vox] : 1.;
-					DESPOTFunctor func(model, signal, B1, fitComplex, false);
-					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
-														samples, retain, contract, expand, (voxI != 0));
-					ArrayXd params(model->nParameters());
-					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
-					paramsVols.series(vox) = params.cast<float>();
-					residualVols.series(vox) = rc.residuals().cast<float>();
-					SoSVol[vox] = static_cast<float>(rc.SoS());
+		auto maskSlice = maskVol.viewSlice(k);
+		auto B1Slice   = B1Vol.viewSlice(k);
+		auto f0Slice   = f0Vol.viewSlice(k);
+		auto paramsSlice = paramsVols.viewSlice(k, 3);
+		auto residualSlice = residualVols.viewSlice(k, 3);
+		auto SoSSlice = SoSVol.viewSlice(k);
+		function<void (const size_t&)> processVox = [&] (const size_t &i) {
+			if (maskFile.isOpen() || maskSlice[i]) {
+				voxCount++;
+				ArrayXcd signal = model->loadSignals(signalVols, k, i);
+				ArrayXXd localBounds = bounds;
+				if (f0fit == OffRes::Map) {
+					localBounds.row(model->nParameters() - 1).setConstant(f0Slice[i]);
 				}
-			};
-			if (voxI == 0)
-				threads.for_loop(processVox, templateFile.dim(1));
-			else {
-				processVox(voxI);
-				exit(0);
+				double B1 = B1File.isOpen() ? B1Slice[i] : 1.;
+				DESPOTFunctor func(model, signal, B1, fitComplex, false);
+				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
+													samples, retain, contract, expand, (voxI != 0));
+				ArrayXd params(model->nParameters());
+				rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
+				paramsSlice.line(i) = params.cast<float>();
+				residualSlice.line(i) = rc.residuals().cast<float>();
+				SoSSlice[i] = static_cast<float>(rc.SoS());
 			}
+		};
+		if (voxI == 0)
+			threads.for_loop(processVox, templateFile.dim(1));
+		else {
+			processVox(voxI);
+			exit(0);
 		}
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -390,7 +393,7 @@ int main(int argc, char **argv)
 	templateFile.description = version;
 	for (size_t p = 1; p < model->nParameters(); p++) { // Skip PD for now
 		templateFile.open(outPrefix + model->names().at(p) + ".nii.gz", Nifti::Mode::Write);
-		paramsVols.view(p).writeTo(templateFile);
+		paramsVols.viewSlice(p).writeTo(templateFile);
 		templateFile.close();
 	}
 	templateFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);

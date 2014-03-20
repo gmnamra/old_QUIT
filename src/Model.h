@@ -106,7 +106,7 @@ public:
 	const vector<string> &names() const;
 	const ArrayXXd bounds(const FieldStrength f) const;
 	
-	ArrayXcd loadSignals(vector<Series<complex<float>>> &vols, const typename Series<complex<float>>::ViewIndexArray &vox) const;
+	ArrayXcd loadSignals(vector<Series<complex<float>>> &vols, const size_t slice, const size_t i) const;
 	
 	virtual void parseSPGR(const size_t nFlip, const bool prompt) = 0;
 	virtual void parseSSFP(const size_t nFlip, const size_t nPhase, const bool prompt) = 0;

@@ -156,15 +156,15 @@ int main(int argc, char **argv)
 		
 		for (size_t j = 0; j < templateFile.dim(2); j++) {
 			function<void (const size_t)> processVox = [&] (const size_t i) {
-				const typename Volume<float>::IndexArray vox{i, j, k};
+				const typename Volume<float>::Indx vox{i, j, k};
 				if (!maskFile.isOpen() || (maskVol[vox])) {
 					voxCount++;
 
 					ArrayXcd I1(nFlip), I2(nFlip), I3(nFlip), I4(nFlip);
 					switch (inputType) {
 						case (Type::Phase): {
-							ArrayXd mag = input1.series(vox).cast<double>();
-							ArrayXd ph  = input2.series(vox).cast<double>();
+							ArrayXd mag = input1.line(vox).cast<double>();
+							ArrayXd ph  = input2.line(vox).cast<double>();
 							
 							I1.real() = mag.head(nFlip) * ph.head(nFlip).cos();
 							I1.imag() = mag.head(nFlip) * ph.head(nFlip).sin();
@@ -176,8 +176,8 @@ int main(int argc, char **argv)
 							I4.imag() = mag.tail(nFlip) * ph.tail(nFlip).sin();
 						}	break;
 						case (Type::Imag): {
-							ArrayXd re = input1.series(vox).cast<double>();
-							ArrayXd im = input2.series(vox).cast<double>();
+							ArrayXd re = input1.line(vox).cast<double>();
+							ArrayXd im = input2.line(vox).cast<double>();
 							
 							I1.real() = re.head(nFlip);
 							I1.imag() = im.head(nFlip);
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
 							I4.imag() = im.tail(nFlip);
 						 }	break;
 						case (Type::Complex): {
-							ArrayXcd input = inputC.series(vox).cast<complex<double>>();
+							ArrayXcd input = inputC.line(vox).cast<complex<double>>();
 							I1 = input.head(nFlip);
 							I2 = input.segment(nFlip, nFlip);
 							I3 = input.segment(2*nFlip, nFlip);
@@ -199,8 +199,8 @@ int main(int argc, char **argv)
 					
 					ArrayXcd crossPoint = ((I1.real()*I3.imag() - I3.real()*I1.imag())*(I2 - I4) - (I2.real()*I4.imag() - I4.real()*I2.imag())*(I1 - I3)) /
 					                      ((I1.real() - I3.real())*(I2.imag() - I4.imag()) + (I2.real() - I4.real())*(I3.imag() - I1.imag()));
-					outMag.series(vox) = crossPoint.abs().cast<float>();
-					outPhase.series(vox) = crossPoint.imag().binaryExpr(crossPoint.real(), ptr_fun<double,double,double>(atan2)).cast<float>();
+					outMag.line(vox) = crossPoint.abs().cast<float>();
+					outPhase.line(vox) = crossPoint.imag().binaryExpr(crossPoint.real(), ptr_fun<double,double,double>(atan2)).cast<float>();
 				}
 			};
 			

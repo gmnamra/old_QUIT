@@ -241,11 +241,13 @@ const bool Model::validParameters(const VectorXd &params) const {
 	}
 }
 
-ArrayXcd Model::loadSignals(vector<Series<complex<float>>> &sigs, const typename Series<complex<float>>::ViewIndexArray &vox) const {
+ArrayXcd Model::loadSignals(vector<Series<complex<float>>> &sigs, const size_t s, const size_t index) const {
 	ArrayXcd signal(size());
 	size_t start = 0;
 	for (size_t i = 0; i < m_signals.size(); i++) {
-		ArrayXcd thisSig = sigs.at(i).series(vox).cast<complex<double>>();
+		auto slice = sigs.at(i).viewSlice(s, 3);
+		ArrayXcf floatSig = slice.line(index);
+		ArrayXcd thisSig = floatSig.cast<complex<double>>();
 		if (m_scaling == Scaling::NormToMean)
 			thisSig /= thisSig.abs().mean();
 		signal.segment(start, thisSig.rows()) = thisSig;
