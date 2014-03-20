@@ -120,7 +120,6 @@ Nifti openAndCheck(const string &path, const Nifti &saved) {
 		cerr << "Header for " << in.imagePath() << " does not match " << saved.imagePath() << endl;
 		exit(EXIT_FAILURE);
 	}
-	if (verbose) cout << "Opened: " << in.imagePath() << endl;
 	return in;
 }
 
@@ -200,7 +199,6 @@ int main(int argc, char **argv)
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
 				maskVol.readFrom(maskFile);
-				maskFile.close();
 				break;
 			case 'o':
 				outPrefix = optarg;
