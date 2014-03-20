@@ -365,7 +365,7 @@ int main(int argc, char **argv)
 					SoSVol[vox] = static_cast<float>(rc.SoS());
 				}
 			};
-			if (voxI == -1)
+			if (voxI == 0)
 				threads.for_loop(processVox, templateFile.dim(1));
 			else {
 				processVox(voxI);
