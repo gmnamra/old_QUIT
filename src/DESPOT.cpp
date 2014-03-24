@@ -171,7 +171,7 @@ const VectorXd SigMag(const MagVector &M_in) {
 const Matrix3d RF(const double &alpha, const double &beta)
 {
 	Matrix3d R;
-	R = AngleAxisd(alpha, Vector3d::UnitX()) * AngleAxisd(beta, Vector3d::UnitZ());
+	R = AngleAxisd(alpha, Vector3d::UnitY()) * AngleAxisd(beta, Vector3d::UnitZ());
 	return R;
 }
 
@@ -185,9 +185,9 @@ inline const Matrix3d Relax(const double &T1, const double &T2) {
 
 inline const Matrix3d InfinitesimalRF(const double &dalpha) {
 	Matrix3d A;
-	A << 0,      0,       0,
-	     0,      0, -dalpha,
-	     0, dalpha,       0;
+	A << 0,      0, -dalpha,
+	     0,      0,       0,
+	     dalpha, 0,       0;
 	return A;
 }
 
@@ -235,7 +235,7 @@ MagVector One_SPGR(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1) {
 	ArrayXd sa = flip.sin();
 	ArrayXd ca = flip.cos();
 	double expT1 = exp(-TR / T1);
-	M.row(1) = PD * ((1. - expT1) * sa) / (1. - expT1*ca);
+	M.row(0) = PD * ((1. - expT1) * sa) / (1. - expT1*ca);
 	return M;
 }
 
