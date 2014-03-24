@@ -82,9 +82,17 @@ int main(int argc, char **argv) {
 	#ifdef AGILENT
 	Agilent::ProcPar pp;
 	if (ReadPP(inFile, pp)) {
-		// From Sam Hurley. The sequence is implemented by waiting afi_dummy
-		// periods after the first afi_tr.
-		n = pp.realValue("afi_dummy") + 1;
+		if (pp.contains("afi_dummy") {
+			// From Sam Hurley. The sequence is implemented by waiting afi_dummy
+			// periods after the first afi_tr.
+			n = pp.realValue("afi_dummy") + 1;
+		} else if (pp.contains("afiflag")) {
+			// It's come from the ge3d_toby sequence
+			n = 5;
+		} else {
+			cerr << "Could not find afi_dummy or afiflag parameters, does not appear to be an AFI sequence. Enter TR2/TR1: ";
+			cin >> n;
+		}
 		nomFlip = pp.realValue("flip1");
 		cout << "Read TR2/TR1 ratio of " << n << " and flip-angle " << nomFlip << " degrees from procpar." << endl;
 	} else
