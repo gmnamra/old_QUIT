@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 	#ifdef AGILENT
 	Agilent::ProcPar pp;
 	if (ReadPP(inFile, pp)) {
-		if (pp.contains("afi_dummy") {
+		if (pp.contains("afi_dummy")) {
 			// From Sam Hurley. The sequence is implemented by waiting afi_dummy
 			// periods after the first afi_tr.
 			n = pp.realValue("afi_dummy") + 1;
