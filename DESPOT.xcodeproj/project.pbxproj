@@ -50,6 +50,11 @@
 		F6980B3217E1D20D00F7DBD3 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
 		F6AEA45717F2EAA400032A7A /* DESPOT_Functors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */; };
 		F6AEA45917F2EAA400032A7A /* DESPOT_Functors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */; };
+		F6BCF25618E1CEA6009257D9 /* dixon_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6BCF25518E1CEA6009257D9 /* dixon_main.cpp */; };
+		F6BCF25718E1D3A3009257D9 /* dixon_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6BCF25518E1CEA6009257D9 /* dixon_main.cpp */; };
+		F6BCF25818E1D3A3009257D9 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
+		F6BCF25918E1D3A9009257D9 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
+		F6BCF25A18E1D3B0009257D9 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
 		F6CC21B018CFB4CF0033AE8E /* Model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F663C9B51834DE05001B86BB /* Model.cpp */; };
 		F6E1F9141591FFF200DA918F /* phasemap_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */; };
 		F6E31E8818BF6A7400955295 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
@@ -215,13 +220,6 @@
 			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
 			remoteInfo = Agilent;
 		};
-		F6E69DBE18D3433F008382E2 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F6E69DA118D342A0008382E2;
-			remoteInfo = ssfp_bands;
-		};
 		F6F1971F17EC7F8600FFF863 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
@@ -260,6 +258,15 @@
 			runOnlyForDeploymentPostprocessing = 1;
 		};
 		F675C8C915CC11E000BA95FC /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		F6BCF24518E1CE54009257D9 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -346,6 +353,8 @@
 		F6A51D9F1732C0D500436441 /* crop_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = crop_main.cpp; path = src/crop_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DESPOT_Functors.cpp; path = src/DESPOT_Functors.cpp; sourceTree = SOURCE_ROOT; };
 		F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Nifti.xcodeproj; path = ../Nifti/Nifti.xcodeproj; sourceTree = "<group>"; };
+		F6BCF24718E1CE54009257D9 /* dixon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = dixon; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6BCF25518E1CEA6009257D9 /* dixon_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dixon_main.cpp; path = src/dixon_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = phasemap_main.cpp; path = src/phasemap_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E1F90A1591FFD200DA918F /* phasemap */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = phasemap; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Agilent.xcodeproj; path = ../Agilent/Agilent.xcodeproj; sourceTree = "<group>"; };
@@ -403,6 +412,15 @@
 				F628BD7817F5817600DE62AD /* libNifti.a in Frameworks */,
 				F6E41DAB17C64FDB0043A338 /* libAgilent.a in Frameworks */,
 				F6980B3017E1D1FB00F7DBD3 /* libz.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6BCF24418E1CE54009257D9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6BCF25A18E1D3B0009257D9 /* libz.dylib in Frameworks */,
+				F6BCF25918E1D3A9009257D9 /* libNifti.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -486,7 +504,6 @@
 				F6E41D9717C64F1B0043A338 /* procparse */,
 				F627EDF017D77961001B3FCA /* fdf2nii */,
 				F6F1972017EC7F8600FFF863 /* fdfhdr */,
-				F6E69DBF18D3433F008382E2 /* ssfp_bands */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -520,6 +537,7 @@
 				F660A66717BD12AC008682C3 /* despot2fm */,
 				F663C99D18324E5E001B86BB /* mcsignal */,
 				F6E69DB218D3433E008382E2 /* ssfpbands */,
+				F6BCF24718E1CE54009257D9 /* dixon */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -544,6 +562,7 @@
 				F675C8D515CC120100BA95FC /* afi_main.cpp */,
 				F6E69DC318D34380008382E2 /* ssfpbands_main.cpp */,
 				F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */,
+				F6BCF25518E1CEA6009257D9 /* dixon_main.cpp */,
 				F6A51D9F1732C0D500436441 /* crop_main.cpp */,
 				F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */,
 				F66A8FD217A6CB5900E93F5C /* ThreadPool.h */,
@@ -626,6 +645,23 @@
 			name = afi;
 			productName = afi;
 			productReference = F675C8CB15CC11E000BA95FC /* afi */;
+			productType = "com.apple.product-type.tool";
+		};
+		F6BCF24618E1CE54009257D9 /* dixon */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6BCF25418E1CE54009257D9 /* Build configuration list for PBXNativeTarget "dixon" */;
+			buildPhases = (
+				F6BCF24318E1CE54009257D9 /* Sources */,
+				F6BCF24418E1CE54009257D9 /* Frameworks */,
+				F6BCF24518E1CE54009257D9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = dixon;
+			productName = dixon;
+			productReference = F6BCF24718E1CE54009257D9 /* dixon */;
 			productType = "com.apple.product-type.tool";
 		};
 		F6E1F9091591FFD200DA918F /* phasemap */ = {
@@ -778,6 +814,7 @@
 				F660A65917BD1299008682C3 /* despot1hifi */,
 				F660A66617BD12AC008682C3 /* despot2fm */,
 				F6E69DB118D3433E008382E2 /* ssfpbands */,
+				F6BCF24618E1CE54009257D9 /* dixon */,
 			);
 		};
 /* End PBXProject section */
@@ -823,13 +860,6 @@
 			fileType = "compiled.mach-o.executable";
 			path = procparse;
 			remoteRef = F6E41D9617C64F1B0043A338 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		F6E69DBF18D3433F008382E2 /* ssfp_bands */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = ssfp_bands;
-			remoteRef = F6E69DBE18D3433F008382E2 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		F6F1972017EC7F8600FFF863 /* fdfhdr */ = {
@@ -884,6 +914,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F6BCF24318E1CE54009257D9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6BCF25718E1D3A3009257D9 /* dixon_main.cpp in Sources */,
+				F6BCF25818E1D3A3009257D9 /* ThreadPool.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F6E1F9061591FFD200DA918F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -902,6 +941,7 @@
 				F686F26017AC0A5E00028A55 /* ThreadPool.cpp in Sources */,
 				F6E4A2971590DB5300DA4001 /* despot1_main.cpp in Sources */,
 				F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */,
+				F6BCF25618E1CEA6009257D9 /* dixon_main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1105,6 +1145,62 @@
 			};
 			name = Release;
 		};
+		F6BCF24D18E1CE54009257D9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		F6BCF24E18E1CE54009257D9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		F6E1F9121591FFD200DA918F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1125,11 +1221,6 @@
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
 				COPY_PHASE_STRIP = NO;
 				GCC_C_LANGUAGE_STANDARD = c99;
@@ -1143,8 +1234,6 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = YES;
 				GCC_WARN_ABOUT_MISSING_FIELD_INITIALIZERS = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -1182,11 +1271,6 @@
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -1196,8 +1280,6 @@
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = YES;
 				GCC_WARN_ABOUT_MISSING_FIELD_INITIALIZERS = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -1369,6 +1451,14 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		F6BCF25418E1CE54009257D9 /* Build configuration list for PBXNativeTarget "dixon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6BCF24D18E1CE54009257D9 /* Debug */,
+				F6BCF24E18E1CE54009257D9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
 		};
 		F6E1F9111591FFD200DA918F /* Build configuration list for PBXNativeTarget "phasemap" */ = {
 			isa = XCConfigurationList;
