@@ -119,15 +119,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
-		F6E69D9F18D342A0008382E2 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -156,7 +147,6 @@
 		F6E41D4D17C60B0D0043A338 /* libAgilent.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libAgilent.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E41D5A17C60B490043A338 /* procparse */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = procparse; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E41D7817C60CF30043A338 /* Nifti.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Nifti.xcodeproj; path = ../Nifti/Nifti.xcodeproj; sourceTree = "<group>"; };
-		F6E69DA118D342A0008382E2 /* ssfp_bands */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ssfp_bands; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -192,13 +182,6 @@
 				F62B6E8B17D8D607009C9C3D /* libz.dylib in Frameworks */,
 				F6E41D6617C60B6D0043A338 /* libAgilent.a in Frameworks */,
 				F628BD6617F5810A00DE62AD /* libNifti.a in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		F6E69D9E18D342A0008382E2 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -266,7 +249,6 @@
 				F6E41D5A17C60B490043A338 /* procparse */,
 				F6CF0AD717CFEFBC000B56BA /* fdf2nii */,
 				F62275BB17E2208200523AC0 /* fdfhdr */,
-				F6E69DA118D342A0008382E2 /* ssfp_bands */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -363,23 +345,6 @@
 			productReference = F6E41D5A17C60B490043A338 /* procparse */;
 			productType = "com.apple.product-type.tool";
 		};
-		F6E69DA018D342A0008382E2 /* ssfp_bands */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = F6E69DAD18D342A0008382E2 /* Build configuration list for PBXNativeTarget "ssfp_bands" */;
-			buildPhases = (
-				F6E69D9D18D342A0008382E2 /* Sources */,
-				F6E69D9E18D342A0008382E2 /* Frameworks */,
-				F6E69D9F18D342A0008382E2 /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = ssfp_bands;
-			productName = ssfp_bands;
-			productReference = F6E69DA118D342A0008382E2 /* ssfp_bands */;
-			productType = "com.apple.product-type.tool";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -410,7 +375,6 @@
 				F6E41D5917C60B490043A338 /* procparse */,
 				F6CF0AD617CFEFBC000B56BA /* fdf2nii */,
 				F62275BA17E2208200523AC0 /* fdfhdr */,
-				F6E69DA018D342A0008382E2 /* ssfp_bands */,
 			);
 		};
 /* End PBXProject section */
@@ -475,13 +439,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6E41D6517C60B650043A338 /* procparse_main.cpp in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		F6E69D9D18D342A0008382E2 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -792,73 +749,6 @@
 			};
 			name = Release;
 		};
-		F6E69DA718D342A0008382E2 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				MACOSX_DEPLOYMENT_TARGET = 10.9;
-				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		F6E69DA818D342A0008382E2 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				MACOSX_DEPLOYMENT_TARGET = 10.9;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -903,15 +793,6 @@
 			buildConfigurations = (
 				F6E41D6117C60B490043A338 /* Debug */,
 				F6E41D6217C60B490043A338 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		F6E69DAD18D342A0008382E2 /* Build configuration list for PBXNativeTarget "ssfp_bands" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				F6E69DA718D342A0008382E2 /* Debug */,
-				F6E69DA818D342A0008382E2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
