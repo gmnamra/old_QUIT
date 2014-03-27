@@ -105,7 +105,8 @@ typename VolumeBase<Tp, rank>::TpRef VolumeBase<Tp, rank>::operator[](const size
 template<typename Tp, size_t rank>
 VolumeBase<Tp, rank>::VolumeBase(const Indx &dims, const Indx &strides, const size_t offset, const PtrTp &ptr) :
 	m_dims{dims}, m_strides{strides}, m_offset(offset), m_ptr(ptr) {
-	
+	//std::cout << __PRETTY_FUNCTION__ << std::endl;
+	//std::cout << *this << std::endl;
 }
 
 template<typename Tp, size_t rank>
@@ -122,8 +123,8 @@ auto VolumeBase<Tp, rank>::viewSlice(const size_t i, const size_t d) -> SliceTp 
 		}
 		from_dim++;
 	}
-
-	return SliceTp{newDims, newStrides, m_strides[d-1] * i, m_ptr};
+	size_t sliceOffset = m_offset + m_strides[d-1] * i;
+	return SliceTp{newDims, newStrides, sliceOffset, m_ptr};
 }
 
 template<typename Tp, size_t rank>
