@@ -80,33 +80,36 @@ size_t VolumeBase<Tp, rank>::size() const {
 
 template<typename Tp, size_t rank>
 typename VolumeBase<Tp, rank>::ConstTpRef VolumeBase<Tp, rank>::operator[](const Indx &vox) const {
-	assert((vox < m_dims).all());
+	if ((vox >= m_dims).any()) {
+		std::stringstream ss;
+		ss << "Voxel " << vox.transpose() << " outside volume.\n" << print();
+		throw(std::out_of_range(ss.str()));
+	}
 	return (*m_ptr)[m_offset + (vox * m_strides).sum()];
 }
 
 template<typename Tp, size_t rank>
 typename VolumeBase<Tp, rank>::TpRef VolumeBase<Tp, rank>::operator[](const Indx &vox) {
-	assert((vox < m_dims).all());
-	return (*m_ptr)[m_offset + (vox * m_strides).sum()];
+	return const_cast<TpRef>(static_cast<const VolumeBase<Tp, rank> &>(*this).operator[](vox));
 }
 
 template<typename Tp, size_t rank>
 typename VolumeBase<Tp, rank>::ConstTpRef VolumeBase<Tp, rank>::operator[](const size_t i) const {
-	assert(i < size());
+	if (i >= size()) {
+		throw(std::out_of_range("Index " + std::to_string(i) + " out of range.\n" + print()));
+	}
 	return (*m_ptr)[m_offset + i];
 }
 
 template<typename Tp, size_t rank>
 typename VolumeBase<Tp, rank>::TpRef VolumeBase<Tp, rank>::operator[](const size_t i) {
-	assert(i < size());
-	return (*m_ptr)[m_offset + i];
+	return const_cast<TpRef>(static_cast<const VolumeBase<Tp, rank> &>(*this).operator[](i));
 }
 
 template<typename Tp, size_t rank>
 VolumeBase<Tp, rank>::VolumeBase(const Indx &dims, const Indx &strides, const size_t offset, const PtrTp &ptr) :
 	m_dims{dims}, m_strides{strides}, m_offset(offset), m_ptr(ptr) {
-	//std::cout << __PRETTY_FUNCTION__ << std::endl;
-	//std::cout << *this << std::endl;
+	
 }
 
 template<typename Tp, size_t rank>
@@ -151,6 +154,15 @@ auto VolumeBase<Tp, rank>::line(const SliceIndx &vox, const size_t lineD) const 
 	auto first = m_ptr->data() + m_offset + idx;
 	const LineTp s(first, m_dims[lineD-1], Eigen::InnerStride<>(m_strides[lineD-1]));
 	return s;
+}
+
+template<typename Tp, size_t rank>
+std::string VolumeBase<Tp, rank>::print() const {
+	std::stringstream ss;
+	ss << "Dims:    " << m_dims.transpose() << std::endl;
+	ss << "Strides: " << m_strides.transpose() << std::endl;
+	ss << "Offset:  " << m_offset << " Ptr Count: " << m_ptr.use_count() << std::endl;
+	return ss.str();
 }
 
 #endif

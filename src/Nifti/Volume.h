@@ -64,10 +64,9 @@ class VolumeBase {
 		LineTp line(const SliceIndx &vox, const size_t d=rank) const;
 		LineTp line(const size_t i) const;
 		
+		std::string print() const;
 		friend std::ostream &operator<<(std::ostream &os, const VolumeBase &v) {
-			os << "Dims:    " << v.m_dims.transpose() << std::endl;
-			os << "Strides: " << v.m_strides.transpose() << std::endl;
-			os << "Offset:  " << v.m_offset << " Ptr Count: " << v.m_ptr.use_count() << std::endl;
+			os << v.print();
 			return os;
 		}
 };
