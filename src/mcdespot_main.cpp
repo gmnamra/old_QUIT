@@ -348,7 +348,7 @@ int main(int argc, char **argv)
 		auto residualSlice = residualVols.viewSlice(k, 3);
 		auto SoSSlice = SoSVol.viewSlice(k);
 		function<void (const size_t&)> processVox = [&] (const size_t &i) {
-			if (maskFile.isOpen() || maskSlice[i]) {
+			if (!maskFile.isOpen() || maskSlice[i]) {
 				voxCount++;
 				ArrayXcd signal = model->loadSignals(signalVols, k, i);
 				ArrayXXd localBounds = bounds;
