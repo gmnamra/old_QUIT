@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 			}
 		};
 			
-		pool.for_loop(processVox, slice.dims().head(2).prod());
+		pool.for_loop(processVox, T1Slice.size());
 		
 		if (verbose) {
 			clock_t loopEnd = clock();

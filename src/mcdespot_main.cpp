@@ -367,7 +367,7 @@ int main(int argc, char **argv)
 			}
 		};
 		if (voxI == 0)
-			threads.for_loop(processVox, templateFile.dim(1));
+			threads.for_loop(processVox, signalVols.dims().head(2).prod());
 		else {
 			processVox(voxI);
 			exit(0);

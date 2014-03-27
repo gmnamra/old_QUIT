@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 			Ws[i] = (1 + psi * frac) * abs(S0) / 2.;
 			Fs[i] = (1 - psi * frac) * abs(S0) / 2.;
 		};
-		pool.for_loop(processVox, I0s.dims().prod());
+		pool.for_loop(processVox, I0s.size());
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
