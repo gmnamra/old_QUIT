@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 	All.readFrom(inputFile);
 	inputFile.close();
 
-	auto dims = templateFile.dims().head(3);
+	Nifti::ArrayXs dims = templateFile.dims().head(3);
 	Volume<float> Wv(dims), Fv(dims), Av(dims);
 	//**************************************************************************
 	// Do the fitting
@@ -106,6 +106,7 @@ int main(int argc, char **argv)
 		     Fs = Fv.viewSlice(k),
 			 As = Av.viewSlice(k);
 		//cout << endl << I0s << endl << I1s << endl << I2s << endl;
+		//cout << Ws << endl << Fs << endl << As << endl;
 		function<void (const size_t)> processVox = [&] (const size_t i) {
 			// From Ma et al JMR 1997
 			complex<float> S0 = I0s[i], S1 = I1s[i], S2 = I2s[i];
