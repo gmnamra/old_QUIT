@@ -89,6 +89,7 @@ int main(int argc, char **argv)
 	// Do the fitting
 	//**************************************************************************
 	ThreadPool pool;
+	cout << "Starting processing..." << endl;
 	for (size_t k = 0; k < templateFile.dim(3); k++) {
 		clock_t loopStart;
 		// Read in data
@@ -102,24 +103,21 @@ int main(int argc, char **argv)
 			 I2s = All.viewSlice(2).viewSlice(k);
 		auto Ws = Wv.viewSlice(k), Fs = Fv.viewSlice(k);
 		
-		for (size_t i = 0; i < I0s.dims().prod(); i++) {
-			function<void (const size_t)> processVox = [&] (const size_t i) {
-				complex<float> I0 = I0s[i], I1 = I1s[i], I2 = I2s[i];
-				//float I0d = abs(I0);
-				float phi_0 = arg(I0);
-				
-				complex<float> I1d = I1 * polar<float>(1., -phi_0);
-				complex<float> I2d = I2 * polar<float>(1., -phi_0);
-				
-				float phi = arg(I2d) / 2.;
-				float pc = (I1d * polar<float>(1., -phi)).real() / abs(I1d);
-				
-				Ws[i] = (sqrt(abs(I0)*abs(I2)) + pc * abs(I1)) / 2;
-				Fs[i] = (sqrt(abs(I0)*abs(I2)) - pc * abs(I1)) / 2;
-			};
+		function<void (const size_t)> processVox = [&] (const size_t i) {
+			complex<float> I0 = I0s[i], I1 = I1s[i], I2 = I2s[i];
+			//float I0d = abs(I0);
+			float phi_0 = arg(I0);
 			
-			pool.for_loop(processVox, templateFile.dim(1));
-		}
+			complex<float> I1d = I1 * polar<float>(1., -phi_0);
+			complex<float> I2d = I2 * polar<float>(1., -phi_0);
+			
+			float phi = arg(I2d) / 2.;
+			float pc = (I1d * polar<float>(1., -phi)).real() / abs(I1d);
+			
+			Ws[i] = (sqrt(abs(I0)*abs(I2)) + pc * abs(I1)) / 2;
+			Fs[i] = (sqrt(abs(I0)*abs(I2)) - pc * abs(I1)) / 2;
+		};
+		pool.for_loop(processVox, I0s.dims().prod());
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
