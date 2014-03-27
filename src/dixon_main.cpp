@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvt:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvo:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'o':
@@ -71,32 +71,19 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Gather data
 	//**************************************************************************
-	if ((argc - optind) != 3) {
-		cout << "Requires 3 complex input files." << endl << usage << endl;
+	if ((argc - optind) != 1) {
+		cout << "Requires 1 complex input file with 3 echos." << endl << usage << endl;
 		exit(EXIT_FAILURE);
 	}
-	Volume<complex<float>> I0v, I1v, I2v;
+	Series<complex<float>> All;
 	
 	cout << "Opening input file: " << argv[optind] << endl;
 	Nifti inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
 	Nifti templateFile(inputFile, 1);
-	I0v.readFrom(inputFile);
+	All.readFrom(inputFile);
 	inputFile.close();
-	inputFile.open(argv[optind++], Nifti::Mode::Read);
-	if (!inputFile.matchesSpace(templateFile)) {
-		cerr << "Input files do not match." << endl;
-		exit(EXIT_FAILURE);
-	}
-	I1v.readFrom(inputFile);
-	inputFile.close();
-	inputFile.open(argv[optind++], Nifti::Mode::Read);
-	if (!inputFile.matchesSpace(templateFile)) {
-		cerr << "Input files do not match." << endl;
-		exit(EXIT_FAILURE);
-	}
-	I2v.readFrom(inputFile);
-	inputFile.close();
+
 	Volume<float> Wv(templateFile.dims().head(3)), Fv(templateFile.dims().head(3));
 	//**************************************************************************
 	// Do the fitting
@@ -110,7 +97,9 @@ int main(int argc, char **argv)
 		loopStart = clock();
 		atomic<int> voxCount{0};
 		
-		auto I0s = I0v.viewSlice(k), I1s = I1v.viewSlice(k), I2s = I2v.viewSlice(k);
+		auto I0s = All.viewSlice(0).viewSlice(k),
+		     I1s = All.viewSlice(1).viewSlice(k),
+			 I2s = All.viewSlice(2).viewSlice(k);
 		auto Ws = Wv.viewSlice(k), Fs = Fv.viewSlice(k);
 		
 		for (size_t i = 0; i < I0s.dims().prod(); i++) {

@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
-			case 'i':
+			case 't':
 				switch (*optarg) {
 					case 'p': inputType = Type::Phase;  cout << "Input is magnitude and phase." << endl; break;
 					case 'i': inputType = Type::Imag; cout << "Input is real and imaginary." << endl; break;
