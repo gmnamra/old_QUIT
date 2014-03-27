@@ -84,7 +84,8 @@ int main(int argc, char **argv)
 	All.readFrom(inputFile);
 	inputFile.close();
 
-	Volume<float> Wv(templateFile.dims().head(3)), Fv(templateFile.dims().head(3));
+	auto dims = templateFile.dims().head(3);
+	Volume<float> Wv(dims), Fv(dims), Av(dims);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -101,21 +102,19 @@ int main(int argc, char **argv)
 		auto I0s = All.viewSlice(0).viewSlice(k),
 		     I1s = All.viewSlice(1).viewSlice(k),
 			 I2s = All.viewSlice(2).viewSlice(k);
-		auto Ws = Wv.viewSlice(k), Fs = Fv.viewSlice(k);
-		
+		auto Ws = Wv.viewSlice(k),
+		     Fs = Fv.viewSlice(k),
+			 As = Av.viewSlice(k);
+		//cout << endl << I0s << endl << I1s << endl << I2s << endl;
 		function<void (const size_t)> processVox = [&] (const size_t i) {
-			complex<float> I0 = I0s[i], I1 = I1s[i], I2 = I2s[i];
-			//float I0d = abs(I0);
-			float phi_0 = arg(I0);
-			
-			complex<float> I1d = I1 * polar<float>(1., -phi_0);
-			complex<float> I2d = I2 * polar<float>(1., -phi_0);
-			
-			float phi = arg(I2d) / 2.;
-			float pc = (I1d * polar<float>(1., -phi)).real() / abs(I1d);
-			
-			Ws[i] = (sqrt(abs(I0)*abs(I2)) + pc * abs(I1)) / 2;
-			Fs[i] = (sqrt(abs(I0)*abs(I2)) - pc * abs(I1)) / 2;
+			// From Ma et al JMR 1997
+			complex<float> S0 = I0s[i], S1 = I1s[i], S2 = I2s[i];
+			As[i] = sqrt(abs(S2) / abs(S0));
+			float phi = arg(S2 / S0) / 2.;
+			float psi = cos(arg(S1 / S0) - phi);
+			float frac = abs(S1) / sqrt(abs(S0)*abs(S1));
+			Ws[i] = (1 + psi * frac) * abs(S0) / 2.;
+			Fs[i] = (1 - psi * frac) * abs(S0) / 2.;
 		};
 		pool.for_loop(processVox, I0s.dims().prod());
 		
@@ -130,11 +129,14 @@ int main(int argc, char **argv)
 
 	if (verbose)
 		cout << "Writing results." << endl;
-	templateFile.open(outPrefix + "water.nii.gz", Nifti::Mode::Write);
+	templateFile.open(outPrefix + "W.nii.gz", Nifti::Mode::Write);
 	Wv.writeTo(templateFile);
 	templateFile.close();
-	templateFile.open(outPrefix + "fat.nii.gz", Nifti::Mode::Write);
+	templateFile.open(outPrefix + "F.nii.gz", Nifti::Mode::Write);
 	Fv.writeTo(templateFile);
+	templateFile.close();
+	templateFile.open(outPrefix + "A.nii.gz", Nifti::Mode::Write);
+	Av.writeTo(templateFile);
 	templateFile.close();
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
