@@ -330,7 +330,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	if (stop_slice > templateFile.dim(3))
 		stop_slice = templateFile.dim(3);
-	
+	size_t sliceSize = templateFile.dims().head(2).prod();
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	
     time_t procStart = time(NULL);
@@ -367,7 +367,7 @@ int main(int argc, char **argv)
 			}
 		};
 		if (voxI == 0)
-			threads.for_loop(processVox, signalVols.dims().head(2).prod());
+			threads.for_loop(processVox, sliceSize);
 		else {
 			processVox(voxI);
 			exit(0);
