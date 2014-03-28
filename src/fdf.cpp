@@ -55,7 +55,7 @@ void fdfImage::open(const string &path) {
 	closedir(dfd);
 	
 	auto f = m_files.begin();
-	m_slabs = static_cast<size_t>(m_pp.parameter("pss").nvals()); // ns will be 1 if for standard looping
+	m_slabs = static_cast<size_t>(m_pp.parameter("pss").nvals()); // ns will be 1 for standard looping
 	m_echoes = static_cast<size_t>(m_pp.realValue("ne"));
 	m_images = m_files.size() / (m_slabs * m_echoes);
 	m_rank = f->second->rank();
