@@ -17,7 +17,7 @@ EIGEN : $(EIGEN_DIR)/Eigen/Array
 $(EIGEN_DIR)/Eigen/Array :
 	@mkdir -p $(EIGEN_DIR)
 	curl --location http://bitbucket.org/eigen/eigen/get/3.2.1.tar.gz > $(EIGEN_DIR).tar.gz
-	tar --extract --file=$(EIGEN).tar.gz --strip-components=1 --directory=$(EIGEN_DIR)
+	tar --extract --file=$(EIGEN_DIR).tar.gz --strip-components=1 --directory=$(EIGEN_DIR)
 	rm $(EIGEN_DIR).tar.gz
 
 BUILD_DIR   := build
