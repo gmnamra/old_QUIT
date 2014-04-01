@@ -14,5 +14,5 @@ fi
 
 git tag $1
 ./update_version.sh
-PREFIX=DESPOT
+PREFIX=QUIT
 git archive -v --format tar.gz --prefix ${DESPOT}/ --output ../${DESPOT}-$1.tar.gz $1
