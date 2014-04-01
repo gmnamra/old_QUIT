@@ -2,12 +2,10 @@
 CXX_VER := $(shell cpp --version)
 ifneq (,$(findstring clang,$(CXX_VER)))
 	STDLIB      := -stdlib=libc++
-	INSTALL_DIR := $(HOME)/Code/MR
 	MOREFLAGS   := -Wno-deprecated-register
 else
 	THREADS     := -pthread
 	STDLIB      := -lstdc++
-	INSTALL_DIR := $(HOME)/Code
 	MOREFLAGS   :=
 endif
 
