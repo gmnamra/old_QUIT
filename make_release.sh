@@ -12,7 +12,13 @@ then
 	exit 1
 fi
 
+set -e
+set -x
+
 git tag $1
 ./update_version.sh
 PREFIX=QUIT
-git archive -v --format tar.gz --prefix ${PREFIX}/ --output ../${PREFIX}-$1.tar.gz $1
+ARCHIVE=../${PREFIX}-$1.tar
+git archive -v --format tar --prefix ${PREFIX}/ --output ${ARCHIVE} $1
+tar -s :src:${PREFIX}/src: -v -r -f ${ARCHIVE} src/version
+gzip ${ARCHIVE}
