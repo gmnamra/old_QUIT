@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F6E41D5917C60B490043A338"
-               BuildableName = "procparse"
-               BlueprintName = "procparse"
-               ReferencedContainer = "container:Agilent.xcodeproj">
+               BlueprintIdentifier = "F660A65917BD1299008682C3"
+               BuildableName = "despot1hifi"
+               BlueprintName = "despot1hifi"
+               ReferencedContainer = "container:DESPOT.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F6E41D5917C60B490043A338"
-            BuildableName = "procparse"
-            BlueprintName = "procparse"
-            ReferencedContainer = "container:Agilent.xcodeproj">
+            BlueprintIdentifier = "F660A65917BD1299008682C3"
+            BuildableName = "despot1hifi"
+            BlueprintName = "despot1hifi"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </TestAction>
@@ -43,8 +43,7 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "/Users/Tobias/MRI/DESPOT/TTT_Small"
+      useCustomWorkingDirectory = "NO"
       buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
@@ -52,30 +51,12 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F6E41D5917C60B490043A338"
-            BuildableName = "procparse"
-            BlueprintName = "procparse"
-            ReferencedContainer = "container:Agilent.xcodeproj">
+            BlueprintIdentifier = "F660A65917BD1299008682C3"
+            BuildableName = "despot1hifi"
+            BlueprintName = "despot1hifi"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "SPGR_small.procpar"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "te"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-v"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "offset"
-            isEnabled = "YES">
-         </CommandLineArgument>
-      </CommandLineArguments>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>
@@ -88,10 +69,10 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F6E41D5917C60B490043A338"
-            BuildableName = "procparse"
-            BlueprintName = "procparse"
-            ReferencedContainer = "container:Agilent.xcodeproj">
+            BlueprintIdentifier = "F660A65917BD1299008682C3"
+            BuildableName = "despot1hifi"
+            BlueprintName = "despot1hifi"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

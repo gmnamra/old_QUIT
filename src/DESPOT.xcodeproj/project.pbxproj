@@ -7,40 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F61F3C5D18303B4B00B1DE5D /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F61F3C6218303B6300B1DE5D /* DESPOT_Functors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */; };
-		F61F3C6318303B8F00B1DE5D /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
-		F61F3C6418303B8F00B1DE5D /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
 		F61F3C6518303B9B00B1DE5D /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
-		F627EDEC17D77961001B3FCA /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F627EDF217D77966001B3FCA /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F627EDF517D77BE5001B3FCA /* mcdespot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */; };
-		F628BD6C17F5815300DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
-		F628BD6F17F5815D00DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
-		F628BD7217F5816500DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
-		F628BD7517F5816D00DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
-		F628BD7817F5817600DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
-		F628BD7D17F5818B00DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
-		F628BD8017F5819400DE62AD /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
-		F660A67017BD12D1008682C3 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F660A67117BD12D1008682C3 /* despot2fm_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F5342317B91A4B0059F82C /* despot2fm_main.cpp */; };
-		F660A67217BD12D1008682C3 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
-		F660A67317BD12DA008682C3 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F660A67417BD12DA008682C3 /* despot1hifi_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F61642A715CC1BBB0031F999 /* despot1hifi_main.cpp */; };
-		F660A67517BD12DA008682C3 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
-		F663C9AD18324E93001B86BB /* mcsignal_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F663C9AC18324E93001B86BB /* mcsignal_main.cpp */; };
-		F663C9AE18324EA1001B86BB /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F663C9B018324F55001B86BB /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
-		F663C9B118324F55001B86BB /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
 		F663C9B21832675F001B86BB /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
-		F663C9B71834DE05001B86BB /* Model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F663C9B51834DE05001B86BB /* Model.cpp */; };
-		F663C9B81834DE05001B86BB /* Model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F663C9B51834DE05001B86BB /* Model.cpp */; };
-		F663C9B91834DE05001B86BB /* Model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F663C9B51834DE05001B86BB /* Model.cpp */; };
-		F66A8FD317A6CB5900E93F5C /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
-		F675C8D615CC120100BA95FC /* afi_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F675C8D515CC120100BA95FC /* afi_main.cpp */; };
-		F681257915E23F3A007A3362 /* test_despot_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */; };
-		F686F26017AC0A5E00028A55 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
-		F686F26517AC0A6300028A55 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
 		F6980B2C17E1D1DB00F7DBD3 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
 		F6980B2D17E1D1E200F7DBD3 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
 		F6980B2E17E1D1EB00F7DBD3 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
@@ -48,184 +16,237 @@
 		F6980B3017E1D1FB00F7DBD3 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
 		F6980B3117E1D20600F7DBD3 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
 		F6980B3217E1D20D00F7DBD3 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
-		F6AEA45717F2EAA400032A7A /* DESPOT_Functors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */; };
-		F6AEA45917F2EAA400032A7A /* DESPOT_Functors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */; };
-		F6BCF25618E1CEA6009257D9 /* dixon_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6BCF25518E1CEA6009257D9 /* dixon_main.cpp */; };
-		F6BCF25718E1D3A3009257D9 /* dixon_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6BCF25518E1CEA6009257D9 /* dixon_main.cpp */; };
-		F6BCF25818E1D3A3009257D9 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
-		F6BCF25918E1D3A9009257D9 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
 		F6BCF25A18E1D3B0009257D9 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
-		F6CC21B018CFB4CF0033AE8E /* Model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F663C9B51834DE05001B86BB /* Model.cpp */; };
-		F6E1F9141591FFF200DA918F /* phasemap_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */; };
-		F6E31E8818BF6A7400955295 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
-		F6E41D9C17C64FB80043A338 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
-		F6E41D9F17C64FBF0043A338 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
-		F6E41DA217C64FC70043A338 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
-		F6E41DA817C64FD40043A338 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
-		F6E41DAB17C64FDB0043A338 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
-		F6E41DAE17C64FE30043A338 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
-		F6E41DB117C64FEA0043A338 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
-		F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F6E4A2971590DB5300DA4001 /* despot1_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */; };
-		F6E4A2981590DB5800DA4001 /* despot2_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */; };
-		F6E4A2991590DB5800DA4001 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F6E69DC418D34380008382E2 /* ssfpbands_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E69DC318D34380008382E2 /* ssfpbands_main.cpp */; };
-		F6E69DC518D3A120008382E2 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6E41D9517C64F1B0043A338 /* libAgilent.a */; };
-		F6E69DC618D3A120008382E2 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F628BD6317F580F900DE62AD /* libNifti.a */; };
+		F6CB35DB18EAC087008537F1 /* DESPOT_Functors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C718EAC087008537F1 /* DESPOT_Functors.cpp */; };
+		F6CB35DC18EAC087008537F1 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C918EAC087008537F1 /* DESPOT.cpp */; };
+		F6CB35DD18EAC087008537F1 /* despot1.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35CB18EAC087008537F1 /* despot1.cpp */; };
+		F6CB35E418EAC087008537F1 /* Model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D218EAC087008537F1 /* Model.cpp */; };
+		F6CB35E818EAC087008537F1 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D818EAC087008537F1 /* ThreadPool.cpp */; };
+		F6CB35E918EAC098008537F1 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CB359C18EAAF60008537F1 /* libAgilent.a */; };
+		F6CB35EA18EAC098008537F1 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6BA457018EAABA700E69FDD /* libNifti.a */; };
+		F6CB35EF18EAC0A8008537F1 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CB359C18EAAF60008537F1 /* libAgilent.a */; };
+		F6CB35F018EAC0A8008537F1 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6BA457018EAABA700E69FDD /* libNifti.a */; };
+		F6CB35F118EAC0AC008537F1 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CB359C18EAAF60008537F1 /* libAgilent.a */; };
+		F6CB35F218EAC0AC008537F1 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6BA457018EAABA700E69FDD /* libNifti.a */; };
+		F6CB35FB18EAC0B9008537F1 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CB359C18EAAF60008537F1 /* libAgilent.a */; };
+		F6CB35FC18EAC0B9008537F1 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6BA457018EAABA700E69FDD /* libNifti.a */; };
+		F6CB360118EAC0C0008537F1 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CB359C18EAAF60008537F1 /* libAgilent.a */; };
+		F6CB360218EAC0C0008537F1 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6BA457018EAABA700E69FDD /* libNifti.a */; };
+		F6CB360718EAC0C8008537F1 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CB359C18EAAF60008537F1 /* libAgilent.a */; };
+		F6CB360818EAC0C8008537F1 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6BA457018EAABA700E69FDD /* libNifti.a */; };
+		F6CB360D18EAC0D0008537F1 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CB359C18EAAF60008537F1 /* libAgilent.a */; };
+		F6CB360E18EAC0D0008537F1 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6BA457018EAABA700E69FDD /* libNifti.a */; };
+		F6CB361318EAC0D7008537F1 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CB359C18EAAF60008537F1 /* libAgilent.a */; };
+		F6CB361418EAC0D7008537F1 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6BA457018EAABA700E69FDD /* libNifti.a */; };
+		F6CB361518EAC0DA008537F1 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CB359C18EAAF60008537F1 /* libAgilent.a */; };
+		F6CB361618EAC0DA008537F1 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6BA457018EAABA700E69FDD /* libNifti.a */; };
+		F6CB361F18EAC0E6008537F1 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CB359C18EAAF60008537F1 /* libAgilent.a */; };
+		F6CB362018EAC0E6008537F1 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6BA457018EAABA700E69FDD /* libNifti.a */; };
+		F6CB362118EAC0E9008537F1 /* libAgilent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CB359C18EAAF60008537F1 /* libAgilent.a */; };
+		F6CB362218EAC0E9008537F1 /* libNifti.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F6BA457018EAABA700E69FDD /* libNifti.a */; };
+		F6CB362718EAC0FD008537F1 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C918EAC087008537F1 /* DESPOT.cpp */; };
+		F6CB362818EAC0FD008537F1 /* despot2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35CD18EAC087008537F1 /* despot2.cpp */; };
+		F6CB362918EAC0FD008537F1 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D818EAC087008537F1 /* ThreadPool.cpp */; };
+		F6CB362A18EAC107008537F1 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C918EAC087008537F1 /* DESPOT.cpp */; };
+		F6CB362B18EAC107008537F1 /* mcdespot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D018EAC087008537F1 /* mcdespot.cpp */; };
+		F6CB362C18EAC107008537F1 /* Model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D218EAC087008537F1 /* Model.cpp */; };
+		F6CB362D18EAC107008537F1 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D818EAC087008537F1 /* ThreadPool.cpp */; };
+		F6CB362E18EAC10D008537F1 /* DESPOT_Functors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C718EAC087008537F1 /* DESPOT_Functors.cpp */; };
+		F6CB362F18EAC124008537F1 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C918EAC087008537F1 /* DESPOT.cpp */; };
+		F6CB363018EAC124008537F1 /* mcsignal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D118EAC087008537F1 /* mcsignal.cpp */; };
+		F6CB363118EAC124008537F1 /* Model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D218EAC087008537F1 /* Model.cpp */; };
+		F6CB363218EAC124008537F1 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D818EAC087008537F1 /* ThreadPool.cpp */; };
+		F6CB363318EAC131008537F1 /* phasemap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D418EAC087008537F1 /* phasemap.cpp */; };
+		F6CB363418EAC131008537F1 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D818EAC087008537F1 /* ThreadPool.cpp */; };
+		F6CB363518EAC135008537F1 /* afi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C618EAC087008537F1 /* afi.cpp */; };
+		F6CB363618EAC135008537F1 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D818EAC087008537F1 /* ThreadPool.cpp */; };
+		F6CB363718EAC13D008537F1 /* test_despot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D718EAC087008537F1 /* test_despot.cpp */; };
+		F6CB363818EAC13D008537F1 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D818EAC087008537F1 /* ThreadPool.cpp */; };
+		F6CB363918EAC146008537F1 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C918EAC087008537F1 /* DESPOT.cpp */; };
+		F6CB363A18EAC146008537F1 /* despot1hifi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35CC18EAC087008537F1 /* despot1hifi.cpp */; };
+		F6CB363B18EAC146008537F1 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D818EAC087008537F1 /* ThreadPool.cpp */; };
+		F6CB363C18EAC150008537F1 /* DESPOT_Functors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C718EAC087008537F1 /* DESPOT_Functors.cpp */; };
+		F6CB363D18EAC150008537F1 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C918EAC087008537F1 /* DESPOT.cpp */; };
+		F6CB363E18EAC150008537F1 /* despot2fm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35CE18EAC087008537F1 /* despot2fm.cpp */; };
+		F6CB363F18EAC150008537F1 /* Model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D218EAC087008537F1 /* Model.cpp */; };
+		F6CB364018EAC150008537F1 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D818EAC087008537F1 /* ThreadPool.cpp */; };
+		F6CB364118EAC15B008537F1 /* ssfpbands.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D618EAC087008537F1 /* ssfpbands.cpp */; };
+		F6CB364218EAC15B008537F1 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D818EAC087008537F1 /* ThreadPool.cpp */; };
+		F6CB364318EAC161008537F1 /* dixon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35CF18EAC087008537F1 /* dixon.cpp */; };
+		F6CB364418EAC161008537F1 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35D818EAC087008537F1 /* ThreadPool.cpp */; };
+		F6CB364518EAC24E008537F1 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C918EAC087008537F1 /* DESPOT.cpp */; };
+		F6CB364618EAC2ED008537F1 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6CB35C918EAC087008537F1 /* DESPOT.cpp */; };
 		F6E69DC718D3A126008382E2 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F6980B2A17E1D1D000F7DBD3 /* libz.dylib */; };
-		F6E69DC818D3A12E008382E2 /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
-		F6E69DC918D3A143008382E2 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */; };
-		F6F0C43A18D073600036338E /* DESPOT_Functors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */; };
-		F6F5343A17B930D40059F82C /* DESPOT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		F601040318C7A90000F5E584 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F60103F018C7828F00F5E584;
-			remoteInfo = niihdr;
-		};
-		F627EDEF17D77961001B3FCA /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F6CF0AD717CFEFBC000B56BA;
-			remoteInfo = fdf2nii;
-		};
-		F628BD6017F580F900DE62AD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F6BADCDD178B75CA00DCD475;
-			remoteInfo = nifti_hdr;
-		};
-		F628BD6217F580F900DE62AD /* PBXContainerItemProxy */ = {
+		F6BA456F18EAABA700E69FDD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = F6F2E6EF1792164800A4AC8F;
 			remoteInfo = Nifti;
 		};
-		F628BD6A17F5814F00DE62AD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F628BD6D17F5815A00DE62AD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F628BD7017F5816100DE62AD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F628BD7317F5816A00DE62AD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F628BD7617F5817200DE62AD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F628BD7B17F5818800DE62AD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F628BD7E17F5819000DE62AD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
-			remoteInfo = Nifti;
-		};
-		F6E41D9417C64F1B0043A338 /* PBXContainerItemProxy */ = {
+		F6CB359B18EAAF60008537F1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = F6E41D4D17C60B0D0043A338;
 			remoteInfo = Agilent;
 		};
-		F6E41D9617C64F1B0043A338 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F6E41D5A17C60B490043A338;
-			remoteInfo = procparse;
-		};
-		F6E41D9A17C64FB10043A338 /* PBXContainerItemProxy */ = {
+		F6CB35C218EAC063008537F1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
 			remoteInfo = Agilent;
 		};
-		F6E41D9D17C64FBC0043A338 /* PBXContainerItemProxy */ = {
+		F6CB35C418EAC063008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F6CB35EB18EAC0A5008537F1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
 			remoteInfo = Agilent;
 		};
-		F6E41DA017C64FC30043A338 /* PBXContainerItemProxy */ = {
+		F6CB35ED18EAC0A5008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F6CB35F318EAC0AF008537F1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
 			remoteInfo = Agilent;
 		};
-		F6E41DA617C64FD10043A338 /* PBXContainerItemProxy */ = {
+		F6CB35F518EAC0AF008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F6CB35F718EAC0B6008537F1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
 			remoteInfo = Agilent;
 		};
-		F6E41DA917C64FD80043A338 /* PBXContainerItemProxy */ = {
+		F6CB35F918EAC0B6008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F6CB35FD18EAC0BD008537F1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
 			remoteInfo = Agilent;
 		};
-		F6E41DAC17C64FE00043A338 /* PBXContainerItemProxy */ = {
+		F6CB35FF18EAC0BD008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F6CB360318EAC0C4008537F1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
 			remoteInfo = Agilent;
 		};
-		F6E41DAF17C64FE70043A338 /* PBXContainerItemProxy */ = {
+		F6CB360518EAC0C4008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F6CB360918EAC0CD008537F1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
 			remoteInfo = Agilent;
 		};
-		F6F1971F17EC7F8600FFF863 /* PBXContainerItemProxy */ = {
+		F6CB360B18EAC0CD008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F6CB360F18EAC0D4008537F1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = F62275BB17E2208200523AC0;
-			remoteInfo = fdfhdr;
+			proxyType = 1;
+			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
+			remoteInfo = Agilent;
+		};
+		F6CB361118EAC0D4008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F6CB361718EAC0DE008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
+			remoteInfo = Agilent;
+		};
+		F6CB361918EAC0DE008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F6CB361B18EAC0E2008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
+			remoteInfo = Agilent;
+		};
+		F6CB361D18EAC0E2008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
+		};
+		F6CB362318EAC0ED008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6E41D4C17C60B0D0043A338;
+			remoteInfo = Agilent;
+		};
+		F6CB362518EAC0ED008537F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = F6F2E6EE1792164800A4AC8F;
+			remoteInfo = Nifti;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -332,46 +353,40 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		F60103FD18C7A90000F5E584 /* make_release.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = make_release.sh; sourceTree = "<group>"; };
-		F601040618C7ACBC00F5E584 /* version */ = {isa = PBXFileReference; lastKnownFileType = text; name = version; path = src/version; sourceTree = "<group>"; };
-		F601040718C7BD4F00F5E584 /* update_version.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = update_version.sh; sourceTree = "<group>"; };
-		F61131BA15DD54E80040FE67 /* DESPOT_Functors.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DESPOT_Functors.h; path = src/DESPOT_Functors.h; sourceTree = SOURCE_ROOT; };
-		F61642A715CC1BBB0031F999 /* despot1hifi_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = despot1hifi_main.cpp; path = src/despot1hifi_main.cpp; sourceTree = SOURCE_ROOT; };
-		F628BD8517F58FDC00DE62AD /* README */ = {isa = PBXFileReference; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
 		F660A65A17BD1299008682C3 /* despot1hifi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot1hifi; sourceTree = BUILT_PRODUCTS_DIR; };
 		F660A66717BD12AC008682C3 /* despot2fm */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot2fm; sourceTree = BUILT_PRODUCTS_DIR; };
 		F663C99D18324E5E001B86BB /* mcsignal */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mcsignal; sourceTree = BUILT_PRODUCTS_DIR; };
-		F663C9AC18324E93001B86BB /* mcsignal_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mcsignal_main.cpp; path = src/mcsignal_main.cpp; sourceTree = SOURCE_ROOT; };
-		F663C9B318327E57001B86BB /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
-		F663C9B51834DE05001B86BB /* Model.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Model.cpp; path = src/Model.cpp; sourceTree = SOURCE_ROOT; };
-		F663C9B61834DE05001B86BB /* Model.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Model.h; path = src/Model.h; sourceTree = SOURCE_ROOT; };
-		F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ThreadPool.cpp; path = src/ThreadPool.cpp; sourceTree = SOURCE_ROOT; };
-		F66A8FD217A6CB5900E93F5C /* ThreadPool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ThreadPool.h; path = src/ThreadPool.h; sourceTree = SOURCE_ROOT; };
 		F675C8CB15CC11E000BA95FC /* afi */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = afi; sourceTree = BUILT_PRODUCTS_DIR; };
-		F675C8D515CC120100BA95FC /* afi_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = afi_main.cpp; path = src/afi_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6980B2A17E1D1D000F7DBD3 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
-		F6A51D9F1732C0D500436441 /* crop_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = crop_main.cpp; path = src/crop_main.cpp; sourceTree = SOURCE_ROOT; };
-		F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DESPOT_Functors.cpp; path = src/DESPOT_Functors.cpp; sourceTree = SOURCE_ROOT; };
-		F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Nifti.xcodeproj; path = ../Nifti/Nifti.xcodeproj; sourceTree = "<group>"; };
+		F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Nifti.xcodeproj; sourceTree = "<group>"; };
 		F6BCF24718E1CE54009257D9 /* dixon */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = dixon; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6BCF25518E1CEA6009257D9 /* dixon_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dixon_main.cpp; path = src/dixon_main.cpp; sourceTree = SOURCE_ROOT; };
-		F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = phasemap_main.cpp; path = src/phasemap_main.cpp; sourceTree = SOURCE_ROOT; };
+		F6CB35C618EAC087008537F1 /* afi.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = afi.cpp; sourceTree = "<group>"; };
+		F6CB35C718EAC087008537F1 /* DESPOT_Functors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DESPOT_Functors.cpp; sourceTree = "<group>"; };
+		F6CB35C818EAC087008537F1 /* DESPOT_Functors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DESPOT_Functors.h; sourceTree = "<group>"; };
+		F6CB35C918EAC087008537F1 /* DESPOT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DESPOT.cpp; sourceTree = "<group>"; };
+		F6CB35CA18EAC087008537F1 /* DESPOT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DESPOT.h; sourceTree = "<group>"; };
+		F6CB35CB18EAC087008537F1 /* despot1.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = despot1.cpp; sourceTree = "<group>"; };
+		F6CB35CC18EAC087008537F1 /* despot1hifi.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = despot1hifi.cpp; sourceTree = "<group>"; };
+		F6CB35CD18EAC087008537F1 /* despot2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = despot2.cpp; sourceTree = "<group>"; };
+		F6CB35CE18EAC087008537F1 /* despot2fm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = despot2fm.cpp; sourceTree = "<group>"; };
+		F6CB35CF18EAC087008537F1 /* dixon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dixon.cpp; sourceTree = "<group>"; };
+		F6CB35D018EAC087008537F1 /* mcdespot.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mcdespot.cpp; sourceTree = "<group>"; };
+		F6CB35D118EAC087008537F1 /* mcsignal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mcsignal.cpp; sourceTree = "<group>"; };
+		F6CB35D218EAC087008537F1 /* Model.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Model.cpp; sourceTree = "<group>"; };
+		F6CB35D318EAC087008537F1 /* Model.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Model.h; sourceTree = "<group>"; };
+		F6CB35D418EAC087008537F1 /* phasemap.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = phasemap.cpp; sourceTree = "<group>"; };
+		F6CB35D518EAC087008537F1 /* RegionContraction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RegionContraction.h; sourceTree = "<group>"; };
+		F6CB35D618EAC087008537F1 /* ssfpbands.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ssfpbands.cpp; sourceTree = "<group>"; };
+		F6CB35D718EAC087008537F1 /* test_despot.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = test_despot.cpp; sourceTree = "<group>"; };
+		F6CB35D818EAC087008537F1 /* ThreadPool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ThreadPool.cpp; sourceTree = "<group>"; };
+		F6CB35D918EAC087008537F1 /* ThreadPool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadPool.h; sourceTree = "<group>"; };
 		F6E1F90A1591FFD200DA918F /* phasemap */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = phasemap; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Agilent.xcodeproj; path = ../Agilent/Agilent.xcodeproj; sourceTree = "<group>"; };
+		F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Agilent.xcodeproj; sourceTree = "<group>"; };
 		F6E4A25B1590DA9100DA4001 /* despot1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot1; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E4A26A1590DAA400DA4001 /* despot2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = despot2; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E4A2781590DAB500DA4001 /* mcdespot */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mcdespot; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; lineEnding = 0; name = DESPOT.cpp; path = src/DESPOT.cpp; sourceTree = SOURCE_ROOT; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
-		F6E4A2911590DB2F00DA4001 /* DESPOT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DESPOT.h; path = src/DESPOT.h; sourceTree = SOURCE_ROOT; };
-		F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = despot1_main.cpp; path = src/despot1_main.cpp; sourceTree = SOURCE_ROOT; };
-		F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = despot2_main.cpp; path = src/despot2_main.cpp; sourceTree = SOURCE_ROOT; };
-		F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = mcdespot_main.cpp; path = src/mcdespot_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6E69DB218D3433E008382E2 /* ssfpbands */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ssfpbands; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6E69DC318D34380008382E2 /* ssfpbands_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ssfpbands_main.cpp; path = src/ssfpbands_main.cpp; sourceTree = SOURCE_ROOT; };
 		F6EA0A7E15DE3C490059E436 /* test_despot */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = test_despot; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6EA0ADC15DE67960059E436 /* RegionContraction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RegionContraction.h; path = src/RegionContraction.h; sourceTree = SOURCE_ROOT; };
-		F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = test_despot_main.cpp; path = src/test_despot_main.cpp; sourceTree = SOURCE_ROOT; };
-		F6F5342317B91A4B0059F82C /* despot2fm_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = despot2fm_main.cpp; path = src/despot2fm_main.cpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -379,8 +394,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F628BD7D17F5818B00DE62AD /* libNifti.a in Frameworks */,
-				F6E41DAE17C64FE30043A338 /* libAgilent.a in Frameworks */,
+				F6CB361318EAC0D7008537F1 /* libAgilent.a in Frameworks */,
+				F6CB361418EAC0D7008537F1 /* libNifti.a in Frameworks */,
 				F6980B3117E1D20600F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -389,8 +404,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F628BD8017F5819400DE62AD /* libNifti.a in Frameworks */,
-				F6E41DB117C64FEA0043A338 /* libAgilent.a in Frameworks */,
+				F6CB361518EAC0DA008537F1 /* libAgilent.a in Frameworks */,
+				F6CB361618EAC0DA008537F1 /* libNifti.a in Frameworks */,
 				F6980B3217E1D20D00F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -399,9 +414,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6CB35FB18EAC0B9008537F1 /* libAgilent.a in Frameworks */,
+				F6CB35FC18EAC0B9008537F1 /* libNifti.a in Frameworks */,
 				F663C9B21832675F001B86BB /* libz.dylib in Frameworks */,
-				F663C9B018324F55001B86BB /* libAgilent.a in Frameworks */,
-				F663C9B118324F55001B86BB /* libNifti.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -409,8 +424,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F628BD7817F5817600DE62AD /* libNifti.a in Frameworks */,
-				F6E41DAB17C64FDB0043A338 /* libAgilent.a in Frameworks */,
+				F6CB360718EAC0C8008537F1 /* libAgilent.a in Frameworks */,
+				F6CB360818EAC0C8008537F1 /* libNifti.a in Frameworks */,
 				F6980B3017E1D1FB00F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -419,8 +434,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6CB362118EAC0E9008537F1 /* libAgilent.a in Frameworks */,
+				F6CB362218EAC0E9008537F1 /* libNifti.a in Frameworks */,
 				F6BCF25A18E1D3B0009257D9 /* libz.dylib in Frameworks */,
-				F6BCF25918E1D3A9009257D9 /* libNifti.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -428,8 +444,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F628BD7517F5816D00DE62AD /* libNifti.a in Frameworks */,
-				F6E41DA817C64FD40043A338 /* libAgilent.a in Frameworks */,
+				F6CB360118EAC0C0008537F1 /* libAgilent.a in Frameworks */,
+				F6CB360218EAC0C0008537F1 /* libNifti.a in Frameworks */,
 				F6980B2F17E1D1F400F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -438,8 +454,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F628BD6C17F5815300DE62AD /* libNifti.a in Frameworks */,
-				F6E41D9C17C64FB80043A338 /* libAgilent.a in Frameworks */,
+				F6CB35E918EAC098008537F1 /* libAgilent.a in Frameworks */,
+				F6CB35EA18EAC098008537F1 /* libNifti.a in Frameworks */,
 				F6980B2C17E1D1DB00F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -448,8 +464,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F628BD6F17F5815D00DE62AD /* libNifti.a in Frameworks */,
-				F6E41D9F17C64FBF0043A338 /* libAgilent.a in Frameworks */,
+				F6CB35EF18EAC0A8008537F1 /* libAgilent.a in Frameworks */,
+				F6CB35F018EAC0A8008537F1 /* libNifti.a in Frameworks */,
 				F6980B2D17E1D1E200F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -458,8 +474,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F628BD7217F5816500DE62AD /* libNifti.a in Frameworks */,
-				F6E41DA217C64FC70043A338 /* libAgilent.a in Frameworks */,
+				F6CB35F118EAC0AC008537F1 /* libAgilent.a in Frameworks */,
+				F6CB35F218EAC0AC008537F1 /* libNifti.a in Frameworks */,
 				F6980B2E17E1D1EB00F7DBD3 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -468,9 +484,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6CB361F18EAC0E6008537F1 /* libAgilent.a in Frameworks */,
+				F6CB362018EAC0E6008537F1 /* libNifti.a in Frameworks */,
 				F6E69DC718D3A126008382E2 /* libz.dylib in Frameworks */,
-				F6E69DC518D3A120008382E2 /* libAgilent.a in Frameworks */,
-				F6E69DC618D3A120008382E2 /* libNifti.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -478,32 +494,27 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F6CB360D18EAC0D0008537F1 /* libAgilent.a in Frameworks */,
+				F6CB360E18EAC0D0008537F1 /* libNifti.a in Frameworks */,
 				F61F3C6518303B9B00B1DE5D /* libz.dylib in Frameworks */,
-				F61F3C6318303B8F00B1DE5D /* libAgilent.a in Frameworks */,
-				F61F3C6418303B8F00B1DE5D /* libNifti.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		F628BD4817F580F900DE62AD /* Products */ = {
+		F6BA456C18EAABA600E69FDD /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F628BD6117F580F900DE62AD /* nifti_hdr */,
-				F628BD6317F580F900DE62AD /* libNifti.a */,
-				F601040418C7A90000F5E584 /* niihdr */,
+				F6BA457018EAABA700E69FDD /* libNifti.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		F6E41D8E17C64F1A0043A338 /* Products */ = {
+		F6CB359818EAAF60008537F1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F6E41D9517C64F1B0043A338 /* libAgilent.a */,
-				F6E41D9717C64F1B0043A338 /* procparse */,
-				F627EDF017D77961001B3FCA /* fdf2nii */,
-				F6F1972017EC7F8600FFF863 /* fdfhdr */,
+				F6CB359C18EAAF60008537F1 /* libAgilent.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -511,11 +522,6 @@
 		F6E4A2361590D9B000DA4001 = {
 			isa = PBXGroup;
 			children = (
-				F601040618C7ACBC00F5E584 /* version */,
-				F60103FD18C7A90000F5E584 /* make_release.sh */,
-				F601040718C7BD4F00F5E584 /* update_version.sh */,
-				F663C9B318327E57001B86BB /* Makefile */,
-				F628BD8517F58FDC00DE62AD /* README */,
 				F6980B2A17E1D1D000F7DBD3 /* libz.dylib */,
 				F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */,
 				F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */,
@@ -545,27 +551,26 @@
 		F6E4A2441590D9B000DA4001 /* DESPOT */ = {
 			isa = PBXGroup;
 			children = (
-				F6E4A2911590DB2F00DA4001 /* DESPOT.h */,
-				F6E4A2901590DB2F00DA4001 /* DESPOT.cpp */,
-				F61131BA15DD54E80040FE67 /* DESPOT_Functors.h */,
-				F6AEA45617F2EAA400032A7A /* DESPOT_Functors.cpp */,
-				F663C9B61834DE05001B86BB /* Model.h */,
-				F663C9B51834DE05001B86BB /* Model.cpp */,
-				F6EA0ADC15DE67960059E436 /* RegionContraction.h */,
-				F6E4A2931590DB4D00DA4001 /* despot1_main.cpp */,
-				F61642A715CC1BBB0031F999 /* despot1hifi_main.cpp */,
-				F6E4A2941590DB4D00DA4001 /* despot2_main.cpp */,
-				F6F5342317B91A4B0059F82C /* despot2fm_main.cpp */,
-				F6E4A2951590DB4D00DA4001 /* mcdespot_main.cpp */,
-				F663C9AC18324E93001B86BB /* mcsignal_main.cpp */,
-				F6E1F9051591FDDC00DA918F /* phasemap_main.cpp */,
-				F675C8D515CC120100BA95FC /* afi_main.cpp */,
-				F6E69DC318D34380008382E2 /* ssfpbands_main.cpp */,
-				F6F435E415DE7FED00503AD3 /* test_despot_main.cpp */,
-				F6BCF25518E1CEA6009257D9 /* dixon_main.cpp */,
-				F6A51D9F1732C0D500436441 /* crop_main.cpp */,
-				F66A8FD117A6CB5900E93F5C /* ThreadPool.cpp */,
-				F66A8FD217A6CB5900E93F5C /* ThreadPool.h */,
+				F6CB35C618EAC087008537F1 /* afi.cpp */,
+				F6CB35C718EAC087008537F1 /* DESPOT_Functors.cpp */,
+				F6CB35C818EAC087008537F1 /* DESPOT_Functors.h */,
+				F6CB35C918EAC087008537F1 /* DESPOT.cpp */,
+				F6CB35CA18EAC087008537F1 /* DESPOT.h */,
+				F6CB35CB18EAC087008537F1 /* despot1.cpp */,
+				F6CB35CC18EAC087008537F1 /* despot1hifi.cpp */,
+				F6CB35CD18EAC087008537F1 /* despot2.cpp */,
+				F6CB35CE18EAC087008537F1 /* despot2fm.cpp */,
+				F6CB35CF18EAC087008537F1 /* dixon.cpp */,
+				F6CB35D018EAC087008537F1 /* mcdespot.cpp */,
+				F6CB35D118EAC087008537F1 /* mcsignal.cpp */,
+				F6CB35D218EAC087008537F1 /* Model.cpp */,
+				F6CB35D318EAC087008537F1 /* Model.h */,
+				F6CB35D418EAC087008537F1 /* phasemap.cpp */,
+				F6CB35D518EAC087008537F1 /* RegionContraction.h */,
+				F6CB35D618EAC087008537F1 /* ssfpbands.cpp */,
+				F6CB35D718EAC087008537F1 /* test_despot.cpp */,
+				F6CB35D818EAC087008537F1 /* ThreadPool.cpp */,
+				F6CB35D918EAC087008537F1 /* ThreadPool.h */,
 			);
 			path = DESPOT;
 			sourceTree = "<group>";
@@ -584,8 +589,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				F628BD7C17F5818800DE62AD /* PBXTargetDependency */,
-				F6E41DAD17C64FE00043A338 /* PBXTargetDependency */,
+				F6CB361018EAC0D4008537F1 /* PBXTargetDependency */,
+				F6CB361218EAC0D4008537F1 /* PBXTargetDependency */,
 			);
 			name = despot1hifi;
 			productName = despot1hifi;
@@ -603,8 +608,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				F628BD7F17F5819000DE62AD /* PBXTargetDependency */,
-				F6E41DB017C64FE70043A338 /* PBXTargetDependency */,
+				F6CB361818EAC0DE008537F1 /* PBXTargetDependency */,
+				F6CB361A18EAC0DE008537F1 /* PBXTargetDependency */,
 			);
 			name = despot2fm;
 			productName = despot2fm;
@@ -622,6 +627,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F6CB35F818EAC0B6008537F1 /* PBXTargetDependency */,
+				F6CB35FA18EAC0B6008537F1 /* PBXTargetDependency */,
 			);
 			name = mcsignal;
 			productName = mcsignal;
@@ -639,8 +646,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				F628BD7717F5817200DE62AD /* PBXTargetDependency */,
-				F6E41DAA17C64FD80043A338 /* PBXTargetDependency */,
+				F6CB360418EAC0C4008537F1 /* PBXTargetDependency */,
+				F6CB360618EAC0C4008537F1 /* PBXTargetDependency */,
 			);
 			name = afi;
 			productName = afi;
@@ -658,6 +665,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F6CB362418EAC0ED008537F1 /* PBXTargetDependency */,
+				F6CB362618EAC0ED008537F1 /* PBXTargetDependency */,
 			);
 			name = dixon;
 			productName = dixon;
@@ -675,8 +684,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				F628BD7417F5816A00DE62AD /* PBXTargetDependency */,
-				F6E41DA717C64FD10043A338 /* PBXTargetDependency */,
+				F6CB35FE18EAC0BD008537F1 /* PBXTargetDependency */,
+				F6CB360018EAC0BD008537F1 /* PBXTargetDependency */,
 			);
 			name = phasemap;
 			productName = phasemap;
@@ -694,8 +703,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				F628BD6B17F5814F00DE62AD /* PBXTargetDependency */,
-				F6E41D9B17C64FB10043A338 /* PBXTargetDependency */,
+				F6CB35C318EAC063008537F1 /* PBXTargetDependency */,
+				F6CB35C518EAC063008537F1 /* PBXTargetDependency */,
 			);
 			name = despot1;
 			productName = despot1;
@@ -713,8 +722,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				F628BD6E17F5815A00DE62AD /* PBXTargetDependency */,
-				F6E41D9E17C64FBC0043A338 /* PBXTargetDependency */,
+				F6CB35EC18EAC0A5008537F1 /* PBXTargetDependency */,
+				F6CB35EE18EAC0A5008537F1 /* PBXTargetDependency */,
 			);
 			name = despot2;
 			productName = despot2;
@@ -732,8 +741,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				F628BD7117F5816100DE62AD /* PBXTargetDependency */,
-				F6E41DA117C64FC30043A338 /* PBXTargetDependency */,
+				F6CB35F418EAC0AF008537F1 /* PBXTargetDependency */,
+				F6CB35F618EAC0AF008537F1 /* PBXTargetDependency */,
 			);
 			name = mcdespot;
 			productName = mcdespot;
@@ -751,6 +760,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F6CB361C18EAC0E2008537F1 /* PBXTargetDependency */,
+				F6CB361E18EAC0E2008537F1 /* PBXTargetDependency */,
 			);
 			name = ssfpbands;
 			productName = ssfpbands;
@@ -768,6 +779,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				F6CB360A18EAC0CD008537F1 /* PBXTargetDependency */,
+				F6CB360C18EAC0CD008537F1 /* PBXTargetDependency */,
 			);
 			name = test_despot;
 			productName = test_despot;
@@ -794,11 +807,11 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = F6E41D8E17C64F1A0043A338 /* Products */;
+					ProductGroup = F6CB359818EAAF60008537F1 /* Products */;
 					ProjectRef = F6E41D8D17C64F1A0043A338 /* Agilent.xcodeproj */;
 				},
 				{
-					ProductGroup = F628BD4817F580F900DE62AD /* Products */;
+					ProductGroup = F6BA456C18EAABA600E69FDD /* Products */;
 					ProjectRef = F6B19DFC160B683B009F84C5 /* Nifti.xcodeproj */;
 				},
 			);
@@ -820,53 +833,18 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		F601040418C7A90000F5E584 /* niihdr */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = niihdr;
-			remoteRef = F601040318C7A90000F5E584 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		F627EDF017D77961001B3FCA /* fdf2nii */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = fdf2nii;
-			remoteRef = F627EDEF17D77961001B3FCA /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		F628BD6117F580F900DE62AD /* nifti_hdr */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = nifti_hdr;
-			remoteRef = F628BD6017F580F900DE62AD /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		F628BD6317F580F900DE62AD /* libNifti.a */ = {
+		F6BA457018EAABA700E69FDD /* libNifti.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = libNifti.a;
-			remoteRef = F628BD6217F580F900DE62AD /* PBXContainerItemProxy */;
+			remoteRef = F6BA456F18EAABA700E69FDD /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		F6E41D9517C64F1B0043A338 /* libAgilent.a */ = {
+		F6CB359C18EAAF60008537F1 /* libAgilent.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = libAgilent.a;
-			remoteRef = F6E41D9417C64F1B0043A338 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		F6E41D9717C64F1B0043A338 /* procparse */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = procparse;
-			remoteRef = F6E41D9617C64F1B0043A338 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		F6F1972017EC7F8600FFF863 /* fdfhdr */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = fdfhdr;
-			remoteRef = F6F1971F17EC7F8600FFF863 /* PBXContainerItemProxy */;
+			remoteRef = F6CB359B18EAAF60008537F1 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -876,9 +854,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F660A67317BD12DA008682C3 /* DESPOT.cpp in Sources */,
-				F660A67417BD12DA008682C3 /* despot1hifi_main.cpp in Sources */,
-				F660A67517BD12DA008682C3 /* ThreadPool.cpp in Sources */,
+				F6CB363918EAC146008537F1 /* DESPOT.cpp in Sources */,
+				F6CB363A18EAC146008537F1 /* despot1hifi.cpp in Sources */,
+				F6CB363B18EAC146008537F1 /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -886,11 +864,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F660A67017BD12D1008682C3 /* DESPOT.cpp in Sources */,
-				F660A67117BD12D1008682C3 /* despot2fm_main.cpp in Sources */,
-				F660A67217BD12D1008682C3 /* ThreadPool.cpp in Sources */,
-				F6AEA45917F2EAA400032A7A /* DESPOT_Functors.cpp in Sources */,
-				F663C9B91834DE05001B86BB /* Model.cpp in Sources */,
+				F6CB363C18EAC150008537F1 /* DESPOT_Functors.cpp in Sources */,
+				F6CB363D18EAC150008537F1 /* DESPOT.cpp in Sources */,
+				F6CB363E18EAC150008537F1 /* despot2fm.cpp in Sources */,
+				F6CB363F18EAC150008537F1 /* Model.cpp in Sources */,
+				F6CB364018EAC150008537F1 /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -898,10 +876,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6E31E8818BF6A7400955295 /* ThreadPool.cpp in Sources */,
-				F663C9AE18324EA1001B86BB /* DESPOT.cpp in Sources */,
-				F663C9AD18324E93001B86BB /* mcsignal_main.cpp in Sources */,
-				F663C9B81834DE05001B86BB /* Model.cpp in Sources */,
+				F6CB362F18EAC124008537F1 /* DESPOT.cpp in Sources */,
+				F6CB363018EAC124008537F1 /* mcsignal.cpp in Sources */,
+				F6CB363118EAC124008537F1 /* Model.cpp in Sources */,
+				F6CB363218EAC124008537F1 /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -909,8 +887,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F627EDEC17D77961001B3FCA /* DESPOT.cpp in Sources */,
-				F675C8D615CC120100BA95FC /* afi_main.cpp in Sources */,
+				F6CB364518EAC24E008537F1 /* DESPOT.cpp in Sources */,
+				F6CB363518EAC135008537F1 /* afi.cpp in Sources */,
+				F6CB363618EAC135008537F1 /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -918,8 +897,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6BCF25718E1D3A3009257D9 /* dixon_main.cpp in Sources */,
-				F6BCF25818E1D3A3009257D9 /* ThreadPool.cpp in Sources */,
+				F6CB364318EAC161008537F1 /* dixon.cpp in Sources */,
+				F6CB364418EAC161008537F1 /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -927,8 +906,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F627EDF217D77966001B3FCA /* DESPOT.cpp in Sources */,
-				F6E1F9141591FFF200DA918F /* phasemap_main.cpp in Sources */,
+				F6CB364618EAC2ED008537F1 /* DESPOT.cpp in Sources */,
+				F6CB363318EAC131008537F1 /* phasemap.cpp in Sources */,
+				F6CB363418EAC131008537F1 /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -936,12 +916,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6F0C43A18D073600036338E /* DESPOT_Functors.cpp in Sources */,
-				F6CC21B018CFB4CF0033AE8E /* Model.cpp in Sources */,
-				F686F26017AC0A5E00028A55 /* ThreadPool.cpp in Sources */,
-				F6E4A2971590DB5300DA4001 /* despot1_main.cpp in Sources */,
-				F6E4A2921590DB2F00DA4001 /* DESPOT.cpp in Sources */,
-				F6BCF25618E1CEA6009257D9 /* dixon_main.cpp in Sources */,
+				F6CB35DD18EAC087008537F1 /* despot1.cpp in Sources */,
+				F6CB35E818EAC087008537F1 /* ThreadPool.cpp in Sources */,
+				F6CB35DB18EAC087008537F1 /* DESPOT_Functors.cpp in Sources */,
+				F6CB35E418EAC087008537F1 /* Model.cpp in Sources */,
+				F6CB35DC18EAC087008537F1 /* DESPOT.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -949,9 +928,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F686F26517AC0A6300028A55 /* ThreadPool.cpp in Sources */,
-				F6E4A2981590DB5800DA4001 /* despot2_main.cpp in Sources */,
-				F6E4A2991590DB5800DA4001 /* DESPOT.cpp in Sources */,
+				F6CB362718EAC0FD008537F1 /* DESPOT.cpp in Sources */,
+				F6CB362818EAC0FD008537F1 /* despot2.cpp in Sources */,
+				F6CB362918EAC0FD008537F1 /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -959,11 +938,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F627EDF517D77BE5001B3FCA /* mcdespot_main.cpp in Sources */,
-				F6F5343A17B930D40059F82C /* DESPOT.cpp in Sources */,
-				F66A8FD317A6CB5900E93F5C /* ThreadPool.cpp in Sources */,
-				F6AEA45717F2EAA400032A7A /* DESPOT_Functors.cpp in Sources */,
-				F663C9B71834DE05001B86BB /* Model.cpp in Sources */,
+				F6CB362E18EAC10D008537F1 /* DESPOT_Functors.cpp in Sources */,
+				F6CB362A18EAC107008537F1 /* DESPOT.cpp in Sources */,
+				F6CB362B18EAC107008537F1 /* mcdespot.cpp in Sources */,
+				F6CB362C18EAC107008537F1 /* Model.cpp in Sources */,
+				F6CB362D18EAC107008537F1 /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -971,9 +950,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6E69DC418D34380008382E2 /* ssfpbands_main.cpp in Sources */,
-				F6E69DC918D3A143008382E2 /* ThreadPool.cpp in Sources */,
-				F6E69DC818D3A12E008382E2 /* DESPOT.cpp in Sources */,
+				F6CB364118EAC15B008537F1 /* ssfpbands.cpp in Sources */,
+				F6CB364218EAC15B008537F1 /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -981,84 +959,123 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F61F3C6218303B6300B1DE5D /* DESPOT_Functors.cpp in Sources */,
-				F61F3C5D18303B4B00B1DE5D /* DESPOT.cpp in Sources */,
-				F681257915E23F3A007A3362 /* test_despot_main.cpp in Sources */,
+				F6CB363718EAC13D008537F1 /* test_despot.cpp in Sources */,
+				F6CB363818EAC13D008537F1 /* ThreadPool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		F628BD6B17F5814F00DE62AD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Nifti;
-			targetProxy = F628BD6A17F5814F00DE62AD /* PBXContainerItemProxy */;
-		};
-		F628BD6E17F5815A00DE62AD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Nifti;
-			targetProxy = F628BD6D17F5815A00DE62AD /* PBXContainerItemProxy */;
-		};
-		F628BD7117F5816100DE62AD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Nifti;
-			targetProxy = F628BD7017F5816100DE62AD /* PBXContainerItemProxy */;
-		};
-		F628BD7417F5816A00DE62AD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Nifti;
-			targetProxy = F628BD7317F5816A00DE62AD /* PBXContainerItemProxy */;
-		};
-		F628BD7717F5817200DE62AD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Nifti;
-			targetProxy = F628BD7617F5817200DE62AD /* PBXContainerItemProxy */;
-		};
-		F628BD7C17F5818800DE62AD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Nifti;
-			targetProxy = F628BD7B17F5818800DE62AD /* PBXContainerItemProxy */;
-		};
-		F628BD7F17F5819000DE62AD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = Nifti;
-			targetProxy = F628BD7E17F5819000DE62AD /* PBXContainerItemProxy */;
-		};
-		F6E41D9B17C64FB10043A338 /* PBXTargetDependency */ = {
+		F6CB35C318EAC063008537F1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Agilent;
-			targetProxy = F6E41D9A17C64FB10043A338 /* PBXContainerItemProxy */;
+			targetProxy = F6CB35C218EAC063008537F1 /* PBXContainerItemProxy */;
 		};
-		F6E41D9E17C64FBC0043A338 /* PBXTargetDependency */ = {
+		F6CB35C518EAC063008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CB35C418EAC063008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB35EC18EAC0A5008537F1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Agilent;
-			targetProxy = F6E41D9D17C64FBC0043A338 /* PBXContainerItemProxy */;
+			targetProxy = F6CB35EB18EAC0A5008537F1 /* PBXContainerItemProxy */;
 		};
-		F6E41DA117C64FC30043A338 /* PBXTargetDependency */ = {
+		F6CB35EE18EAC0A5008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CB35ED18EAC0A5008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB35F418EAC0AF008537F1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Agilent;
-			targetProxy = F6E41DA017C64FC30043A338 /* PBXContainerItemProxy */;
+			targetProxy = F6CB35F318EAC0AF008537F1 /* PBXContainerItemProxy */;
 		};
-		F6E41DA717C64FD10043A338 /* PBXTargetDependency */ = {
+		F6CB35F618EAC0AF008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CB35F518EAC0AF008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB35F818EAC0B6008537F1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Agilent;
-			targetProxy = F6E41DA617C64FD10043A338 /* PBXContainerItemProxy */;
+			targetProxy = F6CB35F718EAC0B6008537F1 /* PBXContainerItemProxy */;
 		};
-		F6E41DAA17C64FD80043A338 /* PBXTargetDependency */ = {
+		F6CB35FA18EAC0B6008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CB35F918EAC0B6008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB35FE18EAC0BD008537F1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Agilent;
-			targetProxy = F6E41DA917C64FD80043A338 /* PBXContainerItemProxy */;
+			targetProxy = F6CB35FD18EAC0BD008537F1 /* PBXContainerItemProxy */;
 		};
-		F6E41DAD17C64FE00043A338 /* PBXTargetDependency */ = {
+		F6CB360018EAC0BD008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CB35FF18EAC0BD008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB360418EAC0C4008537F1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Agilent;
-			targetProxy = F6E41DAC17C64FE00043A338 /* PBXContainerItemProxy */;
+			targetProxy = F6CB360318EAC0C4008537F1 /* PBXContainerItemProxy */;
 		};
-		F6E41DB017C64FE70043A338 /* PBXTargetDependency */ = {
+		F6CB360618EAC0C4008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CB360518EAC0C4008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB360A18EAC0CD008537F1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Agilent;
-			targetProxy = F6E41DAF17C64FE70043A338 /* PBXContainerItemProxy */;
+			targetProxy = F6CB360918EAC0CD008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB360C18EAC0CD008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CB360B18EAC0CD008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB361018EAC0D4008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Agilent;
+			targetProxy = F6CB360F18EAC0D4008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB361218EAC0D4008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CB361118EAC0D4008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB361818EAC0DE008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Agilent;
+			targetProxy = F6CB361718EAC0DE008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB361A18EAC0DE008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CB361918EAC0DE008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB361C18EAC0E2008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Agilent;
+			targetProxy = F6CB361B18EAC0E2008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB361E18EAC0E2008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CB361D18EAC0E2008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB362418EAC0ED008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Agilent;
+			targetProxy = F6CB362318EAC0ED008537F1 /* PBXContainerItemProxy */;
+		};
+		F6CB362618EAC0ED008537F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nifti;
+			targetProxy = F6CB362518EAC0ED008537F1 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1066,7 +1083,6 @@
 		F660A66117BD1299008682C3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -1078,7 +1094,6 @@
 		F660A66217BD1299008682C3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -1089,7 +1104,6 @@
 		F660A66E17BD12AC008682C3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -1105,7 +1119,6 @@
 		F660A66F17BD12AC008682C3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -1148,7 +1161,6 @@
 		F6BCF24D18E1CE54009257D9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1178,7 +1190,6 @@
 		F6BCF24E18E1CE54009257D9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1246,21 +1257,21 @@
 				GCC_WARN_UNUSED_PARAMETER = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					"~/Code/MR/Agilent/src",
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					"~/Code/eigen",
-					"~/Code/MR/Nifti/src",
-					"~/Code/MR/Volume/src",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_CFLAGS = "-DAGILENT";
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
-					"-ferror-limit=20",
 					"-Wno-deprecated-register",
+					"-ferror-limit=5",
+					"-DAGILENT",
 				);
 				OTHER_LDFLAGS = "";
 				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = "$(PROJECT_DIR) $(PROJECT_DIR)/Agilent";
 				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
@@ -1292,21 +1303,21 @@
 				GCC_WARN_UNUSED_PARAMETER = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					"~/Code/MR/Agilent/src",
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					"~/Code/eigen",
-					"~/Code/MR/Nifti/src",
-					"~/Code/MR/Volume/src",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_CFLAGS = "-DAGILENT";
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
-					"-ferror-limit=20",
 					"-Wno-deprecated-register",
+					"-ferror-limit=5",
+					"-DAGILENT",
 				);
 				OTHER_LDFLAGS = "";
 				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = "$(PROJECT_DIR) $(PROJECT_DIR)/Agilent";
 				VALID_ARCHS = x86_64;
 			};
 			name = Release;
@@ -1356,7 +1367,6 @@
 		F6E69DB818D3433F008382E2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1381,7 +1391,6 @@
 		F6E69DB918D3433F008382E2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1459,6 +1468,7 @@
 				F6BCF24E18E1CE54009257D9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F6E1F9111591FFD200DA918F /* Build configuration list for PBXNativeTarget "phasemap" */ = {
 			isa = XCConfigurationList;

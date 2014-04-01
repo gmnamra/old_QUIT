@@ -14,52 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F6E41D4C17C60B0D0043A338"
-               BuildableName = "libAgilent.a"
-               BlueprintName = "Agilent"
-               ReferencedContainer = "container:Agilent.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F6E41D5917C60B490043A338"
-               BuildableName = "procparse"
-               BlueprintName = "procparse"
-               ReferencedContainer = "container:Agilent.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F6CF0AD617CFEFBC000B56BA"
+               BlueprintIdentifier = "F6BA45C418EAAE3500E69FDD"
                BuildableName = "fdf2nii"
                BlueprintName = "fdf2nii"
-               ReferencedContainer = "container:Agilent.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F62275BA17E2208200523AC0"
-               BuildableName = "fdfhdr"
-               BlueprintName = "fdfhdr"
-               ReferencedContainer = "container:Agilent.xcodeproj">
+               ReferencedContainer = "container:Tools.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -71,6 +29,15 @@
       buildConfiguration = "Debug">
       <Testables>
       </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "F6BA45C418EAAE3500E69FDD"
+            BuildableName = "fdf2nii"
+            BlueprintName = "fdf2nii"
+            ReferencedContainer = "container:Tools.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
    </TestAction>
    <LaunchAction
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
@@ -81,6 +48,15 @@
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       allowLocationSimulation = "YES">
+      <BuildableProductRunnable>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "F6BA45C418EAAE3500E69FDD"
+            BuildableName = "fdf2nii"
+            BlueprintName = "fdf2nii"
+            ReferencedContainer = "container:Tools.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>
@@ -90,6 +66,15 @@
       useCustomWorkingDirectory = "NO"
       buildConfiguration = "Release"
       debugDocumentVersioning = "YES">
+      <BuildableProductRunnable>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "F6BA45C418EAAE3500E69FDD"
+            BuildableName = "fdf2nii"
+            BlueprintName = "fdf2nii"
+            ReferencedContainer = "container:Tools.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

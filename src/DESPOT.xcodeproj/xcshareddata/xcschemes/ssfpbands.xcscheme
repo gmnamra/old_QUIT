@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F62275BA17E2208200523AC0"
-               BuildableName = "fdfhdr"
-               BlueprintName = "fdfhdr"
-               ReferencedContainer = "container:Agilent.xcodeproj">
+               BlueprintIdentifier = "F6E69DB118D3433E008382E2"
+               BuildableName = "ssfpbands"
+               BlueprintName = "ssfpbands"
+               ReferencedContainer = "container:DESPOT.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F62275BA17E2208200523AC0"
-            BuildableName = "fdfhdr"
-            BlueprintName = "fdfhdr"
-            ReferencedContainer = "container:Agilent.xcodeproj">
+            BlueprintIdentifier = "F6E69DB118D3433E008382E2"
+            BuildableName = "ssfpbands"
+            BlueprintName = "ssfpbands"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </TestAction>
@@ -43,8 +43,7 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "/Users/Tobias/MRI/fdf/Orientations/VARIAN_PHANTOM_20120621_01"
+      useCustomWorkingDirectory = "NO"
       buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
@@ -52,22 +51,12 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F62275BA17E2208200523AC0"
-            BuildableName = "fdfhdr"
-            BlueprintName = "fdfhdr"
-            ReferencedContainer = "container:Agilent.xcodeproj">
+            BlueprintIdentifier = "F6E69DB118D3433E008382E2"
+            BuildableName = "ssfpbands"
+            BlueprintName = "ssfpbands"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "slice001image001echo001.fdf"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "ti"
-            isEnabled = "YES">
-         </CommandLineArgument>
-      </CommandLineArguments>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>
@@ -80,10 +69,10 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F62275BA17E2208200523AC0"
-            BuildableName = "fdfhdr"
-            BlueprintName = "fdfhdr"
-            ReferencedContainer = "container:Agilent.xcodeproj">
+            BlueprintIdentifier = "F6E69DB118D3433E008382E2"
+            BuildableName = "ssfpbands"
+            BlueprintName = "ssfpbands"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

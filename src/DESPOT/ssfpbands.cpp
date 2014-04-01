@@ -14,7 +14,7 @@
 #include <getopt.h>
 #include <iostream>
 #include <atomic>
-#include <Eigen/Dense>
+#include "Eigen/Dense"
 
 #include "Nifti/Nifti.h"
 #include "Nifti/Volume.h"

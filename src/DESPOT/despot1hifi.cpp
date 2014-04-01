@@ -16,7 +16,7 @@
 #include <getopt.h>
 #include <iostream>
 #include <atomic>
-#include <Eigen/Dense>
+#include "Eigen/Dense"
 
 #include "Nifti/Nifti.h"
 #include "DESPOT.h"

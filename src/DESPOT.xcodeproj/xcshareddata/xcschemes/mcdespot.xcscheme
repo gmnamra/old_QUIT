@@ -14,24 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F6E41D4C17C60B0D0043A338"
-               BuildableName = "libAgilent.a"
-               BlueprintName = "Agilent"
-               ReferencedContainer = "container:Agilent.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F6CF0AD617CFEFBC000B56BA"
-               BuildableName = "fdf2nii"
-               BlueprintName = "fdf2nii"
-               ReferencedContainer = "container:Agilent.xcodeproj">
+               BlueprintIdentifier = "F6E4A2771590DAB500DA4001"
+               BuildableName = "mcdespot"
+               BlueprintName = "mcdespot"
+               ReferencedContainer = "container:DESPOT.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -43,33 +29,34 @@
       buildConfiguration = "Debug">
       <Testables>
       </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "F6E4A2771590DAB500DA4001"
+            BuildableName = "mcdespot"
+            BlueprintName = "mcdespot"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
    </TestAction>
    <LaunchAction
-      selectedDebuggerIdentifier = ""
-      selectedLauncherIdentifier = "Xcode.IDEFoundation.Launcher.PosixSpawn"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "/Users/Tobias/Code/MR/Agilent/python"
+      useCustomWorkingDirectory = "NO"
       buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       allowLocationSimulation = "YES">
-      <PathRunnable
-         FilePath = "/usr/bin/python">
-      </PathRunnable>
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "fdf2nii.py"
-            isEnabled = "YES">
-         </CommandLineArgument>
-      </CommandLineArguments>
-      <EnvironmentVariables>
-         <EnvironmentVariable
-            key = "PATH"
-            value = "~/Code/MR/DerivedData/Build/Products/Debug:${PATH}"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-      </EnvironmentVariables>
+      <BuildableProductRunnable>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "F6E4A2771590DAB500DA4001"
+            BuildableName = "mcdespot"
+            BlueprintName = "mcdespot"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>
@@ -79,6 +66,15 @@
       useCustomWorkingDirectory = "NO"
       buildConfiguration = "Release"
       debugDocumentVersioning = "YES">
+      <BuildableProductRunnable>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "F6E4A2771590DAB500DA4001"
+            BuildableName = "mcdespot"
+            BlueprintName = "mcdespot"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

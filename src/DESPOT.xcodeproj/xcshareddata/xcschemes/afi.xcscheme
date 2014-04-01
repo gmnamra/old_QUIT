@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F6CF0AD617CFEFBC000B56BA"
-               BuildableName = "fdf2nii"
-               BlueprintName = "fdf2nii"
-               ReferencedContainer = "container:Agilent.xcodeproj">
+               BlueprintIdentifier = "F675C8CA15CC11E000BA95FC"
+               BuildableName = "afi"
+               BlueprintName = "afi"
+               ReferencedContainer = "container:DESPOT.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F6CF0AD617CFEFBC000B56BA"
-            BuildableName = "fdf2nii"
-            BlueprintName = "fdf2nii"
-            ReferencedContainer = "container:Agilent.xcodeproj">
+            BlueprintIdentifier = "F675C8CA15CC11E000BA95FC"
+            BuildableName = "afi"
+            BlueprintName = "afi"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </TestAction>
@@ -43,8 +43,7 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "/Users/Tobias/Desktop/CPZ/CPZ_2014031405"
+      useCustomWorkingDirectory = "NO"
       buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
@@ -52,26 +51,12 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F6CF0AD617CFEFBC000B56BA"
-            BuildableName = "fdf2nii"
-            BlueprintName = "fdf2nii"
-            ReferencedContainer = "container:Agilent.xcodeproj">
+            BlueprintIdentifier = "F675C8CA15CC11E000BA95FC"
+            BuildableName = "afi"
+            BlueprintName = "afi"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "-v -z -e -1 -o /Users/Tobias/Desktop/CPZ/Converted/"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "tssfp_01.img fsems-mouse_01.img"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "/Users/Tobias/Desktop/CUPRIZONE_RAW/SPGR-AMY_05.img"
-            isEnabled = "NO">
-         </CommandLineArgument>
-      </CommandLineArguments>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>
@@ -84,10 +69,10 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F6CF0AD617CFEFBC000B56BA"
-            BuildableName = "fdf2nii"
-            BlueprintName = "fdf2nii"
-            ReferencedContainer = "container:Agilent.xcodeproj">
+            BlueprintIdentifier = "F675C8CA15CC11E000BA95FC"
+            BuildableName = "afi"
+            BlueprintName = "afi"
+            ReferencedContainer = "container:DESPOT.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

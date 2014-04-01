@@ -2,3 +2,5 @@
 build/
 bin/
 src/version
+src/DESPOT.xcodeproj/xcuserdata/
+src/Tools.xcodeproj/xcuserdata/
