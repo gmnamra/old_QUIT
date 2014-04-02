@@ -119,11 +119,11 @@ class fdfFile {
 				}
 				if (m_rank == 2) {
 					// 2D fdfs have an extra, really stupid, flip of the data ordering
-          			for(size_t j = 0; j < m_dims[1]; j++) {
-						for (size_t i = 0; i < m_dims[0]; i++) {
-							size_t ix1 = j * m_dims[0] + i;
-							size_t ix2 = (m_dims[0] - i - 1) * m_dims[1] + m_dims[1] - j - 1;
-							Tbuffer[ix2] = static_cast<T>(floatBuffer[ix1]);
+          			for(size_t i = 0; i < m_dims[1]; i++) {
+						for (size_t j = 0; j < m_dims[0]; j++) {
+							size_t ix1 = i * m_dims[0] + j;
+							size_t ix2 = (m_dims[0] - j - 1) * m_dims[1] + m_dims[1] - i - 1;
+							Tbuffer[ix1] = static_cast<T>(floatBuffer[ix2]);
 						}
 					}
 				} else if (m_rank == 3) {
