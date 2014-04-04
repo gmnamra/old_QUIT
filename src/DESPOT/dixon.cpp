@@ -29,7 +29,7 @@ using namespace Eigen;
 // Arguments / Usage
 //******************************************************************************
 const string usage {
-"Usage is: dixon [options] I0 I1 I2 \n\
+"Usage is: dixon [options] magnitude phase \n\
 \
 Options:\n\
 	--help, -h        : Print this message\n\
@@ -43,6 +43,7 @@ static struct option long_options[] =
 {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
+	{"mask", required_argument, 0, 'm'},
 	{"out", required_argument, 0, 'o'},
 	{0, 0, 0, 0}
 };
@@ -54,11 +55,17 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-
+	Nifti maskFile;
+	Volume<uint8_t> maskVol;
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvo:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
+			case 'm':
+				cout << "Reading mask file " << optarg << endl;
+				maskFile.open(optarg, Nifti::Mode::Read);
+				maskVol.readFrom(maskFile);
+				break;
 			case 'o':
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
@@ -71,17 +78,27 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Gather data
 	//**************************************************************************
-	if ((argc - optind) != 1) {
-		cout << "Requires 1 complex input file with 3 echos." << endl << usage << endl;
+	if ((argc - optind) != 2) {
+		cout << "Requires 1 magnitude file and 1 phase file with 3 echos each as input." << endl << usage << endl;
 		exit(EXIT_FAILURE);
 	}
-	Series<complex<float>> All;
-	
-	cout << "Opening input file: " << argv[optind] << endl;
+
+	Series<float> mag, phase;
+	cout << "Opening magnitude file: " << argv[optind] << endl;
 	Nifti inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
 	Nifti templateFile(inputFile, 1);
-	All.readFrom(inputFile);
+	mag.readFrom(inputFile);
+	inputFile.close();
+
+	cout << "Opening magnitude file: " << argv[optind] << endl;
+	inputFile.open(argv[optind++], Nifti::Mode::Read);
+	phase.readFrom(inputFile);
+
+	if (!templateFile.matchesSpace(inputFile) || (maskFile.isOpen() && !templateFile.matchesSpace(maskFile))) {
+		cerr << "Input file dimensions or orientations do not match." << endl;
+		exit(EXIT_FAILURE);
+	}
 	inputFile.close();
 
 	Nifti::ArrayXs dims = templateFile.dims().head(3);
@@ -99,25 +116,32 @@ int main(int argc, char **argv)
 		loopStart = clock();
 		atomic<int> voxCount{0};
 		
-		auto I0s = All.viewSlice(0).viewSlice(k),
-		     I1s = All.viewSlice(1).viewSlice(k),
-			 I2s = All.viewSlice(2).viewSlice(k);
+		auto S0s = mag.viewSlice(0).viewSlice(k),
+		     S1s = mag.viewSlice(1).viewSlice(k),
+			 S2s = mag.viewSlice(2).viewSlice(k),
+			 phi0s = phase.viewSlice(0).viewSlice(k),
+			 phi1s = phase.viewSlice(1).viewSlice(k),
+			 phi2s = phase.viewSlice(2).viewSlice(k);
+		auto Ms = maskVol.viewSlice(k);
 		auto Ws = Wv.viewSlice(k),
 		     Fs = Fv.viewSlice(k),
 			 As = Av.viewSlice(k);
 		//cout << endl << I0s << endl << I1s << endl << I2s << endl;
 		//cout << Ws << endl << Fs << endl << As << endl;
 		function<void (const size_t)> processVox = [&] (const size_t i) {
-			// From Ma et al JMR 1997
-			complex<float> S0 = I0s[i], S1 = I1s[i], S2 = I2s[i];
-			As[i] = sqrt(abs(S2) / abs(S0));
-			float phi = arg(S2 / S0) / 2.;
-			float psi = cos(arg(S1 / S0) - phi);
-			float frac = abs(S1) / sqrt(abs(S0)*abs(S1));
-			Ws[i] = (1 + psi * frac) * abs(S0) / 2.;
-			Fs[i] = (1 - psi * frac) * abs(S0) / 2.;
+			if (!maskFile.isOpen() || Ms[i]) {
+				// From Ma et al JMR 1997
+				float S0 = S0s[i], S1 = S1s[i], S2 = S2s[i];
+				float phi0 = phi0s[i], phi1 = phi1s[i], phi2 = phi2s[i];
+				As[i] = sqrt(S2 / S0);
+				float phi = (phi2 - phi1) / 2.;
+				float psi = cos((phi1 - phi0) - phi);
+				float frac = S1 / sqrt(S0*S2);
+				Ws[i] = (1 + psi * frac) * S0 / 2.;
+				Fs[i] = (1 - psi * frac) * S0 / 2.;
+			}
 		};
-		pool.for_loop(processVox, I0s.size());
+		pool.for_loop(processVox, S0s.size());
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
