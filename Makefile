@@ -50,13 +50,16 @@ $(BUILD_DIR)/libAgilent.a : $(AGILENT_OBJ)
 
 #Rules for tools
 TOOL_DIR   := Tools
-TOOLS      := niihdr fdf2nii procparse
+TOOLS      := niihdr procparse fdf2nii
+PYTOOLS    := fdf2nii.py
 $(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(addprefix $(BUILD_DIR)/, $(TOOLS)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(TOOL_DIR)/%.o | libAgilent.a libNifti.a
 	@mkdir -p $(dir $@)
 	$(CXX) $^ -o $@ $(LDFLAGS) -lAgilent -lNifti -lz
+$(addprefix $(BUILD_DIR)/, $(PYTOOLS)) :
+	cp $(patsubst $(BUILD_DIR)/%, $(SOURCE_DIR)/$(TOOL_DIR)/%, $@) $(BUILD_DIR)
 
 #Rules for DESPOT
 DESPOT      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands dixon phasemap
@@ -71,7 +74,7 @@ $(addprefix $(BUILD_DIR)/, $(DESPOT)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(DESPOT_D
 	@mkdir -p $(dir $@)
 	$(CXX) $^ -o $@ $(LDFLAGS) -lAgilent -lNifti -lz
 
-TARGETS := $(TOOLS) $(DESPOT)
+TARGETS := $(TOOLS) $(PYTOOLS) $(DESPOT)
 LIB_TGT := libNifti.a libAgilent.a
 all     : $(LIB_TGT) $(TARGETS)
 
