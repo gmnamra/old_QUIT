@@ -13,14 +13,8 @@
 #include "Eigen/Dense"
 
 #include "Nifti/Nifti.h"
-#include "Nifti/Volume.h"
-#include "ThreadPool.h"
-#include "DESPOT.h"
-
-#ifdef AGILENT
-#include "procpar.h"
-using namespace Agilent;
-#endif
+#include "QUIT/Volume.h"
+#include "QUIT/ThreadPool.h"
 
 using namespace std;
 using namespace Eigen;

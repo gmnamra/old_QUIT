@@ -20,7 +20,7 @@
 
 #include "Nifti/Nifti.h"
 #include "DESPOT.h"
-#include "ThreadPool.h"
+#include "QUIT/ThreadPool.h"
 
 #ifdef AGILENT
 	#include "procpar.h"

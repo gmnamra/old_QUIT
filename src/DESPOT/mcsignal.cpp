@@ -16,7 +16,7 @@
 #include <exception>
 #include <Eigen/Dense>
 #include <Nifti/Nifti.h>
-#include "ThreadPool.h"
+#include "QUIT/ThreadPool.h"
 #include "Model.h"
 
 using namespace std;

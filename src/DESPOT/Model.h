@@ -19,7 +19,7 @@
 #include <memory>
 #include <Eigen/Dense>
 
-#include "Nifti/Volume.h"
+#include "QUIT/Volume.h"
 #include "DESPOT.h"
 #ifdef AGILENT
 #include "procpar.h"

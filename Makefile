@@ -48,6 +48,22 @@ $(BUILD_DIR)/libAgilent.a : $(AGILENT_OBJ)
 	@mkdir -p $(dir $@)
 	ar rcs $@ $(AGILENT_OBJ)
 
+#Rules for libQuit
+QUIT_DIR   := QUIT
+QUIT_SRC   := ThreadPool
+QUIT_OBJ   := $(patsubst %, $(BUILD_DIR)/$(QUIT_DIR)/%.o, $(QUIT_SRC))
+QUIT_TMPL_SRC := Volume Volume-inl
+QUIT_TMPL  := $(patsubst %, $(BUILD_DIR)/$(QUIT_DIR)/%.h, $(QUIT_TMPL_SRC))
+$(BUILD_DIR)/$(QUIT_DIR)/%.h : $(SOURCE_DIR)/$(QUIT_DIR)/%.h
+	@mkdir -p $(dir $@)
+	cp $(patsubst $(BUILD_DIR)/$(QUIT_DIR)/%, $(SOURCE_DIR)/$(QUIT_DIR)/%, $@) $(BUILD_DIR)/$(QUIT_DIR)/
+$(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp | EIGEN libNifti.a
+	@mkdir -p $(dir $@)
+	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
+$(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_TMPL)
+	@mkdir -p $(dir $@)
+	ar rcs $@ $(QUIT_OBJ)
+
 #Rules for tools
 TOOL_DIR   := Tools
 TOOLS      := niihdr procparse fdf2nii
@@ -62,20 +78,30 @@ $(addprefix $(BUILD_DIR)/, $(PYTOOLS)) :
 	cp $(patsubst $(BUILD_DIR)/%, $(SOURCE_DIR)/$(TOOL_DIR)/%, $@) $(BUILD_DIR)
 
 #Rules for DESPOT
-DESPOT      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands dixon phasemap
+DESPOT      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands phasemap
 DESPOT_DIR  := DESPOT
-DESPOT_SRC  := DESPOT DESPOT_Functors Model ThreadPool
+DESPOT_SRC  := DESPOT DESPOT_Functors Model
 DESPOT_TMPL := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, RegionContraction.h DESPOT_Functors.h)
 DESPOT_OBJ  := $(patsubst %, $(BUILD_DIR)/$(DESPOT_DIR)/%.o, $(DESPOT_SRC))
-$(BUILD_DIR)/$(DESPOT_DIR)/%.o : $(SOURCE_DIR)/$(DESPOT_DIR)/%.cpp $(DESPOT_TMPL) | EIGEN
+$(BUILD_DIR)/$(DESPOT_DIR)/%.o : $(SOURCE_DIR)/$(DESPOT_DIR)/%.cpp $(DESPOT_TMPL) $(QUIT_TMPL) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(addprefix $(BUILD_DIR)/, $(DESPOT)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(DESPOT_DIR)/%.o $(DESPOT_OBJ) | libAgilent.a libNifti.a
+$(addprefix $(BUILD_DIR)/, $(DESPOT)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(DESPOT_DIR)/%.o $(DESPOT_OBJ) | libAgilent.a libNifti.a libQUIT.a
 	@mkdir -p $(dir $@)
-	$(CXX) $^ -o $@ $(LDFLAGS) -lAgilent -lNifti -lz
+	$(CXX) $^ -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
 
-TARGETS := $(TOOLS) $(PYTOOLS) $(DESPOT)
-LIB_TGT := libNifti.a libAgilent.a
+#Rules for Misc
+MISC     := dixon
+MISC_DIR := Misc
+$(BUILD_DIR)/$(MISC_DIR)/%.o : $(SOURCE_DIR)/$(MISC_DIR)/%.cpp $(QUIT_TMPL) | EIGEN
+	@mkdir -p $(dir $@)
+	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
+$(addprefix $(BUILD_DIR)/, $(MISC)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(MISC_DIR)/%.o $(MISC_OBJ) | libAgilent.a libNifti.a libQUIT.a
+	@mkdir -p $(dir $@)
+	$(CXX) $^ -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
+
+TARGETS := $(TOOLS) $(PYTOOLS) $(DESPOT) $(MISC)
+LIB_TGT := libNifti.a libAgilent.a libQUIT.a
 all     : $(LIB_TGT) $(TARGETS)
 
 clean :

@@ -17,8 +17,8 @@
 #include "Eigen/Dense"
 
 #include "Nifti/Nifti.h"
-#include "Nifti/Volume.h"
-#include "ThreadPool.h"
+#include "QUIT/Volume.h"
+#include "QUIT/ThreadPool.h"
 #include "DESPOT.h"
 
 #ifdef AGILENT

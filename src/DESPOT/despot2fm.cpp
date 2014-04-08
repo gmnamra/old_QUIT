@@ -18,11 +18,11 @@
 #include <Eigen/Dense>
 
 #include "Nifti/Nifti.h"
-#include "Nifti/Volume.h"
+#include "QUIT/Volume.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
-#include "ThreadPool.h"
+#include "QUIT/ThreadPool.h"
 
 #ifdef AGILENT
 	#include "procpar.h"

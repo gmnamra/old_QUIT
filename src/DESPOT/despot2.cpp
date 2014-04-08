@@ -20,7 +20,7 @@
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
-#include "ThreadPool.h"
+#include "QUIT/ThreadPool.h"
 
 #ifdef AGILENT
 	#include "procpar.h"

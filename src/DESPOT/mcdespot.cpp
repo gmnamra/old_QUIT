@@ -20,7 +20,7 @@
 
 #include "Nifti/Nifti.h"
 #include "DESPOT_Functors.h"
-#include "ThreadPool.h"
+#include "QUIT/ThreadPool.h"
 #include "RegionContraction.h"
 
 #ifdef AGILENT
