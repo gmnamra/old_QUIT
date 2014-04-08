@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 				float S0 = S0s[i], S1 = S1s[i], S2 = S2s[i];
 				float phi0 = phi0s[i], phi1 = phi1s[i], phi2 = phi2s[i];
 				As[i] = sqrt(S2 / S0);
-				float phi = (phi2 - phi1) / 2.;
+				float phi = (phi2 - phi0) / 2.;
 				float psi = cos((phi1 - phi0) - phi);
 				float frac = S1 / sqrt(S0*S2);
 				Ws[i] = (1 + psi * frac) * S0 / 2.;
