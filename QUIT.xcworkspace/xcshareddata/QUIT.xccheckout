@@ -5,36 +5,36 @@
 	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
 	<false/>
 	<key>IDESourceControlProjectIdentifier</key>
-	<string>1E09DF0F-BC91-4CB5-8BA7-7C24727039B1</string>
+	<string>FE6983DF-184B-479E-8E2C-D057C2A3F679</string>
 	<key>IDESourceControlProjectName</key>
 	<string>QUIT</string>
 	<key>IDESourceControlProjectOriginsDictionary</key>
 	<dict>
-		<key>D79C50C1-B2F9-4A45-A6D9-D19E0695D91D</key>
-		<string>nan:~/Masters/Mine.git</string>
+		<key>9D2445FF-F835-4284-8684-D74A34D2E72A</key>
+		<string>nan:~/Masters/QUIT.git</string>
 	</dict>
 	<key>IDESourceControlProjectPath</key>
 	<string>QUIT.xcworkspace</string>
 	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
 	<dict>
-		<key>D79C50C1-B2F9-4A45-A6D9-D19E0695D91D</key>
+		<key>9D2445FF-F835-4284-8684-D74A34D2E72A</key>
 		<string>..</string>
 	</dict>
 	<key>IDESourceControlProjectURL</key>
-	<string>nan:~/Masters/Mine.git</string>
+	<string>nan:~/Masters/QUIT.git</string>
 	<key>IDESourceControlProjectVersion</key>
 	<integer>110</integer>
 	<key>IDESourceControlProjectWCCIdentifier</key>
-	<string>D79C50C1-B2F9-4A45-A6D9-D19E0695D91D</string>
+	<string>9D2445FF-F835-4284-8684-D74A34D2E72A</string>
 	<key>IDESourceControlProjectWCConfigurations</key>
 	<array>
 		<dict>
 			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
 			<string>public.vcs.git</string>
 			<key>IDESourceControlWCCIdentifierKey</key>
-			<string>D79C50C1-B2F9-4A45-A6D9-D19E0695D91D</string>
+			<string>9D2445FF-F835-4284-8684-D74A34D2E72A</string>
 			<key>IDESourceControlWCCName</key>
-			<string>NaN.git</string>
+			<string>QUIT</string>
 		</dict>
 	</array>
 </dict>
