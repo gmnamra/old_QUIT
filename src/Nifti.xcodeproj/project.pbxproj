@@ -15,9 +15,6 @@
 		F6BA458A18EAABFD00E69FDD /* Nifti.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6BA457B18EAABFD00E69FDD /* Nifti.cpp */; };
 		F6BA458B18EAABFD00E69FDD /* Nifti.h in Headers */ = {isa = PBXBuildFile; fileRef = F6BA457C18EAABFD00E69FDD /* Nifti.h */; };
 		F6BA458C18EAABFD00E69FDD /* nifti1.h in Headers */ = {isa = PBXBuildFile; fileRef = F6BA457D18EAABFD00E69FDD /* nifti1.h */; };
-		F6BA458D18EAABFD00E69FDD /* Volume-inl.h in Headers */ = {isa = PBXBuildFile; fileRef = F6BA457E18EAABFD00E69FDD /* Volume-inl.h */; };
-		F6BA458E18EAABFD00E69FDD /* Volume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6BA457F18EAABFD00E69FDD /* Volume.cpp */; };
-		F6BA458F18EAABFD00E69FDD /* Volume.h in Headers */ = {isa = PBXBuildFile; fileRef = F6BA458018EAABFD00E69FDD /* Volume.h */; };
 		F6BA459018EAABFD00E69FDD /* ZipFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6BA458118EAABFD00E69FDD /* ZipFile.cpp */; };
 		F6BA459118EAABFD00E69FDD /* ZipFile.h in Headers */ = {isa = PBXBuildFile; fileRef = F6BA458218EAABFD00E69FDD /* ZipFile.h */; };
 /* End PBXBuildFile section */
@@ -33,9 +30,6 @@
 		F6BA457B18EAABFD00E69FDD /* Nifti.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Nifti.cpp; path = Nifti/Nifti.cpp; sourceTree = "<group>"; };
 		F6BA457C18EAABFD00E69FDD /* Nifti.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Nifti.h; path = Nifti/Nifti.h; sourceTree = "<group>"; };
 		F6BA457D18EAABFD00E69FDD /* nifti1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = nifti1.h; path = Nifti/nifti1.h; sourceTree = "<group>"; };
-		F6BA457E18EAABFD00E69FDD /* Volume-inl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "Volume-inl.h"; path = "Nifti/Volume-inl.h"; sourceTree = "<group>"; };
-		F6BA457F18EAABFD00E69FDD /* Volume.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Volume.cpp; path = Nifti/Volume.cpp; sourceTree = "<group>"; };
-		F6BA458018EAABFD00E69FDD /* Volume.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Volume.h; path = Nifti/Volume.h; sourceTree = "<group>"; };
 		F6BA458118EAABFD00E69FDD /* ZipFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZipFile.cpp; path = Nifti/ZipFile.cpp; sourceTree = "<group>"; };
 		F6BA458218EAABFD00E69FDD /* ZipFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZipFile.h; path = Nifti/ZipFile.h; sourceTree = "<group>"; };
 		F6F2E6EF1792164800A4AC8F /* libNifti.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libNifti.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -73,9 +67,6 @@
 				F6BA457B18EAABFD00E69FDD /* Nifti.cpp */,
 				F6BA457C18EAABFD00E69FDD /* Nifti.h */,
 				F6BA457D18EAABFD00E69FDD /* nifti1.h */,
-				F6BA457E18EAABFD00E69FDD /* Volume-inl.h */,
-				F6BA457F18EAABFD00E69FDD /* Volume.cpp */,
-				F6BA458018EAABFD00E69FDD /* Volume.h */,
 				F6BA458118EAABFD00E69FDD /* ZipFile.cpp */,
 				F6BA458218EAABFD00E69FDD /* ZipFile.h */,
 			);
@@ -89,9 +80,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6BA458F18EAABFD00E69FDD /* Volume.h in Headers */,
 				F6BA458418EAABFD00E69FDD /* ExtensionCodes.h in Headers */,
-				F6BA458D18EAABFD00E69FDD /* Volume-inl.h in Headers */,
 				F6BA459118EAABFD00E69FDD /* ZipFile.h in Headers */,
 				F6BA458918EAABFD00E69FDD /* Nifti-inl.h in Headers */,
 				F6BA458B18EAABFD00E69FDD /* Nifti.h in Headers */,
@@ -155,7 +144,6 @@
 				F6BA458A18EAABFD00E69FDD /* Nifti.cpp in Sources */,
 				F6BA459018EAABFD00E69FDD /* ZipFile.cpp in Sources */,
 				F6BA458318EAABFD00E69FDD /* Extension.cpp in Sources */,
-				F6BA458E18EAABFD00E69FDD /* Volume.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
