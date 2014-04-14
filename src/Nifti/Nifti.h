@@ -107,91 +107,13 @@ class Nifti {
 		int totalExtensionSize();          //!< Counts the total number of bytes for all extensions.
 
 		void calcStrides();
-		
 		void seekToVoxel(const ArrayXs &target);
 		void readBytes(std::vector<char> &data);
-		void writeBytes(const std::vector<char> & data);
-		
-		template<typename FromTp, typename ToTp>
-		class Scale {
-		public:
-			static ToTp Forward(const FromTp val, const float slope, const float inter) {
-				return static_cast<ToTp>((val * slope) + inter);
-			}
-			static ToTp Reverse(const FromTp val, const float slope, const float inter) {
-				return static_cast<ToTp>((val - inter) / slope);
-			}
-		};
-		
-		template<typename FromTp, typename ToTp>
-		class Scale<const std::complex<FromTp>, ToTp> {
-		public:
-			static ToTp Forward(const std::complex<FromTp> val, const float slope, const float inter) {
-				return static_cast<ToTp>((std::abs(val) * slope) + inter);
-			}
-			static ToTp Reverse(const std::complex<FromTp> val, const float slope, const float inter) {
-				return static_cast<ToTp>((std::abs(val) - inter) / slope);
-			}
-		};
-		
-		template<typename FromTp, typename ToTp>
-		class Scale<const FromTp, std::complex<ToTp>> {
-		public:
-			static std::complex<ToTp> Forward(const FromTp val, const float slope, const float inter) {
-				return std::complex<ToTp>((val * slope) + inter, 0.);
-			}
-			static std::complex<ToTp> Reverse(const FromTp val, const float slope, const float inter) {
-				return std::complex<ToTp>((val - inter) / slope, 0.);
-			}
-		};
-		
-		template<typename FromTp, typename ToTp>
-		class Scale<const std::complex<FromTp>, std::complex<ToTp>> {
-		public:
-			static std::complex<ToTp> Forward(const std::complex<FromTp> val, const float slope, const float inter) {
-				return static_cast<std::complex<ToTp>>(val * static_cast<FromTp>(slope) + static_cast<FromTp>(inter));
-			}
-			static std::complex<ToTp> Reverse(const std::complex<FromTp> val, const float slope, const float inter) {
-				return static_cast<std::complex<ToTp>>((val - static_cast<FromTp>(inter)) / static_cast<FromTp>(slope));
-			}
-		};
-		
-		template<typename ByteIter, typename Iter>
-		void fromLoop(const ByteIter fromBegin, Iter toBegin, Iter toEnd) {
-			typedef const typename std::remove_reference<decltype(*fromBegin)>::type f_t;
-			typedef typename std::remove_reference<decltype(*toBegin)>::type t_t;
-			ByteIter from(fromBegin);
-			Iter to(toBegin);
-			while (to != toEnd) {
-				f_t temp = *from;
-				*to = Scale<f_t, t_t>::Forward(temp, scaling_slope, scaling_inter);
-				to++;
-				from++;
-			}
-		}
-		
-		template<typename ByteIter, typename Iter>
-		void toLoop(const Iter fromBegin, const Iter fromEnd, ByteIter toBegin) {
-			typedef const typename std::remove_reference<decltype(*fromBegin)>::type f_t;
-			typedef typename std::remove_reference<decltype(*toBegin)>::type t_t;
-			Iter from(fromBegin);
-			ByteIter to(toBegin);
-			while (from != fromEnd) {
-				*to = Scale<f_t, t_t>::Reverse(*from, scaling_slope, scaling_inter);
-				to++;
-				from++;
-			}
-		}
-		
-		template<typename Iter>
-		void fromBytes(const std::vector<char> &bytes, Iter begin, Iter end);
-		template<typename Iter>
-		void toBytes(const Iter begin, const Iter end, std::vector<char> &bytes);
-		
-		template<typename Iter>
-		void readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size,
-						     Iter &begin, Iter &end);
-		
+		void writeBytes(const std::vector<char> &data);
+
+		template<typename FromTp, typename ToTp> class Scale; //!< Templated class to scale and cast between types. Definitions in Nifti-inl.h
+		template<typename Iter> void readWriteVoxels(const ArrayXs &start, const ArrayXs &size, Iter &begin, Iter &end); //!< Core IO routine. Can read/write to any storage that supports iterators/pointers
+
 	#pragma mark Public Class Methods
 	public:
 		~Nifti();

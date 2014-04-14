@@ -10,85 +10,43 @@
 #ifndef NIFTI_NIFTI_INL
 #define NIFTI_NIFTI_INL
 
-/**
-  *   Internal function to convert the internal NIfTI data to the desired dataype.
-  *
-  *   Converts a sequence of bytes from a NIfTI image to the templated datatype.
-  *   If the file contains complex data but a real datatype is requested then the magnitude is returned.
-  *   If the file contains real data but a complex datatype is requested then the imaginary part will be 0.
-  *
-  *   The number of elements is implicit in the size of the input byte array as the NIfTI stores the element size.
-  *   The output array can be larger than required, in which case offset can be non-zero and data will be written
-  *   from that point onwards.
-  *   
-  *   @param T Desired datatype. Valid (scalar) conversions must exist.
-  *   @param bytes  - Raw bytes read from NIfTI file.
-  *   @param data   - Storage for converted data. Must contain enough space.
-  *   @param offset - Location in data to start writing.
-  */
-template<typename Iter>
-void Nifti::fromBytes(const std::vector<char> &bytes, Iter begin, Iter end) {
-	typename Iter::difference_type nEl = bytes.size() / m_typeinfo.size;
-	assert(nEl == std::distance(begin, end));
-	switch (m_typeinfo.type) {
-		case DataType::INT8:       { fromLoop(reinterpret_cast<const int8_t *>(bytes.data()), begin, end); }; break;
-		case DataType::INT16:      { fromLoop(reinterpret_cast<const int16_t *>(bytes.data()), begin, end); }; break;
-		case DataType::INT32:      { fromLoop(reinterpret_cast<const int32_t *>(bytes.data()), begin, end); }; break;
-		case DataType::INT64:      { fromLoop(reinterpret_cast<const int64_t *>(bytes.data()), begin, end); }; break;
-		case DataType::UINT8:      { fromLoop(reinterpret_cast<const uint8_t *>(bytes.data()), begin, end); }; break;
-		case DataType::UINT16:     { fromLoop(reinterpret_cast<const uint16_t *>(bytes.data()), begin, end); }; break;
-		case DataType::UINT32:     { fromLoop(reinterpret_cast<const uint32_t *>(bytes.data()), begin, end); }; break;
-		case DataType::UINT64:     { fromLoop(reinterpret_cast<const uint64_t *>(bytes.data()), begin, end); }; break;
-		case DataType::FLOAT32:    { fromLoop(reinterpret_cast<const float *>(bytes.data()), begin, end); }; break;
-		case DataType::FLOAT64:    { fromLoop(reinterpret_cast<const double *>(bytes.data()), begin, end); }; break;
-		case DataType::FLOAT128:   { fromLoop(reinterpret_cast<const long double *>(bytes.data()), begin, end); }; break;
-		case DataType::COMPLEX64:  { fromLoop(reinterpret_cast<const std::complex<float> *>(bytes.data()), begin, end); }; break;
-		case DataType::COMPLEX128: { fromLoop(reinterpret_cast<const std::complex<double> *>(bytes.data()), begin, end); }; break;
-		case DataType::COMPLEX256: { fromLoop(reinterpret_cast<const std::complex<long double> *>(bytes.data()), begin, end); }; break;
-		case DataType::RGB24: case DataType::RGBA32:
-			throw(std::runtime_error("Unsupported datatype.")); break;
-	}
-}
+/*
+ *   Simple class to apply the Nifti scaling (slope & intercept) and cast between the file datatype
+ *   and the desired storage type. Has to be a templated class with static functions to support
+ *   template specialisation, which in return is required to make this work with complex datatypes.
+ *
+ *   @param val   The actual value to scale and cast.
+ *   @param slope Scaling slope.
+ *   @param inter Scaling intercept.
+ *
+ */
+template<typename FromTp, typename ToTp>
+class Nifti::Scale{
+	public:
+	static ToTp Forward(const FromTp val, const float &slope, const float &inter) { return static_cast<ToTp>(val * slope + inter); }
+	static ToTp Reverse(const FromTp val, const float &slope, const float &inter) { return static_cast<ToTp>((val - inter) / slope); }
+};
 
-/**
-  *   Internal function to convert from arbitrary data to the internal NIfTI dataype.
-  *
-  *   Converts a from the templated datatype to a sequence of bytes.
-  *   If complex data is passed in but the file datatype is not complex, then the absolute magnitude is taken.
-  *   If non-complex data is passed in but the file datatype is complex, then the imaginary part will be 0.
-  *   
-  *   The number of elements is implicit in the size of the input byte array as the NIfTI stores the element size.
-  *   The output array can be larger than required, in which case offset can be non-zero and data will be written
-  *   from that point onwards.
-  *   
-  *   @param T Desired datatype. Valid (scalar) conversions must exist.
-  *   @param bytes  - Raw bytes read from NIfTI file.
-  *   @param data   - Storage for converted data. Must contain enough space.
-  *   @param offset - Location in data to start writing.
-  */
-template<typename Iter>
-void Nifti::toBytes(const Iter begin, const Iter end, std::vector<char> &bytes) {
-	size_t nEl = std::distance(begin, end);
-	assert(nEl == bytes.size() / m_typeinfo.size);
-	switch (m_typeinfo.type) {
-		case DataType::INT8:       { toLoop(begin, end, reinterpret_cast<int8_t *>(bytes.data())); }; break;
-		case DataType::INT16:      { toLoop(begin, end, reinterpret_cast<int16_t *>(bytes.data())); }; break;
-		case DataType::INT32:      { toLoop(begin, end, reinterpret_cast<int32_t *>(bytes.data())); }; break;
-		case DataType::INT64:      { toLoop(begin, end, reinterpret_cast<int64_t *>(bytes.data())); }; break;
-		case DataType::UINT8:      { toLoop(begin, end, reinterpret_cast<uint8_t *>(bytes.data())); }; break;
-		case DataType::UINT16:     { toLoop(begin, end, reinterpret_cast<uint16_t *>(bytes.data())); }; break;
-		case DataType::UINT32:     { toLoop(begin, end, reinterpret_cast<uint32_t *>(bytes.data())); }; break;
-		case DataType::UINT64:     { toLoop(begin, end, reinterpret_cast<uint64_t *>(bytes.data())); }; break;
-		case DataType::FLOAT32:    { toLoop(begin, end, reinterpret_cast<float *>(bytes.data())); }; break;
-		case DataType::FLOAT64:    { toLoop(begin, end, reinterpret_cast<double *>(bytes.data())); }; break;
-		case DataType::FLOAT128:   { toLoop(begin, end, reinterpret_cast<long double *>(bytes.data())); }; break;
-		case DataType::COMPLEX64:  { toLoop(begin, end, reinterpret_cast<std::complex<float> *>(bytes.data())); }; break;
-		case DataType::COMPLEX128: { toLoop(begin, end, reinterpret_cast<std::complex<double> *>(bytes.data())); }; break;
-		case DataType::COMPLEX256: { toLoop(begin, end, reinterpret_cast<std::complex<long double> *>(bytes.data())); }; break;
-		case DataType::RGB24: case DataType::RGBA32:
-			throw(std::runtime_error("Unsupported datatype.")); break;
-	}
-}
+template<typename FromTp, typename ToTp>
+class Nifti::Scale<FromTp, std::complex<ToTp>> {
+	public:
+	static std::complex<ToTp> Forward(const FromTp val, const float &slope, const float &inter) { return std::complex<ToTp>(val * slope + inter, 0.); }
+	static std::complex<ToTp> Reverse(const FromTp val, const float &slope, const float &inter) { return std::complex<ToTp>((val - inter) / slope, 0.); }
+};
+
+template<typename FromTp, typename ToTp>
+class Nifti::Scale<std::complex<FromTp>, ToTp> {
+	public:
+	static ToTp Forward(const std::complex<FromTp> val, const float &slope, const float &inter) { return static_cast<ToTp>(std::abs(val) * slope + inter); }
+	static ToTp Reverse(const std::complex<FromTp> val, const float &slope, const float &inter) { return static_cast<ToTp>((std::abs(val) - inter) / slope); }
+};
+
+template<typename FromTp, typename ToTp>
+class Nifti::Scale<std::complex<FromTp>, std::complex<ToTp>> {
+	public:
+	static std::complex<ToTp> Forward(const std::complex<FromTp> val, const float &slope, const float &inter) { return static_cast<std::complex<ToTp>>(val * static_cast<FromTp>(slope) + static_cast<FromTp>(inter)); }
+	static std::complex<ToTp> Reverse(const std::complex<FromTp> val, const float &slope, const float &inter) { return static_cast<std::complex<ToTp>>((val - static_cast<FromTp>(inter)) / static_cast<FromTp>(slope)); }
+};
 
 /*
  *   Core IO routine. Depending on the mode of the file, reads/writes a
@@ -96,56 +54,95 @@ void Nifti::toBytes(const Iter begin, const Iter end, std::vector<char> &bytes) 
  *
  *   start and size can be short of the full number of dimensions, e.g. if you
  *   only want a part of the first volume in a multi-volume image, then they can
- *   just be 3D. The only limitation is that they must not have more dimensions
- *   than the image.
+ *   just be 3D. An entry of 0 in size indicates that we want to read the whole dimension.
  *
- *   An entry of 0 in size indicates that we want to read the whole dimension.
+ *   If start & size do not have the same number of rows out_of_range is thrown.
+ *   If start or size are larger than the image dimensions out_of_range is thrown.
+ *   If (start + size) exceeds any image dimensions out_of_range is thrown.
+ *   If the storage size (end - begin) is not equal to the number of voxels to read, out_of_range is thrown.
  *
  *   @param start The voxel indices of the first desired voxel.
  *   @param size  The size of the desired subregion.
- *   @param data  Storage for the data to read/write. Must be sufficiently large.
+ *   @param begin Iterator to the beginning of data storge.
+ *   @parem end   Iterator to the end of the data storage.
  */
 template<typename Iter>
-void Nifti::readWriteVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &inSize,
-                            Iter &begin, Iter &end) {
+void Nifti::readWriteVoxels(const ArrayXs &start, const ArrayXs &inSize, Iter &storageBegin, Iter &storageEnd) {
 	ArrayXs size = inSize;
+	// 0 indicates read whole dimension, so swap for the real size
 	for (ArrayXs::Index i = 0; i < size.rows(); i++)
 		if (size(i) == 0) size(i) = m_dim(i);
 	
 	if (start.rows() != size.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
 	if (start.rows() > m_dim.rows()) throw(std::out_of_range("Too many read/write dimensions specified in image: " + imagePath()));
 	if (((start + size) > m_dim.head(start.rows())).any()) throw(std::out_of_range("Read/write past image dimensions requested: " + imagePath()));
-	if (size.prod() < static_cast<unsigned long>(end - begin)) throw(std::out_of_range("Storage size does not match requested read/write size in image: " + imagePath()));
+	if (size.prod() < std::distance(storageBegin, storageEnd)) throw(std::out_of_range("Storage size does not match requested read/write size in image: " + imagePath()));
 	
-	ArrayXs::Index firstDim = 0; // We can always read first dimension in one go
-	ArrayXs::Index blockSize = size(firstDim);
-	auto dataIt = begin;
+	// Now collapse sequential reads/writes into the biggest read/write we can for efficiency
+	size_t firstDim = 0; // We can always read first dimension in one go
+	size_t blockSize = size(firstDim);
 	while ((size(firstDim) == m_dim(firstDim)) && (firstDim < size.rows() - 1)) {
 		firstDim++;
 		blockSize *= size(firstDim);
 	}
-	std::vector<char> block(blockSize * m_typeinfo.size);
+	std::vector<char> blockBytes(blockSize * m_typeinfo.size);
 	ArrayXs blockStart = start;
-	std::function<void (const size_t dim)> dimLoop;
-	dimLoop = [&] (const ArrayXs::Index dim) {
+	Iter blockIter = storageBegin;
+	std::function<void ()> scaleAndCast = [&] () {
+
+		// Helper macro. Templated lambdas would be very useful
+		#define DECL_LOOP( TYPE )\
+			auto bytePtr = reinterpret_cast<TYPE *>(blockBytes.data());\
+			if (m_mode == Mode::Read) {\
+				auto scale = Scale<TYPE, typename std::remove_reference<decltype(*blockIter)>::type>::Forward;\
+				for (size_t el = 0; el < blockSize; el++, bytePtr++, blockIter++) { *blockIter = scale(*bytePtr, scaling_slope, scaling_inter); }\
+			} else {\
+				auto scale = Scale<typename std::remove_reference<decltype(*blockIter)>::type, TYPE>::Reverse;\
+				for (size_t el = 0; el < blockSize; el++, bytePtr++, blockIter++) { *bytePtr = scale(*blockIter, scaling_slope, scaling_inter); }\
+			}
+		// End Helper Macro
+
+		switch (m_typeinfo.type) {
+			case DataType::INT8:       { DECL_LOOP(int8_t) }; break;
+			case DataType::INT16:      { DECL_LOOP(int16_t) }; break;
+			case DataType::INT32:      { DECL_LOOP(int32_t) }; break;
+			case DataType::INT64:      { DECL_LOOP(int64_t) }; break;
+			case DataType::UINT8:      { DECL_LOOP(uint8_t) }; break;
+			case DataType::UINT16:     { DECL_LOOP(uint16_t) }; break;
+			case DataType::UINT32:     { DECL_LOOP(uint32_t) }; break;
+			case DataType::UINT64:     { DECL_LOOP(uint64_t) }; break;
+			case DataType::FLOAT32:    { DECL_LOOP(float) }; break;
+			case DataType::FLOAT64:    { DECL_LOOP(double) }; break;
+			case DataType::FLOAT128:   { DECL_LOOP(long double) }; break;
+			case DataType::COMPLEX64:  { DECL_LOOP(std::complex<float>) }; break;
+			case DataType::COMPLEX128: { DECL_LOOP(std::complex<double>) }; break;
+			case DataType::COMPLEX256: { DECL_LOOP(std::complex<long double>) }; break;
+			case DataType::RGB24: case DataType::RGBA32:
+				throw(std::runtime_error("Unsupported datatype.")); break;
+		}
+		#undef DECL_LOOP
+	};
+
+	// Read the next dimension. If we have reached the first collapsed dimension then read/write
+	std::function<void (const size_t dim)> nextDim = [&] (const size_t dim) {
 		if (dim == firstDim) {
 			seekToVoxel(blockStart);
-			if (m_mode == Nifti::Mode::Read) {
-				readBytes(block);
-				fromBytes(block, dataIt, dataIt + blockSize);
-			} else {
-				toBytes(dataIt, dataIt + blockSize, block);
-				writeBytes(block);
-			}
-			dataIt += blockSize;
+			if (m_mode == Mode::Read) readBytes(blockBytes);
+			scaleAndCast();
+			if (m_mode == Mode::Write) writeBytes(blockBytes);
 		} else {
 			for (size_t v = start(dim); v < start(dim) + size(dim); v++) {
 				blockStart(dim) = v;
-				dimLoop(dim - 1);
+				nextDim(dim - 1);
 			}
 		}
 	};
-	dimLoop(start.rows() - 1);
+
+	// Now start from the last (slowest-varying dimension)
+	nextDim(start.rows() - 1);
+
+	#undef DECL_LOOP
+	#undef DECL_PTR
 }
 
 template<typename T>
