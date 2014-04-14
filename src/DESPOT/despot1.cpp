@@ -75,6 +75,10 @@ int main(int argc, char **argv)
 	// Argument Processing
 	//**************************************************************************
 	cout << version << endl << credit_shared << endl;
+	Eigen::initParallel();
+
+	try { // To fix uncaught exceptions on Mac
+
 	Nifti spgrFile, B1File, maskFile;
 	Volume<float> B1Vol;
 	Volume<int8_t> maskVol;
@@ -159,7 +163,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	ThreadPool pool(1);
+	ThreadPool pool;
 	for (size_t k = 0; k < spgrFile.dim(3); k++) {
 		clock_t loopStart;
 		// Read in data
@@ -239,5 +243,9 @@ int main(int argc, char **argv)
 	outFile.close();
 
 	cout << "All done." << endl;
+	} catch (exception &e) {
+		cerr << e.what() << endl;
+		return EXIT_FAILURE;
+	}
 	exit(EXIT_SUCCESS);
 }

@@ -27,13 +27,14 @@ LDFLAGS  := -std=c++11 $(STDLIB) $(THREADS) -m64 -L$(BUILD_DIR)
 INCLUDE    := -I$(EIGEN_DIR) -Isrc -Isrc/Agilent
 
 #Rules for libNifti
-NIFTI_DIR := Nifti
-NIFTI_SRC := Nifti Internal ZipFile Extension
-NIFTI_OBJ := $(patsubst %, $(BUILD_DIR)/$(NIFTI_DIR)/%.o, $(NIFTI_SRC))
+NIFTI_DIR  := Nifti
+NIFTI_SRC  := Nifti Internal ZipFile Extension
+NIFTI_OBJ  := $(addprefix $(BUILD_DIR)/$(NIFTI_DIR)/, $(addsuffix .o, $(NIFTI_SRC)))
+NIFTI_HDR := $(addprefix $(SOURCE_DIR)/$(NIFTI_DIR)/, Nifti.h Nifti-inl.h ExtensionCodes.h)
 $(BUILD_DIR)/$(NIFTI_DIR)/%.o : $(SOURCE_DIR)/$(NIFTI_DIR)/%.cpp | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(BUILD_DIR)/libNifti.a : $(NIFTI_OBJ)
+$(BUILD_DIR)/libNifti.a : $(NIFTI_OBJ) $(NIFTI_PHDR)
 	@mkdir -p $(dir $@)
 	ar rcs $@ $(NIFTI_OBJ)
 
@@ -48,19 +49,15 @@ $(BUILD_DIR)/libAgilent.a : $(AGILENT_OBJ)
 	@mkdir -p $(dir $@)
 	ar rcs $@ $(AGILENT_OBJ)
 
-#Rules for libQuit
+#Rules for libQUIT
 QUIT_DIR   := QUIT
 QUIT_SRC   := ThreadPool
-QUIT_OBJ   := $(patsubst %, $(BUILD_DIR)/$(QUIT_DIR)/%.o, $(QUIT_SRC))
-QUIT_TMPL_SRC := Volume Volume-inl
-QUIT_TMPL  := $(patsubst %, $(BUILD_DIR)/$(QUIT_DIR)/%.h, $(QUIT_TMPL_SRC))
-$(BUILD_DIR)/$(QUIT_DIR)/%.h : $(SOURCE_DIR)/$(QUIT_DIR)/%.h
-	@mkdir -p $(dir $@)
-	cp $(patsubst $(BUILD_DIR)/$(QUIT_DIR)/%, $(SOURCE_DIR)/$(QUIT_DIR)/%, $@) $(BUILD_DIR)/$(QUIT_DIR)/
+QUIT_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, Volume.h Volume-inl.h)
+QUIT_OBJ   := $(addprefix $(BUILD_DIR)/$(QUIT_DIR)/, $(addsuffix .o, $(QUIT_SRC)))
 $(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp | EIGEN libNifti.a
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_TMPL)
+$(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_PHDR)
 	@mkdir -p $(dir $@)
 	ar rcs $@ $(QUIT_OBJ)
 
@@ -68,7 +65,7 @@ $(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_TMPL)
 TOOL_DIR   := Tools
 TOOLS      := niihdr procparse fdf2nii
 PYTOOLS    := fdf2nii.py
-$(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp | EIGEN
+$(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp $(NIFTI_PHDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(addprefix $(BUILD_DIR)/, $(TOOLS)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(TOOL_DIR)/%.o | libAgilent.a libNifti.a
@@ -81,9 +78,9 @@ $(addprefix $(BUILD_DIR)/, $(PYTOOLS)) :
 DESPOT      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands phasemap
 DESPOT_DIR  := DESPOT
 DESPOT_SRC  := DESPOT DESPOT_Functors Model
-DESPOT_TMPL := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, RegionContraction.h DESPOT_Functors.h)
+DESPOT_HDR  := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, RegionContraction.h DESPOT_Functors.h)
 DESPOT_OBJ  := $(patsubst %, $(BUILD_DIR)/$(DESPOT_DIR)/%.o, $(DESPOT_SRC))
-$(BUILD_DIR)/$(DESPOT_DIR)/%.o : $(SOURCE_DIR)/$(DESPOT_DIR)/%.cpp $(DESPOT_TMPL) $(QUIT_TMPL) | EIGEN
+$(BUILD_DIR)/$(DESPOT_DIR)/%.o : $(SOURCE_DIR)/$(DESPOT_DIR)/%.cpp $(DESPOT_HDR) $(QUIT_HDR) $(NIFTI_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(addprefix $(BUILD_DIR)/, $(DESPOT)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(DESPOT_DIR)/%.o $(DESPOT_OBJ) | libAgilent.a libNifti.a libQUIT.a
@@ -93,7 +90,7 @@ $(addprefix $(BUILD_DIR)/, $(DESPOT)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(DESPOT_D
 #Rules for Misc
 MISC     := dixon
 MISC_DIR := Misc
-$(BUILD_DIR)/$(MISC_DIR)/%.o : $(SOURCE_DIR)/$(MISC_DIR)/%.cpp $(QUIT_TMPL) | EIGEN
+$(BUILD_DIR)/$(MISC_DIR)/%.o : $(SOURCE_DIR)/$(MISC_DIR)/%.cpp $(QUIT_HDR) $(NIFTI_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(addprefix $(BUILD_DIR)/, $(MISC)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(MISC_DIR)/%.o $(MISC_OBJ) | libAgilent.a libNifti.a libQUIT.a
