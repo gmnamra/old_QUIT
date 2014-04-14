@@ -101,10 +101,14 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Gather data
 	//**************************************************************************
-	if ((argc - optind) < 1) {
-		cout << "No input file specified." << endl << usage << endl;
+	if ((inputType == Type::Complex) && (argc - optind) != 1) {
+		cout << "Must specify one complex input file." << endl << usage << endl;
+		exit(EXIT_FAILURE);
+	} else if ((argc - optind) != 2) {
+		cout << "Must specify two input files (mag/phase or real/imaginary)." << endl << usage << endl;
 		exit(EXIT_FAILURE);
 	}
+
 	cout << "Opening input file: " << argv[optind] << endl;
 	Nifti inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
@@ -124,6 +128,7 @@ int main(int argc, char **argv)
 	if (inputType != Type::Complex) {
 		input1.readFrom(inputFile);
 		inputFile.close();
+		cout << "Opening input file: " << argv[optind] << endl;
 		inputFile.open(argv[optind++], Nifti::Mode::Read);
 		if (!inputFile.matchesSpace(templateFile)) {
 			cerr << "Input files do not match." << endl;
@@ -145,6 +150,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
+	cout << "Starting processing." << endl;
 	ThreadPool pool;
 	for (size_t k = 0; k < templateFile.dim(3); k++) {
 		clock_t loopStart;
