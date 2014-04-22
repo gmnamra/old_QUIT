@@ -52,7 +52,7 @@ $(BUILD_DIR)/libAgilent.a : $(AGILENT_OBJ)
 #Rules for libQUIT
 QUIT_DIR   := QUIT
 QUIT_SRC   := ThreadPool
-QUIT_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, Volume.h Volume-inl.h)
+QUIT_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, MultiArray.h MultiArray-inl.h)
 QUIT_OBJ   := $(addprefix $(BUILD_DIR)/$(QUIT_DIR)/, $(addsuffix .o, $(QUIT_SRC)))
 $(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp | EIGEN libNifti.a
 	@mkdir -p $(dir $@)

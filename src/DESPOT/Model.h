@@ -19,7 +19,7 @@
 #include <memory>
 #include <Eigen/Dense>
 
-#include "QUIT/Volume.h"
+#include "QUIT/MultiArray.h"
 #include "DESPOT.h"
 #ifdef AGILENT
 #include "procpar.h"

@@ -17,7 +17,7 @@
 #include <Eigen/Dense>
 
 #include "Nifti/Nifti.h"
-#include "QUIT/Volume.h"
+#include "QUIT/MultiArray.h"
 #include "QUIT/ThreadPool.h"
 #include "Model.h"
 #include "DESPOT_Functors.h"

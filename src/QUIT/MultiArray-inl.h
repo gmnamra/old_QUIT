@@ -1,6 +1,6 @@
 //
-//  Volume-inl.h
-//  Volume
+//  MultiArray-inl.h
+//  MultiArray
 //
 //  Created by Tobias Wood on 10/03/2014.
 //  Copyright (c) 2014 Tobias Wood. All rights reserved.
@@ -10,14 +10,14 @@
 #define VOLUME_VOLUME_INL
 
 template<typename Tp, size_t rank>
-void VolumeBase<Tp, rank>::calcStrides() {
+void MultiArray<Tp, rank>::calcStrides() {
 	m_strides[0] = 1;
 	for (typename Indx::Index i = 1; i < m_dims.size(); i++)
 		m_strides[i] = m_strides[i - 1] * m_dims[i - 1];
 }
 
 template<typename Tp, size_t rank>
-VolumeBase<Tp, rank>::VolumeBase() :
+MultiArray<Tp, rank>::MultiArray() :
 	m_offset{0},
 	m_dims{Indx::Zero()},
 	m_strides{Indx::Zero()}
@@ -26,7 +26,7 @@ VolumeBase<Tp, rank>::VolumeBase() :
 }
 
 template<typename Tp, size_t rank>
-VolumeBase<Tp, rank>::VolumeBase(const Indx &inDims) :
+MultiArray<Tp, rank>::MultiArray(const Indx &inDims) :
 	m_offset{0},
 	m_dims{inDims}
 {
@@ -35,7 +35,7 @@ VolumeBase<Tp, rank>::VolumeBase(const Indx &inDims) :
 }
 
 template<typename Tp, size_t rank>
-VolumeBase<Tp, rank>::VolumeBase(const SliceIndx &inDims, const size_t finalDim) :
+MultiArray<Tp, rank>::MultiArray(const SliceIndx &inDims, const size_t finalDim) :
 	m_offset{0}
 {
 	m_dims.head(rank - 1) = inDims;
@@ -45,12 +45,12 @@ VolumeBase<Tp, rank>::VolumeBase(const SliceIndx &inDims, const size_t finalDim)
 }
 
 template<typename Tp, size_t rank>
-VolumeBase<Tp, rank>::VolumeBase(Nifti &img) {
+MultiArray<Tp, rank>::MultiArray(Nifti &img) {
 	readFrom(img);
 }
 
 template<typename Tp, size_t rank>
-void VolumeBase<Tp, rank>::readFrom(Nifti &img) {
+void MultiArray<Tp, rank>::readFrom(Nifti &img) {
 	assert(rank == img.rank());
 	m_offset = 0;
 	m_dims = img.dims().head(rank);
@@ -60,7 +60,7 @@ void VolumeBase<Tp, rank>::readFrom(Nifti &img) {
 }
 
 template<typename Tp, size_t rank>
-void VolumeBase<Tp, rank>::writeTo(Nifti &img) {
+void MultiArray<Tp, rank>::writeTo(Nifti &img) {
 	// We might be a view, so work these out
 	auto begin = m_ptr->begin() + m_offset;
 	auto end   = begin + size();
@@ -69,17 +69,17 @@ void VolumeBase<Tp, rank>::writeTo(Nifti &img) {
 }
 
 template<typename Tp, size_t rank>
-const typename VolumeBase<Tp, rank>::Indx &VolumeBase<Tp, rank>::dims() const {
+const typename MultiArray<Tp, rank>::Indx &MultiArray<Tp, rank>::dims() const {
 	return m_dims;
 }
 
 template<typename Tp, size_t rank>
-size_t VolumeBase<Tp, rank>::size() const {
+size_t MultiArray<Tp, rank>::size() const {
 	return m_dims.prod();
 }
 
 template<typename Tp, size_t rank>
-typename VolumeBase<Tp, rank>::ConstTpRef VolumeBase<Tp, rank>::operator[](const Indx &vox) const {
+typename MultiArray<Tp, rank>::ConstTpRef MultiArray<Tp, rank>::operator[](const Indx &vox) const {
 	if ((vox >= m_dims).any()) {
 		std::stringstream ss;
 		ss << "Voxel " << vox.transpose() << " outside volume.\n" << print();
@@ -89,12 +89,12 @@ typename VolumeBase<Tp, rank>::ConstTpRef VolumeBase<Tp, rank>::operator[](const
 }
 
 template<typename Tp, size_t rank>
-typename VolumeBase<Tp, rank>::TpRef VolumeBase<Tp, rank>::operator[](const Indx &vox) {
-	return const_cast<TpRef>(static_cast<const VolumeBase<Tp, rank> &>(*this).operator[](vox));
+typename MultiArray<Tp, rank>::TpRef MultiArray<Tp, rank>::operator[](const Indx &vox) {
+	return const_cast<TpRef>(static_cast<const MultiArray<Tp, rank> &>(*this).operator[](vox));
 }
 
 template<typename Tp, size_t rank>
-typename VolumeBase<Tp, rank>::ConstTpRef VolumeBase<Tp, rank>::operator[](const size_t i) const {
+typename MultiArray<Tp, rank>::ConstTpRef MultiArray<Tp, rank>::operator[](const size_t i) const {
 	if (i >= size()) {
 		throw(std::out_of_range("Index " + std::to_string(i) + " out of range.\n" + print()));
 	}
@@ -102,18 +102,18 @@ typename VolumeBase<Tp, rank>::ConstTpRef VolumeBase<Tp, rank>::operator[](const
 }
 
 template<typename Tp, size_t rank>
-typename VolumeBase<Tp, rank>::TpRef VolumeBase<Tp, rank>::operator[](const size_t i) {
-	return const_cast<TpRef>(static_cast<const VolumeBase<Tp, rank> &>(*this).operator[](i));
+typename MultiArray<Tp, rank>::TpRef MultiArray<Tp, rank>::operator[](const size_t i) {
+	return const_cast<TpRef>(static_cast<const MultiArray<Tp, rank> &>(*this).operator[](i));
 }
 
 template<typename Tp, size_t rank>
-VolumeBase<Tp, rank>::VolumeBase(const Indx &dims, const Indx &strides, const size_t offset, const PtrTp &ptr) :
+MultiArray<Tp, rank>::MultiArray(const Indx &dims, const Indx &strides, const size_t offset, const PtrTp &ptr) :
 	m_dims{dims}, m_strides{strides}, m_offset(offset), m_ptr(ptr) {
 	
 }
 
 template<typename Tp, size_t rank>
-auto VolumeBase<Tp, rank>::viewSlice(const size_t i, const size_t d) -> SliceTp {
+auto MultiArray<Tp, rank>::viewSlice(const size_t i, const size_t d) -> SliceTp {
 	SliceIndx newDims, newStrides;
 	size_t to_dim = 0, from_dim = 0;
 	while(from_dim < rank) {
@@ -131,7 +131,7 @@ auto VolumeBase<Tp, rank>::viewSlice(const size_t i, const size_t d) -> SliceTp 
 }
 
 template<typename Tp, size_t rank>
-auto VolumeBase<Tp, rank>::line(const size_t i) const -> LineTp {
+auto MultiArray<Tp, rank>::line(const size_t i) const -> LineTp {
 	assert(i < m_dims.head(rank-1).prod());
 	auto first = m_ptr->data() + m_offset + i;
 	const LineTp s(first, m_dims[rank-1], Eigen::InnerStride<>(m_strides[rank-1]));
@@ -139,7 +139,7 @@ auto VolumeBase<Tp, rank>::line(const size_t i) const -> LineTp {
 }
 
 template<typename Tp, size_t rank>
-auto VolumeBase<Tp, rank>::line(const SliceIndx &vox, const size_t lineD) const -> LineTp {
+auto MultiArray<Tp, rank>::line(const SliceIndx &vox, const size_t lineD) const -> LineTp {
 	size_t idx = 0, d1 = 0, d2 = 0;
 	while (d1 < rank) {
 		if (d1 != (lineD-1)) {
@@ -157,7 +157,7 @@ auto VolumeBase<Tp, rank>::line(const SliceIndx &vox, const size_t lineD) const 
 }
 
 template<typename Tp, size_t rank>
-std::string VolumeBase<Tp, rank>::print() const {
+std::string MultiArray<Tp, rank>::print() const {
 	std::stringstream ss;
 	ss << "Dims:    " << m_dims.transpose() << std::endl;
 	ss << "Strides: " << m_strides.transpose() << std::endl;

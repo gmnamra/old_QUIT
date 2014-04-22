@@ -18,7 +18,7 @@
 #include <Eigen/Dense>
 
 #include "Nifti/Nifti.h"
-#include "QUIT/Volume.h"
+#include "QUIT/MultiArray.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"

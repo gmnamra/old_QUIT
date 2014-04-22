@@ -1,6 +1,6 @@
 //
-//  Volume.h
-//  Volume
+//  MultiArray.h
+//  MultiArray
 //
 //  Created by Tobias Wood on 10/03/2014.
 //  Copyright (c) 2014 Tobias Wood. All rights reserved.
@@ -22,7 +22,7 @@
 #include "Nifti/Nifti.h"
 
 template<typename Tp, size_t rank>
-class VolumeBase {
+class MultiArray {
 	public:
 		typedef Eigen::Array<size_t, rank, 1> Indx;
 		typedef Eigen::Array<size_t, rank - 1, 1> SliceIndx;
@@ -30,7 +30,7 @@ class VolumeBase {
 		typedef std::shared_ptr<StorageTp> PtrTp;
 		typedef typename StorageTp::const_reference ConstTpRef;
 		typedef typename StorageTp::reference TpRef;
-		typedef VolumeBase<Tp, rank - 1> SliceTp;
+		typedef MultiArray<Tp, rank - 1> SliceTp;
 		typedef Eigen::Map<Eigen::Array<Tp, Eigen::Dynamic, 1>, 0, Eigen::InnerStride<>> LineTp;
 		
 		static const size_t MaxIndex{std::numeric_limits<size_t>::max()};
@@ -41,11 +41,11 @@ class VolumeBase {
 		
 		void calcStrides();
 	public:
-		VolumeBase();
-		VolumeBase(const Indx &dims);
-		VolumeBase(const Indx &dims, const Indx &strides, const size_t offset, const PtrTp &ptr);
-		VolumeBase(const SliceIndx &dims, const size_t finalDim);
-		VolumeBase(Nifti &img);
+		MultiArray();
+		MultiArray(const Indx &dims);
+		MultiArray(const Indx &dims, const Indx &strides, const size_t offset, const PtrTp &ptr);
+		MultiArray(const SliceIndx &dims, const size_t finalDim);
+		MultiArray(Nifti &img);
 		
 		void readFrom(Nifti &img);
 		void writeTo(Nifti &img);
@@ -65,15 +65,15 @@ class VolumeBase {
 		LineTp line(const size_t i) const;
 		
 		std::string print() const;
-		friend std::ostream &operator<<(std::ostream &os, const VolumeBase &v) {
+		friend std::ostream &operator<<(std::ostream &os, const MultiArray &v) {
 			os << v.print();
 			return os;
 		}
 };
 
-template<typename Tp> using Volume = VolumeBase<Tp, 3>;
-template<typename Tp> using Series = VolumeBase<Tp, 4>;
+template<typename Tp> using Volume = MultiArray<Tp, 3>;
+template<typename Tp> using Series = MultiArray<Tp, 4>;
 
-#include "Volume-inl.h"
+#include "MultiArray-inl.h"
 
 #endif //VOLUME_VOLUME
