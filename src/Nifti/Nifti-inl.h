@@ -145,19 +145,15 @@ void Nifti::readWriteVoxels(const ArrayXs &start, const ArrayXs &inSize, Iter &s
 	#undef DECL_PTR
 }
 
-template<typename T>
-void Nifti::readVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size,
-					   typename std::vector<T>::iterator begin,
-					   typename std::vector<T>::iterator end) {
+template<typename IterTp>
+void Nifti::readVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, IterTp begin, IterTp end) {
 	if (!(m_mode == Mode::Read))
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
 	readWriteVoxels(start, size, begin, end);
 }
 
-template<typename T>
-void Nifti::readVolumes(const size_t first, const size_t nvol,
-                        typename std::vector<T>::iterator begin,
-						typename std::vector<T>::iterator end) {
+template<typename IterTp>
+void Nifti::readVolumes(const size_t first, const size_t nvol, IterTp begin, IterTp end) {
 	if (!(m_mode == Mode::Read))
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
 	Eigen::Array<size_t, 4, 1> start{0, 0, 0, first};
@@ -165,19 +161,15 @@ void Nifti::readVolumes(const size_t first, const size_t nvol,
 	readWriteVoxels(start, size, begin, end);
 }
 
-template<typename T>
-void Nifti::writeVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size,
-                        typename std::vector<T>::iterator begin,
-						typename std::vector<T>::iterator end) {
+template<typename IterTp>
+void Nifti::writeVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, IterTp begin, IterTp end) {
 	if (!(m_mode == Mode::Write))
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
 	readWriteVoxels(start, size, begin, end);
 }
 
-template<typename T>
-void Nifti::writeVolumes(const size_t first, const size_t nvol,
-                         typename std::vector<T>::iterator begin,
-						 typename std::vector<T>::iterator end) {
+template<typename IterTp>
+void Nifti::writeVolumes(const size_t first, const size_t nvol, IterTp begin, IterTp end) {
 	if (!(m_mode == Mode::Write))
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
 	Eigen::Array<size_t, 4, 1> start{0, 0, 0, first};

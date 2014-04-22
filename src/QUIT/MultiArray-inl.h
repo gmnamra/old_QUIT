@@ -56,7 +56,7 @@ void MultiArray<Tp, rank>::readFrom(Nifti &img) {
 	m_dims = img.dims().head(rank);
 	calcStrides();
 	m_ptr = std::make_shared<std::vector<Tp>>(m_dims.prod());
-	img.readVolumes<Tp>(0, img.dim(4), m_ptr->begin() + m_offset, m_ptr->end());
+	img.readVolumes(0, img.dim(4), m_ptr->begin() + m_offset, m_ptr->end());
 }
 
 template<typename Tp, size_t rank>
@@ -65,7 +65,7 @@ void MultiArray<Tp, rank>::writeTo(Nifti &img) {
 	auto begin = m_ptr->begin() + m_offset;
 	auto end   = begin + size();
 	assert(end <= m_ptr->end());
-	img.writeVolumes<Tp>(0, img.dim(4), begin, end);
+	img.writeVolumes(0, img.dim(4), begin, end);
 }
 
 template<typename Tp, size_t rank>
