@@ -24,46 +24,81 @@
 template<typename Tp, size_t rank>
 class MultiArray {
 	public:
-		typedef Eigen::Array<size_t, rank, 1> Indx;
-		typedef Eigen::Array<size_t, rank - 1, 1> SliceIndx;
+		typedef Eigen::Array<size_t, rank, 1> Index;
+		typedef Eigen::Array<size_t, rank - 1, 1> SliceIndex;
 		typedef std::vector<Tp> StorageTp;
 		typedef std::shared_ptr<StorageTp> PtrTp;
-		typedef typename StorageTp::const_reference ConstTpRef;
-		typedef typename StorageTp::reference TpRef;
 		typedef MultiArray<Tp, rank - 1> SliceTp;
 		typedef Eigen::Map<Eigen::Array<Tp, Eigen::Dynamic, 1>, 0, Eigen::InnerStride<>> LineTp;
+		// These typedefs are for STL Iterator compatibility
+		typedef Tp        value_type;
+		typedef size_t    size_type;
+		typedef ptrdiff_t difference_type;
+		typedef typename StorageTp::const_reference const_reference;
+		typedef typename StorageTp::reference       reference;
 		
+		class MultiArrayIterator {
+			public:
+				typedef std::forward_iterator_tag iterator_category;
+				typedef Tp        value_type;
+				typedef size_t    size_type;
+				typedef ptrdiff_t difference_type;
+				typedef Tp        *pointer;
+				typedef const Tp  *const_pointer;
+				typedef Tp        &reference;
+				typedef const Tp  &const_reference;
+
+			private:
+				MultiArray &m_array;
+				Index m_index;
+
+			public:
+				MultiArrayIterator(MultiArray &array, Index start);
+				Tp &operator*();
+
+				MultiArrayIterator &operator++();
+				MultiArrayIterator operator++(int);
+
+				bool operator==(const MultiArrayIterator &other) const;
+				bool operator!=(const MultiArrayIterator &other) const;
+		};
+		typedef MultiArrayIterator iterator;
+
 		static const size_t MaxIndex{std::numeric_limits<size_t>::max()};
 	protected:
 		PtrTp   m_ptr;
 		size_t  m_offset;
-		Indx    m_dims, m_strides;
+		Index    m_dims, m_strides;
 		
 		void calcStrides();
 	public:
 		MultiArray();
-		MultiArray(const Indx &dims);
-		MultiArray(const Indx &dims, const Indx &strides, const size_t offset, const PtrTp &ptr);
-		MultiArray(const SliceIndx &dims, const size_t finalDim);
+		MultiArray(const Index &dims);
+		MultiArray(const Index &dims, const Index &strides, const size_t offset, const PtrTp &ptr);
+		MultiArray(const SliceIndex &dims, const size_t finalDim);
 		MultiArray(Nifti &img);
 		
 		void readFrom(Nifti &img);
 		void writeTo(Nifti &img);
 		
-		const Indx &dims() const;
+		const Index &dims() const;
+		const Index &strides() const;
 		size_t size() const;
 		
-		ConstTpRef operator[](const size_t i) const;
-		TpRef operator[](const size_t i);
-		
-		ConstTpRef operator[](const Indx &vox) const;
-		TpRef operator[](const Indx &vox);
-		
 		SliceTp viewSlice(const size_t i, const size_t d=rank);
-		
-		LineTp line(const SliceIndx &vox, const size_t d=rank) const;
+
+		LineTp line(const SliceIndex &vox, const size_t d=rank) const;
 		LineTp line(const size_t i) const;
+
+		// STL-like interface
+		const_reference operator[](const size_t i) const;
+		const_reference operator[](const Index &vox) const;
+		reference operator[](const size_t i);
+		reference operator[](const Index &vox);
 		
+		iterator begin();
+		iterator end();
+
 		std::string print() const;
 		friend std::ostream &operator<<(std::ostream &os, const MultiArray &v) {
 			os << v.print();

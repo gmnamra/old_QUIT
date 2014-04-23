@@ -12,21 +12,21 @@
 template<typename Tp, size_t rank>
 void MultiArray<Tp, rank>::calcStrides() {
 	m_strides[0] = 1;
-	for (typename Indx::Index i = 1; i < m_dims.size(); i++)
+	for (typename Index::Index i = 1; i < m_dims.size(); i++)
 		m_strides[i] = m_strides[i - 1] * m_dims[i - 1];
 }
 
 template<typename Tp, size_t rank>
 MultiArray<Tp, rank>::MultiArray() :
 	m_offset{0},
-	m_dims{Indx::Zero()},
-	m_strides{Indx::Zero()}
+	m_dims{Index::Zero()},
+	m_strides{Index::Zero()}
 {
 	
 }
 
 template<typename Tp, size_t rank>
-MultiArray<Tp, rank>::MultiArray(const Indx &inDims) :
+MultiArray<Tp, rank>::MultiArray(const Index &inDims) :
 	m_offset{0},
 	m_dims{inDims}
 {
@@ -35,7 +35,7 @@ MultiArray<Tp, rank>::MultiArray(const Indx &inDims) :
 }
 
 template<typename Tp, size_t rank>
-MultiArray<Tp, rank>::MultiArray(const SliceIndx &inDims, const size_t finalDim) :
+MultiArray<Tp, rank>::MultiArray(const SliceIndex &inDims, const size_t finalDim) :
 	m_offset{0}
 {
 	m_dims.head(rank - 1) = inDims;
@@ -69,8 +69,13 @@ void MultiArray<Tp, rank>::writeTo(Nifti &img) {
 }
 
 template<typename Tp, size_t rank>
-const typename MultiArray<Tp, rank>::Indx &MultiArray<Tp, rank>::dims() const {
+const typename MultiArray<Tp, rank>::Index &MultiArray<Tp, rank>::dims() const {
 	return m_dims;
+}
+
+template<typename Tp, size_t rank>
+auto MultiArray<Tp, rank>::strides() const -> const Index & {
+	return m_strides;
 }
 
 template<typename Tp, size_t rank>
@@ -79,7 +84,7 @@ size_t MultiArray<Tp, rank>::size() const {
 }
 
 template<typename Tp, size_t rank>
-typename MultiArray<Tp, rank>::ConstTpRef MultiArray<Tp, rank>::operator[](const Indx &vox) const {
+typename MultiArray<Tp, rank>::const_reference MultiArray<Tp, rank>::operator[](const Index &vox) const {
 	if ((vox >= m_dims).any()) {
 		std::stringstream ss;
 		ss << "Voxel " << vox.transpose() << " outside volume.\n" << print();
@@ -89,12 +94,12 @@ typename MultiArray<Tp, rank>::ConstTpRef MultiArray<Tp, rank>::operator[](const
 }
 
 template<typename Tp, size_t rank>
-typename MultiArray<Tp, rank>::TpRef MultiArray<Tp, rank>::operator[](const Indx &vox) {
-	return const_cast<TpRef>(static_cast<const MultiArray<Tp, rank> &>(*this).operator[](vox));
+typename MultiArray<Tp, rank>::reference MultiArray<Tp, rank>::operator[](const Index &vox) {
+	return const_cast<reference>(static_cast<const MultiArray<Tp, rank> &>(*this).operator[](vox));
 }
 
 template<typename Tp, size_t rank>
-typename MultiArray<Tp, rank>::ConstTpRef MultiArray<Tp, rank>::operator[](const size_t i) const {
+typename MultiArray<Tp, rank>::const_reference MultiArray<Tp, rank>::operator[](const size_t i) const {
 	if (i >= size()) {
 		throw(std::out_of_range("Index " + std::to_string(i) + " out of range.\n" + print()));
 	}
@@ -102,19 +107,19 @@ typename MultiArray<Tp, rank>::ConstTpRef MultiArray<Tp, rank>::operator[](const
 }
 
 template<typename Tp, size_t rank>
-typename MultiArray<Tp, rank>::TpRef MultiArray<Tp, rank>::operator[](const size_t i) {
-	return const_cast<TpRef>(static_cast<const MultiArray<Tp, rank> &>(*this).operator[](i));
+typename MultiArray<Tp, rank>::reference MultiArray<Tp, rank>::operator[](const size_t i) {
+	return const_cast<reference>(static_cast<const MultiArray<Tp, rank> &>(*this).operator[](i));
 }
 
 template<typename Tp, size_t rank>
-MultiArray<Tp, rank>::MultiArray(const Indx &dims, const Indx &strides, const size_t offset, const PtrTp &ptr) :
+MultiArray<Tp, rank>::MultiArray(const Index &dims, const Index &strides, const size_t offset, const PtrTp &ptr) :
 	m_dims{dims}, m_strides{strides}, m_offset(offset), m_ptr(ptr) {
 	
 }
 
 template<typename Tp, size_t rank>
 auto MultiArray<Tp, rank>::viewSlice(const size_t i, const size_t d) -> SliceTp {
-	SliceIndx newDims, newStrides;
+	SliceIndex newDims, newStrides;
 	size_t to_dim = 0, from_dim = 0;
 	while(from_dim < rank) {
 		if (from_dim != (d-1)) {
@@ -139,7 +144,7 @@ auto MultiArray<Tp, rank>::line(const size_t i) const -> LineTp {
 }
 
 template<typename Tp, size_t rank>
-auto MultiArray<Tp, rank>::line(const SliceIndx &vox, const size_t lineD) const -> LineTp {
+auto MultiArray<Tp, rank>::line(const SliceIndex &vox, const size_t lineD) const -> LineTp {
 	size_t idx = 0, d1 = 0, d2 = 0;
 	while (d1 < rank) {
 		if (d1 != (lineD-1)) {
@@ -163,6 +168,64 @@ std::string MultiArray<Tp, rank>::print() const {
 	ss << "Strides: " << m_strides.transpose() << std::endl;
 	ss << "Offset:  " << m_offset << " Ptr Count: " << m_ptr.use_count() << std::endl;
 	return ss.str();
+}
+
+template<typename Tp, size_t rank>
+MultiArray<Tp, rank>::MultiArrayIterator::MultiArrayIterator(MultiArray &array, Index start) :
+	m_array(array), m_index(start) {
+
+}
+
+template<typename Tp, size_t rank>
+Tp &MultiArray<Tp, rank>::iterator::operator*() {
+	return m_array[m_index];
+}
+
+template<typename Tp, size_t rank>
+auto MultiArray<Tp, rank>::iterator::operator++() -> iterator & {
+	size_t dim = 0;
+	for (size_t dim = 0; dim < rank; dim++) {
+		m_index[dim]++;
+		if (m_index[dim] == m_array.dims()[dim]) {
+			m_index[dim] = 0; // Reset this dim to zero, go and increment next dimension
+		} else {
+			break; // This dimension still has increments left
+		}
+	}
+	return *this;
+}
+
+template<typename Tp, size_t rank>
+auto MultiArray<Tp, rank>::iterator::operator++(int) -> iterator {
+	iterator tmp(*this);
+	operator++(); // Call pre-increment operator
+	return tmp;
+}
+
+template<typename Tp, size_t rank>
+bool MultiArray<Tp, rank>::iterator::operator==(const iterator &other) const {
+	if ((m_index == other.m_index).all()) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+template<typename Tp, size_t rank>
+bool MultiArray<Tp, rank>::iterator::operator!=(const iterator &other) const {
+	return !operator==(other);
+}
+
+template<typename Tp, size_t rank>
+auto MultiArray<Tp, rank>::begin() -> iterator {
+	iterator b(*this, Index::Zero());
+	return b;
+}
+
+template<typename Tp, size_t rank>
+auto MultiArray<Tp, rank>::end() -> iterator {
+	iterator e(*this, m_dims);
+	return e;
 }
 
 #endif
