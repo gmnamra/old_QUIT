@@ -76,7 +76,7 @@ void Nifti::readWriteVoxels(const ArrayXs &start, const ArrayXs &inSize, Iter &s
 	if (start.rows() != size.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
 	if (start.rows() > m_dim.rows()) throw(std::out_of_range("Too many read/write dimensions specified in image: " + imagePath()));
 	if (((start + size) > m_dim.head(start.rows())).any()) throw(std::out_of_range("Read/write past image dimensions requested: " + imagePath()));
-	if (size.prod() < std::distance(storageBegin, storageEnd)) throw(std::out_of_range("Storage size does not match requested read/write size in image: " + imagePath()));
+	if (size.prod() != std::distance(storageBegin, storageEnd)) throw(std::out_of_range("Storage size does not match requested read/write size in image: " + imagePath()));
 	
 	// Now collapse sequential reads/writes into the biggest read/write we can for efficiency
 	size_t firstDim = 0; // We can always read first dimension in one go
@@ -87,7 +87,7 @@ void Nifti::readWriteVoxels(const ArrayXs &start, const ArrayXs &inSize, Iter &s
 	}
 	std::vector<char> blockBytes(blockSize * m_typeinfo.size);
 	ArrayXs blockStart = start;
-	Iter blockIter = storageBegin;
+	Iter blockIter{storageBegin};
 	std::function<void ()> scaleAndCast = [&] () {
 
 		// Helper macro. Templated lambdas would be very useful
