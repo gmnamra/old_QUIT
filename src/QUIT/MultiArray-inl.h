@@ -6,21 +6,24 @@
 //  Copyright (c) 2014 Tobias Wood. All rights reserved.
 //
 
-#ifndef VOLUME_VOLUME_INL
-#define VOLUME_VOLUME_INL
+#ifndef MULTIARRAY_INL_H
+#define MULTIARRAY_INL_H
 
 template<typename Tp, size_t rank>
-void MultiArray<Tp, rank>::calcStrides() {
-	m_strides[0] = 1;
-	for (typename Index::Index i = 1; i < m_dims.size(); i++)
-		m_strides[i] = m_strides[i - 1] * m_dims[i - 1];
+auto MultiArray<Tp, rank>::CalcStrides(const Index &dims) -> Index {
+	Index strides;
+	strides[0] = 1;
+	for (typename Index::Index i = 1; i < dims.size(); i++)
+		strides[i] = strides[i - 1] * dims[i - 1];
+	return strides;
 }
 
 template<typename Tp, size_t rank>
 MultiArray<Tp, rank>::MultiArray() :
 	m_offset{0},
 	m_dims{Index::Zero()},
-	m_strides{Index::Zero()}
+	m_strides{Index::Zero()},
+	m_packed{true}
 {
 	
 }
@@ -28,60 +31,39 @@ MultiArray<Tp, rank>::MultiArray() :
 template<typename Tp, size_t rank>
 MultiArray<Tp, rank>::MultiArray(const Index &inDims) :
 	m_offset{0},
-	m_dims{inDims}
+	m_dims{inDims},
+	m_strides{CalcStrides(inDims)},
+	m_packed{true},
+	m_ptr{std::make_shared<std::vector<Tp>>(inDims.prod())}
 {
-	calcStrides();
-	m_ptr = std::make_shared<std::vector<Tp>>(m_dims.prod());
+
 }
 
 template<typename Tp, size_t rank>
 MultiArray<Tp, rank>::MultiArray(const SliceIndex &inDims, const size_t finalDim) :
-	m_offset{0}
+	m_offset{0},
+	m_packed{true}
 {
 	m_dims.head(rank - 1) = inDims;
 	m_dims[rank - 1] = finalDim;
-	calcStrides();
+	m_strides = CalcStrides(m_dims);
 	m_ptr = std::make_shared<std::vector<Tp>>(m_dims.prod());
 }
 
 template<typename Tp, size_t rank>
-MultiArray<Tp, rank>::MultiArray(Nifti &img) {
-	readFrom(img);
+MultiArray<Tp, rank>::MultiArray(const Index &dims, const Index &strides, const size_t offset, const PtrTp &ptr) :
+	m_dims{dims},
+	m_strides{strides},
+	m_offset{offset},
+	m_ptr{ptr}
+{
+	m_packed = (CalcStrides(m_dims) == m_strides).all();
 }
 
-template<typename Tp, size_t rank>
-void MultiArray<Tp, rank>::readFrom(Nifti &img) {
-	assert(rank == img.rank());
-	m_offset = 0;
-	m_dims = img.dims().head(rank);
-	calcStrides();
-	m_ptr = std::make_shared<std::vector<Tp>>(m_dims.prod());
-	img.readVolumes(0, img.dim(4), m_ptr->begin() + m_offset, m_ptr->end());
-}
-
-template<typename Tp, size_t rank>
-void MultiArray<Tp, rank>::writeTo(Nifti &img) {
-	// We might be a view, so work these out
-	auto begin = m_ptr->begin() + m_offset;
-	auto end   = begin + size();
-	assert(end <= m_ptr->end());
-	img.writeVolumes(0, img.dim(4), begin, end);
-}
-
-template<typename Tp, size_t rank>
-const typename MultiArray<Tp, rank>::Index &MultiArray<Tp, rank>::dims() const {
-	return m_dims;
-}
-
-template<typename Tp, size_t rank>
-auto MultiArray<Tp, rank>::strides() const -> const Index & {
-	return m_strides;
-}
-
-template<typename Tp, size_t rank>
-size_t MultiArray<Tp, rank>::size() const {
-	return m_dims.prod();
-}
+template<typename Tp, size_t rank> auto MultiArray<Tp, rank>::dims()     const -> const Index & { return m_dims; }
+template<typename Tp, size_t rank> auto MultiArray<Tp, rank>::strides()  const -> const Index & { return m_strides; }
+template<typename Tp, size_t rank> size_t MultiArray<Tp, rank>::size()   const { return m_dims.prod(); }
+template<typename Tp, size_t rank> bool MultiArray<Tp, rank>::isPacked() const { return m_packed; }
 
 template<typename Tp, size_t rank>
 typename MultiArray<Tp, rank>::const_reference MultiArray<Tp, rank>::operator[](const Index &vox) const {
@@ -109,12 +91,6 @@ typename MultiArray<Tp, rank>::const_reference MultiArray<Tp, rank>::operator[](
 template<typename Tp, size_t rank>
 typename MultiArray<Tp, rank>::reference MultiArray<Tp, rank>::operator[](const size_t i) {
 	return const_cast<reference>(static_cast<const MultiArray<Tp, rank> &>(*this).operator[](i));
-}
-
-template<typename Tp, size_t rank>
-MultiArray<Tp, rank>::MultiArray(const Index &dims, const Index &strides, const size_t offset, const PtrTp &ptr) :
-	m_dims{dims}, m_strides{strides}, m_offset(offset), m_ptr(ptr) {
-	
 }
 
 template<typename Tp, size_t rank>
@@ -170,26 +146,42 @@ std::string MultiArray<Tp, rank>::print() const {
 	return ss.str();
 }
 
+/******************************************************************************
+ *
+ * Iterator Methods
+ *
+ *****************************************************************************/
 template<typename Tp, size_t rank>
 MultiArray<Tp, rank>::MultiArrayIterator::MultiArrayIterator(MultiArray &array, Index start) :
-	m_array(array), m_index(start) {
+	m_array(array),
+	m_index(start),
+	m_packedIndex(start.prod())
+{
 
 }
 
 template<typename Tp, size_t rank>
 Tp &MultiArray<Tp, rank>::iterator::operator*() {
-	return m_array[m_index];
+	if (m_array.isPacked()) {
+		return m_array[m_packedIndex];
+	} else {
+		return m_array[m_index];
+	}
 }
 
 template<typename Tp, size_t rank>
 auto MultiArray<Tp, rank>::iterator::operator++() -> iterator & {
-	size_t dim = 0;
-	for (size_t dim = 0; dim < rank; dim++) {
-		m_index[dim]++;
-		if (m_index[dim] == m_array.dims()[dim]) {
-			m_index[dim] = 0; // Reset this dim to zero, go and increment next dimension
-		} else {
-			break; // This dimension still has increments left
+	if (m_array.isPacked()) {
+		m_packedIndex++;
+	} else {
+		size_t dim = 0;
+		for (size_t dim = 0; dim < rank; dim++) {
+			m_index[dim]++;
+			if (m_index[dim] == m_array.dims()[dim]) {
+				m_index[dim] = 0; // Reset this dim to zero, go and increment next dimension
+			} else {
+				break; // This dimension still has increments left
+			}
 		}
 	}
 	return *this;
@@ -204,7 +196,9 @@ auto MultiArray<Tp, rank>::iterator::operator++(int) -> iterator {
 
 template<typename Tp, size_t rank>
 bool MultiArray<Tp, rank>::iterator::operator==(const iterator &other) const {
-	if ((m_index == other.m_index).all()) {
+	if (m_array.isPacked() && (m_packedIndex == other.m_packedIndex)) {
+		return true;
+	} else if ((m_index == other.m_index).all()) {
 		return true;
 	} else {
 		return false;
@@ -218,7 +212,7 @@ bool MultiArray<Tp, rank>::iterator::operator!=(const iterator &other) const {
 
 template<typename Tp, size_t rank>
 auto MultiArray<Tp, rank>::begin() -> iterator {
-	iterator b(*this, Index::Zero());
+	iterator b(*this);
 	return b;
 }
 
@@ -228,4 +222,4 @@ auto MultiArray<Tp, rank>::end() -> iterator {
 	return e;
 }
 
-#endif
+#endif // MULTIARRAY_INL_H

@@ -6,8 +6,8 @@
 //  Copyright (c) 2014 Tobias Wood. All rights reserved.
 //
 
-#ifndef VOLUME_VOLUME
-#define VOLUME_VOLUME
+#ifndef MULTIARRAY_H
+#define MULTIARRAY_H
 
 #include <iostream>
 #include <vector>
@@ -18,8 +18,6 @@
 
 #include "Eigen/Core"
 #include "Eigen/Geometry"
-
-#include "Nifti/Nifti.h"
 
 template<typename Tp, size_t rank>
 class MultiArray {
@@ -51,9 +49,10 @@ class MultiArray {
 			private:
 				MultiArray &m_array;
 				Index m_index;
+				size_t m_packedIndex;
 
 			public:
-				MultiArrayIterator(MultiArray &array, Index start);
+				MultiArrayIterator(MultiArray &array, Index start = Index::Zero());
 				Tp &operator*();
 
 				MultiArrayIterator &operator++();
@@ -66,25 +65,23 @@ class MultiArray {
 
 		static const size_t MaxIndex{std::numeric_limits<size_t>::max()};
 	protected:
-		PtrTp   m_ptr;
-		size_t  m_offset;
-		Index    m_dims, m_strides;
+		PtrTp  m_ptr;
+		size_t m_offset;
+		Index  m_dims, m_strides;
+		bool   m_packed;
 		
-		void calcStrides();
+		static Index CalcStrides(const Index &dims);
 	public:
 		MultiArray();
 		MultiArray(const Index &dims);
 		MultiArray(const Index &dims, const Index &strides, const size_t offset, const PtrTp &ptr);
 		MultiArray(const SliceIndex &dims, const size_t finalDim);
-		MultiArray(Nifti &img);
-		
-		void readFrom(Nifti &img);
-		void writeTo(Nifti &img);
 		
 		const Index &dims() const;
 		const Index &strides() const;
 		size_t size() const;
-		
+		bool isPacked() const;
+
 		SliceTp viewSlice(const size_t i, const size_t d=rank);
 
 		LineTp line(const SliceIndex &vox, const size_t d=rank) const;
@@ -106,9 +103,6 @@ class MultiArray {
 		}
 };
 
-template<typename Tp> using Volume = MultiArray<Tp, 3>;
-template<typename Tp> using Series = MultiArray<Tp, 4>;
-
 #include "MultiArray-inl.h"
 
-#endif //VOLUME_VOLUME
+#endif //MULTIARRAY_H
