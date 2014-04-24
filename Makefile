@@ -52,7 +52,7 @@ $(BUILD_DIR)/libAgilent.a : $(AGILENT_OBJ)
 #Rules for libQUIT
 QUIT_DIR   := QUIT
 QUIT_SRC   := ThreadPool
-QUIT_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, MultiArray.h MultiArray-inl.h)
+QUIT_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, MultiArray.h MultiArray-inl.h Volume.h Volume-inl.h)
 QUIT_OBJ   := $(addprefix $(BUILD_DIR)/$(QUIT_DIR)/, $(addsuffix .o, $(QUIT_SRC)))
 $(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp | EIGEN libNifti.a
 	@mkdir -p $(dir $@)
@@ -63,12 +63,12 @@ $(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_PHDR)
 
 #Rules for tools
 TOOL_DIR   := Tools
-TOOLS      := niihdr niicomplex procparse fdf2nii
+TOOLS      := niihdr niicomplex niigrad procparse fdf2nii
 PYTOOLS    := fdf2nii.py
-$(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp $(NIFTI_PHDR) | EIGEN
+$(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp $(NIFTI_HDR) $(QUIT_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(addprefix $(BUILD_DIR)/, $(TOOLS)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(TOOL_DIR)/%.o | libAgilent.a libNifti.a
+$(addprefix $(BUILD_DIR)/, $(TOOLS)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(TOOL_DIR)/%.o | libAgilent.a libNifti.a libQUIT.a
 	@mkdir -p $(dir $@)
 	$(CXX) $^ -o $@ $(LDFLAGS) -lAgilent -lNifti -lz
 $(addprefix $(BUILD_DIR)/, $(PYTOOLS)) :

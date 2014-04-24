@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol.readFrom(B1File);
+				B1Vol = Volume<float>{B1File};
 				break;
 			case '1': components = Signal::Components::One; break;
 			case '2': components = Signal::Components::Two; break;

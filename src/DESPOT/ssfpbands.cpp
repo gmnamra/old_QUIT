@@ -17,7 +17,7 @@
 #include "Eigen/Dense"
 
 #include "Nifti/Nifti.h"
-#include "QUIT/MultiArray.h"
+#include "QUIT/Volume.h"
 #include "QUIT/ThreadPool.h"
 #include "DESPOT.h"
 
@@ -123,9 +123,10 @@ int main(int argc, char **argv)
 	}
 	size_t nFlip = inputFile.dim(4) / 4;
 	
-	Series<float> input1, input2;
-	Series<complex<float>> inputC;
+	Series<float> input1(inputFile.dims()), input2(inputFile.dims());
+	Series<complex<float>> inputC(inputFile.dims());
 	if (inputType != Type::Complex) {
+		cout << "Reading data." << endl;
 		input1.readFrom(inputFile);
 		inputFile.close();
 		cout << "Opening input file: " << argv[optind] << endl;
@@ -162,7 +163,7 @@ int main(int argc, char **argv)
 		
 		for (size_t j = 0; j < templateFile.dim(2); j++) {
 			function<void (const size_t)> processVox = [&] (const size_t i) {
-				const typename Volume<float>::Indx vox{i, j, k};
+				const typename Volume<float>::Index vox{i, j, k};
 				if (!maskFile.isOpen() || (maskVol[vox])) {
 					voxCount++;
 

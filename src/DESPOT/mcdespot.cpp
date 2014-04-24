@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskVol.readFrom(maskFile);
+				maskVol = Volume<int8_t>{maskFile};
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -212,14 +212,14 @@ int main(int argc, char **argv)
 				} else {
 					cout << "Reading f0 file: " << optarg << endl;
 					f0File.open(optarg, Nifti::Mode::Read);
-					f0Vol.readFrom(f0File);
+					f0Vol = Volume<float>{f0File};
 					f0fit = OffRes::Map;
 				}
 				break;
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol.readFrom(B1File);
+				B1Vol = Volume<float>{B1File};
 				break;
 			case 's': start_slice = atoi(optarg); break;
 			case 'p': stop_slice = atoi(optarg); break;

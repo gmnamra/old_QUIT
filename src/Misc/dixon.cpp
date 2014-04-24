@@ -13,7 +13,7 @@
 #include "Eigen/Dense"
 
 #include "Nifti/Nifti.h"
-#include "QUIT/MultiArray.h"
+#include "QUIT/Volume.h"
 #include "QUIT/ThreadPool.h"
 
 using namespace std;
@@ -77,17 +77,17 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	Series<float> mag, phase;
 	cout << "Opening magnitude file: " << argv[optind] << endl;
 	Nifti inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
 	Nifti templateFile(inputFile, 1);
+	Series<float> mag{inputFile};
 	mag.readFrom(inputFile);
 	inputFile.close();
 
-	cout << "Opening magnitude file: " << argv[optind] << endl;
+	cout << "Opening phase file: " << argv[optind] << endl;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
-	phase.readFrom(inputFile);
+	Series<float> phase{inputFile};
 
 	if (!templateFile.matchesSpace(inputFile) || (maskFile.isOpen() && !templateFile.matchesSpace(maskFile))) {
 		cerr << "Input file dimensions or orientations do not match." << endl;

@@ -18,7 +18,7 @@
 #include <Eigen/Dense>
 
 #include "Nifti/Nifti.h"
-#include "QUIT/MultiArray.h"
+#include "QUIT/Volume.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 	try { // To fix uncaught exceptions on Mac
 	
 	Nifti maskFile, f0File, B1File;
-	Volume<int8_t> maskData;
+	Volume<int8_t> maskVol;
 	Volume<float> f0Vol, B1Vol;
 	string procPath;
 	
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData.readFrom(maskFile);
+				maskVol = Volume<int8_t>{maskFile};
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -138,14 +138,14 @@ int main(int argc, char **argv)
 				} else {
 					cout << "Reading f0 file: " << optarg << endl;
 					f0File.open(optarg, Nifti::Mode::Read);
-					f0Vol.readFrom(f0File);
+					f0Vol = Volume<float>{f0File};
 					f0fit = OffRes::Map;
 				}
 				break;
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol.readFrom(B1File);
+				B1Vol = Volume<float>{B1File};
 				break;
 			case 's': start_slice = atoi(optarg); break;
 			case 'p': stop_slice = atoi(optarg); break;
@@ -204,8 +204,7 @@ int main(int argc, char **argv)
 	}
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
 	Nifti inFile(argv[optind++], Nifti::Mode::Read);
-	Volume<float> T1Data;
-	T1Data.readFrom(inFile);
+	Volume<float> T1Data{inFile};
 	inFile.close();
 	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
 	    (f0File.isOpen() && !inFile.matchesSpace(f0File)) ||
@@ -298,7 +297,7 @@ int main(int argc, char **argv)
 		atomic<int> voxCount{0};
 		clock_t loopStart = clock();
 		
-		auto maskSlice = maskData.viewSlice(k);
+		auto maskSlice = maskVol.viewSlice(k);
 		auto B1Slice = B1Vol.viewSlice(k);
 		auto T1Slice = T1Data.viewSlice(k);
 		auto f0Slice = f0Vol.viewSlice(k);

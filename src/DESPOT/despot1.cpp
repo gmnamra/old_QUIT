@@ -17,7 +17,7 @@
 #include <Eigen/Dense>
 
 #include "Nifti/Nifti.h"
-#include "QUIT/MultiArray.h"
+#include "QUIT/Volume.h"
 #include "QUIT/ThreadPool.h"
 #include "Model.h"
 #include "DESPOT_Functors.h"
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol.readFrom(B1File);
+				B1Vol = Volume<float>{B1File};
 				break;
 			case 'a':
 				switch (*optarg) {
