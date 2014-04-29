@@ -40,7 +40,7 @@ MultiArray<Tp, rank>::MultiArray(const Index &inDims) :
 }
 
 template<typename Tp, size_t rank>
-MultiArray<Tp, rank>::MultiArray(const SliceIndex &inDims, const size_t finalDim) :
+MultiArray<Tp, rank>::MultiArray(const Eigen::Array<size_t, rank - 1, 1> &inDims, const size_t finalDim) :
 	m_offset{0},
 	m_packed{true}
 {
@@ -58,12 +58,18 @@ MultiArray<Tp, rank>::MultiArray(const Index &dims, const Index &strides, const 
 	m_ptr{ptr}
 {
 	m_packed = (CalcStrides(m_dims) == m_strides).all();
+	//std::cout << "Created new MultiArray" << std::endl;
+	//std::cout << *this << std::endl;
 }
 
 template<typename Tp, size_t rank> auto MultiArray<Tp, rank>::dims()     const -> const Index & { return m_dims; }
 template<typename Tp, size_t rank> auto MultiArray<Tp, rank>::strides()  const -> const Index & { return m_strides; }
 template<typename Tp, size_t rank> size_t MultiArray<Tp, rank>::size()   const { return m_dims.prod(); }
 template<typename Tp, size_t rank> bool MultiArray<Tp, rank>::isPacked() const { return m_packed; }
+
+template<typename Tp, size_t rank> void MultiArray<Tp, rank>::resize(const Index &newDims) {
+	*this = MultiArray<Tp, rank>{newDims};
+}
 
 template<typename Tp, size_t rank>
 typename MultiArray<Tp, rank>::const_reference MultiArray<Tp, rank>::operator[](const Index &vox) const {
@@ -94,55 +100,67 @@ typename MultiArray<Tp, rank>::reference MultiArray<Tp, rank>::operator[](const 
 }
 
 template<typename Tp, size_t rank>
-auto MultiArray<Tp, rank>::viewSlice(const size_t i, const size_t d) -> SliceTp {
-	SliceIndex newDims, newStrides;
-	size_t to_dim = 0, from_dim = 0;
+template<size_t newRank>
+MultiArray<Tp, newRank> MultiArray<Tp, rank>::slice(const Index &start, const Index &inSize) const {
+	typename MultiArray<Tp, newRank>::Index newDims, newStrides;
+
+	// Replace any "ALL" dimensions with actual size
+	Index size;
+	for (size_t i = 0; i < rank; i++) {
+		if (inSize[i] == size_t(-1)) {
+			size[i] = m_dims[i];
+		} else {
+			size[i] = inSize[i];
+		}
+	}
+	if (((start + size) > m_dims).any()) {
+		throw(std::out_of_range("Slice exceeds array dimensions."));
+	}
+
+	// Now go through and copy over dimensions/strides for slice
+	size_t to_dim = 0, from_dim = 0, reduced_dims = 0;
 	while(from_dim < rank) {
-		if (from_dim != (d-1)) {
+		if (size[from_dim] > 0) {
 			newDims[to_dim] = m_dims[from_dim];
 			newStrides[to_dim] = m_strides[from_dim];
 			to_dim++;
 		} else {
-		
+			reduced_dims++;
 		}
 		from_dim++;
 	}
-	size_t sliceOffset = m_offset + m_strides[d-1] * i;
-	return SliceTp{newDims, newStrides, sliceOffset, m_ptr};
-}
-
-template<typename Tp, size_t rank>
-auto MultiArray<Tp, rank>::line(const size_t i) const -> LineTp {
-	assert(i < m_dims.head(rank-1).prod());
-	auto first = m_ptr->data() + m_offset + i;
-	const LineTp s(first, m_dims[rank-1], Eigen::InnerStride<>(m_strides[rank-1]));
-	return s;
-}
-
-template<typename Tp, size_t rank>
-auto MultiArray<Tp, rank>::line(const SliceIndex &vox, const size_t lineD) const -> LineTp {
-	size_t idx = 0, d1 = 0, d2 = 0;
-	while (d1 < rank) {
-		if (d1 != (lineD-1)) {
-			if (vox[d2] > m_dims[d2]) {
-				throw(std::out_of_range("Requested line outside of volume dimensions."));
-			}
-			idx += m_strides[d1] * vox[d2];
-			d2++;
-		}
-		d1++;
+	if (newRank != (rank - reduced_dims)) {
+		throw(std::out_of_range("Incorrect number of non-zero dimensions."));
 	}
-	auto first = m_ptr->data() + m_offset + idx;
-	const LineTp s(first, m_dims[lineD-1], Eigen::InnerStride<>(m_strides[lineD-1]));
-	return s;
+	size_t newOffset = m_offset + (m_strides*start).sum();
+	MultiArray<Tp, newRank> slice(newDims, newStrides, newOffset, m_ptr);
+	return slice;
+}
+
+// Can't partially specialize this, just not allowed :-(
+template<typename Tp, size_t rank>
+auto MultiArray<Tp, rank>::asArray() const -> MapTp {
+	auto ptr = m_ptr->data() + m_offset;
+	if (rank == 1) {
+		// Outer and inner strides are reversed in Eigen constructor
+		const Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> strides(0, m_strides[0]);
+		MapTp array(ptr, m_dims[0], 1, strides);
+		return array;
+	} else if (rank == 2) {
+		Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> strides(m_strides[1], m_strides[0]);
+		MapTp array(ptr, m_dims[0], m_dims[1], strides);
+		return array;
+	} else {
+		throw(std::logic_error("Cannot convert to an Eigen::Array if more than 2 dimensions."));
+	}
 }
 
 template<typename Tp, size_t rank>
 std::string MultiArray<Tp, rank>::print() const {
 	std::stringstream ss;
+	ss << "MultiArray @" << m_ptr->data() << "+" << m_offset << ", share count: " << m_ptr.use_count() << std::endl;
 	ss << "Dims:    " << m_dims.transpose() << std::endl;
 	ss << "Strides: " << m_strides.transpose() << std::endl;
-	ss << "Offset:  " << m_offset << " Ptr Count: " << m_ptr.use_count() << std::endl;
 	return ss.str();
 }
 

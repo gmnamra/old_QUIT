@@ -23,11 +23,10 @@ template<typename Tp, size_t rank>
 class MultiArray {
 	public:
 		typedef Eigen::Array<size_t, rank, 1> Index;
-		typedef Eigen::Array<size_t, rank - 1, 1> SliceIndex;
+		typedef Eigen::Array<size_t, rank - 1, 1> SmallIndex;
 		typedef std::vector<Tp> StorageTp;
 		typedef std::shared_ptr<StorageTp> PtrTp;
-		typedef MultiArray<Tp, rank - 1> SliceTp;
-		typedef Eigen::Map<Eigen::Array<Tp, Eigen::Dynamic, 1>, 0, Eigen::InnerStride<>> LineTp;
+		typedef Eigen::Map<Eigen::Array<Tp, Eigen::Dynamic, Eigen::Dynamic>, Eigen::Unaligned, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>> MapTp;
 		// These typedefs are for STL Iterator compatibility
 		typedef Tp        value_type;
 		typedef size_t    size_type;
@@ -75,17 +74,16 @@ class MultiArray {
 		MultiArray();
 		MultiArray(const Index &dims);
 		MultiArray(const Index &dims, const Index &strides, const size_t offset, const PtrTp &ptr);
-		MultiArray(const SliceIndex &dims, const size_t finalDim);
-		
+		MultiArray(const SmallIndex &dims, const size_t finalDim);
+
 		const Index &dims() const;
 		const Index &strides() const;
 		size_t size() const;
 		bool isPacked() const;
+		void resize(const Index &newDims);
 
-		SliceTp viewSlice(const size_t i, const size_t d=rank);
-
-		LineTp line(const SliceIndex &vox, const size_t d=rank) const;
-		LineTp line(const size_t i) const;
+		template<size_t newRank> MultiArray<Tp, newRank> slice(const Index &start, const Index &size) const;
+		MapTp asArray() const;
 
 		// STL-like interface
 		const_reference operator[](const size_t i) const;
