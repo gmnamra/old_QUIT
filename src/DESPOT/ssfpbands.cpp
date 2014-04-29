@@ -17,14 +17,7 @@
 #include "Eigen/Dense"
 
 #include "Nifti/Nifti.h"
-#include "QUIT/Volume.h"
-#include "QUIT/ThreadPool.h"
-#include "DESPOT.h"
-
-#ifdef AGILENT
-#include "procpar.h"
-using namespace Agilent;
-#endif
+#include "QUIT/QUIT.h"
 
 using namespace std;
 using namespace Eigen;
@@ -68,7 +61,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << version << endl << credit_me << endl;
 	Nifti maskFile;
-	Volume<int8_t> maskVol;
+	MultiArray<int8_t, 3> maskVol;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvo:m:t:", long_options, &indexptr)) != -1) {
@@ -77,7 +70,8 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskVol.readFrom(maskFile);
+				maskVol.resize(maskFile.dims().head(3));
+				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -123,11 +117,11 @@ int main(int argc, char **argv)
 	}
 	size_t nFlip = inputFile.dim(4) / 4;
 	
-	Series<float> input1(inputFile.dims()), input2(inputFile.dims());
-	Series<complex<float>> inputC(inputFile.dims());
+	MultiArray<float, 4> input1(inputFile.dims()), input2(inputFile.dims());
+	MultiArray<complex<float>, 4> inputC(inputFile.dims());
 	if (inputType != Type::Complex) {
 		cout << "Reading data." << endl;
-		input1.readFrom(inputFile);
+		inputFile.readVolumes(input1.begin(), input1.end());
 		inputFile.close();
 		cout << "Opening input file: " << argv[optind] << endl;
 		inputFile.open(argv[optind++], Nifti::Mode::Read);
@@ -135,10 +129,10 @@ int main(int argc, char **argv)
 			cerr << "Input files do not match." << endl;
 			exit(EXIT_FAILURE);
 		}
-		input2.readFrom(inputFile);
+		inputFile.readVolumes(input2.begin(), input2.end());
 		inputFile.close();
 	} else {
-		inputC.readFrom(inputFile);
+		inputFile.readVolumes(inputC.begin(), inputC.end());
 		inputFile.close();
 	}
 	if ((argc - optind) != 0) {
@@ -146,8 +140,9 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	// Results storage
-	Series<float> outMag(input1.dims().head(3), nFlip);
-	Series<float> outPhase(input1.dims().head(3), nFlip);
+	MultiArray<float, 4> outMag(input1.dims().head(3), nFlip);
+	MultiArray<float, 4> outPhase(input1.dims().head(3), nFlip);
+	MultiArray<int8_t, 4> outReg(input1.dims().head(3), nFlip);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -159,20 +154,17 @@ int main(int argc, char **argv)
 		if (verbose)
 			cout << "Starting slice " << k << "..." << flush;
 		loopStart = clock();
-		atomic<int> voxCount{0};
+		atomic<int> voxCount;
 		
 		for (size_t j = 0; j < templateFile.dim(2); j++) {
 			function<void (const size_t)> processVox = [&] (const size_t i) {
-				const typename Volume<float>::Index vox{i, j, k};
-				if (!maskFile.isOpen() || (maskVol[vox])) {
+				if (!maskFile.isOpen() || (maskVol[{i,j,k}])) {
 					voxCount++;
-
 					ArrayXcd I1(nFlip), I2(nFlip), I3(nFlip), I4(nFlip);
 					switch (inputType) {
 						case (Type::Phase): {
-							ArrayXd mag = input1.line(vox).cast<double>();
-							ArrayXd ph  = input2.line(vox).cast<double>();
-							
+							ArrayXd mag = input1.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
+							ArrayXd ph  = input2.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
 							I1.real() = mag.head(nFlip) * ph.head(nFlip).cos();
 							I1.imag() = mag.head(nFlip) * ph.head(nFlip).sin();
 							I2.real() = mag.segment(nFlip, nFlip) * ph.segment(nFlip, nFlip).cos();
@@ -183,8 +175,8 @@ int main(int argc, char **argv)
 							I4.imag() = mag.tail(nFlip) * ph.tail(nFlip).sin();
 						}	break;
 						case (Type::Imag): {
-							ArrayXd re = input1.line(vox).cast<double>();
-							ArrayXd im = input2.line(vox).cast<double>();
+							ArrayXd re = input1.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
+							ArrayXd im = input2.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
 							
 							I1.real() = re.head(nFlip);
 							I1.imag() = im.head(nFlip);
@@ -196,7 +188,7 @@ int main(int argc, char **argv)
 							I4.imag() = im.tail(nFlip);
 						 }	break;
 						case (Type::Complex): {
-							ArrayXcd input = inputC.line(vox).cast<complex<double>>();
+							ArrayXcd input = inputC.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
 							I1 = input.head(nFlip);
 							I2 = input.segment(nFlip, nFlip);
 							I3 = input.segment(2*nFlip, nFlip);
@@ -206,9 +198,20 @@ int main(int argc, char **argv)
 					
 					ArrayXcd crossPoint = ((I1.real()*I3.imag() - I3.real()*I1.imag())*(I2 - I4) - (I2.real()*I4.imag() - I4.real()*I2.imag())*(I1 - I3)) /
 					                      ((I1.real() - I3.real())*(I2.imag() - I4.imag()) + (I2.real() - I4.real())*(I3.imag() - I1.imag()));
-					outMag.line(vox) = crossPoint.abs().cast<float>();
-					outPhase.line(vox) = crossPoint.imag().binaryExpr(crossPoint.real(), ptr_fun<double,double,double>(atan2)).cast<float>();
+					ArrayXcd complexAvg = (I1 + I2 + I3 + I4) / 4;
+					auto makesSense = (crossPoint.abs() < I1.abs()) ||
+					                  (crossPoint.abs() < I2.abs()) ||
+					                  (crossPoint.abs() < I3.abs()) ||
+					                  (crossPoint.abs() < I4.abs());
+					auto outM = outMag.slice<1>({i,j,k,0},{0,0,0,-1}).asArray();
+					auto outP = outPhase.slice<1>({i,j,k,0},{0,0,0,-1}).asArray();
+					outReg.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = makesSense.cast<int8_t>();
+
+					outM = (makesSense).select(crossPoint.abs().cast<float>(), complexAvg.abs().cast<float>());
+					outP = (makesSense).select(crossPoint.imag().binaryExpr(crossPoint.real(), ptr_fun<double,double,double>(atan2)).cast<float>(),
+					                           complexAvg.imag().binaryExpr(crossPoint.real(), ptr_fun<double,double,double>(atan2)).cast<float>());
 				}
+				//exit(EXIT_SUCCESS);
 			};
 			
 			pool.for_loop(processVox, templateFile.dim(1));
@@ -227,10 +230,14 @@ int main(int argc, char **argv)
 		cout << "Writing results." << endl;
 	templateFile.setDim(4, nFlip);
 	templateFile.open(outPrefix + "no_bands_mag.nii.gz", Nifti::Mode::Write);
-	outMag.writeTo(templateFile);
+	templateFile.writeVolumes(outMag.begin(), outMag.end());
 	templateFile.close();
 	templateFile.open(outPrefix + "no_bands_ph.nii.gz", Nifti::Mode::Write);
-	outPhase.writeTo(templateFile);
+	templateFile.writeVolumes(outPhase.begin(), outPhase.end());
+	templateFile.close();
+	templateFile.setDatatype(Nifti::DataType::INT8);
+	templateFile.open(outPrefix + "no_bands_reg.nii.gz", Nifti::Mode::Write);
+	templateFile.writeVolumes(outReg.begin(), outReg.end());
 	templateFile.close();
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
