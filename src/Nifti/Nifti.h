@@ -161,10 +161,10 @@ class Nifti {
 		bool matchesSpace(const Nifti &other) const;  //!< Check if voxel dimensions, data size and XForm match
 		bool matchesVoxels(const Nifti &other) const; //!< Looser check if voxel dimensions and data size match
 		
-		template<typename IterTp> void readVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, IterTp begin, IterTp end);
-		template<typename IterTp> void readVolumes(const size_t first, const size_t nvol, IterTp begin, IterTp end);
-		template<typename IterTp> void writeVoxels(const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size, IterTp begin, IterTp end);
-		template<typename IterTp> void writeVolumes(const size_t vol, const size_t nvol, IterTp begin, IterTp end);
+		template<typename IterTp> void readVoxels(IterTp begin, IterTp end, const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size);
+		template<typename IterTp> void readVolumes(IterTp begin, IterTp end, const size_t first = 0, const size_t nvol = 0);
+		template<typename IterTp> void writeVoxels(IterTp begin, IterTp end, const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size);
+		template<typename IterTp> void writeVolumes(IterTp begin, IterTp end, const size_t first = 0, const size_t nvol = 0);
 		void addExtension(const int code, const std::vector<char> &data);
 		void addExtension(const Extension &e);
 		const std::list<Extension> &extensions() const;
