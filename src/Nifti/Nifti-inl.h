@@ -162,6 +162,14 @@ void Nifti::readVolumes(IterTp begin, IterTp end, const size_t first, const size
 	readWriteVoxels(start, size, begin, end);
 }
 
+template<typename IterTp> void Nifti::readAll(IterTp begin, IterTp end) {
+	if (!(m_mode == Mode::Read))
+		throw(std::runtime_error("File must be opened for reading: " + basePath()));
+	ArrayXs start = ArrayXs::Zero(rank());
+	ArrayXs size  = ArrayXs::Zero(rank());
+	readWriteVoxels(start, size, begin, end);
+}
+
 template<typename IterTp>
 void Nifti::writeVoxels(IterTp begin, IterTp end, const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size) {
 	if (!(m_mode == Mode::Write))
@@ -176,6 +184,14 @@ void Nifti::writeVolumes(IterTp begin, IterTp end, const size_t first, const siz
 	size_t nvol = (invol == 0) ? dim(4) : invol;
 	Eigen::Array<size_t, 4, 1> start{0, 0, 0, first};
 	Eigen::Array<size_t, 4, 1> size{dim(1), dim(2), dim(3), nvol};
+	readWriteVoxels(start, size, begin, end);
+}
+
+template<typename IterTp> void Nifti::writeAll(IterTp begin, IterTp end) {
+	if (!(m_mode == Mode::Write))
+		throw(std::runtime_error("File must be opened for writing: " + basePath()));
+	ArrayXs start = ArrayXs::Zero(rank());
+	ArrayXs size  = ArrayXs::Zero(rank());
 	readWriteVoxels(start, size, begin, end);
 }
 
