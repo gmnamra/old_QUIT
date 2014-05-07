@@ -21,6 +21,7 @@ using namespace std;
 #ifdef AGILENT
 	#include "procpar.h"
 #endif
+#include "QUIT/QUIT.h"
 #include "DESPOT.h"
 
 const string usage{
@@ -57,7 +58,7 @@ int main(int argc, char **argv) {
 				cout << "Reading mask." << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
 				mask.resize(maskFile.dims().head(3).prod());
-				maskFile.readVolumes(0, 1, mask.begin(), mask.end());
+				maskFile.readVolumes(mask.begin(), mask.end(), 0, 1);
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -104,8 +105,8 @@ int main(int argc, char **argv) {
 	nomFlip = nomFlip * M_PI / 180.;
 	size_t nVoxels = inFile.dims().head(3).prod();
 	vector<double> tr1(nVoxels), tr2(nVoxels);
-	inFile.readVolumes(0, 1, tr1.begin(), tr1.end());
-	inFile.readVolumes(1, 1, tr2.begin(), tr2.end());
+	inFile.readVolumes(tr1.begin(), tr1.end(), 0, 1);
+	inFile.readVolumes(tr2.begin(), tr2.end(), 1, 1);
 	inFile.close();
 	vector<double> flip(nVoxels);
 	vector<double> B1(nVoxels);
@@ -131,13 +132,13 @@ int main(int argc, char **argv) {
 	string outPath = outPrefix + "angle.nii.gz";
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
 	outFile.open(outPath, Nifti::Mode::Write);
-	outFile.writeVolumes(0, 1, flip.begin(), flip.end());
+	outFile.writeVolumes(flip.begin(), flip.end(), 0, 1);
 	outFile.close();
 	
 	outPath = outPrefix + "B1.nii.gz";
 	cout << "Writing B1 ratio to " << outPath << "..." << endl;
 	outFile.open(outPath, Nifti::Mode::Write);
-	outFile.writeVolumes(0, 1, B1.begin(), B1.end());
+	outFile.writeVolumes(B1.begin(), B1.end(), 0, 1);
 	outFile.close();
 	
 	cout << "Finished." << endl;

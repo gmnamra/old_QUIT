@@ -20,7 +20,7 @@
 
 #include "Nifti/Nifti.h"
 #include "DESPOT.h"
-#include "QUIT/ThreadPool.h"
+#include "QUIT/QUIT.h"
 
 #ifdef AGILENT
 	#include "procpar.h"
@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
 				cout << "Opening mask file: " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
 				maskData.resize(maskFile.dims().head(3).prod());
-				maskFile.readVolumes(0, 1, maskData.begin(), maskData.end());
+				maskFile.readVolumes(maskData.begin(), maskData.end(), 0, 1);
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -281,8 +281,8 @@ int main(int argc, char **argv) {
 	
 	cout << "Reading image data..." << flush;
 	vector<double> SPGR(voxelsPerVolume * nSPGR), IR(voxelsPerVolume * nIR);
-	spgrFile.readVolumes(0, nSPGR, SPGR.begin(), SPGR.end());
-	irFile.readVolumes(0, nIR, IR.begin(), IR.end());
+	spgrFile.readVolumes(SPGR.begin(), SPGR.end(), 0, nSPGR);
+	irFile.readVolumes(IR.begin(), IR.end(), 0, nIR);
 	spgrFile.close();
 	irFile.close();
 	cout << "done." << endl;
@@ -353,7 +353,7 @@ int main(int argc, char **argv) {
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
 		outFile.open(outName, Nifti::Mode::Write);
-		outFile.writeVolumes(0, 1, resultsData[r].begin(), resultsData[r].end());
+		outFile.writeVolumes(resultsData[r].begin(), resultsData[r].end(), 0, 1);
 		outFile.close();
 	}
 	cout << "All done." << endl;

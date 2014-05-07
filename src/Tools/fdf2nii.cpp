@@ -129,11 +129,11 @@ int main(int argc, char **argv) {
 						cout << "Writing volume " << (outVol + 1) << " of " << nOutImages << endl;
 					if (echoMode >= 0) {
 						vector<float> echo = input.readVolume<float>(inVol, echoMode);
-						output.writeVolumes(outVol++, 1, echo.begin(), echo.end());
+						output.writeVolumes(echo.begin(), echo.end(),outVol++, 1);
 					} else if (echoMode == -1) {
 						for (size_t e = 0; e < input.dim(4); e++) {
 							vector<float> echo = input.readVolume<float>(inVol, e);
-							output.writeVolumes(outVol++, 1, echo.begin(), echo.end());
+							output.writeVolumes(echo.begin(), echo.end(), outVol++, 1);
 						}
 					} else {
 						vector<float> sum = input.readVolume<float>(inVol, 0);
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
 						if (echoMode == -3) {
 							transform(sum.begin(), sum.end(), sum.begin(), [&](float &f) { return f / input.dim(4); });
 						}
-						output.writeVolumes(outVol++, 1, sum.begin(), sum.end());
+						output.writeVolumes(sum.begin(), sum.end(), outVol++, 1);
 					}
 				}
 				output.close();

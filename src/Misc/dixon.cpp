@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 	// Argument Processing
 	//**************************************************************************
 	Nifti maskFile;
-	Volume<uint8_t> maskVol;
+	MultiArray<int8_t, 3> maskVol;
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvm:o:", long_options, &indexptr)) != -1) {
 		switch (c) {
@@ -58,7 +58,8 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskVol.readFrom(maskFile);
+				maskVol.resize(maskFile.dims());
+				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -81,14 +82,14 @@ int main(int argc, char **argv)
 	Nifti inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
 	Nifti templateFile(inputFile, 1);
-	Series<float> mag{inputFile};
-	mag.readFrom(inputFile);
+	MultiArray<float, 4> mag{inputFile.dims()};
+	inputFile.readVolumes(mag.begin(), mag.end());
 	inputFile.close();
 
 	cout << "Opening phase file: " << argv[optind] << endl;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
-	Series<float> phase{inputFile};
-
+	MultiArray<float, 4> phase{inputFile.dims()};
+	inputFile.readVolumes(phase.begin(), phase.end());
 	if (!templateFile.matchesSpace(inputFile) || (maskFile.isOpen() && !templateFile.matchesSpace(maskFile))) {
 		cerr << "Input file dimensions or orientations do not match." << endl;
 		exit(EXIT_FAILURE);
@@ -96,46 +97,40 @@ int main(int argc, char **argv)
 	inputFile.close();
 
 	Nifti::ArrayXs dims = templateFile.dims().head(3);
-	Volume<float> Wv(dims), Fv(dims), Av(dims);
+	MultiArray<float, 3> Wv(dims), Fv(dims), Av(dims);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
 	ThreadPool pool;
 	cout << "Starting processing..." << endl;
-	for (size_t k = 0; k < templateFile.dim(3); k++) {
+	auto S0 = mag.slice<3>({0,0,0,0},{-1,-1,-1,0});
+	auto S1 = mag.slice<3>({0,0,0,1},{-1,-1,-1,0});
+	auto S2 = mag.slice<3>({0,0,0,2},{-1,-1,-1,0});
+	auto phi0 = phase.slice<3>({0,0,0,0},{-1,-1,-1,0});
+	auto phi1 = phase.slice<3>({0,0,0,1},{-1,-1,-1,0});
+	auto phi2 = phase.slice<3>({0,0,0,2},{-1,-1,-1,0});
+	for (size_t k = 0; k < S0.dims()[2]; k++) {
 		clock_t loopStart;
 		// Read in data
 		if (verbose)
 			cout << "Starting slice " << k << "..." << flush;
 		loopStart = clock();
 		atomic<int> voxCount{0};
-		
-		auto S0s = mag.viewSlice(0).viewSlice(k),
-		     S1s = mag.viewSlice(1).viewSlice(k),
-			 S2s = mag.viewSlice(2).viewSlice(k),
-			 phi0s = phase.viewSlice(0).viewSlice(k),
-			 phi1s = phase.viewSlice(1).viewSlice(k),
-			 phi2s = phase.viewSlice(2).viewSlice(k);
-		auto Ms = maskVol.viewSlice(k);
-		auto Ws = Wv.viewSlice(k),
-		     Fs = Fv.viewSlice(k),
-			 As = Av.viewSlice(k);
 		//cout << endl << I0s << endl << I1s << endl << I2s << endl;
 		//cout << Ws << endl << Fs << endl << As << endl;
-		function<void (const size_t)> processVox = [&] (const size_t i) {
-			if (!maskFile.isOpen() || Ms[i]) {
-				// From Ma et al JMR 1997
-				float S0 = S0s[i], S1 = S1s[i], S2 = S2s[i];
-				float phi0 = phi0s[i], phi1 = phi1s[i], phi2 = phi2s[i];
-				As[i] = sqrt(S2 / S0);
-				float phi = (phi2 - phi0) / 2.;
-				float psi = cos((phi1 - phi0) - phi);
-				float frac = S1 / sqrt(S0*S2);
-				Ws[i] = (1 + psi * frac) * S0 / 2.;
-				Fs[i] = (1 - psi * frac) * S0 / 2.;
-			}
+		function<void (const size_t)> processVox = [&] (const size_t j) {
+			for (size_t i = 0; i < S0.dims()[0]; i++)
+				if (!maskFile.isOpen() || maskVol[{i,j,k}]) {
+					// From Ma et al JMR 1997
+					Av[{i,j,k}] = sqrt(S2[{i,j,k}] / S0[{i,j,k}]);
+					float phi = (phi2[{i,j,k}] - phi0[{i,j,k}]) / 2.;
+					float psi = cos((phi1[{i,j,k}] - phi0[{i,j,k}]) - phi);
+					float frac = S1[{i,j,k}] / sqrt(S0[{i,j,k}]*S2[{i,j,k}]);
+					Wv[{i,j,k}] = (1 + psi * frac) * S0[{i,j,k}] / 2.;
+					Fv[{i,j,k}] = (1 - psi * frac) * S0[{i,j,k}] / 2.;
+				}
 		};
-		pool.for_loop(processVox, S0s.size());
+		pool.for_loop(processVox, S0.dims()[1]);
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -149,13 +144,13 @@ int main(int argc, char **argv)
 	if (verbose)
 		cout << "Writing results." << endl;
 	templateFile.open(outPrefix + "W.nii.gz", Nifti::Mode::Write);
-	Wv.writeTo(templateFile);
+	templateFile.writeVolumes(Wv.begin(), Wv.end());
 	templateFile.close();
 	templateFile.open(outPrefix + "F.nii.gz", Nifti::Mode::Write);
-	Fv.writeTo(templateFile);
+	templateFile.writeVolumes(Fv.begin(), Fv.end());
 	templateFile.close();
 	templateFile.open(outPrefix + "A.nii.gz", Nifti::Mode::Write);
-	Av.writeTo(templateFile);
+	templateFile.writeVolumes(Av.begin(), Av.end());
 	templateFile.close();
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);

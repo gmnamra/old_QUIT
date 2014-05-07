@@ -16,7 +16,7 @@
 #include <exception>
 #include <Eigen/Dense>
 #include <Nifti/Nifti.h>
-#include "QUIT/ThreadPool.h"
+#include "QUIT/QUIT.h"
 #include "Model.h"
 
 using namespace std;
@@ -103,8 +103,8 @@ int main(int argc, char **argv)
 	try { // To fix uncaught exceptions on Mac
 	
 	Nifti maskFile, B1File;
-	Volume<int8_t> maskVol;
-	Volume<float> B1Vol;
+	MultiArray<int8_t, 3> maskVol;
+	MultiArray<float, 3> B1Vol;
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvnm:o:b:123M:", long_options, &indexptr)) != -1) {
 		switch (c) {
@@ -113,7 +113,8 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskVol.readFrom(maskFile);
+				maskVol.resize(maskFile.dims());
+				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -122,7 +123,8 @@ int main(int argc, char **argv)
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol = Volume<float>{B1File};
+				B1Vol.resize(B1File.dims());
+				B1File.readVolumes(B1Vol.begin(), B1Vol.end(), 0, 1);
 				break;
 			case '1': components = Signal::Components::One; break;
 			case '2': components = Signal::Components::Two; break;
@@ -163,7 +165,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << Signal::to_string(components) << " component model." << endl;
-	Series<float> paramsVols;
+	MultiArray<float, 4> paramsVols;
 	Nifti saveFile;
 	size_t numVoxels;
 	if (prompt) cout << "Loading parameters." << endl;
@@ -175,7 +177,7 @@ int main(int argc, char **argv)
 
 		if (i == 0) {
 			saveFile = Nifti(input, model->size());
-			paramsVols = Series<float>(input.dims().head(3), model->nParameters());
+			paramsVols = MultiArray<float, 4>(input.dims().head(3), model->nParameters());
 			numVoxels = input.dims().head(3).prod();
 		} else {
 			if (!input.matchesSpace(saveFile)) {
@@ -183,9 +185,10 @@ int main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 			}
 		}
-		paramsVols.viewSlice(i).readFrom(input);
+		auto inVol = paramsVols.slice<3>({0,0,0,i},{-1,-1,-1,1});
+		input.readVolumes(inVol.begin(), inVol.end(), 0, 1);
 	}
-	Series<float> signalVols(saveFile.dims().head(3), model->size());
+	MultiArray<float, 4> signalVols(saveFile.dims().head(3), model->size());
 	
 	cout << "Started calculating." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &v) {

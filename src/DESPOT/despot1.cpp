@@ -17,8 +17,7 @@
 #include <Eigen/Dense>
 
 #include "Nifti/Nifti.h"
-#include "QUIT/Volume.h"
-#include "QUIT/ThreadPool.h"
+#include "QUIT/QUIT.h"
 #include "Model.h"
 #include "DESPOT_Functors.h"
 #include "unsupported/Eigen/NonLinearOptimization"
@@ -46,7 +45,7 @@ Options:\n\
 	--B1, -b file     : B1 Map file (ratio)\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
-			   n      : NLLS (Levenberg-Marquardt)\n\
+	           n      : NLLS (Levenberg-Marquardt)\n\
 	--its, -i N      : Max iterations for WLLS (default 4)\n"
 };
 
@@ -80,8 +79,8 @@ int main(int argc, char **argv)
 	try { // To fix uncaught exceptions on Mac
 
 	Nifti spgrFile, B1File, maskFile;
-	Volume<float> B1Vol;
-	Volume<int8_t> maskVol;
+	MultiArray<float, 3> B1Vol;
+	MultiArray<int8_t, 3> maskVol;
 	
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvm:o:b:a:i:", long_options, &indexptr)) != -1) {
@@ -90,7 +89,8 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskVol.readFrom(maskFile);
+				maskVol.resize(maskFile.dims());
+				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
 			case 'o':
 				outPrefix = optarg;
@@ -99,7 +99,8 @@ int main(int argc, char **argv)
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol = Volume<float>{B1File};
+				B1Vol.resize(B1File.dims());
+				B1File.readVolumes(B1Vol.begin(), B1Vol.end());
 				break;
 			case 'a':
 				switch (*optarg) {
@@ -111,7 +112,7 @@ int main(int argc, char **argv)
 						exit(EXIT_FAILURE);
 						break;
 				} break;
-			case 'n':
+			case 'i':
 				nIterations = atoi(optarg);
 				break;
 			case 'h':
@@ -149,75 +150,65 @@ int main(int argc, char **argv)
 		cout << "Ouput prefix will be: " << outPrefix << endl;
 	}
 	double TR = spgrMdl.m_signals.at(0)->m_TR;
-	//**************************************************************************
-	// Allocate memory for slices
-	//**************************************************************************
 	cout << "Reading SPGR data..." << flush;
-	Series<complex<float>> spgrVol(spgrFile);
+	MultiArray<complex<float>, 4> spgrVols(spgrFile.dims());
+	spgrFile.readVolumes(spgrVols.begin(), spgrVols.end());
 	cout << "done." << endl;
-	//**************************************************************************
-	// Create results data storage
-	//**************************************************************************
-	Volume<float> T1Vol(spgrVol.dims().head(3)), PDVol(spgrVol.dims().head(3)),
-	              SoSVol(spgrVol.dims().head(3));
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
+	MultiArray<float, 3> T1Vol(spgrVols.dims().head(3)), PDVol(spgrVols.dims().head(3)),
+	                     SoSVol(spgrVols.dims().head(3));
 	ThreadPool pool;
 	for (size_t k = 0; k < spgrFile.dim(3); k++) {
 		clock_t loopStart;
-		// Read in data
 		if (verbose)
 			cout << "Starting slice " << k << "..." << flush;
 		loopStart = clock();
 		atomic<int> voxCount{0};
-		auto slice = spgrVol.viewSlice(k, 3);
-		auto maskSlice = maskVol.viewSlice(k);
-		auto B1Slice = B1Vol.viewSlice(k);
-		auto T1Slice = T1Vol.viewSlice(k);
-		auto PDSlice = PDVol.viewSlice(k);
-		auto SoSSlice = SoSVol.viewSlice(k);
-		function<void (const size_t)> processVox = [&] (const size_t i) {
-			if (!maskFile.isOpen() || (maskSlice[i])) {
-				voxCount++;
-				double B1 = B1File.isOpen() ? B1Slice[i] : 1.;
-				ArrayXd localAngles(spgrMdl.m_signals.at(0)->B1flip(B1));
-				double T1, PD, SoS;
-				ArrayXd signal = slice.line(i).abs().cast<double>();
-				VectorXd Y = signal / localAngles.sin();
-				MatrixXd X(Y.rows(), 2);
-				X.col(0) = signal / localAngles.tan();
-				X.col(1).setOnes();
-				VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
-				T1 = -TR / log(b[0]);
-				PD = b[1] / (1. - b[0]);
-				if (algo == Algos::WLLS) {
-					VectorXd W(spgrMdl.size());
-					for (size_t n = 0; n < nIterations; n++) {
-						W = (localAngles.sin() / (1. - (exp(-TR/T1)*localAngles.cos()))).square();
-						b = (X.transpose() * W.asDiagonal() * X).partialPivLu().solve(X.transpose() * W.asDiagonal() * Y);
-						T1 = -TR / log(b[0]);
-						PD = b[1] / (1. - b[0]);
+		function<void (const size_t)> process = [&] (const size_t j) {
+			for (size_t i = 0; i < spgrFile.dim(1); i++) {
+				if (!maskFile.isOpen() || (maskVol[{i,j,k}])) {
+					voxCount++;
+					double B1 = B1File.isOpen() ? B1Vol[{i,j,k}] : 1.;
+					ArrayXd localAngles(spgrMdl.m_signals.at(0)->B1flip(B1));
+					double T1, PD, SoS;
+					ArrayXd signal = spgrVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().abs().cast<double>();
+					VectorXd Y = signal / localAngles.sin();
+					MatrixXd X(Y.rows(), 2);
+					X.col(0) = signal / localAngles.tan();
+					X.col(1).setOnes();
+					VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
+					T1 = -TR / log(b[0]);
+					PD = b[1] / (1. - b[0]);
+					if (algo == Algos::WLLS) {
+						VectorXd W(spgrMdl.size());
+						for (size_t n = 0; n < nIterations; n++) {
+							W = (localAngles.sin() / (1. - (exp(-TR/T1)*localAngles.cos()))).square();
+							b = (X.transpose() * W.asDiagonal() * X).partialPivLu().solve(X.transpose() * W.asDiagonal() * Y);
+							T1 = -TR / log(b[0]);
+							PD = b[1] / (1. - b[0]);
+						}
+					} else if (algo == Algos::NLLS) {
+						DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal.cast<complex<double>>(), B1, false, false);
+						NumericalDiff<DESPOTFunctor> nDiff(f);
+						LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
+						lm.parameters.maxfev = nIterations;
+						VectorXd p(4);
+						p << PD, T1, 0., 0.; // Don't need T2 of f0 for this (yet)
+						lm.lmder1(p);
+						PD = p(0); T1 = p(1);
 					}
-				} else if (algo == Algos::NLLS) {
-					DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal.cast<complex<double>>(), B1, false, false);
-					NumericalDiff<DESPOTFunctor> nDiff(f);
-					LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
-					lm.parameters.maxfev = nIterations;
-					VectorXd p(4);
-					p << PD, T1, 0., 0.; // Don't need T2 of f0 for this (yet)
-					lm.lmder1(p);
-					PD = p(0); T1 = p(1);
+					ArrayXd theory = spgrMdl.signal(Vector4d(PD, T1, 0., 0.), B1).abs();
+					SoS = (signal - theory).square().sum();
+					T1Vol[{i,j,k}]  = static_cast<float>(T1);
+					PDVol[{i,j,k}]  = static_cast<float>(PD);
+					SoSVol[{i,j,k}] = static_cast<float>(SoS);
 				}
-				ArrayXd theory = spgrMdl.signal(Vector4d(PD, T1, 0., 0.), B1).abs();
-				SoS = (signal - theory).square().sum();
-				T1Slice[i]  = static_cast<float>(T1);
-				PDSlice[i]  = static_cast<float>(PD);
-				SoSSlice[i] = static_cast<float>(SoS);
 			}
 		};
 			
-		pool.for_loop(processVox, T1Slice.size());
+		pool.for_loop(process, spgrFile.dim(2));
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -233,13 +224,13 @@ int main(int argc, char **argv)
 	Nifti outFile(spgrFile, 1);
 	outFile.description = version;
 	outFile.open(outPrefix + "D1_T1.nii.gz", Nifti::Mode::Write);
-	T1Vol.writeTo(outFile);
+	outFile.writeVolumes(T1Vol.begin(), T1Vol.end());
 	outFile.close();
 	outFile.open(outPrefix + "D1_PD.nii.gz", Nifti::Mode::Write);
-	PDVol.writeTo(outFile);
+	outFile.writeVolumes(PDVol.begin(), PDVol.end());
 	outFile.close();
 	outFile.open(outPrefix + "D1_SoS.nii.gz", Nifti::Mode::Write);
-	SoSVol.writeTo(outFile);
+	outFile.writeVolumes(SoSVol.begin(), SoSVol.end());
 	outFile.close();
 
 	cout << "All done." << endl;

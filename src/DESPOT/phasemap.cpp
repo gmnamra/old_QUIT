@@ -16,6 +16,7 @@
 using namespace std;
 
 #include "Nifti/Nifti.h"
+#include "QUIT/QUIT.h"
 #ifdef AGILENT
 	#include "procpar.h"
 #endif
@@ -56,7 +57,7 @@ int main(int argc, char** argv) {
 				cout << "Reading mask from " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
 				mask.resize(maskFile.dims().head(3).prod());
-				maskFile.readVolumes(0, 1, mask.begin(), mask.end());
+				maskFile.readVolumes(mask.begin(), mask.end(), 0, 1);
 				break;
 			case 'p':
 				phasetime = atof(optarg);
@@ -83,8 +84,8 @@ int main(int argc, char** argv) {
 		}
 		data1.resize(inFile.dims().head(3).prod());
 		data2.resize(inFile.dims().head(3).prod());
-		inFile.readVolumes(0, 1, data1.begin(), data1.end());
-		inFile.readVolumes(1, 1, data2.begin(), data2.end());
+		inFile.readVolumes(data1.begin(), data1.end(), 0, 1);
+		inFile.readVolumes(data2.begin(), data2.end(), 1, 1);
 		inFile.close();
 	} else if ((argc - optind) == 3) {
 		cout << "Opening input file 1" << argv[optind] << "." << endl;
@@ -104,7 +105,7 @@ int main(int argc, char** argv) {
 			cin >> TE1;
 		}
 		data1.resize(inFile.dims().head(3).prod());
-		inFile.readVolumes(0, 1, data1.begin(), data1.end());
+		inFile.readVolumes(data1.begin(), data1.end(), 0, 1);
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
@@ -122,7 +123,7 @@ int main(int argc, char** argv) {
 			cin >> TE2;
 		}
 		data2.resize(inFile.dims().head(3).prod());
-		inFile.readVolumes(0, 1, data2.begin(), data2.end());
+		inFile.readVolumes(data2.begin(), data2.end(), 0, 1);
 		inFile.close();
 	} else {
 		cerr << usage << endl;
@@ -158,7 +159,7 @@ int main(int argc, char** argv) {
 	Nifti outFile(inFile, 1);
 	outFile.description = version;
 	outFile.open(outPath, Nifti::Mode::Write);
-	outFile.writeVolumes(0, 1, B0.begin(), B0.end());
+	outFile.writeVolumes(B0.begin(), B0.end(), 0, 1);
 	outFile.close();
 	cout << "Finished." << endl;
     return EXIT_SUCCESS;

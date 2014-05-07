@@ -129,8 +129,6 @@ int main(int argc, char **argv)
 	cout << "Opening input file: " << argv[optind] << endl;
 	file1.open(argv[optind++], Nifti::Mode::Read);
 	size_t nEl = file1.dims().prod();
-	Nifti::ArrayXs start(file1.rank()); start.setZero();
-	Nifti::ArrayXs size(file1.dims());
 	vector<complex<long double>> complexData(nEl);
 
 	switch (inputType) {
@@ -142,8 +140,8 @@ int main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 			}
 			vector<long double> magData(nEl), phaseData(nEl);
-			file1.readVoxels(start, size, magData.begin(), magData.end());
-			file2.readVoxels(start, size, phaseData.begin(), phaseData.end());
+			file1.readAll(magData.begin(), magData.end());
+			file2.readAll(phaseData.begin(), phaseData.end());
 			for (size_t i = 0; i < nEl; i++) {
 				complexData[i] = polar(magData[i], phaseData[i]);
 			}
@@ -157,15 +155,15 @@ int main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 			}
 			vector<long double> realData(nEl), imagData(nEl);
-			file1.readVoxels(start, size, realData.begin(), realData.end());
-			file2.readVoxels(start, size, imagData.begin(), imagData.end());
+			file1.readAll(realData.begin(), realData.end());
+			file2.readAll(imagData.begin(), imagData.end());
 			for (size_t i = 0; i < nEl; i++) {
 				complexData[i] = complex<long double>(realData[i], imagData[i]);
 			}
 			file2.close();
 		} break;
 		case Type::Complex : {
-			file1.readVoxels(start, size, complexData.begin(), complexData.end());
+			file1.readAll(complexData.begin(), complexData.end());
 		}
 	}
 
@@ -193,11 +191,11 @@ int main(int argc, char **argv)
 			}
 			cout << "Writing magnitude file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);
-			file1.writeVoxels(start, size, absData.begin(), absData.end());
+			file1.writeAll(absData.begin(), absData.end());
 			file1.close();
 			cout << "Writing phase file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);
-			file1.writeVoxels(start, size, argData.begin(), argData.end());
+			file1.writeAll(argData.begin(), argData.end());
 			file1.close();
 		} break;
 		case Type::RealImag: {
@@ -208,18 +206,18 @@ int main(int argc, char **argv)
 			}
 			cout << "Writing real file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);
-			file1.writeVoxels(start, size, realData.begin(), realData.end());
+			file1.writeAll(realData.begin(), realData.end());
 			file1.close();
 			cout << "Writing imaginary file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);
-			file1.writeVoxels(start, size, imagData.begin(), imagData.end());
+			file1.writeAll(imagData.begin(), imagData.end());
 			file1.close();
 
 		} break;
 		case Type::Complex : {
 			cout << "Writing complex file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);
-			file1.writeVoxels(start, size, complexData.begin(), complexData.end());
+			file1.writeAll(complexData.begin(), complexData.end());
 			file1.close();
 		} break;
 	}
