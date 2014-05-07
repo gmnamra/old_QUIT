@@ -7,7 +7,7 @@ template<typename Tp, size_t rank> VolumeBase<Tp, rank>::VolumeBase(const Index 
 	m_storage(dims), m_xform(xform), m_extrap(ext)
 { }
 
-template<typename Tp, size_t rank> VolumeBase<Tp, rank>::VolumeBase(const SliceIndex &dims, const size_t finalDim, const Eigen::Affine3f &xform, const Extrap ext) :
+template<typename Tp, size_t rank> VolumeBase<Tp, rank>::VolumeBase(const SmallIndex &dims, const size_t finalDim, const Eigen::Affine3f &xform, const Extrap ext) :
 	m_storage(dims, finalDim), m_xform(xform), m_extrap(ext)
 { }
 
@@ -31,10 +31,6 @@ template<typename Tp, size_t rank> void VolumeBase<Tp, rank>::setExtrapolate(con
 
 template<typename Tp, size_t rank> void VolumeBase<Tp, rank>::readFrom(Nifti &img) { img.readVolumes(0, img.dim(4), m_storage.begin(), m_storage.end()); }
 template<typename Tp, size_t rank> void VolumeBase<Tp, rank>::writeTo(Nifti &img) { img.writeVolumes(0, img.dim(4), m_storage.begin(), m_storage.end()); }
-
-template<typename Tp, size_t rank> auto VolumeBase<Tp, rank>::viewSlice(const size_t i, const size_t d) -> SliceTp { return SliceTp(m_storage.viewSlice(i, d), m_xform, m_extrap); }
-template<typename Tp, size_t rank> auto VolumeBase<Tp, rank>::line(const size_t i) const -> LineTp { return m_storage.line(i); };
-template<typename Tp, size_t rank> auto VolumeBase<Tp, rank>::line(const SliceIndex &vox, const size_t d) const -> LineTp { return m_storage.line(vox, rank); };
 
 template<typename Tp, size_t rank> auto VolumeBase<Tp, rank>::operator[](const Index &inVox) const -> const_reference {
 	static Tp zero;

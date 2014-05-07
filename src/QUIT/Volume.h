@@ -21,9 +21,7 @@ class VolumeBase {
 		typedef typename MultiArray<Tp, rank>::const_reference const_reference;
 		typedef typename MultiArray<Tp, rank>::reference reference;
 		typedef typename MultiArray<Tp, rank>::Index Index;
-		typedef typename MultiArray<Tp, rank>::SliceIndex SliceIndex;
-		typedef typename MultiArray<Tp, rank>::LineTp LineTp;
-		typedef VolumeBase<Tp, rank - 1> SliceTp;
+		typedef typename MultiArray<Tp, rank>::SmallIndex SmallIndex;
 
 	private:
 		MultiArray<Tp, rank> m_storage;
@@ -33,7 +31,7 @@ class VolumeBase {
 	public:
 		VolumeBase();
 		VolumeBase(const Index &dims, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity(), const Extrap ext = Extrap::Zero);
-		VolumeBase(const SliceIndex &dims, const size_t finalDim, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity(), const Extrap ext = Extrap::Zero);
+		VolumeBase(const SmallIndex &dims, const size_t finalDim, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity(), const Extrap ext = Extrap::Zero);
 		VolumeBase(const MultiArray<Tp, rank> &a, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity(), const Extrap ext = Extrap::Zero);
 		VolumeBase(Nifti &img);
 
@@ -47,9 +45,6 @@ class VolumeBase {
 		const Extrap &extrapolate() const;
 		void setExtrapolate(const Extrap ext);
 
-		SliceTp viewSlice(const size_t i, const size_t d=rank);
-		LineTp line(const SliceIndex &vox, const size_t d=rank) const;
-		LineTp  line(const size_t i) const;
 		const_reference operator[](const size_t i) const;
 		const_reference operator[](const Index &vox) const;
 		//const_reference operator[](const Eigen::Vector3f &point) const;
