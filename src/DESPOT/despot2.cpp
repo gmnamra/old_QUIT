@@ -15,12 +15,13 @@
 #include <iostream>
 #include <atomic>
 #include <Eigen/Dense>
+#include "unsupported/Eigen/NonLinearOptimization"
+#include "unsupported/Eigen/NumericalDiff"
 
 #include "Nifti/Nifti.h"
+#include "QUIT/QUIT.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
-#include "RegionContraction.h"
-#include "QUIT/ThreadPool.h"
 
 #ifdef AGILENT
 	#include "procpar.h"
@@ -39,25 +40,29 @@ Options:\n\
 	--help, -h        : Print this message.\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
-	--B0 file         : B0 Map file.\n\
 	--B1 file         : B1 Map file.\n\
+	--elliptical, -e  : Input is band-free elliptical data.\n\
 	--verbose, -v     : Print slice processing times.\n\
-	--start_slice N   : Start processing from slice N.\n\
-	--end_slice   N   : Finish processing at slice N.\n"
+	--algo, -a l      : LLS algorithm (default)\n\
+	           w      : WLLS algorithm\n\
+	           n      : NLLS (Levenberg-Marquardt)\n\
+	--its, -i N      : Max iterations for WLLS (default 4)\n"
 };
 
-static int verbose = false;
-static size_t start_slice = 0, end_slice = numeric_limits<size_t>::max();
+enum class Algos { LLS, WLLS, NLLS };
+static int verbose = false, elliptical = false;
+static size_t nIterations = 4;
+static Algos algo;
 static string outPrefix;
 static struct option long_options[] =
 {
-	{"B0", required_argument, 0, '0'},
 	{"B1", required_argument, 0, '1'},
+	{"elliptical", no_argument, 0, 'e'},
 	{"help", no_argument, 0, 'h'},
 	{"mask", required_argument, 0, 'm'},
 	{"verbose", no_argument, 0, 'v'},
-	{"start_slice", required_argument, 0, 'S'},
-	{"end_slice", required_argument, 0, 'E'},
+	{"algo", required_argument, 0, 'a'},
+	{"its", required_argument, 0, 'i'},
 	{0, 0, 0, 0}
 };
 
@@ -71,12 +76,15 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << version << credit_shared << endl;
 	Eigen::initParallel();
+
+	try { // To fix uncaught exceptions on Mac
+
 	Nifti maskFile, B0File, B1File;
-	vector<double> maskData, B0Data, B1Data, T1Data;
+	MultiArray<double, 3> maskVol, B1Vol;
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:v:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:o:b:va:i:e", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;
@@ -85,24 +93,30 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData.resize(maskFile.dims().head(3).prod());
-				maskFile.readVolumes(0, 1, maskData.begin(), maskData.end());
+				maskVol.resize(maskFile.dims().head(3));
+				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
-			case '0':
-				cout << "Reading B0 file: " << optarg << endl;
-				B0File.open(optarg, Nifti::Mode::Read);
-				B0Data.resize(B0File.dims().head(3).prod());
-				B0File.readVolumes(0, 1, B0Data.begin(), B0Data.end());
-				break;
-			case '1':
+			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Data.resize(B1File.dims().head(3).prod());
-				B1File.readVolumes(0, 1, B1Data.begin(), B1Data.end());
+				B1Vol.resize(B1File.dims().head(3));
+				B1File.readVolumes(B1Vol.begin(), B1Vol.end(), 0, 1);
+				break;
+			case 'a':
+				switch (*optarg) {
+					case 'l': algo = Algos::LLS;  cout << "LLS algorithm selected." << endl; break;
+					case 'w': algo = Algos::WLLS; cout << "WLLS algorithm selected." << endl; break;
+					case 'n': algo = Algos::NLLS; cout << "NLLS algorithm selected." << endl; break;
+					default:
+						cout << "Unknown algorithm type " << optarg << endl;
+						exit(EXIT_FAILURE);
+						break;
+				} break;
+			case 'i':
+				nIterations = atoi(optarg);
 				break;
 			case 'v': verbose = true; break;
-			case 'S': start_slice = atoi(optarg); break;
-			case 'E': end_slice = atoi(optarg); break;
+			case 'e': elliptical = true; break;
 			case 0:
 				// Just a flag
 				break;
@@ -113,105 +127,130 @@ int main(int argc, char **argv)
 		}
 	}
 	if ((argc - optind) != 2) {
-		cout << "Wrong number of arguments. Need a least a T1 map and 1 SSFP (180 degree phase cycling) file." << endl;
+		cout << "Wrong number of arguments. Need a T1 map and 1 SSFP file." << endl;
 		cout << usage << endl;
 		exit(EXIT_FAILURE);
 	}
 	cout << "Reading T1 Map from: " << argv[optind] << endl;
 	Nifti inFile(argv[optind++], Nifti::Mode::Read);
-	size_t voxelsPerSlice = inFile.dims().head(2).prod();
-	size_t voxelsPerVolume = inFile.dims().head(3).prod();
-	T1Data.resize(voxelsPerVolume);
-	inFile.readVolumes(0, 1, T1Data.begin(), T1Data.end());
-	inFile.close();
 	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
-	    (B0File.isOpen() && !inFile.matchesSpace(B0File)) ||
 		(B1File.isOpen() && !inFile.matchesSpace(B1File))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
+	MultiArray<double, 3> T1Vol(inFile.dims().head(3));
+	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
+	inFile.close();
 	Nifti outFile(inFile, 1); // Save the header data to write out files
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	size_t nFlip, nResiduals = 0;
-	VectorXd inFlip;
-	double inTR;
-	cout << "Reading SSFP header from " << argv[optind] << endl;
+	SimpleModel ssfpMdl(Signal::Components::One, Model::Scaling::None);
+	cout << "Reading SSFP data from: " << argv[optind] << endl;
 	inFile.open(argv[optind], Nifti::Mode::Read);
 	if (!inFile.matchesSpace(outFile)) {
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
-	nFlip = inFile.dim(4);
-	inFlip.resize(nFlip);
+	MultiArray<complex<double>, 4> ssfpVols(inFile.dims().head(4));
+	inFile.readVolumes(ssfpVols.begin(), ssfpVols.end());
+	cout << "done" << endl;
 	#ifdef AGILENT
 	Agilent::ProcPar pp;
 	if (ReadPP(inFile, pp)) {
-		inTR = pp.realValue("tr");
-		for (size_t i = 0; i < nFlip; i++)
-			inFlip[i] = pp.realValue("flip1", i);
+		ssfpMdl.procparseSPGR(pp);
 	} else
 	#endif
 	{
-		cout << "Enter SSFP TR (seconds): " << flush;
-		cin >> inTR;
-		cout << "Enter " << nFlip << " flip angles (degrees): " << flush;
-		for (size_t i = 0; i < nFlip; i++)
-			cin >> inFlip[i];
+		ssfpMdl.parseSSFP(inFile.dim(4), 1, true);
 	}
-	inFlip *= M_PI / 180.;
-	cout << "Reading SSFP data..." << endl;
-	vector<double> ssfpData(voxelsPerVolume * nFlip);
-	inFile.readVolumes(0, nFlip, ssfpData.begin(), ssfpData.end());
-	inFile.close();
-	nResiduals = nFlip;
-	optind++;
 	if (verbose) {
-		cout << "SSFP Angles (deg): " << inFlip.transpose() * 180 / M_PI << endl;
+		cout << ssfpMdl;
+		cout << "Ouput prefix will be: " << outPrefix << endl;
 	}
-	//**************************************************************************
-	// Set up results data
-	//**************************************************************************
-	vector<double> PDData(voxelsPerVolume), T2Data(voxelsPerVolume), residualData(voxelsPerVolume);
+	double TR = ssfpMdl.m_signals.at(0)->m_TR;
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	if (end_slice > inFile.dim(3))
-		end_slice = inFile.dim(3);
-	ThreadPool pool;
+	MultiArray<float, 3> T2Vol(ssfpVols.dims().head(3)), PDVol(ssfpVols.dims().head(3)),
+	                     offResVol(ssfpVols.dims().head(3)), SoSVol(ssfpVols.dims().head(3));
     time_t procStart = time(NULL);
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
 	cout << "Started processing at " << theTime << endl;
-	for (size_t slice = start_slice; slice < end_slice; slice++) {
-		// Read in data
+	ThreadPool pool;
+	for (size_t k = 0; k < inFile.dim(3); k++) {
+		clock_t loopStart;
 		if (verbose)
-			cout << "Starting slice " << slice << "..." << flush;
-		
+			cout << "Starting slice " << k << "..." << flush;
+		loopStart = clock();
 		atomic<int> voxCount{0};
-		const size_t sliceOffset = slice * voxelsPerSlice;
-		clock_t loopStart = clock();
-		function<void (const int&)> processVox = [&] (const int &vox) {
-			// Set up parameters and constants
-			double PD = 0., T2 = 0., resid = 0.;
-			if (!maskFile.isOpen() || ((maskData[sliceOffset + vox] > 0.) && (T1Data[sliceOffset + vox] > 0.)))
-			{	// Zero T1 causes zero-pivot error.
-				voxCount++;
-				double T1 = T1Data[sliceOffset + vox];
-				// Gather signals.
-				double B1 = B1File.isOpen() ? B1Data[sliceOffset + vox] : 1.;
-				VectorXd sig(nFlip);
-				for (size_t i = 0; i < nFlip; i++) {
-					sig(i) = ssfpData.at(i*voxelsPerVolume + sliceOffset + vox);
+		function<void (const int&)> process = [&] (const int &j) {
+			for (size_t i = 0; i < inFile.dim(1); i++) {
+				if (!maskFile.isOpen() || (maskVol[{i,j,k}])) {
+					voxCount++;
+					double B1, T1, T2, E1, E2, PD, offRes, SoS;
+					B1 = B1File.isOpen() ? B1Vol[{i,j,k}] : 1.;
+					T1 = T1Vol[{i,j,k}];
+					E1 = exp(-TR / T1);
+					ArrayXd localAngles(ssfpMdl.m_signals.at(0)->B1flip(B1));
+					auto data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
+					auto s = data.abs();
+					auto p = data.imag().binaryExpr(data.real(), ptr_fun<double,double,double>(atan2));
+					offRes = p.mean() / TR;
+					VectorXd Y = s / localAngles.sin();
+					MatrixXd X(Y.rows(), 2);
+					X.col(0) = s / localAngles.tan();
+					X.col(1).setOnes();
+					VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
+					if (elliptical) {
+						T2 = 2. * TR / log((b[0]*E1 - 1.) / (b[0] - E1));
+						E2 = exp(-TR / T2);
+						PD = b[1] * (1. - E1*E2*E2) / (1. - E1);
+					} else {
+						T2 = TR / log((b[0]*E1 - 1.)/(b[0] - E1));
+						E2 = exp(-TR / T2);
+						PD = b[1] * (1. - E1*E2) / (1. - E1);
+					}
+					if (algo == Algos::WLLS) {
+						VectorXd W(ssfpMdl.size());
+						for (size_t n = 0; n < nIterations; n++) {
+							if (elliptical) {
+								W = ((1. - E1*E2) * localAngles.sin() / (1. - E1*E2*E2 - (E1 - E2*E2)*localAngles.cos())).square();
+							} else {
+								W = ((1. - E1*E2) * localAngles.sin() / (1. - E1*E2 - (E1 - E2)*localAngles.cos())).square();
+							}
+							b = (X.transpose() * W.asDiagonal() * X).partialPivLu().solve(X.transpose() * W.asDiagonal() * Y);
+							if (elliptical) {
+								T2 = 2. * TR / log((b[0]*E1 - 1.) / (b[0] - E1));
+								E2 = exp(-TR / T2);
+								PD = b[1] * (1. - E1*E2*E2) / (1. - E1);
+							} else {
+								T2 = TR / log((b[0]*E1 - 1.)/(b[0] - E1));
+								E2 = exp(-TR / T2);
+								PD = b[1] * (1. - E1*E2) / (1. - E1);
+							}
+						}
+					} else if (algo == Algos::NLLS) {
+						DESPOTFunctor f(make_shared<SimpleModel>(ssfpMdl), s.cast<complex<double>>(), B1, false, false);
+						NumericalDiff<DESPOTFunctor> nDiff(f);
+						LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
+						lm.parameters.maxfev = nIterations;
+						VectorXd p(4);
+						p << PD, T1, T2, offRes;
+						lm.lmder1(p);
+						PD = p(0); T1 = p(1); T2 = p(2); offRes = p(3);
+					}
+					ArrayXd theory = ssfpMdl.signal(Vector4d(PD, T1, T2, offRes), B1).abs();
+					SoS = (s - theory).square().sum();
+					T2Vol[{i,j,k}]  = static_cast<float>(T2);
+					PDVol[{i,j,k}]  = static_cast<float>(PD);
+					offResVol[{i,j,k}] = static_cast<float>(offRes);
+					SoSVol[{i,j,k}] = static_cast<float>(SoS);
 				}
-				resid = classicDESPOT2(inFlip, sig, inTR, T1, B1, PD, T2);
 			}
-			PDData.at(sliceOffset + vox) = PD;
-			T2Data.at(sliceOffset + vox) = T2;
-			residualData.at(sliceOffset + vox) = resid;
 		};
-		pool.for_loop(processVox, voxelsPerSlice);
+		pool.for_loop(process, inFile.dim(2));
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -226,17 +265,26 @@ int main(int argc, char **argv)
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 	     << difftime(procEnd, procStart) << " s." << endl;
 	
-	const vector<string> classic_names { "D2_PD", "D2_T2" };
+	if (verbose)
+		cout << "Writing results." << endl;
 	outFile.description = version;
-	outFile.open(outPrefix + "D2_PD.nii.gz", Nifti::Mode::Write);
-	outFile.writeVolumes(0, 1, PDData.begin(), PDData.end());
-	outFile.close();
 	outFile.open(outPrefix + "D2_T2.nii.gz", Nifti::Mode::Write);
-	outFile.writeVolumes(0, 1, T2Data.begin(), T2Data.end());
+	outFile.writeVolumes(T2Vol.begin(), T2Vol.end());
 	outFile.close();
-	outFile.open(outPrefix + "D2_Residual.nii.gz", Nifti::Mode::Write);
-	outFile.writeVolumes(0, 1, residualData.begin(), residualData.end());
+	outFile.open(outPrefix + "D2_PD.nii.gz", Nifti::Mode::Write);
+	outFile.writeVolumes(PDVol.begin(), PDVol.end());
 	outFile.close();
-	cout << "Finished writing data." << endl;
+	outFile.open(outPrefix + "D2_SoS.nii.gz", Nifti::Mode::Write);
+	outFile.writeVolumes(SoSVol.begin(), SoSVol.end());
+	outFile.close();
+	outFile.open(outPrefix + "D2_f0.nii.gz", Nifti::Mode::Write);
+	outFile.writeVolumes(offResVol.begin(), offResVol.end());
+	outFile.close();
+
+	cout << "All done." << endl;
+	} catch (exception &e) {
+		cerr << e.what() << endl;
+		return EXIT_FAILURE;
+	}
 	exit(EXIT_SUCCESS);
 }
