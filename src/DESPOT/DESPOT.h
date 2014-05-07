@@ -28,21 +28,6 @@ using namespace std;
 using namespace Eigen;
 
 //******************************************************************************
-#pragma mark Versioning etc.
-//******************************************************************************
-#include "version"
-
-const string credit_shared {
-"Written by tobias.wood@kcl.ac.uk, based on work by Sean Deoni. \n\
-Acknowledgements greatfully received, grant discussions welcome."
-};
-
-const string credit_me {
-"Written by tobias.wood@kcl.ac.uk. \n\
-Acknowledgements greatfully received, grant discussions welcome."
-};
-
-//******************************************************************************
 #pragma mark Convenience stuff
 //******************************************************************************
 #ifdef AGILENT
