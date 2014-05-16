@@ -80,9 +80,9 @@ class Nifti {
 		};
 
 	private:
-		static const DataType DataTypeForCode(const int code);
-		static const XForm XFormForCode(const int code);
-		static const int XFormCode(const XForm t);
+		static DataType DataTypeForCode(const int code);
+		static XForm XFormForCode(const int code);
+		static int XFormCode(const XForm t);
 		
 		Eigen::Array<size_t, 7, 1> m_dim;      //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
 		Eigen::Array<size_t, 7, 1> m_strides;  //!< Strides into the data on disk.
