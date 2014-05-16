@@ -26,22 +26,20 @@ using namespace Eigen;
 // Arguments / Usage
 //******************************************************************************
 const string usage {
-"Usage is: ssfpbands [options] input1 [input2] \n\
-\
+"Usage is: ssfpbands [options] input \n\
+\n\
+Input must be a single complex image with 0, 90, 180, 360 phase-cycles in order\n\
+along the 4th dimension.\n\
+\n\
 Options:\n\
 	--help, -h        : Print this message\n\
 	--verbose, -v     : Print more information\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
-	--mask, -m file   : Mask input with specified file\n\
-	--type, -t p      : Input is magnitude and phase (default)\n\
-	           i      : Input is real/imaginary\n\
-			   c      : Input is complex\n"
+	--mask, -m file   : Mask input with specified file\n"
 };
 
-enum class Type { Phase, Imag, Complex };
 static bool verbose = false;
 static string outPrefix;
-static Type inputType = Type::Phase;
 static struct option long_options[] =
 {
 	{"help", no_argument, 0, 'h'},
@@ -77,16 +75,6 @@ int main(int argc, char **argv)
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
-			case 't':
-				switch (*optarg) {
-					case 'p': inputType = Type::Phase;  cout << "Input is magnitude and phase." << endl; break;
-					case 'i': inputType = Type::Imag; cout << "Input is real and imaginary." << endl; break;
-					case 'c': inputType = Type::Complex; cout << "Input is complex." << endl; break;
-					default:
-						cout << "Unknown input type " << optarg << endl;
-						exit(EXIT_FAILURE);
-						break;
-				} break;
 			case 'h':
 			case '?': // getopt will print an error message
 				exit(EXIT_FAILURE);
@@ -95,127 +83,74 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Gather data
 	//**************************************************************************
-	if ((inputType == Type::Complex) && (argc - optind) != 1) {
-		cout << "Must specify one complex input file." << endl << usage << endl;
-		exit(EXIT_FAILURE);
-	} else if ((argc - optind) != 2) {
-		cout << "Must specify two input files (mag/phase or real/imaginary)." << endl << usage << endl;
+	if ((argc - optind) != 1) {
+		cout << "Incorrect number of arguments." << endl << usage << endl;
 		exit(EXIT_FAILURE);
 	}
-
-	cout << "Opening input file: " << argv[optind] << endl;
+	if (verbose) cout << "Opening input file: " << argv[optind] << endl;
 	Nifti inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
 	if (maskFile.isOpen() && !maskFile.matchesSpace(inputFile)) {
 		cerr << "Mask does not match input file." << endl;
 		exit(EXIT_FAILURE);
 	}
-	Nifti templateFile(inputFile, 1);
 	if ((inputFile.rank() < 4) || ((inputFile.dim(4) % 4) != 0)) {
 		cout << "Input must contain 4 phase-cycles (0, 90, 180, 270)." << endl;
 		exit(EXIT_FAILURE);
 	}
-	size_t nFlip = inputFile.dim(4) / 4;
-	
-	MultiArray<float, 4> input1(inputFile.dims()), input2(inputFile.dims());
-	MultiArray<complex<float>, 4> inputC(inputFile.dims());
-	if (inputType != Type::Complex) {
-		cout << "Reading data." << endl;
-		inputFile.readVolumes(input1.begin(), input1.end());
-		inputFile.close();
-		cout << "Opening input file: " << argv[optind] << endl;
-		inputFile.open(argv[optind++], Nifti::Mode::Read);
-		if (!inputFile.matchesSpace(templateFile)) {
-			cerr << "Input files do not match." << endl;
-			exit(EXIT_FAILURE);
-		}
-		inputFile.readVolumes(input2.begin(), input2.end());
-		inputFile.close();
-	} else {
-		inputFile.readVolumes(inputC.begin(), inputC.end());
-		inputFile.close();
-	}
-	if ((argc - optind) != 0) {
-		cout << "Incorrect number of arguments." << endl << usage << endl;
-		exit(EXIT_FAILURE);
-	}
+	MultiArray<complex<float>, 4> input(inputFile.dims());
+	inputFile.readVolumes(input.begin(), input.end());
+	inputFile.close();
+
 	// Results storage
-	MultiArray<float, 4> outMag(input1.dims().head(3), nFlip);
-	MultiArray<float, 4> outPhase(input1.dims().head(3), nFlip);
-	MultiArray<int8_t, 4> outReg(input1.dims().head(3), nFlip);
+	auto d = input.dims().head(3);
+	size_t nFlip = input.dims()[3] / 4;
+	MultiArray<complex<float>, 5>::Index nd; nd << d, 4, nFlip;
+	auto CData = input.reshape<5>(nd);
+	MultiArray<complex<float>, 4> CP(d, nFlip), CS(d, nFlip), reg(d, nFlip);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	cout << "Starting processing." << endl;
+	cout << "Processing." << endl;
 	ThreadPool pool;
-	for (size_t k = 0; k < templateFile.dim(3); k++) {
+	for (size_t vol = 0; vol < nFlip; vol++) {
 		clock_t loopStart;
-		// Read in data
 		if (verbose)
-			cout << "Starting slice " << k << "..." << flush;
+			cout << "Processing volume " << vol << "..." << flush;
 		loopStart = clock();
 		atomic<int> voxCount;
 		
-		for (size_t j = 0; j < templateFile.dim(2); j++) {
-			function<void (const size_t)> processVox = [&] (const size_t i) {
-				if (!maskFile.isOpen() || (maskVol[{i,j,k}])) {
-					voxCount++;
-					ArrayXcd I1(nFlip), I2(nFlip), I3(nFlip), I4(nFlip);
-					switch (inputType) {
-						case (Type::Phase): {
-							ArrayXd mag = input1.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
-							ArrayXd ph  = input2.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
-							I1.real() = mag.head(nFlip) * ph.head(nFlip).cos();
-							I1.imag() = mag.head(nFlip) * ph.head(nFlip).sin();
-							I2.real() = mag.segment(nFlip, nFlip) * ph.segment(nFlip, nFlip).cos();
-							I2.imag() = mag.segment(nFlip, nFlip) * ph.segment(nFlip, nFlip).sin();
-							I3.real() = mag.segment(2*nFlip, nFlip) * ph.segment(2*nFlip, nFlip).cos();
-							I3.imag() = mag.segment(2*nFlip, nFlip) * ph.segment(2*nFlip, nFlip).sin();
-							I4.real() = mag.tail(nFlip) * ph.tail(nFlip).cos();
-							I4.imag() = mag.tail(nFlip) * ph.tail(nFlip).sin();
-						}	break;
-						case (Type::Imag): {
-							ArrayXd re = input1.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
-							ArrayXd im = input2.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
-							
-							I1.real() = re.head(nFlip);
-							I1.imag() = im.head(nFlip);
-							I2.real() = re.segment(nFlip, nFlip);
-							I2.imag() = im.segment(nFlip, nFlip);
-							I3.real() = re.segment(2*nFlip, nFlip);
-							I3.imag() = im.segment(2*nFlip, nFlip);
-							I4.real() = re.tail(nFlip);
-							I4.imag() = im.tail(nFlip);
-						 }	break;
-						case (Type::Complex): {
-							ArrayXcd input = inputC.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
-							I1 = input.head(nFlip);
-							I2 = input.segment(nFlip, nFlip);
-							I3 = input.segment(2*nFlip, nFlip);
-							I4 = input.tail(nFlip);
-						}	break;
-					}
-					
-					ArrayXcd crossPoint = ((I1.real()*I3.imag() - I3.real()*I1.imag())*(I2 - I4) - (I2.real()*I4.imag() - I4.real()*I2.imag())*(I1 - I3)) /
-					                      ((I1.real() - I3.real())*(I2.imag() - I4.imag()) + (I2.real() - I4.real())*(I3.imag() - I1.imag()));
-					ArrayXcd complexAvg = (I1 + I2 + I3 + I4) / 4;
-					auto makesSense = (crossPoint.abs() < I1.abs()) ||
-					                  (crossPoint.abs() < I2.abs()) ||
-					                  (crossPoint.abs() < I3.abs()) ||
-					                  (crossPoint.abs() < I4.abs());
-					auto outM = outMag.slice<1>({i,j,k,0},{0,0,0,-1}).asArray();
-					auto outP = outPhase.slice<1>({i,j,k,0},{0,0,0,-1}).asArray();
-					outReg.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = makesSense.cast<int8_t>();
-
-					outM = (makesSense).select(crossPoint.abs().cast<float>(), complexAvg.abs().cast<float>());
-					outP = (makesSense).select(crossPoint.imag().binaryExpr(crossPoint.real(), ptr_fun<double,double,double>(atan2)).cast<float>(),
-					                           complexAvg.imag().binaryExpr(crossPoint.real(), ptr_fun<double,double,double>(atan2)).cast<float>());
-				}
+		function<void (const size_t)> processVox = [&] (const size_t k) {
+			for (size_t j = 0; j < d[1]; j++) {
+				decltype(CData)::Index idx; idx << 0,j,k,0,vol;
+				decltype(CData)::Index sz; sz << -1,0,0,0,0;
+				auto C1 = CData.slice<1>(idx, sz).asArray(); idx[3] = 1;
+				auto C2 = CData.slice<1>(idx, sz).asArray(); idx[3] = 2;
+				auto C3 = CData.slice<1>(idx, sz).asArray(); idx[3] = 3;
+				auto C4 = CData.slice<1>(idx, sz).asArray();
+				ArrayXXf I1(d[0], 2), I2(d[0], 2), I3(d[0], 2), I4(d[0], 2),
+				        d1(d[0], 2), d2(d[0], 2), n1(d[0], 2), n2(d[0], 2);
+				I1.col(0) = C1.real(); I1.col(1) = C1.imag();
+				I2.col(0) = C2.real(); I2.col(1) = C2.imag();
+				I3.col(0) = C3.real(); I3.col(1) = C3.imag();
+				I4.col(0) = C4.real(); I4.col(1) = C4.imag();
+				d1 = (I3 - I1);
+				d2 = (I4 - I2);
+				n1.col(0) = d1.col(1); n1.col(1) = -d1.col(0);
+				n2.col(0) = d2.col(1); n2.col(1) = -d2.col(0);
+				auto l = (n2 * (I2 - I1)).rowwise().sum() / (n2 * d1).rowwise().sum();
+				auto m = (n1 * (I1 - I2)).rowwise().sum() / (n1 * d2).rowwise().sum();
+				auto cs = (C1 + C2 + C3 + C4) / 4;
+				auto cp2d = I1 + d1.colwise()*l;
+				ArrayXcf cp(d[0]); cp.real() = cp2d.col(0); cp.imag() = cp2d.col(1);
+				auto which = ((l > 0) && (l < 1) && (m > 0) && (m < 1));
+				CP.slice<1>({0,j,k,vol}, {-1,0,0,0}).asArray() = cp;
+				CS.slice<1>({0,j,k,vol}, {-1,0,0,0}).asArray() = cs;
+				reg.slice<1>({0,j,k,vol}, {-1,0,0,0}).asArray() = which.select(cp, cs);
 				//exit(EXIT_SUCCESS);
-			};
-			
-			pool.for_loop(processVox, templateFile.dim(1));
-		}
+			}
+		};
+		pool.for_loop(processVox, d[2]);
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -226,19 +161,18 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (verbose)
-		cout << "Writing results." << endl;
-	templateFile.setDim(4, nFlip);
-	templateFile.open(outPrefix + "no_bands_mag.nii.gz", Nifti::Mode::Write);
-	templateFile.writeVolumes(outMag.begin(), outMag.end());
-	templateFile.close();
-	templateFile.open(outPrefix + "no_bands_ph.nii.gz", Nifti::Mode::Write);
-	templateFile.writeVolumes(outPhase.begin(), outPhase.end());
-	templateFile.close();
-	templateFile.setDatatype(Nifti::DataType::INT8);
-	templateFile.open(outPrefix + "no_bands_reg.nii.gz", Nifti::Mode::Write);
-	templateFile.writeVolumes(outReg.begin(), outReg.end());
-	templateFile.close();
+	if (verbose) cout << "Writing results." << endl;
+	inputFile.setDim(4, nFlip);
+	inputFile.setDatatype(Nifti::DataType::COMPLEX128);
+	inputFile.open(outPrefix + "CP.nii.gz", Nifti::Mode::Write);
+	inputFile.writeVolumes(CP.begin(), CP.end());
+	inputFile.close();
+	inputFile.open(outPrefix + "CS.nii.gz", Nifti::Mode::Write);
+	inputFile.writeVolumes(CS.begin(), CS.end());
+	inputFile.close();
+	inputFile.open(outPrefix + "reg.nii.gz", Nifti::Mode::Write);
+	inputFile.writeVolumes(reg.begin(), reg.end());
+	inputFile.close();
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
 }

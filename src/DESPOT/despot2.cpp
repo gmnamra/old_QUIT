@@ -197,7 +197,7 @@ int main(int argc, char **argv)
 					auto data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
 					auto s = data.abs();
 					auto p = data.imag().binaryExpr(data.real(), ptr_fun<double,double,double>(atan2));
-					offRes = p.mean() / TR;
+					offRes = p.mean() / (TR * M_PI);
 					VectorXd Y = s / localAngles.sin();
 					MatrixXd X(Y.rows(), 2);
 					X.col(0) = s / localAngles.tan();
