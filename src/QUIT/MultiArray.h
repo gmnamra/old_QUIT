@@ -73,7 +73,7 @@ class MultiArray {
 	public:
 		MultiArray();
 		MultiArray(const Index &dims);
-		MultiArray(const Index &dims, const Index &strides, const size_t offset, const PtrTp &ptr);
+		MultiArray(const Index &dims, const PtrTp &ptr, const Index &strides = Index::Zero(), const size_t offset = 0);
 		MultiArray(const SmallIndex &dims, const size_t finalDim);
 
 		const Index &dims() const;
@@ -81,7 +81,7 @@ class MultiArray {
 		size_t size() const;
 		bool isPacked() const;
 		void resize(const Index &newDims);
-
+		template<size_t newRank> MultiArray<Tp, newRank> reshape(const typename MultiArray<Tp, newRank>::Index &newDims);
 		template<size_t newRank> MultiArray<Tp, newRank> slice(const Index &start, const Index &size) const;
 		MapTp asArray() const;
 

@@ -33,8 +33,8 @@ MultiArray<Tp, rank>::MultiArray(const Index &inDims) :
 	m_offset{0},
 	m_dims{inDims},
 	m_strides{CalcStrides(inDims)},
-	m_packed{true},
-	m_ptr{std::make_shared<std::vector<Tp>>(inDims.prod())}
+	m_ptr{std::make_shared<std::vector<Tp>>(inDims.prod())},
+	m_packed{true}
 {
 
 }
@@ -51,12 +51,15 @@ MultiArray<Tp, rank>::MultiArray(const Eigen::Array<size_t, rank - 1, 1> &inDims
 }
 
 template<typename Tp, size_t rank>
-MultiArray<Tp, rank>::MultiArray(const Index &dims, const Index &strides, const size_t offset, const PtrTp &ptr) :
+MultiArray<Tp, rank>::MultiArray(const Index &dims, const PtrTp &ptr, const Index &strides, const size_t offset) :
 	m_dims{dims},
 	m_strides{strides},
 	m_offset{offset},
 	m_ptr{ptr}
 {
+	if ((m_strides == Index::Zero()).all()) {
+		m_strides = CalcStrides(m_dims);
+	}
 	m_packed = (CalcStrides(m_dims) == m_strides).all();
 	//std::cout << "Created new MultiArray" << std::endl;
 	//std::cout << *this << std::endl;
@@ -68,7 +71,7 @@ template<typename Tp, size_t rank> size_t MultiArray<Tp, rank>::size()   const {
 template<typename Tp, size_t rank> bool MultiArray<Tp, rank>::isPacked() const { return m_packed; }
 
 template<typename Tp, size_t rank> void MultiArray<Tp, rank>::resize(const Index &newDims) {
-	*this = MultiArray<Tp, rank>{newDims};
+	*this = MultiArray<Tp, rank>(newDims);
 }
 
 template<typename Tp, size_t rank>
@@ -98,6 +101,17 @@ template<typename Tp, size_t rank>
 typename MultiArray<Tp, rank>::reference MultiArray<Tp, rank>::operator[](const size_t i) {
 	return const_cast<reference>(static_cast<const MultiArray<Tp, rank> &>(*this).operator[](i));
 }
+
+
+template<typename Tp, size_t rank>
+template<size_t newRank>
+MultiArray<Tp, newRank> MultiArray<Tp, rank>::reshape(const typename MultiArray<Tp, newRank>::Index &newDims) {
+	if (newDims.prod() != m_dims.prod()) {
+		throw(std::logic_error("Reshape cannot change the number of voxels."));
+	}
+	return MultiArray<Tp, newRank>(newDims, m_ptr);
+}
+
 
 template<typename Tp, size_t rank>
 template<size_t newRank>
@@ -133,7 +147,7 @@ MultiArray<Tp, newRank> MultiArray<Tp, rank>::slice(const Index &start, const In
 		throw(std::out_of_range("Incorrect number of non-zero dimensions."));
 	}
 	size_t newOffset = m_offset + (m_strides*start).sum();
-	MultiArray<Tp, newRank> slice(newDims, newStrides, newOffset, m_ptr);
+	MultiArray<Tp, newRank> slice(newDims, m_ptr, newStrides, newOffset);
 	return slice;
 }
 
@@ -192,7 +206,6 @@ auto MultiArray<Tp, rank>::iterator::operator++() -> iterator & {
 	if (m_array.isPacked()) {
 		m_packedIndex++;
 	} else {
-		size_t dim = 0;
 		for (size_t dim = 0; dim < rank; dim++) {
 			m_index[dim]++;
 			if (m_index[dim] == m_array.dims()[dim]) {
