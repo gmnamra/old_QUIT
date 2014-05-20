@@ -80,7 +80,7 @@ class Nifti {
 		};
 
 	private:
-		static DataType DataTypeForCode(const int code);
+		static const DataType &DataTypeForCode(const int code);
 		static XForm XFormForCode(const int code);
 		static int XFormCode(const XForm t);
 		
@@ -170,6 +170,7 @@ class Nifti {
 		void addExtension(const int code, const std::vector<char> &data);
 		void addExtension(const Extension &e);
 		const std::list<Extension> &extensions() const;
+		void setExtensions(const std::list<Extension> &es);
 		
 		#pragma mark Information bits of the NIfTI header
 		float scaling_slope;          //!< Slope of scaling between data on disk and in memory.

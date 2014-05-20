@@ -4,7 +4,7 @@
 using namespace std;
 using namespace Eigen;
 
-const Nifti::DataType Nifti::DataTypeForCode(const int code) {
+const Nifti::DataType &Nifti::DataTypeForCode(const int code) {
 	static const map<int, DataType> c2dt{
 		{NIFTI_TYPE_UINT8, DataType::UINT8},
 		{NIFTI_TYPE_UINT16, DataType::UINT16},
@@ -724,6 +724,10 @@ const list<Nifti::Extension> &Nifti::extensions() const {
 	return m_extensions;
 }
 
+void Nifti::setExtensions(const list<Extension> &newExts) {
+	m_extensions = newExts;
+}
+
 int Nifti::totalExtensionSize() {
 	int total = 0;
 	for (auto ext: m_extensions) {
@@ -989,7 +993,7 @@ const string Nifti::XFormName(const Nifti::XForm c) {
 		case XForm::MNI_152: return "MNI 152"; break;
 	}
 }
-const int Nifti::XFormCode(const Nifti::XForm c) {
+int Nifti::XFormCode(const Nifti::XForm c) {
 	switch (c) {
 		case XForm::Unknown: return NIFTI_XFORM_UNKNOWN; break;
 		case XForm::ScannerAnatomy: return NIFTI_XFORM_SCANNER_ANAT; break;
@@ -998,7 +1002,7 @@ const int Nifti::XFormCode(const Nifti::XForm c) {
 		case XForm::MNI_152: return NIFTI_XFORM_MNI_152; break;
 	}
 }
-const Nifti::XForm Nifti::XFormForCode(const int c) {
+Nifti::XForm Nifti::XFormForCode(const int c) {
 	switch (c) {
 		case NIFTI_XFORM_UNKNOWN: return XForm::Unknown; break;
 		case NIFTI_XFORM_SCANNER_ANAT: return XForm::ScannerAnatomy; break;
