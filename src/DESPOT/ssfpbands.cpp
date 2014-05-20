@@ -35,18 +35,24 @@ Options:\n\
 	--help, -h        : Print this message\n\
 	--verbose, -v     : Print more information\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
-	--mask, -m file   : Mask input with specified file\n"
+	--mask, -m file   : Mask input with specified file\n\
+	--reg, -r s       : Use line segment regularisation (default)\n\
+	          m       : Use point magnitude regularisation\n\
+	          n       : Do not regularise, output ellipse cross-point\n\
+	          c       : Do not regularise, output complex sum\n"
 };
 
+enum class RegMode { Segment, Magnitude, None, ComplexSum };
 static bool verbose = false;
 static string outPrefix;
+static RegMode regularisation = RegMode::Segment;
 static struct option long_options[] =
 {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"out", required_argument, 0, 'o'},
 	{"mask", required_argument, 0, 'm'},
-	{"type", required_argument, 0, 't'},
+	{"reg", required_argument, 0, 'r'},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
@@ -62,7 +68,7 @@ int main(int argc, char **argv)
 	MultiArray<int8_t, 3> maskVol;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvo:m:t:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvo:m:r:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
@@ -74,6 +80,17 @@ int main(int argc, char **argv)
 			case 'o':
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
+				break;
+			case 'r':
+				switch (*optarg) {
+					case 's': regularisation = RegMode::Segment; break;
+					case 'm': regularisation = RegMode::Magnitude; break;
+					case 'n': regularisation = RegMode::None; break;
+					case 'c': regularisation = RegMode::ComplexSum; break;
+					default:
+						cout << "Unknown regularisation mode '" << *optarg << "'" << endl;
+						exit(EXIT_FAILURE);
+				}
 				break;
 			case 'h':
 			case '?': // getopt will print an error message
@@ -107,19 +124,13 @@ int main(int argc, char **argv)
 	size_t nFlip = input.dims()[3] / 4;
 	MultiArray<complex<float>, 5>::Index nd; nd << d, 4, nFlip;
 	auto CData = input.reshape<5>(nd);
-	MultiArray<complex<float>, 4> CP(d, nFlip), CS(d, nFlip), reg(d, nFlip);
+	MultiArray<complex<float>, 4> output(d, nFlip);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	cout << "Processing." << endl;
 	ThreadPool pool;
 	for (size_t vol = 0; vol < nFlip; vol++) {
-		clock_t loopStart;
-		if (verbose)
-			cout << "Processing volume " << vol << "..." << flush;
-		loopStart = clock();
-		atomic<int> voxCount;
-		
+		if (verbose) cout << "Processing volume " << vol << "..." << endl;
 		function<void (const size_t)> processVox = [&] (const size_t k) {
 			for (size_t j = 0; j < d[1]; j++) {
 				decltype(CData)::Index idx; idx << 0,j,k,0,vol;
@@ -143,36 +154,26 @@ int main(int argc, char **argv)
 				auto cs = (C1 + C2 + C3 + C4) / 4;
 				auto cp2d = I1 + d1.colwise()*l;
 				ArrayXcf cp(d[0]); cp.real() = cp2d.col(0); cp.imag() = cp2d.col(1);
-				auto which = ((l > 0) && (l < 1) && (m > 0) && (m < 1));
-				CP.slice<1>({0,j,k,vol}, {-1,0,0,0}).asArray() = cp;
-				CS.slice<1>({0,j,k,vol}, {-1,0,0,0}).asArray() = cs;
-				reg.slice<1>({0,j,k,vol}, {-1,0,0,0}).asArray() = which.select(cp, cs);
-				//exit(EXIT_SUCCESS);
+				auto regLine = ((l > 0) && (l < 1) && (m > 0) && (m < 1));
+				auto regMag  = (cp.abs() < C1.abs()) && (cp.abs() < C2.abs()) &&
+				               (cp.abs() < C3.abs()) && (cp.abs() < C4.abs());
+				auto out = output.slice<1>({0,j,k,vol}, {-1,0,0,0}).asArray();
+				switch (regularisation) {
+					case RegMode::Segment:    out = regLine.select(cp, cs); break;
+					case RegMode::Magnitude:  out = regMag.select(cp, cs); break;
+					case RegMode::None:       out = cp; break;
+					case RegMode::ComplexSum: out = cs; break;
+				}
 			}
 		};
 		pool.for_loop(processVox, d[2]);
-		
-		if (verbose) {
-			clock_t loopEnd = clock();
-			if (voxCount > 0)
-				cout << voxCount << " unmasked voxels, CPU time per voxel was "
-				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
-			cout << "finished." << endl;
-		}
 	}
-
-	if (verbose) cout << "Writing results." << endl;
+	if (verbose) cout << "Writing output file." << endl;
 	inputFile.setDim(4, nFlip);
 	inputFile.setDatatype(Nifti::DataType::COMPLEX128);
-	inputFile.open(outPrefix + "CP.nii.gz", Nifti::Mode::Write);
-	inputFile.writeVolumes(CP.begin(), CP.end());
+	inputFile.open(outPrefix + "ssfp_no_bands_out.nii.gz", Nifti::Mode::Write);
+	inputFile.writeVolumes(output.begin(), output.end());
 	inputFile.close();
-	inputFile.open(outPrefix + "CS.nii.gz", Nifti::Mode::Write);
-	inputFile.writeVolumes(CS.begin(), CS.end());
-	inputFile.close();
-	inputFile.open(outPrefix + "reg.nii.gz", Nifti::Mode::Write);
-	inputFile.writeVolumes(reg.begin(), reg.end());
-	inputFile.close();
-	cout << "All done." << endl;
+	cout << "Finished." << endl;
 	exit(EXIT_SUCCESS);
 }
