@@ -63,14 +63,14 @@ $(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_PHDR)
 
 #Rules for tools
 TOOL_DIR   := Tools
-TOOLS      := niihdr niiext niicomplex niigrad procparse fdf2nii
+TOOLS      := niihdr niiext niicomplex niigrad procparse fdf2nii fdfbval
 PYTOOLS    := fdf2nii.py
 $(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp $(NIFTI_HDR) $(QUIT_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(addprefix $(BUILD_DIR)/, $(TOOLS)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(TOOL_DIR)/%.o | libAgilent.a libNifti.a libQUIT.a
 	@mkdir -p $(dir $@)
-	$(CXX) $^ -o $@ $(LDFLAGS) -lAgilent -lNifti -lz
+	$(CXX) $^ -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
 $(addprefix $(BUILD_DIR)/, $(PYTOOLS)) :
 	cp $(patsubst $(BUILD_DIR)/%, $(SOURCE_DIR)/$(TOOL_DIR)/%, $@) $(BUILD_DIR)
 
