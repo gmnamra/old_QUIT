@@ -23,10 +23,6 @@
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
 
-#ifdef AGILENT
-	#include "procpar.h"
-#endif
-
 using namespace std;
 using namespace Eigen;
 
@@ -236,13 +232,10 @@ int main(int argc, char **argv)
 			cerr << "Input file dimensions and/or transforms do not match." << endl;
 			exit(EXIT_FAILURE);
 		}
-		#ifdef AGILENT
 		Agilent::ProcPar pp;
 		if (ReadPP(inFile, pp)) {
 			model->procparseSSFP(pp);
-		} else
-		#endif
-		{
+		} else {
 			size_t nPhases;
 			cout << "Enter number of phase-cycling patterns: " << flush;
 			cin >> nPhases;

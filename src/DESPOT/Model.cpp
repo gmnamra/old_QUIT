@@ -311,7 +311,6 @@ void FiniteModel::parseSSFP(const size_t nFlip, const size_t nPhases, const bool
 	m_signals.push_back(make_shared<SSFPFinite>(inAngles * M_PI / 180., inTR, inTrf, inPhases * M_PI / 180.));
 }
 
-#ifdef AGILENT
 void SimpleModel::procparseSPGR(const Agilent::ProcPar &pp) {
 	double inTR = 0.;
 	ArrayXd inAngles = pp.realValues("flip1");
@@ -348,4 +347,3 @@ void FiniteModel::procparseSSFP(const Agilent::ProcPar &pp) {
 	inTrf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
 	m_signals.push_back(make_shared<SSFPFinite>(inAngles * M_PI / 180., inTR, inTrf, inPhases * M_PI / 180.));
 }
-#endif //def AGILENT

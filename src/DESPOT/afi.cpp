@@ -18,9 +18,6 @@
 using namespace std;
 
 #include "Nifti/Nifti.h"
-#ifdef AGILENT
-	#include "procpar.h"
-#endif
 #include "QUIT/QUIT.h"
 #include "DESPOT.h"
 
@@ -80,7 +77,6 @@ int main(int argc, char **argv) {
 		cerr << "Mask dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
 	}
-	#ifdef AGILENT
 	Agilent::ProcPar pp;
 	if (ReadPP(inFile, pp)) {
 		if (pp.contains("afi_dummy")) {
@@ -96,9 +92,7 @@ int main(int argc, char **argv) {
 		}
 		nomFlip = pp.realValue("flip1");
 		cout << "Read TR2/TR1 ratio of " << n << " and flip-angle " << nomFlip << " degrees from procpar." << endl;
-	} else
-	#endif
-	{
+	} else {
 		cout << "Enter TR2/TR1 (ratio) and flip-angle (degrees): ";
 		cin >> n >> nomFlip;
 	}

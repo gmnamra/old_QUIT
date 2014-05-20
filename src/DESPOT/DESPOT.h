@@ -18,22 +18,12 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-#ifdef AGILENT
-#include "Nifti/Nifti.h"
-#include "Nifti/ExtensionCodes.h"
-#include "procpar.h"
-#endif
-
 using namespace std;
 using namespace Eigen;
 
 //******************************************************************************
 #pragma mark Convenience stuff
 //******************************************************************************
-#ifdef AGILENT
-bool ReadPP(const Nifti &nii, Agilent::ProcPar &pp);
-#endif
-
 double clamp(double value, double low, double high);
 
 void linearLeastSquares(const ArrayXd &X, const ArrayXd &Y,

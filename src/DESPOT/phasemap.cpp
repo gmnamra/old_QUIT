@@ -17,9 +17,6 @@ using namespace std;
 
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
-#ifdef AGILENT
-	#include "procpar.h"
-#endif
 #include "DESPOT.h"
 
 const string usage
@@ -71,14 +68,11 @@ int main(int argc, char** argv) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
-		#ifdef AGILENT
 		Agilent::ProcPar pp;
 		if (ReadPP(inFile, pp)) {
 			TE1 = pp.realValue("te", 0);
 			TE2 = pp.realValue("te", 1);
-		} else
-		#endif
-		{
+		} else {
 			cout << "Enter TE2 & TE2 (seconds): ";
 			cin >> TE1 >> TE2;
 		}
@@ -94,13 +88,10 @@ int main(int argc, char** argv) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
-		#ifdef AGILENT
 		Agilent::ProcPar pp;
 		if (ReadPP(inFile, pp)) {
 			TE1 = pp.realValue("te", 0);
-		} else
-		#endif
-		{
+		} else {
 			cout << "Enter TE1 (seconds): ";
 			cin >> TE1;
 		}
@@ -113,12 +104,9 @@ int main(int argc, char** argv) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
-		#ifdef AGILENT
 		if (ReadPP(inFile, pp)){
 			TE2 = pp.realValue("te", 0);
-		} else
-		#endif
-		{
+		} else {
 			cout << "Enter TE2 (seconds): ";
 			cin >> TE2;
 		}

@@ -23,10 +23,6 @@
 #include "QUIT/QUIT.h"
 #include "RegionContraction.h"
 
-#ifdef AGILENT
-	#include "procpar.h"
-#endif
-
 using namespace std;
 using namespace Eigen;
 
@@ -143,7 +139,6 @@ Nifti parseInput(shared_ptr<Model> &mdl, vector<MultiArray<complex<float>, 4>> &
 			inFile = openAndCheck(path, templateFile);
 		}
 		if (verbose) cout << "Opened: " << inFile.imagePath() << endl;
-		#ifdef AGILENT
 		Agilent::ProcPar pp;
 		if (ReadPP(inFile, pp)) {
 			if (type == "SPGR") {
@@ -151,9 +146,7 @@ Nifti parseInput(shared_ptr<Model> &mdl, vector<MultiArray<complex<float>, 4>> &
 			} else {
 				mdl->procparseSSFP(pp);
 			}
-		} else
-		#endif
-		{
+		} else {
 			if (type == "SPGR") {
 				mdl->parseSPGR(inFile.dim(4), prompt);
 			} else {

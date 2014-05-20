@@ -22,7 +22,7 @@ BUILD_DIR   := build
 SOURCE_DIR  := src
 INSTALL_DIR := ./bin
 
-CXXFLAGS := -std=c++11 $(STDLIB) $(THREADS) -g -O3 -m64 -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors -DAGILENT $(MOREFLAGS)
+CXXFLAGS := -std=c++11 $(STDLIB) $(THREADS) -g -O3 -m64 -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors $(MOREFLAGS)
 LDFLAGS  := -std=c++11 $(STDLIB) $(THREADS) -m64 -L$(BUILD_DIR)
 INCLUDE    := -I$(EIGEN_DIR) -Isrc -Isrc/Agilent
 
@@ -51,7 +51,7 @@ $(BUILD_DIR)/libAgilent.a : $(AGILENT_OBJ)
 
 #Rules for libQUIT
 QUIT_DIR   := QUIT
-QUIT_SRC   := ThreadPool
+QUIT_SRC   := Util ThreadPool
 QUIT_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, MultiArray.h MultiArray-inl.h Volume.h Volume-inl.h)
 QUIT_OBJ   := $(addprefix $(BUILD_DIR)/$(QUIT_DIR)/, $(addsuffix .o, $(QUIT_SRC)))
 $(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp | EIGEN libNifti.a
@@ -63,7 +63,7 @@ $(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_PHDR)
 
 #Rules for tools
 TOOL_DIR   := Tools
-TOOLS      := niihdr niicomplex niigrad procparse fdf2nii
+TOOLS      := niihdr niiext niicomplex niigrad procparse fdf2nii
 PYTOOLS    := fdf2nii.py
 $(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp $(NIFTI_HDR) $(QUIT_HDR) | EIGEN
 	@mkdir -p $(dir $@)

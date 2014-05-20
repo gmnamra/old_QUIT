@@ -25,5 +25,6 @@ Acknowledgements greatfully received, grant discussions welcome."
 #include "QUIT/Volume.h"
 #include "QUIT/VolumeFunctions.h"
 #include "QUIT/ThreadPool.h"
+#include "QUIT/Util.h"
 
 #endif // QUIT_H

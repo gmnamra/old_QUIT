@@ -23,11 +23,6 @@
 #include "unsupported/Eigen/NonLinearOptimization"
 #include "unsupported/Eigen/NumericalDiff"
 
-#ifdef AGILENT
-#include "procpar.h"
-using namespace Agilent;
-#endif
-
 using namespace std;
 using namespace Eigen;
 
@@ -136,13 +131,10 @@ int main(int argc, char **argv)
 		cerr << "Mask or B1 dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
 	}
-	#ifdef AGILENT
-	ProcPar pp;
+	Agilent::ProcPar pp;
 	if (ReadPP(spgrFile, pp)) {
 		spgrMdl.procparseSPGR(pp);
-	} else
-	#endif
-	{
+	} else {
 		spgrMdl.parseSPGR(spgrFile.dim(4), true);
 	}
 	if (verbose) {

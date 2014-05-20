@@ -19,11 +19,8 @@
 #include <memory>
 #include <Eigen/Dense>
 
-#include "QUIT/Volume.h"
+#include "QUIT/QUIT.h"
 #include "DESPOT.h"
-#ifdef AGILENT
-#include "procpar.h"
-#endif
 
 using namespace std;
 using namespace Eigen;
@@ -111,10 +108,8 @@ public:
 	virtual void parseSPGR(const size_t nFlip, const bool prompt) = 0;
 	virtual void parseSSFP(const size_t nFlip, const size_t nPhase, const bool prompt) = 0;
 	
-	#ifdef AGILENT
 	virtual void procparseSPGR(const Agilent::ProcPar &pp) = 0;
 	virtual void procparseSSFP(const Agilent::ProcPar &pp) = 0;
-	#endif
 
 };
 
@@ -124,10 +119,8 @@ public:
 	void parseSPGR(const size_t nFlip, const bool prompt) override;
 	void parseSSFP(const size_t nFlip, const size_t nPhase, const bool prompt) override;
 	
-	#ifdef AGILENT
 	void procparseSPGR(const Agilent::ProcPar &pp) override;
 	void procparseSSFP(const Agilent::ProcPar &pp) override;
-	#endif
 };
 
 class FiniteModel : public Model {
@@ -136,10 +129,8 @@ public:
 	void parseSPGR(const size_t nFlip, const bool prompt) override;
 	void parseSSFP(const size_t nFlip, const size_t nPhase, const bool prompt) override;
 	
-	#ifdef AGILENT
 	void procparseSPGR(const Agilent::ProcPar &pp) override;
 	void procparseSSFP(const Agilent::ProcPar &pp) override;
-	#endif
 };
 
 #endif

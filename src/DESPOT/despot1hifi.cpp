@@ -22,10 +22,6 @@
 #include "DESPOT.h"
 #include "QUIT/QUIT.h"
 
-#ifdef AGILENT
-	#include "procpar.h"
-#endif
-
 using namespace std;
 using namespace Eigen;
 
@@ -196,14 +192,11 @@ int main(int argc, char **argv) {
 	ArrayXd spgrAngles(nSPGR);
 	double spgrTR;
 	
-	#ifdef AGILENT
 	Agilent::ProcPar pp;
 	if (ReadPP(spgrFile, pp)) {
 		spgrTR = pp.realValue("tr");
 		for (size_t i = 0; i < nSPGR; i++) spgrAngles[i] = pp.realValue("flip1", i);
-	} else
-	#endif
-	{
+	} else {
 		cout << "Enter SPGR TR (seconds):"; cin >> spgrTR;
 		cout << "Enter " << nSPGR << " Flip Angles (degrees):";
 		for (size_t i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
@@ -223,14 +216,11 @@ int main(int argc, char **argv) {
 	ArrayXd irTI(nIR);
 	double irAngle, irTR;
 	
-	#ifdef AGILENT
 	if (ReadPP(irFile, pp)) {
 		irAngle = pp.realValue("flip1") * M_PI / 180.;
 		for (size_t i = 0; i < nIR; i++) irTI[i] = pp.realValue("ti", i);
 		irTR = pp.realValue("trseg") - irTI[0];
-	} else
-	#endif
-	{
+	} else {
 		cout << "Enter IR-SPGR Flip Angle (degrees):"; cin >> irAngle; irAngle *= M_PI / 180.;
 		if (inversionMode > 0) {
 			cout << "Enter IR-SPGR TR (seconds):"; cin >> irTR;

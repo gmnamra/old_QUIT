@@ -23,10 +23,6 @@
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 
-#ifdef AGILENT
-	#include "procpar.h"
-#endif
-
 using namespace std;
 using namespace Eigen;
 
@@ -155,13 +151,10 @@ int main(int argc, char **argv)
 	MultiArray<complex<double>, 4> ssfpVols(inFile.dims().head(4));
 	inFile.readVolumes(ssfpVols.begin(), ssfpVols.end());
 	cout << "done" << endl;
-	#ifdef AGILENT
 	Agilent::ProcPar pp;
 	if (ReadPP(inFile, pp)) {
 		ssfpMdl.procparseSPGR(pp);
-	} else
-	#endif
-	{
+	} else {
 		ssfpMdl.parseSSFP(inFile.dim(4), 1, true);
 	}
 	if (verbose) {
