@@ -188,22 +188,26 @@ int main(int argc, char **argv)
 		auto inVol = paramsVols.slice<3>({0,0,0,i},{-1,-1,-1,1});
 		input.readVolumes(inVol.begin(), inVol.end(), 0, 1);
 	}
-	MultiArray<float, 4> signalVols(saveFile.dims().head(3), model->size());
-	
+	auto d = saveFile.dims().head(3);
+	MultiArray<float, 4> signalVols(d, model->size());
 	cout << "Started calculating." << endl;
-	function<void (const size_t&)> calcVox = [&] (const size_t &v) {
-		if ((maskFile.isOpen() == 0) || (maskVol[v])) {
-			ArrayXd params = paramsVols.line(v).cast<double>();
-			double B1 = B1File.isOpen() ? B1Vol[v] : 1.;
-			signalVols.line(v) = model->signal(params, B1).abs().cast<float>();
+	function<void (const size_t&)> calcVox = [&] (const size_t &k) {
+		for (size_t j = 0; j < d[1]; j++) {
+			for (size_t i = 0; i < d[0]; i++) {
+				if ((maskFile.isOpen() == 0) || (maskVol[{i,j,k}])) {
+					ArrayXd params = paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
+					double B1 = B1File.isOpen() ? B1Vol[{i,j,k}] : 1.;
+					signalVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = model->signal(params, B1).abs().cast<float>();
+				}
+			}
 		}
 	};
-	ThreadPool threads(1);
-	threads.for_loop(calcVox, numVoxels);
+	ThreadPool threads;
+	threads.for_loop(calcVox, d[2]);
 	
 	cout << "Finished calculating." << endl;
 	saveFile.open(outPrefix + "mcsigout.nii.gz", Nifti::Mode::Write);
-	signalVols.writeTo(saveFile);
+	saveFile.writeVolumes(signalVols.begin(), signalVols.end());
 	saveFile.close();
 	} catch (exception &e) {
 		cerr << e.what() << endl;

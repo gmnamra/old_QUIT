@@ -18,13 +18,14 @@ enum class Interp { NN };
 template<typename Tp, size_t rank>
 class VolumeBase {
 	public:
-		typedef typename MultiArray<Tp, rank>::const_reference const_reference;
-		typedef typename MultiArray<Tp, rank>::reference reference;
-		typedef typename MultiArray<Tp, rank>::Index Index;
-		typedef typename MultiArray<Tp, rank>::SmallIndex SmallIndex;
+		typedef MultiArray<Tp, rank> StorageTp;
+		typedef typename StorageTp::const_reference const_reference;
+		typedef typename StorageTp::reference reference;
+		typedef typename StorageTp::Index Index;
+		typedef typename StorageTp::SmallIndex SmallIndex;
 
 	private:
-		MultiArray<Tp, rank> m_storage;
+		StorageTp m_storage;
 		Eigen::Affine3f m_xform;
 		Extrap m_extrap;
 
@@ -51,6 +52,7 @@ class VolumeBase {
 		reference operator[](const size_t i);
 		reference operator[](const Index &vox);
 		//reference operator[](const Eigen::Vector3f &point);
+		StorageTp &data() { return m_storage; }
 };
 
 template<typename Tp> using Volume = VolumeBase<Tp, 3>;

@@ -77,22 +77,23 @@ int main(int argc, char **argv)
 	}
 
 	cout << "Opening input file: " << argv[optind] << endl;
-	Nifti file(argv[optind], Nifti::Mode::Read);
-	Series<float> all(file);
-	std::string basename = file.basePath();
-	file.close();
+	Nifti inFile(argv[optind], Nifti::Mode::Read);
+	std::string basename = inFile.basePath();
+	Nifti outFile(inFile); outFile.close(); outFile.open(basename + "_grad.nii.gz", Nifti::Mode::Write);
 	cout << "Allocating working memory." << endl;
-	Series<float> grad(all.dims(), all.transform());
-	Series<Eigen::Vector3f> deriv(all.dims(), all.transform());
-	cout << "Starting calculation." << endl;
-	for (size_t vol = 0; vol < file.dim(4); vol++) {
+	auto d = inFile.dims().head(3);
+	Volume<float> data(d, inFile.transform());
+	Volume<float> grad(d, inFile.transform());
+	Volume<Eigen::Vector3f> deriv(d, inFile.transform());
+	cout << "Processing." << endl;
+	for (size_t vol = 0; vol < inFile.dim(4); vol++) {
+		inFile.readVolumes(data.data().begin(), data.data().end(), vol, 1);
 		cout << "Calculating gradient for volume " << vol << endl;
-		VolumeDerivative(all.viewSlice(vol), grad.viewSlice(vol), deriv.viewSlice(vol));
+		VolumeDerivative(data, grad, deriv);
+		outFile.writeVolumes(grad.data().begin(), grad.data().end(), vol, 1);
 	}
-	cout << "Writing results." << endl;
-	file.open(basename + "_grad.nii.gz", Nifti::Mode::Write);
-	grad.writeTo(file);
-	file.close();
+	inFile.close();
+	outFile.close();
 	cout << "Finished." << endl;
 	exit(EXIT_SUCCESS);
 }
