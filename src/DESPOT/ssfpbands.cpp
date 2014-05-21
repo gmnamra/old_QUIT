@@ -34,25 +34,25 @@ along the 4th dimension.\n\
 Options:\n\
 	--help, -h        : Print this message\n\
 	--verbose, -v     : Print more information\n\
-	--out, -o path    : Add a prefix to the output filenames\n\
+	--out, -o path    : Specify an output filename (default image base)\n\
 	--mask, -m file   : Mask input with specified file\n\
-	--reg, -r s       : Use line segment regularisation (default)\n\
-	          m       : Use point magnitude regularisation\n\
-	          n       : Do not regularise, output ellipse cross-point\n\
-	          c       : Do not regularise, output complex sum\n"
+	--save, -s r      : Save the line-regularised image (default)\n\
+	           m      : Save the magnitude-regularised image\n\
+	           e      : Save the ellipse cross-point\n\
+	           c      : Save the complex sum/average\n"
 };
 
-enum class RegMode { Segment, Magnitude, None, ComplexSum };
+enum class SaveMode { LineReg, MagReg, CrossPoint, ComplexSum, Lambda, Mu };
 static bool verbose = false;
-static string outPrefix;
-static RegMode regularisation = RegMode::Segment;
+static string outname;
+static SaveMode save = SaveMode::LineReg;
 static struct option long_options[] =
 {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"out", required_argument, 0, 'o'},
 	{"mask", required_argument, 0, 'm'},
-	{"reg", required_argument, 0, 'r'},
+	{"save", required_argument, 0, 's'},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
@@ -65,28 +65,30 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << version << endl << credit_me << endl;
 	Nifti maskFile;
-	MultiArray<int8_t, 3> maskVol;
+	MultiArray<int8_t, 3> maskData;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvo:m:r:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvo:m:s:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskVol.resize(maskFile.dims().head(3));
-				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
+				maskData.resize(maskFile.dims().head(3));
+				maskFile.readVolumes(maskData.begin(), maskData.end(), 0, 1);
 				break;
 			case 'o':
-				outPrefix = optarg;
-				cout << "Output prefix will be: " << outPrefix << endl;
+				outname = optarg;
+				cout << "Output prefix will be: " << outname << endl;
 				break;
-			case 'r':
+			case 's':
 				switch (*optarg) {
-					case 's': regularisation = RegMode::Segment; break;
-					case 'm': regularisation = RegMode::Magnitude; break;
-					case 'n': regularisation = RegMode::None; break;
-					case 'c': regularisation = RegMode::ComplexSum; break;
+					case 'r': save = SaveMode::LineReg; break;
+					case 'm': save = SaveMode::MagReg; break;
+					case 'e': save = SaveMode::CrossPoint; break;
+					case 'c': save = SaveMode::ComplexSum; break;
+					case 'l': save = SaveMode::Lambda; break;
+					case 'u': save = SaveMode::Mu; break;
 					default:
 						cout << "Unknown regularisation mode '" << *optarg << "'" << endl;
 						exit(EXIT_FAILURE);
@@ -117,6 +119,9 @@ int main(int argc, char **argv)
 	}
 	MultiArray<complex<float>, 4> input(inputFile.dims());
 	inputFile.readVolumes(input.begin(), input.end());
+	if (outname == "") {
+		outname = inputFile.basePath();
+	}
 	inputFile.close();
 
 	// Results storage
@@ -140,7 +145,7 @@ int main(int argc, char **argv)
 				auto C3 = CData.slice<1>(idx, sz).asArray(); idx[3] = 3;
 				auto C4 = CData.slice<1>(idx, sz).asArray();
 				ArrayXXf I1(d[0], 2), I2(d[0], 2), I3(d[0], 2), I4(d[0], 2),
-				        d1(d[0], 2), d2(d[0], 2), n1(d[0], 2), n2(d[0], 2);
+				         d1(d[0], 2), d2(d[0], 2), n1(d[0], 2), n2(d[0], 2);
 				I1.col(0) = C1.real(); I1.col(1) = C1.imag();
 				I2.col(0) = C2.real(); I2.col(1) = C2.imag();
 				I3.col(0) = C3.real(); I3.col(1) = C3.imag();
@@ -149,29 +154,43 @@ int main(int argc, char **argv)
 				d2 = (I4 - I2);
 				n1.col(0) = d1.col(1); n1.col(1) = -d1.col(0);
 				n2.col(0) = d2.col(1); n2.col(1) = -d2.col(0);
-				auto l = (n2 * (I2 - I1)).rowwise().sum() / (n2 * d1).rowwise().sum();
-				auto m = (n1 * (I1 - I2)).rowwise().sum() / (n1 * d2).rowwise().sum();
+				auto lm = (n2 * (I2 - I1)).rowwise().sum() / (n2 * d1).rowwise().sum();
+				auto mu = (n1 * (I1 - I2)).rowwise().sum() / (n1 * d2).rowwise().sum();
 				auto cs = (C1 + C2 + C3 + C4) / 4;
-				auto cp2d = I1 + d1.colwise()*l;
+				auto cp2d = I1 + d1.colwise()*lm;
 				ArrayXcf cp(d[0]); cp.real() = cp2d.col(0); cp.imag() = cp2d.col(1);
-				auto regLine = ((l > 0) && (l < 1) && (m > 0) && (m < 1));
+				auto regLine = ((lm > 0) && (lm < 1) && (mu > 0) && (mu < 1));
 				auto regMag  = (cp.abs() < C1.abs()) && (cp.abs() < C2.abs()) &&
 				               (cp.abs() < C3.abs()) && (cp.abs() < C4.abs());
 				auto out = output.slice<1>({0,j,k,vol}, {-1,0,0,0}).asArray();
-				switch (regularisation) {
-					case RegMode::Segment:    out = regLine.select(cp, cs); break;
-					case RegMode::Magnitude:  out = regMag.select(cp, cs); break;
-					case RegMode::None:       out = cp; break;
-					case RegMode::ComplexSum: out = cs; break;
+				switch (save) {
+					case SaveMode::LineReg:    out = regLine.select(cp, cs); break;
+					case SaveMode::MagReg:     out = regMag.select(cp, cs); break;
+					case SaveMode::CrossPoint: out = cp; break;
+					case SaveMode::ComplexSum: out = cs; break;
+					case SaveMode::Lambda:     out = lm.cast<complex<float>>(); break;
+					case SaveMode::Mu:         out = mu.cast<complex<float>>(); break;
+				}
+				if (maskFile.isOpen()) {
+					auto m = maskData.slice<1>({0,j,k},{-1,0,0}).asArray();
+					out = m.select(out, 0);
 				}
 			}
 		};
 		pool.for_loop(processVox, d[2]);
 	}
-	if (verbose) cout << "Writing output file." << endl;
 	inputFile.setDim(4, nFlip);
 	inputFile.setDatatype(Nifti::DataType::COMPLEX128);
-	inputFile.open(outPrefix + "ssfp_no_bands_out.nii.gz", Nifti::Mode::Write);
+	switch (save) {
+		case SaveMode::LineReg:    outname += "_lreg.nii.gz"; break;
+		case SaveMode::MagReg:     outname += "_mreg.nii.gz"; break;
+		case SaveMode::CrossPoint: outname += "_cross.nii.gz"; break;
+		case SaveMode::ComplexSum: outname += "_sum.nii.gz"; break;
+		case SaveMode::Lambda:     outname += "_lambda.nii.gz"; inputFile.setDatatype(Nifti::DataType::FLOAT64); break;
+		case SaveMode::Mu:         outname += "_mu.nii.gz";     inputFile.setDatatype(Nifti::DataType::FLOAT64); break;
+	}
+	if (verbose) cout << "Writing output file: " << outname << endl;
+	inputFile.open(outname, Nifti::Mode::Write);
 	inputFile.writeVolumes(output.begin(), output.end());
 	inputFile.close();
 	cout << "Finished." << endl;
