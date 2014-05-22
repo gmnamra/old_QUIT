@@ -55,7 +55,6 @@ static struct option long_options[] =
 	{"verbose", no_argument, 0, 'v'},
 	{"input", required_argument, 0, 'i'},
 	{"output", required_argument, 0, 'o'},
-	{"dtype", required_argument, 0, 'd'},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
@@ -87,17 +86,6 @@ int main(int argc, char **argv)
 					case 'c': outputType = Type::Complex; cout << "Output will be complex." << endl; break;
 					default:
 						cerr << "Unknown output type " << optarg << endl;
-						exit(EXIT_FAILURE);
-						break;
-				} break;
-			case 'd':
-				forceDType = true;
-				switch (*optarg) {
-					case 'f': outDType = Nifti::DataType::COMPLEX64; break;
-					case 'd': outDType = Nifti::DataType::COMPLEX128; break;
-					case 'l': outDType = Nifti::DataType::COMPLEX256; break;
-					default:
-						cerr << "Unknown output datatype " << optarg << endl;
 						exit(EXIT_FAILURE);
 						break;
 				} break;
@@ -171,19 +159,20 @@ int main(int argc, char **argv)
 	if (forceDType) {
 		file1.setDatatype(outDType);
 	} else {
-		switch (file1.datatype()) {
-			case (Nifti::DataType::FLOAT32) :    file1.setDatatype(Nifti::DataType::COMPLEX64);  break;
-			case (Nifti::DataType::FLOAT64) :    file1.setDatatype(Nifti::DataType::COMPLEX128); break;
-			case (Nifti::DataType::FLOAT128) :   file1.setDatatype(Nifti::DataType::COMPLEX256); break;
-			case (Nifti::DataType::COMPLEX64) :  break;
-			case (Nifti::DataType::COMPLEX128) : break;
-			case (Nifti::DataType::COMPLEX256) : break;
-			default: outDType = Nifti::DataType::COMPLEX64; break;
-		}
+
 	}
 
 	switch (outputType) {
 		case Type::MagPhase: {
+			switch (file1.datatype()) {
+				case (Nifti::DataType::FLOAT32) : case (Nifti::DataType::COMPLEX64) :
+					file1.setDatatype(Nifti::DataType::FLOAT32);  break;
+				case (Nifti::DataType::FLOAT64) : case (Nifti::DataType::COMPLEX128) :
+					file1.setDatatype(Nifti::DataType::FLOAT64); break;
+				case (Nifti::DataType::FLOAT128) : case (Nifti::DataType::COMPLEX256) :
+					file1.setDatatype(Nifti::DataType::FLOAT128); break;
+				default: file1.setDatatype(Nifti::DataType::FLOAT128); break;
+			}
 			vector<long double> absData(nEl), argData(nEl);
 			for (size_t i = 0; i < nEl; i++) {
 				absData[i] = abs(complexData[i]);
@@ -199,6 +188,15 @@ int main(int argc, char **argv)
 			file1.close();
 		} break;
 		case Type::RealImag: {
+			switch (file1.datatype()) {
+				case (Nifti::DataType::FLOAT32) : case (Nifti::DataType::COMPLEX64) :
+					file1.setDatatype(Nifti::DataType::FLOAT32);  break;
+				case (Nifti::DataType::FLOAT64) : case (Nifti::DataType::COMPLEX128) :
+					file1.setDatatype(Nifti::DataType::FLOAT64); break;
+				case (Nifti::DataType::FLOAT128) : case (Nifti::DataType::COMPLEX256) :
+					file1.setDatatype(Nifti::DataType::FLOAT128); break;
+				default: file1.setDatatype(Nifti::DataType::FLOAT128); break;
+			}
 			vector<long double> realData(nEl), imagData(nEl);
 			for (size_t i = 0; i < nEl; i++) {
 				realData[i] = real(complexData[i]);
@@ -215,6 +213,12 @@ int main(int argc, char **argv)
 
 		} break;
 		case Type::Complex : {
+			switch (file1.datatype()) {
+				case (Nifti::DataType::FLOAT32) :    file1.setDatatype(Nifti::DataType::COMPLEX64);  break;
+				case (Nifti::DataType::FLOAT64) :    file1.setDatatype(Nifti::DataType::COMPLEX128); break;
+				case (Nifti::DataType::FLOAT128) :   file1.setDatatype(Nifti::DataType::COMPLEX256); break;
+				default: file1.setDatatype(Nifti::DataType::COMPLEX128); break;
+			}
 			cout << "Writing complex file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);
 			file1.writeAll(complexData.begin(), complexData.end());
