@@ -10,15 +10,11 @@
  *
  */
 
-#include <time.h>
 #include <getopt.h>
 #include <iostream>
-#include <atomic>
 
 #include "Nifti/Nifti.h"
 #include "QUIT/MultiArray.h"
-#include "QUIT/ThreadPool.h"
-
 using namespace std;
 
 //******************************************************************************
@@ -94,9 +90,7 @@ int main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 		}
 	}
-	//**************************************************************************
-	#pragma mark Gather data
-	//**************************************************************************
+
 	size_t expected_number_of_arguments = 0;
 	switch (inputType) {
 		case Type::MagPhase: expected_number_of_arguments += 2; break;
@@ -114,14 +108,14 @@ int main(int argc, char **argv)
 	}
 
 	Nifti file1, file2;
-	cout << "Opening input file: " << argv[optind] << endl;
+	if (verbose) cout << "Opening input file: " << argv[optind] << endl;
 	file1.open(argv[optind++], Nifti::Mode::Read);
 	size_t nEl = file1.dims().prod();
 	vector<complex<long double>> complexData(nEl);
 
 	switch (inputType) {
 		case Type::MagPhase: {
-			cout << "Opening input file: " << argv[optind] << endl;
+			if (verbose) cout << "Opening input file: " << argv[optind] << endl;
 			file2.open(argv[optind++], Nifti::Mode::Read);
 			if (!file2.matchesSpace(file1)) {
 				cerr << "Magnitude and phase files are incompatible." << endl;
@@ -136,7 +130,7 @@ int main(int argc, char **argv)
 			file2.close();
 		} break;
 		case Type::RealImag: {
-			cout << "Opening input file: " << argv[optind] << endl;
+			if (verbose) cout << "Opening input file: " << argv[optind] << endl;
 			file2.open(argv[optind++], Nifti::Mode::Read);
 			if (!file2.matchesSpace(file1)) {
 				cerr << "Real and imaginary files are incompatible." << endl;
@@ -178,11 +172,11 @@ int main(int argc, char **argv)
 				absData[i] = abs(complexData[i]);
 				argData[i] = arg(complexData[i]);
 			}
-			cout << "Writing magnitude file: " << argv[optind] << endl;
+			if (verbose) cout << "Writing magnitude file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);
 			file1.writeAll(absData.begin(), absData.end());
 			file1.close();
-			cout << "Writing phase file: " << argv[optind] << endl;
+			if (verbose) cout << "Writing phase file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);
 			file1.writeAll(argData.begin(), argData.end());
 			file1.close();
@@ -202,11 +196,11 @@ int main(int argc, char **argv)
 				realData[i] = real(complexData[i]);
 				imagData[i] = imag(complexData[i]);
 			}
-			cout << "Writing real file: " << argv[optind] << endl;
+			if (verbose) cout << "Writing real file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);
 			file1.writeAll(realData.begin(), realData.end());
 			file1.close();
-			cout << "Writing imaginary file: " << argv[optind] << endl;
+			if (verbose) cout << "Writing imaginary file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);
 			file1.writeAll(imagData.begin(), imagData.end());
 			file1.close();
@@ -219,7 +213,7 @@ int main(int argc, char **argv)
 				case (Nifti::DataType::FLOAT128) :   file1.setDatatype(Nifti::DataType::COMPLEX256); break;
 				default: file1.setDatatype(Nifti::DataType::COMPLEX128); break;
 			}
-			cout << "Writing complex file: " << argv[optind] << endl;
+			if (verbose) cout << "Writing complex file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);
 			file1.writeAll(complexData.begin(), complexData.end());
 			file1.close();
