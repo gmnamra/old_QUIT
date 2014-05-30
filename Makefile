@@ -6,7 +6,7 @@ ifneq (,$(findstring clang,$(CXX_VER)))
 else
 	THREADS     := -pthread
 	STDLIB      := -lstdc++
-	MOREFLAGS   :=
+	MOREFLAGS   := -Wno-narrowing
 endif
 
 # Pull in Eigen if necessary
