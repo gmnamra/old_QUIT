@@ -63,7 +63,7 @@ $(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_PHDR)
 
 #Rules for tools
 TOOL_DIR   := Tools
-TOOLS      := niihdr niiext niicomplex niigrad procparse fdf2nii fdfbval
+TOOLS      := niihdr niiext niicreate niicomplex niigrad procparse fdf2nii fdfbval
 PYTOOLS    := fdf2nii.py
 $(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp $(NIFTI_HDR) $(QUIT_HDR) | EIGEN
 	@mkdir -p $(dir $@)
