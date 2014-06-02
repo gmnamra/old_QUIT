@@ -156,8 +156,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	shared_ptr<Model> model;
 	switch (modelType) {
-		case ModelTypes::Simple: model = make_shared<SimpleModel>(components, Model::Scaling::NormToMean); break;
-		case ModelTypes::Finite: model = make_shared<FiniteModel>(components, Model::Scaling::NormToMean); break;
+		case ModelTypes::Simple: model = make_shared<SimpleModel>(components, Model::Scaling::None); break;
+		case ModelTypes::Finite: model = make_shared<FiniteModel>(components, Model::Scaling::None); break;
 	}
 	parseInput(model);
 	//**************************************************************************
@@ -167,37 +167,36 @@ int main(int argc, char **argv)
 	cout << "Using " << Signal::to_string(components) << " component model." << endl;
 	MultiArray<float, 4> paramsVols;
 	Nifti saveFile;
-	size_t numVoxels;
 	if (prompt) cout << "Loading parameters." << endl;
 	for (size_t i = 0; i < model->nParameters(); i++) {
 		if (prompt) cout << "Enter path to " << model->names()[i] << " file: " << flush;
 		string filename; cin >> filename;
-		cout << "Reading " << filename << endl;
+		cout << "Opening " << filename << endl;
 		Nifti input(filename, Nifti::Mode::Read);
 
 		if (i == 0) {
 			saveFile = Nifti(input, model->size());
 			paramsVols = MultiArray<float, 4>(input.dims().head(3), model->nParameters());
-			numVoxels = input.dims().head(3).prod();
 		} else {
 			if (!input.matchesSpace(saveFile)) {
 				cout << "Mismatched input volumes" << endl;
 				exit(EXIT_FAILURE);
 			}
 		}
-		auto inVol = paramsVols.slice<3>({0,0,0,i},{-1,-1,-1,1});
+		auto inVol = paramsVols.slice<3>({0,0,0,i},{-1,-1,-1,0});
+		cout << "Reading data." << endl;
 		input.readVolumes(inVol.begin(), inVol.end(), 0, 1);
 	}
-	auto d = saveFile.dims().head(3);
-	MultiArray<float, 4> signalVols(d, model->size());
-	cout << "Started calculating." << endl;
+	auto d = paramsVols.dims();
+	MultiArray<complex<float>, 4> signalVols(d.head(3), model->size());
+	cout << "Calculating..." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &k) {
 		for (size_t j = 0; j < d[1]; j++) {
 			for (size_t i = 0; i < d[0]; i++) {
 				if ((maskFile.isOpen() == 0) || (maskVol[{i,j,k}])) {
 					ArrayXd params = paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
 					double B1 = B1File.isOpen() ? B1Vol[{i,j,k}] : 1.;
-					signalVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = model->signal(params, B1).abs().cast<float>();
+					signalVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = model->signal(params, B1).cast<complex<float>>();
 				}
 			}
 		}
@@ -206,6 +205,7 @@ int main(int argc, char **argv)
 	threads.for_loop(calcVox, d[2]);
 	
 	cout << "Finished calculating." << endl;
+	saveFile.setDatatype(Nifti::DataType::COMPLEX128);
 	saveFile.open(outPrefix + "mcsigout.nii.gz", Nifti::Mode::Write);
 	saveFile.writeVolumes(signalVols.begin(), signalVols.end());
 	saveFile.close();
