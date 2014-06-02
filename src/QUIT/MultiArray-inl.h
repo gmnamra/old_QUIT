@@ -128,23 +128,27 @@ MultiArray<Tp, newRank> MultiArray<Tp, rank>::slice(const Index &start, const In
 		}
 	}
 	if (((start + size) > m_dims).any()) {
-		throw(std::out_of_range("Slice exceeds array dimensions."));
+		std::stringstream mesg; mesg << "Requested rank " << std::to_string(newRank) << " slice (start: " << start.transpose()
+			<< ", size: " << size.transpose() << ") exceeds array dimensions: " << m_dims.transpose();
+		throw(std::out_of_range(mesg.str()));
 	}
-
+	// Check that we have the correct number of 0 dimensions
+	size_t zero_dim = 0;
+	for (size_t d = 0; d < rank; d++) {
+		if (size[d] == 0) zero_dim++;
+	}
+	if (newRank != (rank - zero_dim)) {
+		throw(std::out_of_range("Incorrect number of zero dimensions for slice of rank " + std::to_string(newRank)));
+	}
 	// Now go through and copy over dimensions/strides for slice
-	size_t to_dim = 0, from_dim = 0, reduced_dims = 0;
+	size_t to_dim = 0, from_dim = 0;
 	while(from_dim < rank) {
 		if (size[from_dim] > 0) {
 			newDims[to_dim] = m_dims[from_dim];
 			newStrides[to_dim] = m_strides[from_dim];
 			to_dim++;
-		} else {
-			reduced_dims++;
 		}
 		from_dim++;
-	}
-	if (newRank != (rank - reduced_dims)) {
-		throw(std::out_of_range("Incorrect number of non-zero dimensions."));
 	}
 	size_t newOffset = m_offset + (m_strides*start).sum();
 	MultiArray<Tp, newRank> slice(newDims, m_ptr, newStrides, newOffset);
