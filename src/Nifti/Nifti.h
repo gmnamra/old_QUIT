@@ -39,7 +39,8 @@ class Nifti {
 			FLOAT32, FLOAT64, FLOAT128, COMPLEX64, COMPLEX128, COMPLEX256,
 			RGB24, RGBA32
 		};
-		
+		static const DataType &DataTypeForCode(const int code);
+
 		struct DataTypeInfo {
 			DataType type;
 			size_t code, size, swapsize;
@@ -80,7 +81,6 @@ class Nifti {
 		};
 
 	private:
-		static const DataType &DataTypeForCode(const int code);
 		static XForm XFormForCode(const int code);
 		static int XFormCode(const XForm t);
 		
