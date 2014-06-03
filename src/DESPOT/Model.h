@@ -96,7 +96,8 @@ public:
 	friend ostream& operator<<(ostream& os, const Model& m);
 
 	const ArrayXcd signal(const VectorXd &p, const double B1) const;
-	const size_t size() const;
+	size_t nSignals() const;
+	size_t size() const;
 	
 	const size_t nParameters() const;
 	const bool validParameters(const VectorXd &params) const;

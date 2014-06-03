@@ -137,7 +137,11 @@ ostream& operator<<(ostream &os, const Model& m) {
 	return os;
 }
 
-const size_t Model::size() const {
+size_t Model::nSignals() const {
+	return m_signals.size();
+}
+
+size_t Model::size() const {
 	size_t sz = 0;
 	for (auto& sig : m_signals)
 		sz += sig->size();
