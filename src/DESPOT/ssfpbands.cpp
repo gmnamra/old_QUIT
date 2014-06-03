@@ -36,6 +36,7 @@ Options:\n\
 	--verbose, -v     : Print more information\n\
 	--out, -o path    : Specify an output filename (default image base)\n\
 	--mask, -m file   : Mask input with specified file\n\
+	--flip, -f        : Data order is flip-angle, then phase (default opposite)\n\
 	--save, -s r      : Save the line-regularised image (default)\n\
 	           m      : Save the magnitude-regularised image\n\
 	           e      : Save the ellipse cross-point\n\
@@ -44,6 +45,7 @@ Options:\n\
 
 enum class SaveMode { LineReg, MagReg, CrossPoint, ComplexSum, Lambda, Mu };
 static bool verbose = false;
+static size_t phase_dim = 3, flip_dim = 4;
 static string outname;
 static SaveMode save = SaveMode::LineReg;
 static struct option long_options[] =
@@ -52,6 +54,7 @@ static struct option long_options[] =
 	{"verbose", no_argument, 0, 'v'},
 	{"out", required_argument, 0, 'o'},
 	{"mask", required_argument, 0, 'm'},
+	{"flip", required_argument, 0, 'f'},
 	{"save", required_argument, 0, 's'},
 	{0, 0, 0, 0}
 };
@@ -68,7 +71,7 @@ int main(int argc, char **argv)
 	MultiArray<int8_t, 3> maskData;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvo:m:s:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvo:m:fs:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
@@ -81,6 +84,8 @@ int main(int argc, char **argv)
 				outname = optarg;
 				cout << "Output prefix will be: " << outname << endl;
 				break;
+			case 'f':
+				phase_dim = 4; flip_dim = 3; break;
 			case 's':
 				switch (*optarg) {
 					case 'r': save = SaveMode::LineReg; break;
@@ -127,8 +132,10 @@ int main(int argc, char **argv)
 	// Results storage
 	auto d = input.dims().head(3);
 	size_t nFlip = input.dims()[3] / 4;
-	MultiArray<complex<float>, 5>::Index nd; nd << d, 4, nFlip;
-	auto CData = input.reshape<5>(nd);
+	MultiArray<complex<float>, 5>::Index nd; nd << d, 0, 0;
+	nd[phase_dim] = 4;
+	nd[flip_dim] = nFlip;
+	MultiArray<complex<float>, 5> CData = input.reshape<5>(nd);
 	MultiArray<complex<float>, 4> output(d, nFlip);
 	//**************************************************************************
 	// Do the fitting
@@ -138,11 +145,12 @@ int main(int argc, char **argv)
 		if (verbose) cout << "Processing volume " << vol << "..." << endl;
 		function<void (const size_t)> processVox = [&] (const size_t k) {
 			for (size_t j = 0; j < d[1]; j++) {
-				decltype(CData)::Index idx; idx << 0,j,k,0,vol;
+				decltype(CData)::Index idx; idx << 0,j,k,0,0;
+				idx[flip_dim] = vol;
 				decltype(CData)::Index sz; sz << -1,0,0,0,0;
-				auto C1 = CData.slice<1>(idx, sz).asArray(); idx[3] = 1;
-				auto C2 = CData.slice<1>(idx, sz).asArray(); idx[3] = 2;
-				auto C3 = CData.slice<1>(idx, sz).asArray(); idx[3] = 3;
+				auto C1 = CData.slice<1>(idx, sz).asArray(); idx[phase_dim] = 1;
+				auto C2 = CData.slice<1>(idx, sz).asArray(); idx[phase_dim] = 2;
+				auto C3 = CData.slice<1>(idx, sz).asArray(); idx[phase_dim] = 3;
 				auto C4 = CData.slice<1>(idx, sz).asArray();
 				ArrayXXf I1(d[0], 2), I2(d[0], 2), I3(d[0], 2), I4(d[0], 2),
 				         d1(d[0], 2), d2(d[0], 2), n1(d[0], 2), n2(d[0], 2);
