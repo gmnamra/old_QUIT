@@ -48,7 +48,7 @@ Options:\n\
 static auto components = Signal::Components::Three;
 static auto modelType = ModelTypes::Simple;
 static bool verbose = false, prompt = true;
-static string outPrefix = "";
+static string outPrefix = "signal_";
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
@@ -160,6 +160,7 @@ int main(int argc, char **argv)
 		case ModelTypes::Finite: model = make_shared<FiniteModel>(components, Model::Scaling::None); break;
 	}
 	parseInput(model);
+	cout << *model << endl;
 	//**************************************************************************
 	#pragma mark Read in parameter files
 	//**************************************************************************
@@ -205,10 +206,17 @@ int main(int argc, char **argv)
 	threads.for_loop(calcVox, d[2]);
 	
 	cout << "Finished calculating." << endl;
+	cout << "Saving data." << endl;
 	saveFile.setDatatype(Nifti::DataType::COMPLEX128);
-	saveFile.open(outPrefix + "mcsigout.nii.gz", Nifti::Mode::Write);
-	saveFile.writeVolumes(signalVols.begin(), signalVols.end());
-	saveFile.close();
+	size_t startVol = 0;
+	for (size_t i = 0; i < model->m_signals.size(); i++) {
+		size_t thisSize = model->m_signals[i]->size();
+		saveFile.setDim(4, thisSize);
+		saveFile.open(outPrefix + to_string(i) + ".nii.gz", Nifti::Mode::Write);
+		auto thisSignal = signalVols.slice<4>({0,0,0,startVol},{-1,-1,-1,thisSize});
+		saveFile.writeVolumes(thisSignal.begin(), thisSignal.end());
+		saveFile.close();
+	}
 	} catch (exception &e) {
 		cerr << e.what() << endl;
 		return EXIT_FAILURE;
