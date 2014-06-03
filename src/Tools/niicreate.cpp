@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 					case 'C': dType = Nifti::DataType::COMPLEX128; break;
 					default: dType = Nifti::DataTypeForCode(atoi(optarg)); break;
 				} break;
-			case 'b': isBlank = true;
+			case 'b': isBlank = true; break;
 			case 'v': fillTypes.at(atoi(optarg)) = FillType::Value; expected_extra_args += 1; break;
 			case 'g': fillTypes.at(atoi(optarg)) = FillType::Gradient; expected_extra_args += 2; break;
 			case 's': fillTypes.at(atoi(optarg)) = FillType::Steps; expected_extra_args += 3; break;
