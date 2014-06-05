@@ -241,7 +241,8 @@ int main(int argc, char **argv)
 			cin >> nPhases;
 			model->parseSSFP(inFile.dim(4) / nPhases, nPhases, true);
 		}
-		cout << "Reading data..." << endl;
+		cout << "Reading data." << endl;
+		ssfpData.at(p).resize(inFile.dims());
 		inFile.readVolumes(ssfpData.at(p).begin(), ssfpData.at(p).end());
 		inFile.close();
 		optind++;
