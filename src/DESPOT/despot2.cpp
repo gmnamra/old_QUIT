@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 					if (elliptical) {
 						T2 = 2. * TR / log((b[0]*E1 - 1.) / (b[0] - E1));
 						E2 = exp(-TR / T2);
-						PD = b[1] * (1. - E1*E2*E2) / (1. - E1);
+						PD = b[1] * (1. - E1*E2*E2) / (sqrt(E2) * (1. - E1));
 					} else {
 						T2 = TR / log((b[0]*E1 - 1.)/(b[0] - E1));
 						E2 = exp(-TR / T2);
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 							if (elliptical) {
 								T2 = 2. * TR / log((b[0]*E1 - 1.) / (b[0] - E1));
 								E2 = exp(-TR / T2);
-								PD = b[1] * (1. - E1*E2*E2) / (1. - E1);
+								PD = b[1] * (1. - E1*E2*E2) / (sqrt(E2) * (1. - E1));
 							} else {
 								T2 = TR / log((b[0]*E1 - 1.)/(b[0] - E1));
 								E2 = exp(-TR / T2);
@@ -234,8 +234,8 @@ int main(int argc, char **argv)
 						lm.lmder1(p);
 						PD = p(0); T1 = p(1); T2 = p(2); offRes = p(3);
 					}
-					ArrayXd theory = ssfpMdl.signal(Vector4d(PD, T1, T2, offRes), B1).abs();
-					SoS = (s - theory).square().sum();
+					ArrayXcd theory = ssfpMdl.signal(Vector4d(PD, T1, T2, offRes), B1);
+					SoS = (data - theory).abs2().sum();
 					T2Vol[{i,j,k}]  = static_cast<float>(T2);
 					PDVol[{i,j,k}]  = static_cast<float>(PD);
 					offResVol[{i,j,k}] = static_cast<float>(offRes);
