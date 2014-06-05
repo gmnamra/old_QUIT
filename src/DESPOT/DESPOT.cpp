@@ -144,15 +144,6 @@ const VectorXd SigMag(const MagVector &M_in) {
 	return s;
 }
 
-// A 3x3 matrix rotation of alpha about X and beta around Z
-// Corresponds to RF Flip angle of alpha, and phase-cycling of beta
-const Matrix3d RF(const double &alpha, const double &beta)
-{
-	Matrix3d R;
-	R = AngleAxisd(alpha, Vector3d::UnitY()) * AngleAxisd(beta, Vector3d::UnitZ());
-	return R;
-}
-
 inline const Matrix3d Relax(const double &T1, const double &T2) {
 	Matrix3d R;
 	R << 1./T2,     0,     0,
@@ -219,17 +210,20 @@ MagVector One_SPGR(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1) {
 
 MagVector One_SSFP(const ArrayXd &flip, cdbl TR, cdbl phase,
 				   cdbl PD, cdbl T1, cdbl T2, cdbl f0) {
-	Vector3d M0, Mobs;
-	M0 << 0., 0., PD;
-	Matrix3d L = (-(Relax(T1, T2) + OffResonance(f0))*TR).exp();
-	const Vector3d RHS = (Matrix3d::Identity() - L) * M0;
-	MagVector theory(3, flip.size());
-	Matrix3d R_rf;
+	double TE = TR / 2;
+	const Vector3d m0(0., 0., PD);
+	const Matrix3d E = (-Relax(T1, T2)*TR).exp();
+	const Matrix3d E_TE = (-Relax(T1, T2)*TE).exp();
+	const Matrix3d O(AngleAxisd(f0*2.*M_PI*TR, Vector3d::UnitZ()));
+	const Matrix3d O_TE(AngleAxisd(f0*M_PI*TR, Vector3d::UnitZ()));
+	const Matrix3d P(AngleAxisd(phase, Vector3d::UnitZ()));
+	MagVector m_e(3, flip.size());
 	for (int i = 0; i < flip.size(); i++) {
-		const Matrix3d R_rf = RF(flip[i], phase);
-		theory.col(i) = (Matrix3d::Identity() - (L * R_rf)).partialPivLu().solve(RHS);
+		const Matrix3d A(AngleAxisd(flip[i], Vector3d::UnitY()));
+		const Vector3d m_minus = (Matrix3d::Identity() - P*O*E*A).partialPivLu().solve((1 - exp(-TR/T1)) * m0);
+		m_e.col(i).noalias() = O_TE*E_TE*A*m_minus + (1 - exp(-TE/T1)) * m0;
 	}
-	return theory;
+	return m_e;
 }
 
 MagVector One_SSFP_Finite(const ArrayXd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl inTE, cdbl phase,
@@ -304,9 +298,8 @@ MagVector Two_SSFP(const ArrayXd &flip, const double TR, const double phase,
 	const Vector6d eyemaM0 = (Matrix6d::Identity() - L) * M0;
 	Matrix6d A = Matrix6d::Zero();
 	for (int i = 0; i < flip.size(); i++) {
-		const Matrix3d Ab = RF(flip[i], phase);
-		A.block(0, 0, 3, 3) = Ab;
-		A.block(3, 3, 3, 3) = Ab;
+		A.block(0, 0, 3, 3) = Matrix3d(AngleAxisd(flip[i], Vector3d::UnitY()) * AngleAxisd(phase, Vector3d::UnitZ()));
+		A.block(3, 3, 3, 3).noalias() = A.block(0, 0, 3, 3);
 		Vector6d MTR = (Matrix6d::Identity() - L * A).partialPivLu().solve(eyemaM0);
 		signal.col(i) = SumMC(MTR);
 	}

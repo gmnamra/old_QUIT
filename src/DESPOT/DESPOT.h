@@ -58,7 +58,6 @@ const VectorXd SigMag(const MagVector &M_in);
 const VectorXcd SigComplex(const MagVector &M_in);
 const MagVector SumMC(const MatrixXd &M_in);
 
-const Matrix3d RF(cdbl &alpha, cdbl &beta);
 inline const Matrix3d Relax(cdbl &T1, cdbl &T2);
 inline const Matrix3d InfinitesimalRF(cdbl &dalpha);
 inline const Matrix3d OffResonance(cdbl &inHertz);
