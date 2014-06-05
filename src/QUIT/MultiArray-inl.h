@@ -176,9 +176,13 @@ auto MultiArray<Tp, rank>::asArray() const -> MapTp {
 template<typename Tp, size_t rank>
 std::string MultiArray<Tp, rank>::print() const {
 	std::stringstream ss;
-	ss << "MultiArray @" << m_ptr->data() << "+" << m_offset << ", share count: " << m_ptr.use_count() << std::endl;
-	ss << "Dims:    " << m_dims.transpose() << std::endl;
-	ss << "Strides: " << m_strides.transpose() << std::endl;
+	if (m_ptr) {
+		ss << "MultiArray @" << m_ptr->data() << "+" << m_offset << ", share count: " << m_ptr.use_count() << std::endl;
+		ss << "Dims:    " << m_dims.transpose() << std::endl;
+		ss << "Strides: " << m_strides.transpose();
+	} else {
+		ss << "Unitialised MultiArray.";
+	}
 	return ss.str();
 }
 
