@@ -107,6 +107,7 @@ clean :
 install :
 	@mkdir -p $(INSTALL_DIR)/
 	cp $(addprefix $(BUILD_DIR)/, $(TARGETS)) $(INSTALL_DIR)/
+	chmod ugo+rx $(addprefix $(INSTALL_DIR)/, $(TARGETS))
 
 .PHONY  : all install clean $(LIB_TGT) $(TARGETS) EIGEN
 .DEFAULT_GOAL := all
