@@ -23,8 +23,9 @@ using namespace Eigen;
 // Arguments / Usage
 //******************************************************************************
 const string usage {
-"Usage is: dixon [options] magnitude phase \n\
+"Usage is: dixon [options] input \n\
 \
+Input must be complex valued.\n\
 Options:\n\
 	--help, -h        : Print this message\n\
 	--verbose, -v     : Print more information\n\
@@ -73,8 +74,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Gather data
 	//**************************************************************************
-	if ((argc - optind) != 2) {
-		cout << "Requires 1 magnitude file and 1 phase file with 3 echos each as input." << endl << usage << endl;
+	if ((argc - optind) != 1) {
+		cout << "Requires 1 complex-valued file with 3 echos each as input." << endl << usage << endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -82,19 +83,13 @@ int main(int argc, char **argv)
 	Nifti inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
 	Nifti templateFile(inputFile, 1);
-	MultiArray<float, 4> mag{inputFile.dims()};
-	inputFile.readVolumes(mag.begin(), mag.end());
+	MultiArray<complex<float>, 4> data{inputFile.dims()};
+	inputFile.readVolumes(data.begin(), data.end());
 	inputFile.close();
-
-	cout << "Opening phase file: " << argv[optind] << endl;
-	inputFile.open(argv[optind++], Nifti::Mode::Read);
-	MultiArray<float, 4> phase{inputFile.dims()};
-	inputFile.readVolumes(phase.begin(), phase.end());
-	if (!templateFile.matchesSpace(inputFile) || (maskFile.isOpen() && !templateFile.matchesSpace(maskFile))) {
-		cerr << "Input file dimensions or orientations do not match." << endl;
+	if (maskFile.isOpen() && !templateFile.matchesSpace(maskFile)) {
+		cerr << "Mask file dimensions or orientations do not match input." << endl;
 		exit(EXIT_FAILURE);
 	}
-	inputFile.close();
 
 	Nifti::ArrayXs dims = templateFile.dims().head(3);
 	MultiArray<float, 3> Wv(dims), Fv(dims), Av(dims);
@@ -103,13 +98,13 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	ThreadPool pool;
 	cout << "Starting processing..." << endl;
-	auto S0 = mag.slice<3>({0,0,0,0},{-1,-1,-1,0});
-	auto S1 = mag.slice<3>({0,0,0,1},{-1,-1,-1,0});
-	auto S2 = mag.slice<3>({0,0,0,2},{-1,-1,-1,0});
-	auto phi0 = phase.slice<3>({0,0,0,0},{-1,-1,-1,0});
-	auto phi1 = phase.slice<3>({0,0,0,1},{-1,-1,-1,0});
-	auto phi2 = phase.slice<3>({0,0,0,2},{-1,-1,-1,0});
-	for (size_t k = 0; k < S0.dims()[2]; k++) {
+	auto S0 = data.slice<3>({0,0,0,0},{-1,-1,-1,0});
+	auto S1 = data.slice<3>({0,0,0,1},{-1,-1,-1,0});
+	auto S2 = data.slice<3>({0,0,0,2},{-1,-1,-1,0});
+	//auto phi0 = phase.slice<3>({0,0,0,0},{-1,-1,-1,0});
+	//auto phi1 = phase.slice<3>({0,0,0,1},{-1,-1,-1,0});
+	//auto phi2 = phase.slice<3>({0,0,0,2},{-1,-1,-1,0});
+	for (size_t k = 0; k < dims[2]; k++) {
 		clock_t loopStart;
 		// Read in data
 		if (verbose)
@@ -119,18 +114,18 @@ int main(int argc, char **argv)
 		//cout << endl << I0s << endl << I1s << endl << I2s << endl;
 		//cout << Ws << endl << Fs << endl << As << endl;
 		function<void (const size_t)> processVox = [&] (const size_t j) {
-			for (size_t i = 0; i < S0.dims()[0]; i++)
+			for (size_t i = 0; i < dims[0]; i++)
 				if (!maskFile.isOpen() || maskVol[{i,j,k}]) {
 					// From Ma et al JMR 1997
-					Av[{i,j,k}] = sqrt(S2[{i,j,k}] / S0[{i,j,k}]);
-					float phi = (phi2[{i,j,k}] - phi0[{i,j,k}]) / 2.;
-					float psi = cos((phi1[{i,j,k}] - phi0[{i,j,k}]) - phi);
-					float frac = S1[{i,j,k}] / sqrt(S0[{i,j,k}]*S2[{i,j,k}]);
-					Wv[{i,j,k}] = (1 + psi * frac) * S0[{i,j,k}] / 2.;
-					Fv[{i,j,k}] = (1 - psi * frac) * S0[{i,j,k}] / 2.;
+					Av[{i,j,k}] = sqrt(abs(S2[{i,j,k}]) / abs(S0[{i,j,k}]));
+					float phi = arg(S2[{i,j,k}] / S0[{i,j,k}]) / 2.;
+					float psi = cos(arg(S1[{i,j,k}] / S0[{i,j,k}]) - phi);
+					float frac = abs(S1[{i,j,k}]) / sqrt(abs(S0[{i,j,k}])*abs(S2[{i,j,k}]));
+					Wv[{i,j,k}] = (1 + psi * frac) * abs(S0[{i,j,k}]) / 2.;
+					Fv[{i,j,k}] = (1 - psi * frac) * abs(S0[{i,j,k}]) / 2.;
 				}
 		};
-		pool.for_loop(processVox, S0.dims()[1]);
+		pool.for_loop(processVox, dims[1]);
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -143,6 +138,7 @@ int main(int argc, char **argv)
 
 	if (verbose)
 		cout << "Writing results." << endl;
+	templateFile.setDatatype(Nifti::DataType::FLOAT32);
 	templateFile.open(outPrefix + "W.nii.gz", Nifti::Mode::Write);
 	templateFile.writeVolumes(Wv.begin(), Wv.end());
 	templateFile.close();
