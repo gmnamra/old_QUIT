@@ -312,10 +312,6 @@ int main(int argc, char **argv) {
 				res = calcHIFI(spgrAngles, spgrs, spgrTR,
 				               irTI, irs, irAngle, irTR, inversionEfficiency,
 							   M0, T1, B1);
-				// Sanity check
-				M0 = clamp(M0, 0., 1.e7);
-				T1 = clamp(T1, 0., 15.);
-				B1 = clamp(B1, 0., 2.);
 			}
 			resultsData[0][sliceOffset + vox] = M0;
 			resultsData[1][sliceOffset + vox] = T1;
