@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 		pool.for_loop(processVox, d[2]);
 	}
 	inputFile.setDim(4, nFlip);
-	inputFile.setDatatype(Nifti::DataType::COMPLEX128);
+	inputFile.setDatatype(Nifti::DataType::COMPLEX64);
 	switch (save) {
 		case SaveMode::LineReg:    outname += "_lreg.nii.gz"; break;
 		case SaveMode::MagReg:     outname += "_mreg.nii.gz"; break;

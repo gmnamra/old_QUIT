@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 				case (Nifti::DataType::FLOAT32) :    file1.setDatatype(Nifti::DataType::COMPLEX64);  break;
 				case (Nifti::DataType::FLOAT64) :    file1.setDatatype(Nifti::DataType::COMPLEX128); break;
 				case (Nifti::DataType::FLOAT128) :   file1.setDatatype(Nifti::DataType::COMPLEX256); break;
-				default: file1.setDatatype(Nifti::DataType::COMPLEX128); break;
+				default: file1.setDatatype(Nifti::DataType::COMPLEX64); break;
 			}
 			if (verbose) cout << "Writing complex file: " << argv[optind] << endl;
 			file1.open(argv[optind++], Nifti::Mode::Write);

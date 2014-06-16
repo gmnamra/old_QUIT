@@ -81,9 +81,9 @@ int main(int argc, char **argv)
 		switch (c) {
 			case 't':
 				switch (*optarg) {
-					case 'F': dType = Nifti::DataType::FLOAT64; break;
+					case 'F': dType = Nifti::DataType::FLOAT32; break;
 					case 'I': dType = Nifti::DataType::INT16; break;
-					case 'C': dType = Nifti::DataType::COMPLEX128; break;
+					case 'C': dType = Nifti::DataType::COMPLEX64; break;
 					default: dType = Nifti::DataTypeForCode(atoi(optarg)); break;
 				} break;
 			case 'b': isBlank = true; break;

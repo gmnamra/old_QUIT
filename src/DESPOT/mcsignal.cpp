@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 	
 	cout << "Finished calculating." << endl;
 	cout << "Saving data." << endl;
-	saveFile.setDatatype(Nifti::DataType::COMPLEX128);
+	saveFile.setDatatype(Nifti::DataType::COMPLEX64);
 	size_t startVol = 0;
 	for (size_t i = 0; i < model->m_signals.size(); i++) {
 		size_t thisSize = model->m_signals[i]->size();
