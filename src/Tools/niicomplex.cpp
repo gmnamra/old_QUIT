@@ -30,11 +30,11 @@ options. The correct number of input/output names must be given as arguments.\n\
 Options:\n\
 	--help, -h        : Print this message\n\
 	--verbose, -v     : Print more information\n\
-	--input, -i p     : Input is magnitude and phase (default)\n\
-	            i     : Input is real/imaginary\n\
+	--input, -i m     : Input is magnitude/phase (default)\n\
+	            r     : Input is real/imaginary\n\
 	            c     : Input is complex\n\
-	--output, -o p    : Output will be magnitudae and phase images\n\
-	             i    : Output will be real & imaginary images (default)\n\
+	--output, -o m    : Output will be magnitude/phase images\n\
+	             r    : Output will be real/imaginary images (default)\n\
 	             c    : Output will be a single complex image\n\
 	--dtype, -d f     : Force output datatype to float\n\
 	            d     : Force output datatype to double\n\
@@ -67,8 +67,8 @@ int main(int argc, char **argv)
 			case 'v': verbose = true; break;
 			case 'i':
 				switch (*optarg) {
-					case 'p': inputType = Type::MagPhase;  cout << "Input is magnitude and phase." << endl; break;
-					case 'i': inputType = Type::RealImag; cout << "Input is real and imaginary." << endl; break;
+					case 'm': inputType = Type::MagPhase;  cout << "Input is magnitude and phase." << endl; break;
+					case 'r': inputType = Type::RealImag; cout << "Input is real and imaginary." << endl; break;
 					case 'c': inputType = Type::Complex; cout << "Input is complex." << endl; break;
 					default:
 						cerr << "Unknown input type " << optarg << endl;
@@ -77,8 +77,8 @@ int main(int argc, char **argv)
 				} break;
 			case 'o':
 				switch (*optarg) {
-					case 'p': outputType = Type::MagPhase;  cout << "Output will be magnitude and phase." << endl; break;
-					case 'i': outputType = Type::RealImag; cout << "Output will be real and imaginary." << endl; break;
+					case 'm': outputType = Type::MagPhase;  cout << "Output will be magnitude and phase." << endl; break;
+					case 'r': outputType = Type::RealImag; cout << "Output will be real and imaginary." << endl; break;
 					case 'c': outputType = Type::Complex; cout << "Output will be complex." << endl; break;
 					default:
 						cerr << "Unknown output type " << optarg << endl;
