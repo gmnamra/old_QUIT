@@ -261,7 +261,7 @@ Nifti::Nifti(const string &filename, const Mode &mode) :
 
 Nifti::Nifti(const int nx, const int ny, const int nz, const int nt,
 		     const float dx, const float dy, const float dz, const float dt,
-			 const DataType dtype, const Affine3f &xform) :
+			 const DataType dtype) :
 	Nifti()
 {
 	m_typeinfo = TypeInfo(dtype);
@@ -270,12 +270,12 @@ Nifti::Nifti(const int nx, const int ny, const int nz, const int nt,
 	m_dim[2] = nz < 1 ? 1 : nz;
 	m_dim[3] = nt < 1 ? 1 : nt;
 	m_voxdim[0] = dx; m_voxdim[1] = dy; m_voxdim[2] = dz; m_voxdim[3] = dt;
-	setTransform(xform);
+	Affine3f S; S = Scaling(m_voxdim[0], m_voxdim[1], m_voxdim[2]);
+	setTransform(S);
 	calcStrides();
 }
 
-Nifti::Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
-             const DataType dtype, const Affine3f &xform) :
+Nifti::Nifti(const ArrayXs &dim, const ArrayXf &voxdim, const DataType dtype) :
 	Nifti()
 {
 	assert(dim.rows() < 8);
@@ -284,7 +284,8 @@ Nifti::Nifti(const ArrayXs &dim, const ArrayXf &voxdim,
 	m_dim.head(dim.rows()) = dim;
 	m_voxdim.head(voxdim.rows()) = voxdim;
 	m_typeinfo = TypeInfo(dtype);
-	setTransform(xform);
+	Affine3f S; S = Scaling(m_voxdim[0], m_voxdim[1], m_voxdim[2]);
+	setTransform(S);
 	calcStrides();
 }
 

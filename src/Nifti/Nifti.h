@@ -124,9 +124,9 @@ class Nifti {
 		Nifti &operator=(Nifti &&other);       //!< Move assignment. Copies all elements, including the file handles, and marks the original as Closed.
 		Nifti(const int nx, const int ny, const int nz, const int nt,
 			  const float dx, const float dy, const float dz, const float dt,
-			  const DataType dtype = DataType::FLOAT32, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
+			  const DataType dtype = DataType::FLOAT32); //!< Constructs a header with the specified dimension and voxel sizes.
 		Nifti(const ArrayXs &dim, const Eigen::ArrayXf &voxdim,
-			  const DataType dtype = DataType::FLOAT32, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity()); //!< Constructs a header with the specified dimension and voxel sizes.
+			  const DataType dtype = DataType::FLOAT32); //!< Constructs a header with the specified dimension and voxel sizes.
 		Nifti(const Nifti &other, const size_t nt, const DataType dtype = DataType::FLOAT32);                        //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
 		Nifti(const std::string &filename, const Mode &mode);
 		
