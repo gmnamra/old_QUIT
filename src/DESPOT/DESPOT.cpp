@@ -259,6 +259,21 @@ MagVector One_SSFP_Finite(const ArrayXd &flip, const bool spoil, cdbl TR, cdbl T
 	return result;
 }
 
+MagVector One_SSFP_Ellipse(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1, cdbl T2, cdbl f0) {
+	double E1 = exp(-TR / T1);
+    double E2 = exp(-TR / T2);
+    double TE = TR / 2;
+
+    double theta = 2.* M_PI * f0 * TR / 2.;
+    ArrayXd M = (1 - E1)*sin(flip) / (1 - E1*cos(flip) - E2*E2*(E1 - cos(flip)));
+
+    MagVector result(3, flip.size());
+    result.row(0) = M * cos(theta);
+    result.row(1) = M * sin(theta);
+
+    return result;
+}
+
 //******************************************************************************
 #pragma mark Two Component Signals
 //******************************************************************************

@@ -40,7 +40,7 @@ class Signal {
 		virtual ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const = 0;
 		virtual size_t size() const { return m_flip.rows(); }
 		virtual void write(ostream &os) const = 0;
-		virtual const string name() const = 0;
+		virtual string name() const = 0;
 };
 ostream& operator<<(ostream& os, const Signal& s);
 
@@ -49,7 +49,7 @@ class SPGRSimple : public Signal {
 		SPGRSimple(const ArrayXd &flip, const double TR);
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
-		const string name() const override { return "SPGR"; } ;
+		string name() const override { return "SPGR"; } ;
 };
 class SPGRFinite : public Signal {
 	public:
@@ -57,7 +57,7 @@ class SPGRFinite : public Signal {
 		SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE);
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
-		const string name() const override { return "SPGR_Finite"; } ;
+		string name() const override { return "SPGR_Finite"; } ;
 };
 class SSFPSimple : public Signal {
 	public:
@@ -66,7 +66,7 @@ class SSFPSimple : public Signal {
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		size_t size() const override;
 		void write(ostream& os) const override;
-		const string name() const override { return "SSFP"; } ;
+		string name() const override { return "SSFP"; } ;
 };
 class SSFPFinite : public SSFPSimple {
 	public:
@@ -74,7 +74,13 @@ class SSFPFinite : public SSFPSimple {
 		SSFPFinite(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases);
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
-		const string name() const override { return "SSFP_Finite"; } ;
+		string name() const override { return "SSFP_Finite"; } ;
+};
+class SSFPEllipse : public Signal {
+	public:
+		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
+		void write(ostream& os) const override;
+		string name() const override { return "SSFP_Ellipse"; };
 };
 
 enum class ModelTypes { Simple, Finite };

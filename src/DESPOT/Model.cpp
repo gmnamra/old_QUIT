@@ -106,6 +106,20 @@ ArrayXcd SSFPFinite::signal(const Components nC, const VectorXd &p, const double
 	return s;
 }
 
+void SSFPEllipse::write(ostream &os) const {
+	os << "SSFP Ellipse" << endl;
+	os << "TR: " << m_TR << endl;
+	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
+}
+
+ArrayXcd SSFPEllipse::signal(const Components nC, const VectorXd &p, const double B1) const {
+	switch (nC) {
+		case (Components::One) : return SigComplex(One_SSFP_Ellipse(B1*m_flip, m_TR, p[0], p[1], p[2], p[3])); break;
+		case (Components::Two) : throw(logic_error("Two component SSFP Ellipse not implemented.")); break;
+		case (Components::Three) : throw(logic_error("Three component SSFP Ellipse not implemented.")); break;
+	}
+}
+
 //******************************************************************************
 #pragma mark Model Class
 //******************************************************************************

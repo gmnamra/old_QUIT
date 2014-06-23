@@ -73,6 +73,7 @@ MagVector One_SPGR(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1);
 MagVector One_SSFP(const ArrayXd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1, cdbl T2, cdbl f0);
 MagVector One_SSFP_Finite(const ArrayXd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl TE, cdbl ph,
                           cdbl PD, cdbl T1, cdbl T2, cdbl f0);
+MagVector One_SSFP_Ellipse(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1, cdbl T2, cdbl f0);
 //******************************************************************************
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0 }
 //******************************************************************************
