@@ -364,6 +364,13 @@ ostream &operator<<(ostream &os, const ProcPar &pp) {
 	return os;
 }
 
+/*
+ *  Checks wheter a ProcPar contains valid entries
+ */
+ProcPar::operator bool() const {
+	return (m_parameters.size() > 0);
+}
+
 const bool ProcPar::contains(const string &name) const {
 	auto p = m_parameters.find(name);
 	if (p == m_parameters.end())

@@ -89,7 +89,8 @@ namespace Agilent {
 		public:
 			friend std::ostream& operator<<(std::ostream &os, const ProcPar &p);
 			friend std::istream& operator>>(std::istream &is, ProcPar &p);
-			
+			explicit operator bool() const;
+
 			const bool contains(const std::string &name) const;
 			void insert(const Parameter &p);
 			void remove(const std::string &name);
