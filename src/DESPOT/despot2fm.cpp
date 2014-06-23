@@ -149,8 +149,8 @@ int main(int argc, char **argv)
 			case 'p': stop_slice = atoi(optarg); break;
 			case 'S':
 				switch (atoi(optarg)) {
-					case 0 : scale = Model::Scaling::None; break;
-					case 1 : scale = Model::Scaling::NormToMean; break;
+					case 0 : scale = Model::Scaling::NormToMean; break;
+					case 1 : scale = Model::Scaling::None; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						exit(EXIT_FAILURE);
@@ -273,7 +273,10 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
-	MultiArray<float, 4> paramsVols(templateFile.dims().head(3), 2);
+	size_t nParams = 2;
+	if (scale == Model::Scaling::None)
+		nParams = 3;
+	MultiArray<float, 4> paramsVols(templateFile.dims().head(3), nParams);
 	MultiArray<float, 4> residualVols(templateFile.dims().head(3), model->size());
 	MultiArray<float, 3> SoSVol(T1Vol.dims());
 	//**************************************************************************
@@ -301,6 +304,10 @@ int main(int argc, char **argv)
 					voxCount++;
 					ArrayXcd signal = model->loadSignals(ssfpData, i, j, k);
 					ArrayXXd localBounds = bounds;
+					if (scale == Model::Scaling::None) {
+						localBounds(0, 0) = 0.;
+						localBounds(0, 1) = signal.abs().maxCoeff() * 100;
+					}
 					localBounds.row(1).setConstant(T1Vol[{i,j,k}]);
 					if (f0fit == OffRes::Map) {
 						localBounds.row(3).setConstant(f0Vol[{i,j,k}]);
@@ -311,7 +318,15 @@ int main(int argc, char **argv)
 														samples, retain, contract, expand, (voxI > 0));
 					ArrayXd params(model->nParameters()); params.setZero();
 					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
-					paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.tail(2).cast<float>(); // Skip PD & T1
+
+					if (scale == Model::Scaling::None) {
+						// Skip T1
+						paramsVols[{i,j,k,0}] = params(0);
+						paramsVols[{i,j,k,1}] = params(2);
+						paramsVols[{i,j,k,2}] = params(3);
+					} else {
+						paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.tail(2).cast<float>(); // Skip PD & T1
+					}
 					SoSVol[{i,j,k}] = static_cast<float>(rc.SoS());
 					if (writeResiduals) {
 						residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
@@ -343,14 +358,29 @@ int main(int argc, char **argv)
 	
 	outPrefix = outPrefix + "FM_";
 	templateFile.description = version;
-	templateFile.open(outPrefix + model->names().at(2) + ".nii.gz", Nifti::Mode::Write);
-	auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
-	templateFile.writeVolumes(p.begin(), p.end());
-	templateFile.close();
-	templateFile.open(outPrefix + model->names().at(3) + ".nii.gz", Nifti::Mode::Write);
-	p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
-	templateFile.writeVolumes(p.begin(), p.end());
-	templateFile.close();
+	if (scale == Model::Scaling::None) {
+		templateFile.open(outPrefix + model->names().at(0) + ".nii.gz", Nifti::Mode::Write);
+		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
+		templateFile.writeVolumes(p.begin(), p.end());
+		templateFile.close();
+		templateFile.open(outPrefix + model->names().at(2) + ".nii.gz", Nifti::Mode::Write);
+		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
+		templateFile.writeVolumes(p.begin(), p.end());
+		templateFile.close();
+		templateFile.open(outPrefix + model->names().at(3) + ".nii.gz", Nifti::Mode::Write);
+		p = paramsVols.slice<3>({0,0,0,2},{-1,-1,-1,0});
+		templateFile.writeVolumes(p.begin(), p.end());
+		templateFile.close();
+	} else {
+		templateFile.open(outPrefix + model->names().at(2) + ".nii.gz", Nifti::Mode::Write);
+		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
+		templateFile.writeVolumes(p.begin(), p.end());
+		templateFile.close();
+		templateFile.open(outPrefix + model->names().at(3) + ".nii.gz", Nifti::Mode::Write);
+		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
+		templateFile.writeVolumes(p.begin(), p.end());
+		templateFile.close();
+	}
 	templateFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);
 	templateFile.writeVolumes(SoSVol.begin(), SoSVol.end());
 	templateFile.close();
