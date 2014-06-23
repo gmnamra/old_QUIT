@@ -46,8 +46,7 @@ Options:\n\
 };
 
 static auto components = Signal::Components::Three;
-static auto modelType = ModelTypes::Simple;
-static bool verbose = false, prompt = true;
+static bool verbose = false, prompt = true, finiteModel = false;
 static string outPrefix = "signal_";
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
@@ -66,26 +65,26 @@ static struct option long_options[] = {
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-void parseInput(shared_ptr<Model> &mdl);
-void parseInput(shared_ptr<Model> &mdl) {
+void parseInput(Model &mdl);
+void parseInput(Model &mdl) {
 	string type;
-	size_t nFlip, nPhase;
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
 		if (type != "SPGR" && type != "SSFP") {
 			cerr << "Unknown signal type: " << type << endl;
 			exit(EXIT_FAILURE);
 		}
-		if (prompt) cout << "Number of Flip-Angles: " << flush;
-		cin >> nFlip;
-		if (type == "SPGR") {
-			mdl->parseSPGR(nFlip, prompt);
-		} else {
-			if (prompt) cout << "Number of phase-cycles: " << flush;
-			cin >> nPhase;
-			mdl->parseSSFP(nFlip, nPhase, prompt);
+		if ((type == "SPGR") && !finiteModel) {
+			mdl.addSignal(SignalType::SPGR, 0, prompt);
+		} else if ((type == "SPGR" && finiteModel)) {
+			mdl.addSignal(SignalType::SPGR_Finite, 0, prompt);
+		} else if ((type == "SSFP" && !finiteModel)) {
+			mdl.addSignal(SignalType::SSFP, 0, prompt);
+		} else if ((type == "SSFP" && finiteModel)) {
+			mdl.addSignal(SignalType::SSFP_Finite, 0, prompt);
 		}
 		// Print message ready for next loop
+		string temp; getline(cin, temp); // Just to eat the newline
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
 }
@@ -131,8 +130,8 @@ int main(int argc, char **argv)
 			case '3': components = Signal::Components::Three; break;
 			case 'M':
 				switch (*optarg) {
-					case 's': modelType = ModelTypes::Simple; if (prompt) cout << "Simple model selected." << endl; break;
-					case 'f': modelType = ModelTypes::Finite; if (prompt) cout << "Finite pulse correction selected." << endl; break;
+					case 's': finiteModel = false; if (prompt) cout << "Simple model selected." << endl; break;
+					case 'f': finiteModel = true; if (prompt) cout << "Finite pulse correction selected." << endl; break;
 					default:
 						cout << "Unknown model type " << *optarg << endl;
 						exit(EXIT_FAILURE);
@@ -154,13 +153,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Set up model
 	//**************************************************************************
-	shared_ptr<Model> model;
-	switch (modelType) {
-		case ModelTypes::Simple: model = make_shared<SimpleModel>(components, Model::Scaling::None); break;
-		case ModelTypes::Finite: model = make_shared<FiniteModel>(components, Model::Scaling::None); break;
-	}
+	Model model(components, Model::Scaling::None);
 	parseInput(model);
-	cout << *model << endl;
+	cout << model << endl;
 	//**************************************************************************
 	#pragma mark Read in parameter files
 	//**************************************************************************
@@ -169,15 +164,15 @@ int main(int argc, char **argv)
 	MultiArray<float, 4> paramsVols;
 	Nifti saveFile;
 	if (prompt) cout << "Loading parameters." << endl;
-	for (size_t i = 0; i < model->nParameters(); i++) {
-		if (prompt) cout << "Enter path to " << model->names()[i] << " file: " << flush;
+	for (size_t i = 0; i < model.nParameters(); i++) {
+		if (prompt) cout << "Enter path to " << model.names()[i] << " file: " << flush;
 		string filename; cin >> filename;
 		cout << "Opening " << filename << endl;
 		Nifti input(filename, Nifti::Mode::Read);
 
 		if (i == 0) {
-			saveFile = Nifti(input, model->size());
-			paramsVols = MultiArray<float, 4>(input.dims().head(3), model->nParameters());
+			saveFile = Nifti(input, model.size());
+			paramsVols = MultiArray<float, 4>(input.dims().head(3), model.nParameters());
 		} else {
 			if (!input.matchesSpace(saveFile)) {
 				cout << "Mismatched input volumes" << endl;
@@ -189,7 +184,7 @@ int main(int argc, char **argv)
 		input.readVolumes(inVol.begin(), inVol.end(), 0, 1);
 	}
 	auto d = paramsVols.dims();
-	MultiArray<complex<float>, 4> signalVols(d.head(3), model->size());
+	MultiArray<complex<float>, 4> signalVols(d.head(3), model.size());
 	cout << "Calculating..." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &k) {
 		for (size_t j = 0; j < d[1]; j++) {
@@ -197,7 +192,7 @@ int main(int argc, char **argv)
 				if ((maskFile.isOpen() == 0) || (maskVol[{i,j,k}])) {
 					ArrayXd params = paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
 					double B1 = B1File.isOpen() ? B1Vol[{i,j,k}] : 1.;
-					signalVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = model->signal(params, B1).cast<complex<float>>();
+					signalVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = model.signal(params, B1).cast<complex<float>>();
 				}
 			}
 		}
@@ -209,8 +204,8 @@ int main(int argc, char **argv)
 	cout << "Saving data." << endl;
 	saveFile.setDatatype(Nifti::DataType::COMPLEX64);
 	size_t startVol = 0;
-	for (size_t i = 0; i < model->m_signals.size(); i++) {
-		size_t thisSize = model->m_signals[i]->size();
+	for (size_t i = 0; i < model.m_signals.size(); i++) {
+		size_t thisSize = model.m_signals[i]->size();
 		saveFile.setDim(4, thisSize);
 		saveFile.open(outPrefix + to_string(i) + ".nii.gz", Nifti::Mode::Write);
 		auto thisSignal = signalVols.slice<4>({0,0,0,startVol},{-1,-1,-1,thisSize});

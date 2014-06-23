@@ -35,6 +35,7 @@ class Signal {
 		
 		double m_TR;
 		ArrayXd m_flip;
+		Signal();
 		Signal(const ArrayXd &flip, const double TR);
 		ArrayXd B1flip(const double B1) const;
 		virtual ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const = 0;
@@ -47,14 +48,16 @@ ostream& operator<<(ostream& os, const Signal& s);
 class SPGRSimple : public Signal {
 	public:
 		SPGRSimple(const ArrayXd &flip, const double TR);
+		SPGRSimple(const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SPGR"; } ;
 };
-class SPGRFinite : public Signal {
+class SPGRFinite : public SPGRSimple {
 	public:
 		double m_Trf, m_TE;
 		SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE);
+		SPGRFinite(const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SPGR_Finite"; } ;
@@ -63,6 +66,7 @@ class SSFPSimple : public Signal {
 	public:
 		ArrayXd m_phases;
 		SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases);
+		SSFPSimple(const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		size_t size() const override;
 		void write(ostream& os) const override;
@@ -72,18 +76,20 @@ class SSFPFinite : public SSFPSimple {
 	public:
 		double m_Trf;
 		SSFPFinite(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases);
+		SSFPFinite(const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SSFP_Finite"; } ;
 };
 class SSFPEllipse : public Signal {
 	public:
+		SSFPEllipse(const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SSFP_Ellipse"; };
 };
 
-enum class ModelTypes { Simple, Finite };
+enum class SignalType { SPGR, SPGR_Finite, SSFP, SSFP_Finite, SSFP_Ellipse };
 enum class OffRes { Fit, FitSym, Map }; // Put this here so mcdespot and despot2fm can access it
 
 class Model {
@@ -112,32 +118,7 @@ public:
 	
 	ArrayXcd loadSignals(vector<MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k) const;
 	
-	virtual void parseSPGR(const size_t nFlip, const bool prompt) = 0;
-	virtual void parseSSFP(const size_t nFlip, const size_t nPhase, const bool prompt) = 0;
-	
-	virtual void procparseSPGR(const Agilent::ProcPar &pp) = 0;
-	virtual void procparseSSFP(const Agilent::ProcPar &pp) = 0;
-
-};
-
-class SimpleModel : public Model {
-public:
-	SimpleModel(const Signal::Components c, const Scaling s);
-	void parseSPGR(const size_t nFlip, const bool prompt) override;
-	void parseSSFP(const size_t nFlip, const size_t nPhase, const bool prompt) override;
-	
-	void procparseSPGR(const Agilent::ProcPar &pp) override;
-	void procparseSSFP(const Agilent::ProcPar &pp) override;
-};
-
-class FiniteModel : public Model {
-public:
-	FiniteModel(const Signal::Components c, const Scaling s);
-	void parseSPGR(const size_t nFlip, const bool prompt) override;
-	void parseSSFP(const size_t nFlip, const size_t nPhase, const bool prompt) override;
-	
-	void procparseSPGR(const Agilent::ProcPar &pp) override;
-	void procparseSSFP(const Agilent::ProcPar &pp) override;
+	void addSignal(const SignalType &st, const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 };
 
 #endif

@@ -62,12 +62,12 @@ Options:\n\
 };
 
 static auto components = Signal::Components::Three;
-static auto modelType = ModelTypes::Simple;
 static auto scale = Model::Scaling::NormToMean;
 static auto tesla = Model::FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
-static int verbose = false, prompt = true, writeResiduals = false, fitComplex = false,
+static int verbose = false, prompt = true, writeResiduals = false,
+           fitFinite = false, fitComplex = false,
            samples = 5000, retain = 50, contract = 10,
            voxI = 0, voxJ = 0;
 static double expand = 0.;
@@ -119,8 +119,8 @@ Nifti openAndCheck(const string &path, const Nifti &saved) {
 	return in;
 }
 
-Nifti parseInput(shared_ptr<Model> &mdl, vector<MultiArray<complex<float>, 4>> &signalVols);
-Nifti parseInput(shared_ptr<Model> &mdl, vector<MultiArray<complex<float>, 4>> &signalVols)
+Nifti parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols);
+Nifti parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols)
 {
 	Nifti templateFile, inFile;
 	string type, path;
@@ -139,22 +139,15 @@ Nifti parseInput(shared_ptr<Model> &mdl, vector<MultiArray<complex<float>, 4>> &
 			inFile = openAndCheck(path, templateFile);
 		}
 		if (verbose) cout << "Opened: " << inFile.imagePath() << endl;
-		Agilent::ProcPar pp;
-		if (ReadPP(inFile, pp)) {
-			if (type == "SPGR") {
-				mdl->procparseSPGR(pp);
-			} else {
-				mdl->procparseSSFP(pp);
-			}
-		} else {
-			if (type == "SPGR") {
-				mdl->parseSPGR(inFile.dim(4), prompt);
-			} else {
-				size_t nPhases;
-				if (prompt) cout << "Enter number of phase-cycling patterns: " << flush;
-				cin >> nPhases;
-				mdl->parseSSFP(inFile.dim(4) / nPhases, nPhases, prompt);
-			}
+		Agilent::ProcPar pp; ReadPP(inFile, pp);
+		if ((type == "SPGR") && !fitFinite) {
+			mdl.addSignal(SignalType::SPGR, inFile.dim(4), prompt, pp);
+		} else if ((type == "SPGR" && fitFinite)) {
+			mdl.addSignal(SignalType::SPGR_Finite, inFile.dim(4), prompt, pp);
+		} else if ((type == "SSFP" && !fitFinite)) {
+			mdl.addSignal(SignalType::SSFP, inFile.dim(4), prompt, pp);
+		} else if ((type == "SSFP" && fitFinite)) {
+			mdl.addSignal(SignalType::SSFP_Finite, inFile.dim(4), prompt, pp);
 		}
 		MultiArray<complex<float>, 4> inData(inFile.dims());
 		inFile.readVolumes(inData.begin(), inData.end());
@@ -242,8 +235,8 @@ int main(int argc, char **argv)
 				} break;
 			case 'M':
 				switch (*optarg) {
-					case 's': modelType = ModelTypes::Simple; if (prompt) cout << "Simple model selected." << endl; break;
-					case 'f': modelType = ModelTypes::Finite; if (prompt) cout << "Finite pulse correction selected." << endl; break;
+					case 's': fitFinite = false; if (verbose) cout << "Simple model selected." << endl; break;
+					case 'f': fitFinite = true;  if (verbose) cout << "Finite pulse correction selected." << endl; break;
 					default:
 						cout << "Unknown model type " << *optarg << endl;
 						exit(EXIT_FAILURE);
@@ -278,13 +271,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	shared_ptr<Model> model;
+	Model model(components, scale);
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << Signal::to_string(components) << " component model." << endl;
-	switch (modelType) {
-		case ModelTypes::Simple : model = make_shared<SimpleModel>(components, scale); break;
-		case ModelTypes::Finite : model = make_shared<FiniteModel>(components, scale); break;
-	}
 	vector<MultiArray<complex<float>, 4>> signalVols;
 	templateFile = parseInput(model, signalVols);
 	if ((maskFile.isOpen() && !templateFile.matchesSpace(maskFile)) ||
@@ -296,29 +285,29 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	//**************************************************************************
-	MultiArray<float, 4> paramsVols(templateFile.dims().head(3), model->nParameters());
-	MultiArray<float, 4> residualVols(templateFile.dims().head(3), model->size());;
+	MultiArray<float, 4> paramsVols(templateFile.dims().head(3), model.nParameters());
+	MultiArray<float, 4> residualVols(templateFile.dims().head(3), model.size());;
 	MultiArray<float, 3> SoSVol(templateFile.dims().head(3));
 	
-	ArrayXd threshes(model->nParameters()); threshes.setConstant(0.05);
-	ArrayXXd bounds = model->bounds(tesla);
+	ArrayXd threshes(model.nParameters()); threshes.setConstant(0.05);
+	ArrayXXd bounds = model.bounds(tesla);
 	if (tesla == Model::FieldStrength::User) {
 		if (prompt) cout << "Enter parameter pairs (low then high)" << endl;
-		for (size_t i = 0; i < model->nParameters() - 1; i++) {
-			if (prompt) cout << model->names()[i] << ": " << flush;
+		for (size_t i = 0; i < model.nParameters() - 1; i++) {
+			if (prompt) cout << model.names()[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 	}
 	if (f0fit == OffRes::FitSym) {
-		bounds(model->nParameters() - 1, 0) = 0.;
+		bounds(model.nParameters() - 1, 0) = 0.;
 	}
-	ArrayXd weights(model->size()); weights.setOnes();
+	ArrayXd weights(model.size()); weights.setOnes();
 	if (verbose) {
-		cout << *model;
+		cout << model;
 		cout << "Bounds:" << endl <<  bounds.transpose() << endl;
 		ofstream boundsFile(outPrefix + "bounds.txt");
-		for (size_t p = 0; p < model->nParameters(); p++) {
-			boundsFile << model->names()[p] << "\t" << bounds.row(p) << endl;
+		for (size_t p = 0; p < model.nParameters(); p++) {
+			boundsFile << model.names()[p] << "\t" << bounds.row(p) << endl;
 		}
 		boundsFile.close();
 	}
@@ -343,16 +332,16 @@ int main(int argc, char **argv)
 			for (size_t i = 0; i < templateFile.dim(1); i++) {
 				if (!maskFile.isOpen() || maskVol[{i,j,k}]) {
 					voxCount++;
-					ArrayXcd signal = model->loadSignals(signalVols, i, j, k);
+					ArrayXcd signal = model.loadSignals(signalVols, i, j, k);
 					ArrayXXd localBounds = bounds;
 					if (f0fit == OffRes::Map) {
-						localBounds.row(model->nParameters() - 1).setConstant(f0Vol[{i,j,k}]);
+						localBounds.row(model.nParameters() - 1).setConstant(f0Vol[{i,j,k}]);
 					}
 					double B1 = B1File.isOpen() ? B1Vol[{i,j,k}] : 1.;
 					DESPOTFunctor func(model, signal, B1, fitComplex, false);
 					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
 														samples, retain, contract, expand, (voxI != 0));
-					ArrayXd params(model->nParameters());
+					ArrayXd params(model.nParameters());
 					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
 					paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
 					residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
@@ -385,8 +374,8 @@ int main(int argc, char **argv)
 	templateFile.setDim(4, 1);
 	templateFile.setDatatype(Nifti::DataType::FLOAT32);
 	templateFile.description = version;
-	for (size_t p = 1; p < model->nParameters(); p++) { // Skip PD for now
-		templateFile.open(outPrefix + model->names().at(p) + ".nii.gz", Nifti::Mode::Write);
+	for (size_t p = 1; p < model.nParameters(); p++) { // Skip PD for now
+		templateFile.open(outPrefix + model.names().at(p) + ".nii.gz", Nifti::Mode::Write);
 		auto param = paramsVols.slice<3>({0,0,0,p},{-1,-1,-1,0});
 		templateFile.writeVolumes(param.begin(), param.end());
 		templateFile.close();
@@ -395,7 +384,7 @@ int main(int argc, char **argv)
 	templateFile.writeVolumes(SoSVol.begin(), SoSVol.end());
 	templateFile.close();
 	if (writeResiduals) {
-		templateFile.setDim(4, static_cast<int>(model->size()));
+		templateFile.setDim(4, static_cast<int>(model.size()));
 		templateFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
 		templateFile.writeVolumes(residualVols.begin(), residualVols.end());
 		templateFile.close();

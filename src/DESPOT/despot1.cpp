@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Gather SPGR data
 	//**************************************************************************
-	SimpleModel spgrMdl(Signal::Components::One, Model::Scaling::None);
+	Model spgrMdl(Signal::Components::One, Model::Scaling::None);
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind], Nifti::Mode::Read);
 	if ((maskFile.isOpen() && !maskFile.matchesSpace(spgrFile)) ||
@@ -131,12 +131,8 @@ int main(int argc, char **argv)
 		cerr << "Mask or B1 dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
 	}
-	Agilent::ProcPar pp;
-	if (ReadPP(spgrFile, pp)) {
-		spgrMdl.procparseSPGR(pp);
-	} else {
-		spgrMdl.parseSPGR(spgrFile.dim(4), true);
-	}
+	Agilent::ProcPar pp; ReadPP(spgrFile, pp);
+	spgrMdl.addSignal(SignalType::SPGR, spgrFile.dim(4), true, pp);
 	if (verbose) {
 		cout << spgrMdl;
 		cout << "Ouput prefix will be: " << outPrefix << endl;
@@ -182,7 +178,7 @@ int main(int argc, char **argv)
 							PD = b[1] / (1. - b[0]);
 						}
 					} else if (algo == Algos::NLLS) {
-						DESPOTFunctor f(make_shared<SimpleModel>(spgrMdl), signal.cast<complex<double>>(), B1, false, false);
+						DESPOTFunctor f(spgrMdl, signal.cast<complex<double>>(), B1, false, false);
 						NumericalDiff<DESPOTFunctor> nDiff(f);
 						LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
 						lm.parameters.maxfev = nIterations;

@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	SimpleModel ssfpMdl(Signal::Components::One, Model::Scaling::None);
+	Model ssfpMdl(Signal::Components::One, Model::Scaling::None);
 	cout << "Reading SSFP data from: " << argv[optind] << endl;
 	inFile.open(argv[optind], Nifti::Mode::Read);
 	if (!inFile.matchesSpace(outFile)) {
@@ -150,12 +150,11 @@ int main(int argc, char **argv)
 	}
 	MultiArray<complex<double>, 4> ssfpVols(inFile.dims().head(4));
 	inFile.readVolumes(ssfpVols.begin(), ssfpVols.end());
-	cout << "done" << endl;
-	Agilent::ProcPar pp;
-	if (ReadPP(inFile, pp)) {
-		ssfpMdl.procparseSPGR(pp);
+	Agilent::ProcPar pp; ReadPP(inFile, pp);
+	if (elliptical) {
+		ssfpMdl.addSignal(SignalType::SSFP_Ellipse, inFile.dim(4), true, pp);
 	} else {
-		ssfpMdl.parseSSFP(inFile.dim(4), 1, true);
+		ssfpMdl.addSignal(SignalType::SSFP, inFile.dim(4), true, pp);
 	}
 	if (verbose) {
 		cout << ssfpMdl;
@@ -225,7 +224,7 @@ int main(int argc, char **argv)
 							}
 						}
 					} else if (algo == Algos::NLLS) {
-						DESPOTFunctor f(make_shared<SimpleModel>(ssfpMdl), s.cast<complex<double>>(), B1, false, false);
+						DESPOTFunctor f(ssfpMdl, s.cast<complex<double>>(), B1, false, false);
 						NumericalDiff<DESPOTFunctor> nDiff(f);
 						LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
 						lm.parameters.maxfev = nIterations;
