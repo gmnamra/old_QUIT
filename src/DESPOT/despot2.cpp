@@ -152,9 +152,9 @@ int main(int argc, char **argv)
 	inFile.readVolumes(ssfpVols.begin(), ssfpVols.end());
 	Agilent::ProcPar pp; ReadPP(inFile, pp);
 	if (elliptical) {
-		ssfpMdl.addSignal(SignalType::SSFP_Ellipse, inFile.dim(4), true, pp);
+		ssfpMdl.addSignal(SignalType::SSFP_Ellipse, true, pp);
 	} else {
-		ssfpMdl.addSignal(SignalType::SSFP, inFile.dim(4), true, pp);
+		ssfpMdl.addSignal(SignalType::SSFP, true, pp);
 	}
 	if (verbose) {
 		cout << ssfpMdl;
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 			clock_t loopEnd = clock();
 			if (voxCount > 0)
 				cout << voxCount << " unmasked voxels, CPU time per voxel was "
-				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
+				     << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
 			cout << "finished." << endl;
 		}
 	}

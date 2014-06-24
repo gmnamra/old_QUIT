@@ -39,20 +39,17 @@ ArrayXd Signal::B1flip(const double B1) const {
 //                PD, T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0
 //				  PD, T1_a, T2_a, T1_b, T2_b, T1_c, T2_c, tau_a, f_a, f_c, f0
 SPGRSimple::SPGRSimple(const ArrayXd &flip, const double TR) : Signal(flip, TR) {}
-SPGRSimple::SPGRSimple(const size_t nFlip, const bool prompt, const Agilent::ProcPar &pp) {
+SPGRSimple::SPGRSimple(const bool prompt, const Agilent::ProcPar &pp) {
 	if (pp) {
 		m_flip = pp.realValues("flip1") * M_PI / 180.;
 		m_TR = pp.realValue("tr");
 	} else {
-		size_t inFlip = nFlip;
-		if (inFlip == 0) {
-			if (prompt) cout << "Enter number of flip-angles: " << inFlip << flush; cin >> inFlip;
-		}
-		ArrayXd inAngles(inFlip);
+		size_t nFlip;
+		if (prompt) cout << "Enter number of flip-angles: " << nFlip << flush; cin >> nFlip;
+		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
 		for (int i = 0; i < inAngles.size(); i++)
 			cin >> inAngles[i];
-		string temp; getline(cin, temp); // Just to eat the newline
 		m_flip = inAngles * M_PI / 180.;
 		if (prompt) cout << "Enter TR (seconds): " << flush; cin >> m_TR;
 	}
@@ -73,7 +70,7 @@ ArrayXcd SPGRSimple::signal(const Components nC, const VectorXd &p, const double
 }
 
 SPGRFinite::SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE) : SPGRSimple(flip, TR), m_Trf(Trf), m_TE(TE) {}
-SPGRFinite::SPGRFinite(const size_t nFlip, const bool prompt, const Agilent::ProcPar &pp) : SPGRSimple(nFlip, prompt, pp) {
+SPGRFinite::SPGRFinite(const bool prompt, const Agilent::ProcPar &pp) : SPGRSimple(prompt, pp) {
 	if (pp) {
 		m_Trf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
 		m_TE = pp.realValue("te");
@@ -99,17 +96,15 @@ ArrayXcd SPGRFinite::signal(const Components nC, const VectorXd &p, const double
 
 
 SSFPSimple::SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases) : Signal(flip, TR), m_phases(phases) {}
-SSFPSimple::SSFPSimple(const size_t nFlip, const bool prompt, const Agilent::ProcPar &pp) {
+SSFPSimple::SSFPSimple(const bool prompt, const Agilent::ProcPar &pp) {
 	if (pp) {
 		m_phases = pp.realValues("rfphase") * M_PI / 180.;
 		m_flip = pp.realValues("flip1") * M_PI / 180.;
 		m_TR = pp.realValue("tr");
 	} else {
-		size_t inFlip = nFlip;
-		if (inFlip == 0) {
-			if (prompt) cout << "Enter number of flip-angles: " << flush; cin >> inFlip;
-		}
-		ArrayXd inAngles(inFlip);
+		size_t nFlip;
+		if (prompt) cout << "Enter number of flip-angles: " << flush; cin >> nFlip;
+		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
 		for (int i = 0; i < inAngles.size(); i++)
 			cin >> inAngles[i];
@@ -149,7 +144,7 @@ ArrayXcd SSFPSimple::signal(const Components nC, const VectorXd &p, const double
 }
 
 SSFPFinite::SSFPFinite(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases) : SSFPSimple(flip, TR, phases), m_Trf(Trf) {}
-SSFPFinite::SSFPFinite(const size_t nFlip, const bool prompt, const Agilent::ProcPar &pp) : SSFPSimple(nFlip, prompt, pp) {
+SSFPFinite::SSFPFinite(const bool prompt, const Agilent::ProcPar &pp) : SSFPSimple(prompt, pp) {
 	if (pp) {
 		m_Trf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
 	} else {
@@ -177,11 +172,13 @@ ArrayXcd SSFPFinite::signal(const Components nC, const VectorXd &p, const double
 	return s;
 }
 
-SSFPEllipse::SSFPEllipse(const size_t nFlip, const bool prompt, const Agilent::ProcPar &pp) {
+SSFPEllipse::SSFPEllipse(const bool prompt, const Agilent::ProcPar &pp) {
 	if (pp) {
 		m_flip = pp.realValues("flip1") * M_PI / 180.;
 		m_TR = pp.realValue("tr");
 	} else {
+		size_t nFlip;
+		if (prompt) cout << "Enter number of flip-angles: " << flush; cin >> nFlip;
 		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
 		for (int i = 0; i < inAngles.size(); i++)
@@ -358,12 +355,12 @@ ArrayXcd Model::loadSignals(vector<MultiArray<complex<float>, 4>> &sigs, const s
 }
 
 
-void Model::addSignal(const SignalType &st, const size_t nFlip, const bool prompt, const Agilent::ProcPar &pp) {
+void Model::addSignal(const SignalType &st, const bool prompt, const Agilent::ProcPar &pp) {
 	switch (st) {
-		case SignalType::SPGR:         m_signals.push_back(make_shared<SPGRSimple>(nFlip, prompt, pp)); break;
-		case SignalType::SPGR_Finite:  m_signals.push_back(make_shared<SPGRFinite>(nFlip, prompt, pp)); break;
-		case SignalType::SSFP:         m_signals.push_back(make_shared<SSFPSimple>(nFlip, prompt, pp)); break;
-		case SignalType::SSFP_Finite:  m_signals.push_back(make_shared<SSFPFinite>(nFlip, prompt, pp)); break;
-		case SignalType::SSFP_Ellipse: m_signals.push_back(make_shared<SSFPEllipse>(nFlip, prompt, pp)); break;
+		case SignalType::SPGR:         m_signals.push_back(make_shared<SPGRSimple>(prompt, pp)); break;
+		case SignalType::SPGR_Finite:  m_signals.push_back(make_shared<SPGRFinite>(prompt, pp)); break;
+		case SignalType::SSFP:         m_signals.push_back(make_shared<SSFPSimple>(prompt, pp)); break;
+		case SignalType::SSFP_Finite:  m_signals.push_back(make_shared<SSFPFinite>(prompt, pp)); break;
+		case SignalType::SSFP_Ellipse: m_signals.push_back(make_shared<SSFPEllipse>(prompt, pp)); break;
 	}
 }

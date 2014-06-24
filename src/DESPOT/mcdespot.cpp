@@ -141,13 +141,13 @@ Nifti parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols)
 		if (verbose) cout << "Opened: " << inFile.imagePath() << endl;
 		Agilent::ProcPar pp; ReadPP(inFile, pp);
 		if ((type == "SPGR") && !fitFinite) {
-			mdl.addSignal(SignalType::SPGR, inFile.dim(4), prompt, pp);
+			mdl.addSignal(SignalType::SPGR, prompt, pp);
 		} else if ((type == "SPGR" && fitFinite)) {
-			mdl.addSignal(SignalType::SPGR_Finite, inFile.dim(4), prompt, pp);
+			mdl.addSignal(SignalType::SPGR_Finite, prompt, pp);
 		} else if ((type == "SSFP" && !fitFinite)) {
-			mdl.addSignal(SignalType::SSFP, inFile.dim(4), prompt, pp);
+			mdl.addSignal(SignalType::SSFP, inFile.dim(4), pp);
 		} else if ((type == "SSFP" && fitFinite)) {
-			mdl.addSignal(SignalType::SSFP_Finite, inFile.dim(4), prompt, pp);
+			mdl.addSignal(SignalType::SSFP_Finite, inFile.dim(4), pp);
 		}
 		MultiArray<complex<float>, 4> inData(inFile.dims());
 		inFile.readVolumes(inData.begin(), inData.end());

@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	Agilent::ProcPar pp; ReadPP(spgrFile, pp);
-	spgrMdl.addSignal(SignalType::SPGR, spgrFile.dim(4), true, pp);
+	spgrMdl.addSignal(SignalType::SPGR, true, pp);
 	if (verbose) {
 		cout << spgrMdl;
 		cout << "Ouput prefix will be: " << outPrefix << endl;

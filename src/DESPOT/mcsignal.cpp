@@ -75,13 +75,13 @@ void parseInput(Model &mdl) {
 			exit(EXIT_FAILURE);
 		}
 		if ((type == "SPGR") && !finiteModel) {
-			mdl.addSignal(SignalType::SPGR, 0, prompt);
+			mdl.addSignal(SignalType::SPGR, prompt);
 		} else if ((type == "SPGR" && finiteModel)) {
-			mdl.addSignal(SignalType::SPGR_Finite, 0, prompt);
+			mdl.addSignal(SignalType::SPGR_Finite, prompt);
 		} else if ((type == "SSFP" && !finiteModel)) {
-			mdl.addSignal(SignalType::SSFP, 0, prompt);
+			mdl.addSignal(SignalType::SSFP, prompt);
 		} else if ((type == "SSFP" && finiteModel)) {
-			mdl.addSignal(SignalType::SSFP_Finite, 0, prompt);
+			mdl.addSignal(SignalType::SSFP_Finite, prompt);
 		}
 		// Print message ready for next loop
 		string temp; getline(cin, temp); // Just to eat the newline

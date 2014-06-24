@@ -48,7 +48,7 @@ ostream& operator<<(ostream& os, const Signal& s);
 class SPGRSimple : public Signal {
 	public:
 		SPGRSimple(const ArrayXd &flip, const double TR);
-		SPGRSimple(const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		SPGRSimple(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SPGR"; } ;
@@ -57,7 +57,7 @@ class SPGRFinite : public SPGRSimple {
 	public:
 		double m_Trf, m_TE;
 		SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE);
-		SPGRFinite(const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		SPGRFinite(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SPGR_Finite"; } ;
@@ -66,7 +66,7 @@ class SSFPSimple : public Signal {
 	public:
 		ArrayXd m_phases;
 		SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases);
-		SSFPSimple(const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		SSFPSimple(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		size_t size() const override;
 		void write(ostream& os) const override;
@@ -76,14 +76,14 @@ class SSFPFinite : public SSFPSimple {
 	public:
 		double m_Trf;
 		SSFPFinite(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases);
-		SSFPFinite(const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		SSFPFinite(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SSFP_Finite"; } ;
 };
 class SSFPEllipse : public Signal {
 	public:
-		SSFPEllipse(const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		SSFPEllipse(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SSFP_Ellipse"; };
@@ -118,7 +118,7 @@ public:
 	
 	ArrayXcd loadSignals(vector<MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k) const;
 	
-	void addSignal(const SignalType &st, const size_t nFlip, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+	void addSignal(const SignalType &st, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 };
 
 #endif

@@ -230,9 +230,9 @@ int main(int argc, char **argv)
 		}
 		Agilent::ProcPar pp; ReadPP(inFile, pp);
 		if (fitFinite) {
-			model.addSignal(SignalType::SSFP_Finite, 0, true, pp);
+			model.addSignal(SignalType::SSFP_Finite, true, pp);
 		} else {
-			model.addSignal(SignalType::SSFP, 0, true, pp);
+			model.addSignal(SignalType::SSFP, true, pp);
 		}
 		cout << "Reading data." << endl;
 		ssfpData.at(p).resize(inFile.dims());
