@@ -10,7 +10,6 @@
  *
  */
 
-#include <time.h>
 #include <getopt.h>
 #include <iostream>
 #include <atomic>
@@ -39,6 +38,7 @@ Options:\n\
 	--B1 file         : B1 Map file.\n\
 	--elliptical, -e  : Input is band-free elliptical data.\n\
 	--verbose, -v     : Print slice processing times.\n\
+	--no-prompt, -n   : Suppress input prompts.\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
 	           n      : NLLS (Levenberg-Marquardt)\n\
@@ -46,7 +46,7 @@ Options:\n\
 };
 
 enum class Algos { LLS, WLLS, NLLS };
-static int verbose = false, elliptical = false;
+static int verbose = false, prompt = true, elliptical = false;
 static size_t nIterations = 4;
 static Algos algo;
 static string outPrefix;
@@ -57,6 +57,7 @@ static struct option long_options[] =
 	{"help", no_argument, 0, 'h'},
 	{"mask", required_argument, 0, 'm'},
 	{"verbose", no_argument, 0, 'v'},
+	{"no-prompt", no_argument, 0, 'n'},
 	{"algo", required_argument, 0, 'a'},
 	{"its", required_argument, 0, 'i'},
 	{0, 0, 0, 0}
@@ -67,12 +68,6 @@ static struct option long_options[] =
 //******************************************************************************
 int main(int argc, char **argv)
 {
-	//**************************************************************************
-	// Argument Processing
-	//**************************************************************************
-	cout << version << credit_shared << endl;
-	Eigen::initParallel();
-
 	try { // To fix uncaught exceptions on Mac
 
 	Nifti maskFile, B0File, B1File;
@@ -80,11 +75,11 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:b:va:i:e", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:o:b:vna:i:e", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;
-				cout << "Output prefix will be: " << outPrefix << endl;
+				if (verbose) cout << "Output prefix will be: " << outPrefix << endl;
 				break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
@@ -100,9 +95,9 @@ int main(int argc, char **argv)
 				break;
 			case 'a':
 				switch (*optarg) {
-					case 'l': algo = Algos::LLS;  cout << "LLS algorithm selected." << endl; break;
-					case 'w': algo = Algos::WLLS; cout << "WLLS algorithm selected." << endl; break;
-					case 'n': algo = Algos::NLLS; cout << "NLLS algorithm selected." << endl; break;
+					case 'l': algo = Algos::LLS;  if (verbose) cout << "LLS algorithm selected." << endl; break;
+					case 'w': algo = Algos::WLLS; if (verbose) cout << "WLLS algorithm selected." << endl; break;
+					case 'n': algo = Algos::NLLS; if (verbose) cout << "NLLS algorithm selected." << endl; break;
 					default:
 						cout << "Unknown algorithm type " << optarg << endl;
 						exit(EXIT_FAILURE);
@@ -112,6 +107,7 @@ int main(int argc, char **argv)
 				nIterations = atoi(optarg);
 				break;
 			case 'v': verbose = true; break;
+			case 'n': prompt = false; break;
 			case 'e': elliptical = true; break;
 			case 0:
 				// Just a flag
@@ -122,12 +118,14 @@ int main(int argc, char **argv)
 				exit(EXIT_SUCCESS);
 		}
 	}
+	if (verbose) cout << version << credit_shared << endl;
+	Eigen::initParallel();
 	if ((argc - optind) != 2) {
 		cout << "Wrong number of arguments. Need a T1 map and 1 SSFP file." << endl;
 		cout << usage << endl;
 		exit(EXIT_FAILURE);
 	}
-	cout << "Reading T1 Map from: " << argv[optind] << endl;
+	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
 	Nifti inFile(argv[optind++], Nifti::Mode::Read);
 	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
 		(B1File.isOpen() && !inFile.matchesSpace(B1File))){
@@ -142,7 +140,7 @@ int main(int argc, char **argv)
 	// Gather SSFP Data
 	//**************************************************************************
 	Model ssfpMdl(Signal::Components::One, Model::Scaling::None);
-	cout << "Reading SSFP data from: " << argv[optind] << endl;
+	if (verbose) cout << "Reading SSFP data from: " << argv[optind] << endl;
 	inFile.open(argv[optind], Nifti::Mode::Read);
 	if (!inFile.matchesSpace(outFile)) {
 		cerr << "Dimensions/transforms do not match in input files." << endl;
@@ -152,9 +150,9 @@ int main(int argc, char **argv)
 	inFile.readVolumes(ssfpVols.begin(), ssfpVols.end());
 	Agilent::ProcPar pp; ReadPP(inFile, pp);
 	if (elliptical) {
-		ssfpMdl.addSignal(SignalType::SSFP_Ellipse, true, pp);
+		ssfpMdl.addSignal(SignalType::SSFP_Ellipse, prompt, pp);
 	} else {
-		ssfpMdl.addSignal(SignalType::SSFP, true, pp);
+		ssfpMdl.addSignal(SignalType::SSFP, prompt, pp);
 	}
 	if (verbose) {
 		cout << ssfpMdl;
@@ -166,21 +164,21 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	MultiArray<float, 3> T2Vol(ssfpVols.dims().head(3)), PDVol(ssfpVols.dims().head(3)),
 	                     offResVol(ssfpVols.dims().head(3)), SoSVol(ssfpVols.dims().head(3));
-    time_t procStart = time(NULL);
-	char theTime[512];
-	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
-	cout << "Started processing at " << theTime << endl;
+	time_t startTime;
+	if (verbose)
+		startTime = printStartTime();
+	clock_t startClock = clock();
+	int voxCount = 0;
 	ThreadPool pool;
 	for (size_t k = 0; k < inFile.dim(3); k++) {
-		clock_t loopStart;
 		if (verbose)
 			cout << "Starting slice " << k << "..." << flush;
-		loopStart = clock();
-		atomic<int> voxCount{0};
+		clock_t loopStart = clock();
+		atomic<int> sliceCount{0};
 		function<void (const int&)> process = [&] (const int &j) {
 			for (size_t i = 0; i < inFile.dim(1); i++) {
 				if (!maskFile.isOpen() || (maskVol[{i,j,k}])) {
-					voxCount++;
+					sliceCount++;
 					double B1, T1, T2, E1, E2, PD, offRes, SoS;
 					B1 = B1File.isOpen() ? B1Vol[{i,j,k}] : 1.;
 					T1 = T1Vol[{i,j,k}];
@@ -243,22 +241,14 @@ int main(int argc, char **argv)
 			}
 		};
 		pool.for_loop(process, inFile.dim(2));
-		
-		if (verbose) {
-			clock_t loopEnd = clock();
-			if (voxCount > 0)
-				cout << voxCount << " unmasked voxels, CPU time per voxel was "
-				     << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
-			cout << "finished." << endl;
-		}
+		if (verbose) printLoopTime(loopStart, sliceCount);
+		voxCount += sliceCount;
 	}
-    time_t procEnd = time(NULL);
-    strftime(theTime, 512, "%H:%M:%S", localtime(&procEnd));
-	cout << "Finished processing at " << theTime << ". Run-time was " 
-	     << difftime(procEnd, procStart) << " s." << endl;
-	
-	if (verbose)
+	if (verbose) {
+		printElapsedTime(startTime);
 		cout << "Writing results." << endl;
+	}
+	printElapsedClock(startClock, voxCount);
 	outFile.description = version;
 	outFile.open(outPrefix + "D2_T2.nii.gz", Nifti::Mode::Write);
 	outFile.writeVolumes(T2Vol.begin(), T2Vol.end());
@@ -273,7 +263,7 @@ int main(int argc, char **argv)
 	outFile.writeVolumes(offResVol.begin(), offResVol.end());
 	outFile.close();
 
-	cout << "All done." << endl;
+	if (verbose) cout << "All done." << endl;
 	} catch (exception &e) {
 		cerr << e.what() << endl;
 		return EXIT_FAILURE;

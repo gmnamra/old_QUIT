@@ -35,6 +35,7 @@ const string usage {
 Options:\n\
 	--help, -h       : Print this message\n\
 	--verbose, -v    : Print slice processing times\n\
+	--no-prompt, -n  : Suppress input prompts\n\
 	--mask, -m file  : Mask input with specified file\n\
 	--out, -o path   : Add a prefix to the output filenames\n\
 	--f0, -f SYM     : Fit symmetric f0 map (default)\n\
@@ -58,7 +59,7 @@ static auto scale = Model::Scaling::NormToMean;
 static auto tesla = Model::FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
-static int verbose = false, writeResiduals = false,
+static int verbose = false, prompt = true, writeResiduals = false,
            fitFinite = false, fitComplex = false,
            samples = 2000, retain = 20, contract = 10,
            voxI = 0, voxJ = 0;
@@ -67,6 +68,7 @@ static string outPrefix;
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
+	{"no-prompt", no_argument, 0, 'n'},
 	{"mask", required_argument, 0, 'm'},
 	{"out", required_argument, 0, 'o'},
 	{"f0", required_argument, 0, 'f'},
@@ -99,12 +101,6 @@ void int_handler(int) {
 //******************************************************************************
 int main(int argc, char **argv)
 {
-	//**************************************************************************
-	// Argument Processing
-	//**************************************************************************
-	cout << version << endl << credit_me << endl;
-	Eigen::initParallel();
-	
 	try { // To fix uncaught exceptions on Mac
 	
 	Nifti maskFile, f0File, B1File;
@@ -113,18 +109,19 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:M:xcri:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvnm:o:f:b:s:p:S:t:M:xcri:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
+			case 'n': prompt = false; break;
 			case 'm':
-				cout << "Reading mask file " << optarg << endl;
+				if (verbose) cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
 				maskVol.resize(maskFile.dims());
 				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
 			case 'o':
 				outPrefix = optarg;
-				cout << "Output prefix will be: " << outPrefix << endl;
+				if (verbose) cout << "Output prefix will be: " << outPrefix << endl;
 				break;
 			case 'f':
 				if (string(optarg) == "SYM") {
@@ -132,7 +129,7 @@ int main(int argc, char **argv)
 				} else if (string(optarg) == "ASYM") {
 					f0fit = OffRes::Fit;
 				} else {
-					cout << "Reading f0 file: " << optarg << endl;
+					if (verbose) cout << "Reading f0 file: " << optarg << endl;
 					f0File.open(optarg, Nifti::Mode::Read);
 					f0Vol.resize(f0File.dims());
 					f0File.readVolumes(f0Vol.begin(), f0Vol.end(), 0, 1);
@@ -140,7 +137,7 @@ int main(int argc, char **argv)
 				}
 				break;
 			case 'b':
-				cout << "Reading B1 file: " << optarg << endl;
+				if (verbose) cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
 				B1Vol.resize(B1File.dims());
 				B1File.readVolumes(B1Vol.begin(), B1Vol.end(), 0, 1);
@@ -196,11 +193,13 @@ int main(int argc, char **argv)
 				break;
 		}
 	}
+	if (verbose) cout << version << endl << credit_me << endl;
+	Eigen::initParallel();
 	if ((argc - optind) < 2) {
 		cout << "Wrong number of arguments. Need at least a T1 map and 1 SSFP file." << endl;
 		exit(EXIT_FAILURE);
 	}
-	cout << "Reading T1 Map from: " << argv[optind] << endl;
+	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
 	Nifti inFile(argv[optind++], Nifti::Mode::Read);
 	MultiArray<float, 3> T1Vol{inFile.dims()};
 	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
@@ -220,7 +219,7 @@ int main(int argc, char **argv)
 	Model model(Signal::Components::One, scale);
 	VectorXd inFlip;
 	for (size_t p = 0; p < nFiles; p++) {
-		cout << "Reading SSFP header from " << argv[optind] << endl;
+		if (verbose) cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
 		if (p == 0)
 			templateFile = Nifti(inFile, 1);
@@ -230,11 +229,11 @@ int main(int argc, char **argv)
 		}
 		Agilent::ProcPar pp; ReadPP(inFile, pp);
 		if (fitFinite) {
-			model.addSignal(SignalType::SSFP_Finite, true, pp);
+			model.addSignal(SignalType::SSFP_Finite, prompt, pp);
 		} else {
-			model.addSignal(SignalType::SSFP, true, pp);
+			model.addSignal(SignalType::SSFP, prompt, pp);
 		}
-		cout << "Reading data." << endl;
+		if (verbose) cout << "Reading data." << endl;
 		ssfpData.at(p).resize(inFile.dims());
 		inFile.readVolumes(ssfpData.at(p).begin(), ssfpData.at(p).end());
 		inFile.close();
@@ -277,29 +276,26 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	if (stop_slice > templateFile.dim(3))
 		stop_slice = templateFile.dim(3);
-    time_t procStart = time(NULL);
-	char theTime[512];
-	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
-	cout << "Started processing at " << theTime << endl;
+	time_t startTime;
+	if (verbose) startTime = printStartTime();
+	clock_t startClock = clock();
+	int voxCount = 0;
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	for (size_t k = start_slice; k < stop_slice; k++) {
-		// Read in data
-		if (verbose)
-			cout << "Starting slice " << k << "..." << flush;
-		
-		atomic<int> voxCount{0};
+		if (verbose) cout << "Starting slice " << k << "..." << flush;
+		atomic<int> sliceCount{0};
 		clock_t loopStart = clock();
-		
+
 		function<void (const size_t&)> processVox = [&] (const size_t &j) {
 			for (size_t i = 0; i < T1Vol.dims()[0]; i++) {
 				if (!maskFile.isOpen() || (maskVol[{i,j,k}] && T1Vol[{i,j,k}] > 0.)) {
 					// -ve T1 is nonsensical, no point fitting
-					voxCount++;
+					sliceCount++;
 					ArrayXcd signal = model.loadSignals(ssfpData, i, j, k);
 					ArrayXXd localBounds = bounds;
 					if (scale == Model::Scaling::None) {
 						localBounds(0, 0) = 0.;
-						localBounds(0, 1) = signal.abs().maxCoeff() * 100;
+						localBounds(0, 1) = signal.abs().maxCoeff() * 25;
 					}
 					localBounds.row(1).setConstant(T1Vol[{i,j,k}]);
 					if (f0fit == OffRes::Map) {
@@ -334,20 +330,13 @@ int main(int argc, char **argv)
 			exit(0);
 		}
 		
-		if (verbose) {
-			clock_t loopEnd = clock();
-			if (voxCount > 0)
-				cout << voxCount << " unmasked voxels, CPU time per voxel was "
-				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
-			cout << "finished." << endl;
-		}
+		if (verbose) printLoopTime(loopStart, sliceCount);
+		voxCount += sliceCount;
 		if (interrupt_received)
 			break;
 	}
-    time_t procEnd = time(NULL);
-    strftime(theTime, 512, "%H:%M:%S", localtime(&procEnd));
-	cout << "Finished processing at " << theTime << ". Run-time was " 
-	     << difftime(procEnd, procStart) << " s." << endl;
+    if (verbose) printElapsedTime(startTime);
+    printElapsedClock(startClock, voxCount);
 	
 	outPrefix = outPrefix + "FM_";
 	templateFile.description = version;

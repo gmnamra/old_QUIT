@@ -63,10 +63,6 @@ static struct option long_options[] =
 //******************************************************************************
 int main(int argc, char **argv)
 {
-	//**************************************************************************
-	// Argument Processing
-	//**************************************************************************
-	cout << version << endl << credit_me << endl;
 	Nifti maskFile;
 	MultiArray<int8_t, 3> maskData;
 	
@@ -104,9 +100,7 @@ int main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 		}
 	}
-	//**************************************************************************
-	#pragma mark Gather data
-	//**************************************************************************
+	if (verbose) cout << version << endl << credit_me << endl;
 	if ((argc - optind) != 1) {
 		cout << "Incorrect number of arguments." << endl << usage << endl;
 		exit(EXIT_FAILURE);
@@ -140,6 +134,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
+	clock_t startClock = clock();
 	ThreadPool pool;
 	for (size_t vol = 0; vol < nFlip; vol++) {
 		if (verbose) cout << "Processing volume " << vol << "..." << endl;
@@ -187,6 +182,7 @@ int main(int argc, char **argv)
 		};
 		pool.for_loop(processVox, d[2]);
 	}
+	printElapsedClock(startClock, d.prod());
 	inputFile.setDim(4, nFlip);
 	inputFile.setDatatype(Nifti::DataType::COMPLEX64);
 	switch (save) {
@@ -201,6 +197,6 @@ int main(int argc, char **argv)
 	inputFile.open(outname, Nifti::Mode::Write);
 	inputFile.writeVolumes(output.begin(), output.end());
 	inputFile.close();
-	cout << "Finished." << endl;
+	if (verbose) cout << "Finished." << endl;
 	exit(EXIT_SUCCESS);
 }
