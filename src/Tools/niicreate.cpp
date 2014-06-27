@@ -33,21 +33,23 @@ data e.g. solid values, gradients, or blocks. The default is to create a\n\
 else.\n\
 \n\
 Main Options:\n\
-	--help, -h      : Print this message\n\
-	--dtype, -t F   : Set the datatype to 64 bit float (default)\n\
-	            I   : Set the datatype to 16 bit int\n\
-	            C   : Set the datatype to 128 bit complex\n\
-	            NNN : Set the datatype to the given valid Nifti datatype\n\
+	--help, -h       : Print this message\n\
+	--dtype, -t F    : Set the datatype to 64 bit float (default)\n\
+	            I    : Set the datatype to 16 bit int\n\
+	            C    : Set the datatype to 128 bit complex\n\
+	            NNN  : Set the datatype to the given valid Nifti datatype\n\
+	--xform, -x FILE : Copy header transform from another Nifti\n\
 File Content Options:\n\
 	--blank, -b     : Create the header information only\n\
 	--value, -v D   : Fill dimension D with constant value v (val)\n\
+	--slab, -l D    : Fill dimension D with a slab (val, start, end)\n\
 	--grad, -g D    : Fill dimension D with a smooth gradient (low, high)\n\
 	--step, -s D    : Fill dimension D with stepped data (low, high, steps)\n\
 	--uniform, -U D : Fill dimension D with uniform noise (mid, width)\n\
 	--gauss, -G D   : Fill dimension D with gaussian noise (mean, std dev)\n"
 };
 
-enum class FillType { Zero, Value, Gradient, Steps, Uniform, Gaussian };
+enum class FillType { Zero, Value, Slab, Gradient, Steps, Uniform, Gaussian };
 static bool verbose = false, isBlank = false;
 static vector<FillType> fillTypes(4, FillType::Zero);
 static Eigen::Array4f startVal = Eigen::Array4f::Zero(), deltaVal = Eigen::Array4f::Zero();
@@ -55,12 +57,15 @@ static Eigen::Array4i stepLength = Eigen::Array4i::Ones();
 static vector<uniform_real_distribution<float>> uniforms(4);
 static vector<normal_distribution<float>> gauss(4);
 static Nifti::DataType dType = Nifti::DataType::FLOAT64;
+static Eigen::Affine3f xform = Eigen::Affine3f::Identity();
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"dtype", required_argument, 0, 't'},
+	{"xform", required_argument, 0, 'x'},
 	{"blank", no_argument, 0, 'b'},
 	{"zero", no_argument, 0, 'z'},
 	{"value", required_argument, 0, 'v'},
+	{"slab", required_argument, 0, 'l'},
 	{"grad", required_argument, 0, 'g'},
 	{"step", required_argument, 0, 's'},
 	{"uniform", required_argument, 0,'U'},
@@ -77,7 +82,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	size_t expected_extra_args = 9;
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "d:t:bzv:g:s:U:G:h", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "d:t:x:bzv:l:g:s:U:G:h", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 't':
 				switch (*optarg) {
@@ -86,8 +91,13 @@ int main(int argc, char **argv)
 					case 'C': dType = Nifti::DataType::COMPLEX64; break;
 					default: dType = Nifti::DataTypeForCode(atoi(optarg)); break;
 				} break;
+			case 'x': {
+				Nifti other(optarg, Nifti::Mode::ReadHeader);
+				xform = other.transform();
+			} break;
 			case 'b': isBlank = true; break;
 			case 'v': fillTypes.at(atoi(optarg)) = FillType::Value; expected_extra_args += 1; break;
+			case 'l': fillTypes.at(atoi(optarg)) = FillType::Slab; expected_extra_args += 3; break;
 			case 'g': fillTypes.at(atoi(optarg)) = FillType::Gradient; expected_extra_args += 2; break;
 			case 's': fillTypes.at(atoi(optarg)) = FillType::Steps; expected_extra_args += 3; break;
 			case 'U': fillTypes.at(atoi(optarg)) = FillType::Uniform; expected_extra_args += 2; break;
@@ -109,10 +119,13 @@ int main(int argc, char **argv)
 	for (size_t i = 0; i < 4; i++) { dims[i] = atoi(argv[optind++]); }
 	for (size_t i = 0; i < 4; i++) { vdims[i] = atof(argv[optind++]); }
 	Nifti file(dims, vdims, dType);
+	file.setTransform(xform);
 	file.open(fName, Nifti::Mode::Write);
 
 	if (!isBlank) {
 		MultiArray<float, 4> data(dims);
+		MultiArray<float, 4>::Index starts; starts.setZero();
+		MultiArray<float, 4>::Index ends = data.dims();
 		for (size_t d = 0; d < 4; d++) {
 			switch (fillTypes.at(d)) {
 				case FillType::Zero:
@@ -122,6 +135,21 @@ int main(int argc, char **argv)
 					startVal[d] = atof(argv[optind++]);
 					deltaVal[d] = 0;
 					stepLength[d] = 1;
+					break;
+				case FillType::Slab:
+					startVal[d] = atof(argv[optind++]);
+					deltaVal[d] = 0;
+					stepLength[d] = 1;
+					starts[d] = atoi(argv[optind++]);
+					ends[d] = atoi(argv[optind++]);
+					if (starts[d] >= data.dims()[d]) {
+						cerr << "Invalid slab start slice." << endl;
+						exit(EXIT_FAILURE);
+					}
+					if (ends[d] > data.dims()[d]) {
+						cerr << "Invalid slab end slice." << endl;
+						exit(EXIT_FAILURE);
+					}
 					break;
 				case FillType::Gradient:
 					startVal[d] = atof(argv[optind++]);
@@ -153,7 +181,7 @@ int main(int argc, char **argv)
 		MultiArray<float, 4>::Index index;
 		function<void (const int&, const float&)> processDim = [&] (const int &d, const float& outVal) {
 			float inVal = outVal + startVal[d];
-			for (index[d] = 0;index[d] < dims[d]; index[d]++) {
+			for (index[d] = starts[d];index[d] < ends[d]; index[d]++) {
 				if (fillTypes[d] == FillType::Uniform)
 					inVal = outVal + uniforms[d].operator()(twist);
 				else if (fillTypes[d] == FillType::Gaussian)
