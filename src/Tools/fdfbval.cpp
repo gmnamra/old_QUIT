@@ -15,6 +15,7 @@
 
 using namespace std;
 using namespace QUIT;
+using namespace Nifti;
 
 int main(int argc, char **argv) {
 
@@ -27,7 +28,7 @@ int main(int argc, char **argv) {
 	cout << "Reading diffusion directions from: " << iname << endl;
 	Agilent::ProcPar pp;
 	try {
-		Nifti f(iname, Nifti::Mode::Read);
+		Nifti1 f(iname, Mode::Read);
 		ReadPP(f, pp);
 		outprefix = f.basePath();
 	} catch (runtime_error &e) {

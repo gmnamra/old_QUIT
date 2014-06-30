@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 					default: dType = Nifti::DataTypeForCode(atoi(optarg)); break;
 				} break;
 			case 'x': {
-				Nifti other(optarg, Nifti::Mode::ReadHeader);
+				Nifti::Nifti1 other(optarg, Nifti::Mode::ReadHeader);
 				xform = other.transform();
 			} break;
 			case 'b': isBlank = true; break;
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 	Eigen::ArrayXf vdims(4);
 	for (size_t i = 0; i < 4; i++) { dims[i] = atoi(argv[optind++]); }
 	for (size_t i = 0; i < 4; i++) { vdims[i] = atof(argv[optind++]); }
-	Nifti file(dims, vdims, dType);
+	Nifti::Nifti1 file(dims, vdims, dType);
 	file.setTransform(xform);
 	file.open(fName, Nifti::Mode::Write);
 

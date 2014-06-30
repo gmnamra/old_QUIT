@@ -78,9 +78,9 @@ int main(int argc, char **argv)
 	}
 
 	cout << "Opening input file: " << argv[optind] << endl;
-	Nifti inFile(argv[optind], Nifti::Mode::Read);
+	Nifti::Nifti1 inFile(argv[optind], Nifti::Mode::Read);
 	std::string basename = inFile.basePath();
-	Nifti outFile(inFile); outFile.close(); outFile.open(basename + "_grad.nii.gz", Nifti::Mode::Write);
+	Nifti::Nifti1 outFile(inFile); outFile.close(); outFile.open(basename + "_grad.nii.gz", Nifti::Mode::Write);
 	cout << "Allocating working memory." << endl;
 	auto d = inFile.dims().head(3);
 	Volume<float> data(d, inFile.transform());

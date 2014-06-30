@@ -8,6 +8,8 @@
 
 #include "Internal.h"
 
+namespace Nifti {
+
 /*! Swap size bytes at a time from the given array of n sets of bytes
  *
  *  Declared void * so that the fields from the headers can be passed through
@@ -127,3 +129,5 @@ void swapAnalyzeHeader(nifti_analyze75 * h)
 	swapBytes(1, 4, &h->smax);
 	swapBytes(1, 4, &h->smin);
 }
+
+} // End namespace Nifti

@@ -8,9 +8,9 @@
 
 #include "Nifti/ZipFile.h"
 
-//#include <iostream> // For debug
-
 using namespace std;
+
+namespace Nifti {
 
 //******************************
 #pragma mark Methods for ZipFile
@@ -168,3 +168,5 @@ std::ostream &operator<<(std::ostream &os, const ZipFile &zf) {
 	}
 	return os;
 }
+
+} // End namespace Nifti

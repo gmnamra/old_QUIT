@@ -4,7 +4,9 @@
 using namespace std;
 using namespace Eigen;
 
-const Nifti::DataType &Nifti::DataTypeForCode(const int code) {
+namespace Nifti {
+
+DataType DataTypeForCode(const int code) {
 	static const map<int, DataType> c2dt{
 		{NIFTI_TYPE_UINT8, DataType::UINT8},
 		{NIFTI_TYPE_UINT16, DataType::UINT16},
@@ -33,12 +35,12 @@ const Nifti::DataType &Nifti::DataTypeForCode(const int code) {
 
 /*	Internal map of datatype properties
  *
- *  The map is declared here because making it a static member of Nifti was
+ *  The map is declared here because making it a static member of Nifti1 was
  *  causing problems with looking up the datatype in close() when called by 
- *  ~Nifti. It's possible for C++ to destruct static members even when
+ *  ~Nifti1. It's possible for C++ to destruct static members even when
  *  objects still exist in another translation unit.
  */
-const Nifti::DataTypeInfo &Nifti::TypeInfo(const DataType dt) {
+const DataTypeInfo &TypeInfo(const DataType dt) {
 	static const map<DataType, DataTypeInfo> DTInfo{
 		{DataType::UINT8,      {DataType::UINT8,      NIFTI_TYPE_UINT8,       1,  0, "UINT8"} },
 		{DataType::UINT16,     {DataType::UINT16,     NIFTI_TYPE_UINT16,      2,  2, "UINT16"} },
@@ -61,7 +63,7 @@ const Nifti::DataTypeInfo &Nifti::TypeInfo(const DataType dt) {
 	if (info != DTInfo.end())
 		return info->second;
 	else
-		throw(std::invalid_argument("Missing type information, contact libNifti author."));
+		throw(std::invalid_argument("Missing type information, contact libNifti1 author."));
 }
 
 /*
@@ -69,7 +71,7 @@ const Nifti::DataTypeInfo &Nifti::TypeInfo(const DataType dt) {
  *
  *\sa NIFTI1_UNITS group in nifti1.h
  */
-const string &Nifti::spaceUnits() const {
+const string &Nifti1::spaceUnits() const {
 	static const map<int, string> Units {
 		{ NIFTI_UNITS_METER,  "m" },
 		{ NIFTI_UNITS_MM,     "mm" },
@@ -87,7 +89,7 @@ const string &Nifti::spaceUnits() const {
  *
  *\sa NIFTI1_UNITS group in nifti1.h
  */
-const string &Nifti::timeUnits() const {
+const string &Nifti1::timeUnits() const {
 	static const map<int, string> Units {
 		{ NIFTI_UNITS_SEC,    "s" },
 		{ NIFTI_UNITS_MSEC,   "ms" },
@@ -109,7 +111,7 @@ const string &Nifti::timeUnits() const {
  *
  *\sa NIFTI1_INTENT_CODES group in nifti1.h
  */
-const string &Nifti::intentName() const {
+const string &Nifti1::intentName() const {
 	static const map<int, string> Intents {
 		{ NIFTI_INTENT_CORREL,     "Correlation statistic" },
 		{ NIFTI_INTENT_TTEST,      "T-statistic" },
@@ -159,7 +161,7 @@ const string &Nifti::intentName() const {
  *
  *\sa NIFTI1_SLICE_ORDER group in nifti1.h
  */
-const string &Nifti::sliceName() const {
+const string &Nifti1::sliceName() const {
 	static const map<int, string> SliceOrders {
 		{ NIFTI_SLICE_SEQ_INC,  "sequential_increasing"    },
 		{ NIFTI_SLICE_SEQ_DEC,  "sequential_decreasing"    },
@@ -176,13 +178,13 @@ const string &Nifti::sliceName() const {
 		return it->second;
 }
 
-Nifti::~Nifti()
+Nifti1::~Nifti1()
 {
 	if (m_mode != Mode::Closed)
 		close();
 }
 
-Nifti::Nifti() :
+Nifti1::Nifti1() :
 	m_mode(Mode::Closed), m_gz(false), m_nii(false), m_swap(false), m_voxoffset(0),
 	m_dim(Array<size_t, 7, 1>::Ones()), m_voxdim(Array<float, 7, 1>::Ones()),
 	m_basepath(""), m_typeinfo(TypeInfo(DataType::FLOAT32)),
@@ -197,7 +199,7 @@ Nifti::Nifti() :
 	m_qform.setIdentity(); m_sform.setIdentity();
 }
 
-Nifti::Nifti(const Nifti &other) :
+Nifti1::Nifti1(const Nifti1 &other) :
 	m_mode(other.m_mode), m_gz(other.m_gz), m_nii(other.m_nii),
 	m_swap(other.m_swap), m_voxoffset(other.m_voxoffset),
 	m_dim(other.m_dim), m_voxdim(other.m_voxdim), m_strides(other.m_strides),
@@ -223,7 +225,7 @@ Nifti::Nifti(const Nifti &other) :
 	}
 }
 
-Nifti::Nifti(const Nifti &other, const size_t nt, const DataType dtype) : Nifti() {
+Nifti1::Nifti1(const Nifti1 &other, const size_t nt, const DataType dtype) : Nifti1() {
 	m_dim.head(3) = other.m_dim.head(3);
 	setDim(4, nt);
 	m_voxdim.head(3) = other.m_voxdim.head(3);
@@ -233,7 +235,7 @@ Nifti::Nifti(const Nifti &other, const size_t nt, const DataType dtype) : Nifti(
 	m_typeinfo = TypeInfo(dtype);
 }
 
-Nifti::Nifti(Nifti &&other) noexcept :
+Nifti1::Nifti1(Nifti1 &&other) noexcept :
 	m_mode(other.m_mode), m_gz(other.m_gz), m_nii(other.m_nii),
 	m_swap(other.m_swap), m_voxoffset(other.m_voxoffset),
 	m_dim(other.m_dim), m_voxdim(other.m_voxdim), m_strides(other.m_strides),
@@ -253,16 +255,16 @@ Nifti::Nifti(Nifti &&other) noexcept :
 	other.m_mode = Mode::Closed;
 }
 
-Nifti::Nifti(const string &filename, const Mode &mode) :
-	Nifti()
+Nifti1::Nifti1(const string &filename, const Mode &mode) :
+	Nifti1()
 {
 	open(filename, mode);
 }
 
-Nifti::Nifti(const int nx, const int ny, const int nz, const int nt,
+Nifti1::Nifti1(const int nx, const int ny, const int nz, const int nt,
 		     const float dx, const float dy, const float dz, const float dt,
 			 const DataType dtype) :
-	Nifti()
+	Nifti1()
 {
 	m_typeinfo = TypeInfo(dtype);
 	m_dim[0] = nx < 1 ? 1 : nx;
@@ -275,8 +277,8 @@ Nifti::Nifti(const int nx, const int ny, const int nz, const int nt,
 	calcStrides();
 }
 
-Nifti::Nifti(const ArrayXs &dim, const ArrayXf &voxdim, const DataType dtype) :
-	Nifti()
+Nifti1::Nifti1(const ArrayXs &dim, const ArrayXf &voxdim, const DataType dtype) :
+	Nifti1()
 {
 	assert(dim.rows() < 8);
 	assert(dim.rows() == voxdim.rows());
@@ -289,7 +291,7 @@ Nifti::Nifti(const ArrayXs &dim, const ArrayXf &voxdim, const DataType dtype) :
 	calcStrides();
 }
 
-Nifti &Nifti::operator=(const Nifti &other) {
+Nifti1 &Nifti1::operator=(const Nifti1 &other) {
 	if (this == &other)
 		return *this;
 	else if (m_mode != Mode::Closed)
@@ -342,7 +344,7 @@ Nifti &Nifti::operator=(const Nifti &other) {
 	return *this;
 }
 
-Nifti &Nifti::operator=(Nifti &&other) {
+Nifti1 &Nifti1::operator=(Nifti1 &&other) {
 	if (this == &other)
 		return *this;
 
@@ -390,7 +392,7 @@ Nifti &Nifti::operator=(Nifti &&other) {
 
 #pragma mark Open/Header Routines
 
-void Nifti::open(const string &path, const Mode &mode) {
+void Nifti1::open(const string &path, const Mode &mode) {
 	if (m_mode != Mode::Closed) {
 		throw(std::runtime_error("Cannot open " + path + ", file: " + basePath() + " is already open."));
 	}
@@ -437,14 +439,14 @@ void Nifti::open(const string &path, const Mode &mode) {
 	m_mode = mode;
 }
 
-bool Nifti::isOpen() {
+bool Nifti1::isOpen() {
 	if (m_mode == Mode::Closed)
 		return false;
 	else
 		return true;
 }
 
-void Nifti::close() {
+void Nifti1::close() {
 	if (m_mode == Mode::Closed) {
 		throw(std::logic_error("Cannot close already closed file: " + imagePath()));
 	} else if ((m_mode == Mode::Read) || (m_mode == Mode::ReadHeader)) {
@@ -468,7 +470,7 @@ void Nifti::close() {
 	}
 }
 
-void Nifti::setPaths(const string &path) {
+void Nifti1::setPaths(const string &path) {
 	size_t lastDot = path.find_last_of(".");
 	string ext;
 	if (path.substr(lastDot + 1) == "gz") {
@@ -490,7 +492,7 @@ void Nifti::setPaths(const string &path) {
 	}
 }
 
-void Nifti::readHeader() {
+void Nifti1::readHeader() {
 	struct nifti_1_header nhdr;
 	
 	if (m_file.read(&nhdr, sizeof(nhdr)) < sizeof(nhdr)) {
@@ -613,7 +615,7 @@ void Nifti::readHeader() {
 	}
 }
 
-void Nifti::writeHeader() {
+void Nifti1::writeHeader() {
 	struct nifti_1_header nhdr;
 	memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
 	/**- load the ANALYZE-7.5 generic parts of the header struct */
@@ -623,7 +625,7 @@ void Nifti::writeHeader() {
 	nhdr.dim[0] = rank(); //pixdim[0] is set later with qform
 	for (size_t i = 0; i < 7; i++) { // Convert back to int/float
 		if (m_dim[i] > numeric_limits<short>::max()) {
-			throw(std::runtime_error("Nifti does not support dimensions greater than " + to_string(numeric_limits<short>::max())));
+			throw(std::runtime_error("Nifti1 does not support dimensions greater than " + to_string(numeric_limits<short>::max())));
 		}
 		nhdr.dim[i + 1] = m_dim[i];
 		nhdr.pixdim[i + 1] = m_voxdim[i];
@@ -713,23 +715,23 @@ void Nifti::writeHeader() {
 
 #pragma mark Extensions
 
-void Nifti::addExtension(const int code, const vector<char> &data) {
+void Nifti1::addExtension(const int code, const vector<char> &data) {
 	m_extensions.emplace_back(code, data);
 }
 
-void Nifti::addExtension(const Nifti::Extension &e) {
+void Nifti1::addExtension(const Extension &e) {
 	m_extensions.push_back(e);
 }
 
-const list<Nifti::Extension> &Nifti::extensions() const {
+const list<Extension> &Nifti1::extensions() const {
 	return m_extensions;
 }
 
-void Nifti::setExtensions(const list<Extension> &newExts) {
+void Nifti1::setExtensions(const list<Extension> &newExts) {
 	m_extensions = newExts;
 }
 
-int Nifti::totalExtensionSize() {
+int Nifti1::totalExtensionSize() {
 	int total = 0;
 	for (auto ext: m_extensions) {
 		total += ext.size();
@@ -737,7 +739,7 @@ int Nifti::totalExtensionSize() {
 	return total;
 }
 
-void Nifti::readExtensions()
+void Nifti1::readExtensions()
 {
 	long target = m_voxoffset;
 	if (!m_nii) {
@@ -781,7 +783,7 @@ void Nifti::readExtensions()
 	}
 }
 
-void Nifti::writeExtensions() {
+void Nifti1::writeExtensions() {
 	m_file.seek(sizeof(nifti_1_header), SEEK_SET);
 	char extender[4] = {0, 0, 0, 0};
 	if (m_extensions.size() > 0)
@@ -792,7 +794,7 @@ void Nifti::writeExtensions() {
 	
 	for (auto ext : m_extensions) {
 		if (ext.rawSize() > numeric_limits<int>::max()) {
-			throw(std::runtime_error("Extension is larger than Nifti standard permits in file: " + headerPath()));
+			throw(std::runtime_error("Extension is larger than Nifti1 standard permits in file: " + headerPath()));
 		}
 		int size = ext.size();
 		int padding = ext.padding();
@@ -819,8 +821,8 @@ void Nifti::writeExtensions() {
 
 #pragma mark Path Getters
 
-const string &Nifti::basePath() const { return m_basepath; }
-string Nifti::imagePath() const {
+const string &Nifti1::basePath() const { return m_basepath; }
+string Nifti1::imagePath() const {
 	string path(m_basepath);
 	if (m_nii) {
 		path += ".nii";
@@ -832,7 +834,7 @@ string Nifti::imagePath() const {
 	
 	return path;
 }
-string Nifti::headerPath() const {
+string Nifti1::headerPath() const {
 	string path(m_basepath);
 	if (m_nii) {
 		path += ".nii";
@@ -847,7 +849,7 @@ string Nifti::headerPath() const {
 
 #pragma mark Dimensions / VoxDims etc.
 
-size_t Nifti::rank() const {
+size_t Nifti1::rank() const {
 	for (size_t d = m_voxdim.rows(); d > 0; d--) {
 		if (m_dim[d - 1] > 1) {
 			return d;
@@ -856,11 +858,11 @@ size_t Nifti::rank() const {
 	return 1;
 }
 	
-size_t Nifti::dim(const size_t d) const {
+size_t Nifti1::dim(const size_t d) const {
 	assert((d > 0) && (d <= m_voxdim.rows()));
 	return m_dim[d - 1];
 }
-void Nifti::setDim(const size_t d, const size_t n) {
+void Nifti1::setDim(const size_t d, const size_t n) {
 	if (m_mode == Mode::Closed) {
 		assert((d > 0) && (d < 8));
 		m_dim[d - 1] = n;
@@ -869,8 +871,8 @@ void Nifti::setDim(const size_t d, const size_t n) {
 		throw(std::logic_error("Cannot change image dimensions for open file: " + imagePath()));
 	}
 }
-Nifti::ArrayXs Nifti::dims() const { return m_dim.head(rank()); }
-void Nifti::setDims(const ArrayXs &n) {
+Nifti1::ArrayXs Nifti1::dims() const { return m_dim.head(rank()); }
+void Nifti1::setDims(const ArrayXs &n) {
 	if (m_mode == Mode::Closed) {
 		assert(n.rows() <= m_voxdim.rows());
 		m_dim.head(n.rows()) = n;
@@ -880,19 +882,19 @@ void Nifti::setDims(const ArrayXs &n) {
 	}
 }
 
-float Nifti::voxDim(const size_t d) const {
+float Nifti1::voxDim(const size_t d) const {
 	assert((d > 0) && (d <= m_voxdim.rows()));
 	return m_voxdim[d - 1];
 }
-void Nifti::setVoxDim(const size_t d, const float f) {
+void Nifti1::setVoxDim(const size_t d, const float f) {
 	if (m_mode == Mode::Closed) {
 		assert((d > 0) && (d <= m_voxdim.rows()));
 		m_voxdim[d] = f;
 	} else
 		throw(std::logic_error("Cannot change voxel sizes for open file: " + imagePath()));
 }
-ArrayXf Nifti::voxDims() const { return m_voxdim.head(rank()); }
-void Nifti::setVoxDims(const ArrayXf &n) {
+ArrayXf Nifti1::voxDims() const { return m_voxdim.head(rank()); }
+void Nifti1::setVoxDims(const ArrayXf &n) {
 	if (m_mode == Mode::Closed) {
 		assert(n.rows() <= m_voxdim.rows());
 		m_voxdim.head(n.rows()) = n;
@@ -900,8 +902,8 @@ void Nifti::setVoxDims(const ArrayXf &n) {
 		throw(std::logic_error("Cannot change voxel sizes for open file: " + imagePath()));
 }
 
-const Nifti::DataType &Nifti::datatype() const { return m_typeinfo.type; }
-void Nifti::setDatatype(const Nifti::DataType dt) {
+const DataType &Nifti1::datatype() const { return m_typeinfo.type; }
+void Nifti1::setDatatype(const DataType dt) {
 	if (m_mode != Mode::Closed) {
 		throw(std::logic_error("Cannot set the datatype of open file: " + imagePath()));
 		return;
@@ -913,7 +915,7 @@ void Nifti::setDatatype(const Nifti::DataType dt) {
   *   Simple function to calculate the strides into the data on disk. Used for
   *   subvolume/voxel-wise reads.
   */
-void Nifti::calcStrides() {
+void Nifti1::calcStrides() {
 	m_strides = Array<size_t, 7, 1>::Ones();
 	for (size_t i = 1; i < rank(); i++) {
 		m_strides(i) = m_strides(i - 1) * m_dim(i - 1);
@@ -930,7 +932,7 @@ void Nifti::calcStrides() {
   * @throws std::out_of_range if the target is outside the image dimensions.
   * @throws std::runtime_error if the seek fails.
   */
-void Nifti::seekToVoxel(const ArrayXs &target) {
+void Nifti1::seekToVoxel(const ArrayXs &target) {
 	if ((target > m_dim.head(target.rows())).any()) {
 		throw(std::out_of_range("Target voxel is outside image dimensions."));
 	}
@@ -948,7 +950,7 @@ void Nifti::seekToVoxel(const ArrayXs &target) {
   *   Internal function to actually read bytes from an image file.
   *   @param buffer Array to store read bytes in.
   */
-void Nifti::readBytes(std::vector<char> &buffer) {
+void Nifti1::readBytes(std::vector<char> &buffer) {
 	if (!(m_mode == Mode::Read)) {
 		throw(std::logic_error("File not opened for reading: " + imagePath()));
 	}
@@ -968,7 +970,7 @@ void Nifti::readBytes(std::vector<char> &buffer) {
   *   Internal function to actually write bytes to an image file.
   *   @param buffer Array of bytes to write
   */
-void Nifti::writeBytes(const std::vector<char> &buffer) {
+void Nifti1::writeBytes(const std::vector<char> &buffer) {
 	if (!(m_mode == Mode::Write)) {
 		throw(std::logic_error("File not opened for writing: " + imagePath()));
 	}
@@ -985,7 +987,7 @@ void Nifti::writeBytes(const std::vector<char> &buffer) {
  *
  *\sa NIFTI1_XFORM_CODES group in nifti1.h
  */
-const string Nifti::XFormName(const Nifti::XForm c) {
+const string Nifti1::XFormName(const Nifti1::XForm c) {
 	switch (c) {
 		case XForm::Unknown: return "Unknown"; break;
 		case XForm::ScannerAnatomy: return "Scanner Anatomy"; break;
@@ -994,7 +996,7 @@ const string Nifti::XFormName(const Nifti::XForm c) {
 		case XForm::MNI_152: return "MNI 152"; break;
 	}
 }
-int Nifti::XFormCode(const Nifti::XForm c) {
+int Nifti1::XFormCode(const Nifti1::XForm c) {
 	switch (c) {
 		case XForm::Unknown: return NIFTI_XFORM_UNKNOWN; break;
 		case XForm::ScannerAnatomy: return NIFTI_XFORM_SCANNER_ANAT; break;
@@ -1003,7 +1005,7 @@ int Nifti::XFormCode(const Nifti::XForm c) {
 		case XForm::MNI_152: return NIFTI_XFORM_MNI_152; break;
 	}
 }
-Nifti::XForm Nifti::XFormForCode(const int c) {
+Nifti1::XForm Nifti1::XFormForCode(const int c) {
 	switch (c) {
 		case NIFTI_XFORM_UNKNOWN: return XForm::Unknown; break;
 		case NIFTI_XFORM_SCANNER_ANAT: return XForm::ScannerAnatomy; break;
@@ -1015,25 +1017,25 @@ Nifti::XForm Nifti::XFormForCode(const int c) {
 	}
 }
 
-const Affine3f &Nifti::qform() const { return m_qform; }
-const Affine3f &Nifti::sform() const { return m_sform; }
-const Nifti::XForm &Nifti::qcode() const { return m_qcode; }
-const Nifti::XForm &Nifti::scode() const { return m_scode; }
-const Affine3f &Nifti::transform() const {
+const Affine3f &Nifti1::qform() const { return m_qform; }
+const Affine3f &Nifti1::sform() const { return m_sform; }
+const Nifti1::XForm &Nifti1::qcode() const { return m_qcode; }
+const Nifti1::XForm &Nifti1::scode() const { return m_scode; }
+const Affine3f &Nifti1::transform() const {
 	if ((m_scode > XForm::Unknown) && (m_scode >= m_qcode))
 		return m_sform;
 	else // There is always a m_qform matrix
 		return m_qform;
 }
 
-void Nifti::setTransform(const Affine3f &t, const XForm tc) {
+void Nifti1::setTransform(const Affine3f &t, const XForm tc) {
 	m_qform = t;
 	m_sform = t;
 	m_qcode = tc;
 	m_scode = tc;
 }
 
-bool Nifti::matchesVoxels(const Nifti &other) const {
+bool Nifti1::matchesVoxels(const Nifti1 &other) const {
 	// Only check the first 3 dimensions
 	if ((m_dim.head(3) == other.m_dim.head(3)).all() && (m_voxdim.head(3).isApprox(other.m_voxdim.head(3))))
 		return true;
@@ -1041,9 +1043,11 @@ bool Nifti::matchesVoxels(const Nifti &other) const {
 		return false;
 }
 
-bool Nifti::matchesSpace(const Nifti &other) const {
+bool Nifti1::matchesSpace(const Nifti1 &other) const {
 	if (matchesVoxels(other) && transform().isApprox(other.transform()))
 		return true;
 	else
 		return false;	
 }
+
+} // End namespace Nifti

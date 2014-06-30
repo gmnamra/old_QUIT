@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 {
 	try { // To fix uncaught exceptions on Mac
 	
-	Nifti maskFile, f0File, B1File;
+	Nifti::Nifti1 maskFile, f0File, B1File;
 	MultiArray<int8_t, 3> maskVol;
 	MultiArray<float, 3> f0Vol, B1Vol;
 	string procPath;
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
-	Nifti inFile(argv[optind++], Nifti::Mode::Read);
+	Nifti::Nifti1 inFile(argv[optind++], Nifti::Mode::Read);
 	MultiArray<float, 3> T1Vol{inFile.dims()};
 	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
 	inFile.close();
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
-	Nifti templateFile(inFile, 1); // Save header data to write out results
+	Nifti::Nifti1 templateFile(inFile, 1); // Save header data to write out results
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
 		if (verbose) cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
 		if (p == 0)
-			templateFile = Nifti(inFile, 1);
+			templateFile = Nifti::Nifti1(inFile, 1);
 		if (!inFile.matchesSpace(templateFile)) {
 			cerr << "Input file dimensions and/or transforms do not match." << endl;
 			exit(EXIT_FAILURE);

@@ -27,7 +27,7 @@ template<typename Tp, size_t rank> VolumeBase<Tp, rank>::VolumeBase(const MultiA
 	m_storage(a), m_xform(xform), m_extrap(ext)
 { }
 
-template<typename Tp, size_t rank> VolumeBase<Tp, rank>::VolumeBase(Nifti &img) :
+template<typename Tp, size_t rank> VolumeBase<Tp, rank>::VolumeBase(Nifti::Nifti1 &img) :
 	m_storage(img.dims().head(rank)),
 	m_xform(img.transform()),
 	m_extrap(Extrap::Zero)
@@ -41,8 +41,8 @@ template<typename Tp, size_t rank> Eigen::Affine3f VolumeBase<Tp, rank>::transfo
 template<typename Tp, size_t rank> auto VolumeBase<Tp, rank>::extrapolate() const -> const Extrap & { return m_extrap; }
 template<typename Tp, size_t rank> void VolumeBase<Tp, rank>::setExtrapolate(const Extrap ext)      { m_extrap = ext; }
 
-template<typename Tp, size_t rank> void VolumeBase<Tp, rank>::readFrom(Nifti &img) { img.readVolumes(0, img.dim(4), m_storage.begin(), m_storage.end()); }
-template<typename Tp, size_t rank> void VolumeBase<Tp, rank>::writeTo(Nifti &img) { img.writeVolumes(0, img.dim(4), m_storage.begin(), m_storage.end()); }
+template<typename Tp, size_t rank> void VolumeBase<Tp, rank>::readFrom(Nifti::Nifti1 &img) { img.readVolumes(0, img.dim(4), m_storage.begin(), m_storage.end()); }
+template<typename Tp, size_t rank> void VolumeBase<Tp, rank>::writeTo(Nifti::Nifti1 &img) { img.writeVolumes(0, img.dim(4), m_storage.begin(), m_storage.end()); }
 
 template<typename Tp, size_t rank> auto VolumeBase<Tp, rank>::operator[](const Index &inVox) const -> const_reference {
 	static Tp zero;

@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 	
 	try { // To fix uncaught exceptions on Mac
 	
-	Nifti maskFile, B1File;
+	Nifti::Nifti1 maskFile, B1File;
 	MultiArray<int8_t, 3> maskVol;
 	MultiArray<float, 3> B1Vol;
 	int indexptr = 0, c;
@@ -163,16 +163,16 @@ int main(int argc, char **argv)
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << Signal::to_string(components) << " component model." << endl;
 	MultiArray<float, 4> paramsVols;
-	Nifti saveFile;
+	Nifti::Nifti1 saveFile;
 	if (prompt) cout << "Loading parameters." << endl;
 	for (size_t i = 0; i < model.nParameters(); i++) {
 		if (prompt) cout << "Enter path to " << model.names()[i] << " file: " << flush;
 		string filename; cin >> filename;
 		cout << "Opening " << filename << endl;
-		Nifti input(filename, Nifti::Mode::Read);
+		Nifti::Nifti1 input(filename, Nifti::Mode::Read);
 
 		if (i == 0) {
-			saveFile = Nifti(input, model.size());
+			saveFile = Nifti::Nifti1(input, model.size());
 			paramsVols = MultiArray<float, 4>(input.dims().head(3), model.nParameters());
 		} else {
 			if (!input.matchesSpace(saveFile)) {

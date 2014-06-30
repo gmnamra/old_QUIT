@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	Nifti maskFile;
+	Nifti::Nifti1 maskFile;
 	MultiArray<int8_t, 3> maskVol;
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvm:o:", long_options, &indexptr)) != -1) {
@@ -80,9 +80,9 @@ int main(int argc, char **argv)
 	}
 
 	cout << "Opening magnitude file: " << argv[optind] << endl;
-	Nifti inputFile;
+	Nifti::Nifti1 inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
-	Nifti templateFile(inputFile, 1);
+	Nifti::Nifti1 templateFile(inputFile, 1);
 	MultiArray<float, 4> mag{inputFile.dims()};
 	inputFile.readVolumes(mag.begin(), mag.end());
 	inputFile.close();
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 	}
 	inputFile.close();
 
-	Nifti::ArrayXs dims = templateFile.dims().head(3);
+	auto dims = templateFile.dims().head(3);
 	MultiArray<float, 3> Wv(dims), Fv(dims), Av(dims);
 	//**************************************************************************
 	// Do the fitting

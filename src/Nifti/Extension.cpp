@@ -11,10 +11,12 @@
 
 using namespace std;
 
+namespace Nifti {
+
 //*********************************
 #pragma mark Methods for Extension
 //*********************************
-const string &Nifti::Extension::CodeName(const int code) {
+const string &Extension::CodeName(const int code) {
 	static const map<int, string> Codes {
 		{ NIFTI_ECODE_IGNORE,           "Ignore" },
 		{ NIFTI_ECODE_DICOM,            "DICOM Attributes" },
@@ -41,10 +43,10 @@ const string &Nifti::Extension::CodeName(const int code) {
 		return it->second;
 }
 
-Nifti::Extension::Extension(int code, vector<char> data) :
+Extension::Extension(int code, vector<char> data) :
 	m_code(code), m_data(data)
 {}
-Nifti::Extension::Extension(int size, int code, char *data) :
+Extension::Extension(int size, int code, char *data) :
 	m_code(code)
 {
 	m_data.resize(size - 8);
@@ -52,20 +54,20 @@ Nifti::Extension::Extension(int size, int code, char *data) :
 		m_data[i] = data[i];
 	}
 }
-size_t Nifti::Extension::rawSize() const {
+size_t Extension::rawSize() const {
 	return m_data.size();
 }
-int Nifti::Extension::padding() const {
+int Extension::padding() const {
 	return static_cast<int>(16 - ((m_data.size() + 8) % 16));
 }
-int Nifti::Extension::size() const {
+int Extension::size() const {
 	// Must leave 8 bytes for the code and size fields (ints)
 	return static_cast<int>(rawSize()) + 8 + padding();
 }
 
-int Nifti::Extension::code() const { return m_code; }
-const string &Nifti::Extension::codeName() const { return CodeName(m_code); }
-void Nifti::Extension::setCode(int code) {
+int Extension::code() const { return m_code; }
+const string &Extension::codeName() const { return CodeName(m_code); }
+void Extension::setCode(int code) {
 	// Code must be in range and even
 	if ((code > NIFTI_ECODE_IGNORE) && (code < NIFTI_MAX_ECODE) && !(code & 1 ))
 		m_code = code;
@@ -73,8 +75,9 @@ void Nifti::Extension::setCode(int code) {
 		throw(std::invalid_argument("Invalid Nifti::Extension code."));
 }
 
-const vector<char> &Nifti::Extension::data() const { return m_data; };
-void Nifti::Extension::setData(const vector<char> &data) {
+const vector<char> &Extension::data() const { return m_data; };
+void Extension::setData(const vector<char> &data) {
 	m_data = data;
 }
 
+} // End namespace Nifti

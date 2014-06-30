@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 	string procPath, outPrefix = "";
 	double n, nomFlip;
 	vector<double> mask;
-	Nifti maskFile, inFile;
+	Nifti::Nifti1 maskFile, inFile;
 	while ((c = getopt_long(argc, argv, "m:o:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
 		else
 			B1[vox] = 1.; // So smoothing doesn't get messed up
 	}
-	Nifti outFile(inFile, 1);
+	Nifti::Nifti1 outFile(inFile, 1);
 	outFile.description = version;
 	string outPath = outPrefix + "angle.nii.gz";
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;

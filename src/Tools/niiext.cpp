@@ -18,6 +18,7 @@
 #include "Nifti/Nifti.h"
 
 using namespace std;
+using namespace Nifti;
 
 const string usage = "niiext - A utility for manipulating Nifti extensions.\n\
 \n\
@@ -52,7 +53,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	string fileName(argv[optind]);
-	Nifti input(fileName, Nifti::Mode::Read);
+	Nifti1 input(fileName, Mode::Read);
 	auto exts = input.extensions();
 	optind = 1;
 	while ((c = getopt_long(argc, argv, "d?e?s?h", long_options, &indexptr)) != -1) {
@@ -78,7 +79,7 @@ int main(int argc, char **argv) {
 				}
 				auto start = exts.begin(); advance(start, startN);
 				auto end   = start; advance(end, endN);
-				for_each(start, end, [](Nifti::Extension &e){ cout << "Extension Code: " << e.code() << ", size: " << e.size() << " bytes." << endl; });
+				for_each(start, end, [](Extension &e){ cout << "Extension Code: " << e.code() << ", size: " << e.size() << " bytes." << endl; });
 			}	break;
 			case '?': // getopt will print an error message
 			case 'h':

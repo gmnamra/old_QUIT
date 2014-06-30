@@ -25,60 +25,36 @@
 #include <Eigen/Geometry>
 
 #include "ZipFile.h"
+#include "Extension.h"
 
-#pragma mark NIfTI File Class
-class Nifti {
+namespace Nifti {
+
+enum class Mode : char {
+	Closed = 0, Read = 'r', ReadHeader = 'h', Write = 'w'
+};
+
+enum class DataType {
+	UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64,
+	FLOAT32, FLOAT64, FLOAT128, COMPLEX64, COMPLEX128, COMPLEX256,
+	RGB24, RGBA32
+};
+DataType DataTypeForCode(const int code);
+
+struct DataTypeInfo {
+	DataType type;
+	size_t code, size, swapsize;
+	std::string name;
+}; //!< Contains all the information needed to read/write a Nifti datatype
+const DataTypeInfo &TypeInfo(const DataType dt);
+
+class Nifti1 {
 	public:
 		typedef Eigen::Array<size_t, Eigen::Dynamic, 1> ArrayXs;
-		enum class Mode : char {
-			Closed = 0, Read = 'r', ReadHeader = 'h', Write = 'w'
-		};
-
-		enum class DataType {
-			UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64,
-			FLOAT32, FLOAT64, FLOAT128, COMPLEX64, COMPLEX128, COMPLEX256,
-			RGB24, RGBA32
-		};
-		static const DataType &DataTypeForCode(const int code);
-
-		struct DataTypeInfo {
-			DataType type;
-			size_t code, size, swapsize;
-			std::string name;
-		}; //!< Contains all the information needed to read/write a Nifti datatype
-		static const DataTypeInfo &TypeInfo(const DataType dt);
 		
 		enum class XForm {
 			Unknown, ScannerAnatomy, AlignedAnatomy, Talairach, MNI_152
 		};
 		static const std::string XFormName(const XForm t);
-		
-		/*
-		 *  Nifti Extension Class.
-		 *
-		 *  Provides a minimal way to read and write Nifti extensions as
-		 *  vectors of bytes.
-		 */
-		class Extension {
-			private:
-				int m_code;          //!< Extension code, one of the NIFTI_ECODE_ values
-				std::vector<char> m_data; //!< Raw data, with no byte swapping (length is esize-8)
-			
-			public:
-				static const std::string &CodeName(const int code);
-				
-				Extension(int code, std::vector<char> data);
-				Extension(int size, int code, char *data);
-				size_t rawSize() const;
-				int size() const;
-				int padding() const;
-				int code() const;
-				const std::string &codeName() const;
-				void setCode(int code);
-				
-				const std::vector<char> &data() const;
-				void setData(const std::vector<char> &data);
-		};
 
 	private:
 		static XForm XFormForCode(const int code);
@@ -116,19 +92,19 @@ class Nifti {
 
 	#pragma mark Public Class Methods
 	public:
-		~Nifti();
-		Nifti();                               //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
-		Nifti(const Nifti &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
-		Nifti &operator=(const Nifti &other);  //!< Copy Assignment. Copies all elements except file handles, and marks destination as Closed.
-		Nifti(Nifti &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
-		Nifti &operator=(Nifti &&other);       //!< Move assignment. Copies all elements, including the file handles, and marks the original as Closed.
-		Nifti(const int nx, const int ny, const int nz, const int nt,
+		~Nifti1();
+		Nifti1();                               //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
+		Nifti1(const Nifti1 &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
+		Nifti1 &operator=(const Nifti1 &other);  //!< Copy Assignment. Copies all elements except file handles, and marks destination as Closed.
+		Nifti1(Nifti1 &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
+		Nifti1 &operator=(Nifti1 &&other);       //!< Move assignment. Copies all elements, including the file handles, and marks the original as Closed.
+		Nifti1(const int nx, const int ny, const int nz, const int nt,
 			  const float dx, const float dy, const float dz, const float dt,
 			  const DataType dtype = DataType::FLOAT32); //!< Constructs a header with the specified dimension and voxel sizes.
-		Nifti(const ArrayXs &dim, const Eigen::ArrayXf &voxdim,
+		Nifti1(const ArrayXs &dim, const Eigen::ArrayXf &voxdim,
 			  const DataType dtype = DataType::FLOAT32); //!< Constructs a header with the specified dimension and voxel sizes.
-		Nifti(const Nifti &other, const size_t nt, const DataType dtype = DataType::FLOAT32);                        //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
-		Nifti(const std::string &filename, const Mode &mode);
+		Nifti1(const Nifti1 &other, const size_t nt, const DataType dtype = DataType::FLOAT32);                        //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
+		Nifti1(const std::string &filename, const Mode &mode);
 		
 		void open(const std::string &filename, const Mode &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
 		void close();                                             //!< Closes the file
@@ -158,8 +134,8 @@ class Nifti {
 		const Eigen::Affine3f &sform() const;                //!< Return just the sform.
 		const XForm &qcode() const;               //!< Find out what transformation the qform represents.
 		const XForm &scode() const;               //!< Find out what transformation the sform represents.
-		bool matchesSpace(const Nifti &other) const;  //!< Check if voxel dimensions, data size and XForm match
-		bool matchesVoxels(const Nifti &other) const; //!< Looser check if voxel dimensions and data size match
+		bool matchesSpace(const Nifti1 &other) const;  //!< Check if voxel dimensions, data size and XForm match
+		bool matchesVoxels(const Nifti1 &other) const; //!< Looser check if voxel dimensions and data size match
 		
 		template<typename IterTp> void readVoxels(IterTp begin, IterTp end, const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size);
 		template<typename IterTp> void readVolumes(IterTp begin, IterTp end, const size_t first = 0, const size_t nvol = 0);
@@ -205,5 +181,7 @@ class Nifti {
 };
 
 #include "Nifti-inl.h"
+
+} // End namespace Nifti
 
 #endif // NIFTI_NIFTI

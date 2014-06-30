@@ -16,6 +16,7 @@
 #include "Nifti/Nifti.h"
 #include "QUIT/MultiArray.h"
 using namespace std;
+using namespace Nifti;
 
 //******************************************************************************
 // Arguments / Usage
@@ -44,7 +45,7 @@ Options:\n\
 enum class Type { MagPhase, RealImag, Complex };
 static bool verbose = false, forceDType = false;
 static Type inputType = Type::MagPhase, outputType = Type::RealImag;
-static Nifti::DataType outDType = Nifti::DataType::COMPLEX64;
+static DataType outDType = DataType::COMPLEX64;
 static struct option long_options[] =
 {
 	{"help", no_argument, 0, 'h'},
@@ -107,16 +108,16 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	Nifti file1, file2;
+	Nifti1 file1, file2;
 	if (verbose) cout << "Opening input file: " << argv[optind] << endl;
-	file1.open(argv[optind++], Nifti::Mode::Read);
+	file1.open(argv[optind++], Mode::Read);
 	size_t nEl = file1.dims().prod();
 	vector<complex<long double>> complexData(nEl);
 
 	switch (inputType) {
 		case Type::MagPhase: {
 			if (verbose) cout << "Opening input file: " << argv[optind] << endl;
-			file2.open(argv[optind++], Nifti::Mode::Read);
+			file2.open(argv[optind++], Mode::Read);
 			if (!file2.matchesSpace(file1)) {
 				cerr << "Magnitude and phase files are incompatible." << endl;
 				exit(EXIT_FAILURE);

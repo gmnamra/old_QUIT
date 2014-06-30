@@ -18,6 +18,7 @@
 
 using namespace std;
 using namespace Agilent;
+using namespace Nifti;
 
 static int partial = false, verbose = false, verbatim = false;
 static struct option long_options[] =
@@ -74,8 +75,8 @@ int main(int argc, char **argv) {
 				}
 				pps.push_back(pp);
 			} else {
-				Nifti nii(p, Nifti::Mode::ReadHeader);
-				const list<Nifti::Extension> &exts = nii.extensions();
+				Nifti1 nii(p, Mode::ReadHeader);
+				const list<Extension> &exts = nii.extensions();
 				for (auto &e : exts) {
 					if (e.code() == NIFTI_ECODE_COMMENT) {
 						string s(e.data().begin(), e.data().end());

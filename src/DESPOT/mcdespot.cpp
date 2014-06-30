@@ -110,9 +110,9 @@ void int_handler(int) {
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
 //Utility function
-Nifti openAndCheck(const string &path, const Nifti &saved);
-Nifti openAndCheck(const string &path, const Nifti &saved) {
-	Nifti in(path, Nifti::Mode::Read);
+Nifti::Nifti1 openAndCheck(const string &path, const Nifti::Nifti1 &saved);
+Nifti::Nifti1 openAndCheck(const string &path, const Nifti::Nifti1 &saved) {
+	Nifti::Nifti1 in(path, Nifti::Mode::Read);
 	if (!(in.matchesSpace(saved))) {
 		cerr << "Header for " << in.imagePath() << " does not match " << saved.imagePath() << endl;
 		exit(EXIT_FAILURE);
@@ -120,10 +120,10 @@ Nifti openAndCheck(const string &path, const Nifti &saved) {
 	return in;
 }
 
-Nifti parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols);
-Nifti parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols)
+Nifti::Nifti1 parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols);
+Nifti::Nifti1 parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols)
 {
-	Nifti templateFile, inFile;
+	Nifti::Nifti1 templateFile, inFile;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
@@ -135,7 +135,7 @@ Nifti parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols)
 		getline(cin, path);
 		if (signalVols.size() == 0) {
 			inFile.open(path, Nifti::Mode::Read);
-			templateFile = Nifti(inFile, 1); // Save header info for later
+			templateFile = Nifti::Nifti1(inFile, 1); // Save header info for later
 		} else {
 			inFile = openAndCheck(path, templateFile);
 		}
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 	
 	try { // To fix uncaught exceptions on Mac
 	
-	Nifti maskFile, f0File, B1File, templateFile;
+	Nifti::Nifti1 maskFile, f0File, B1File, templateFile;
 	MultiArray<int8_t, 3> maskVol;
 	MultiArray<float, 3> f0Vol, B1Vol;
 	

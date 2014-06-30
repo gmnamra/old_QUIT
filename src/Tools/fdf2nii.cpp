@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
 			Affine3d outTransform = (scaleXForm * input.transform());
 			
 			try {
-				Nifti output(input.dims(), outVoxDims.cast<float>(), Nifti::DataType::FLOAT32);
+				Nifti::Nifti1 output(input.dims(), outVoxDims.cast<float>(), Nifti::DataType::FLOAT32);
 				output.setTransform(outTransform.cast<float>());
 				output.setDim(4, nOutImages);
 				if (procpar) {

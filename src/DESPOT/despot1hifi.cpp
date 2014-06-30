@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
 	// Argument Processing
 	//**************************************************************************
 	cout << version << endl << credit_shared << endl;
-	Nifti maskFile, spgrFile, irFile;
+	Nifti::Nifti1 maskFile, spgrFile, irFile;
 	vector<double> maskData;
 	
 	int indexptr = 0, c;
@@ -333,7 +333,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	#pragma mark Write out data
 	//**************************************************************************
-	Nifti outFile(spgrFile, 1);
+	Nifti::Nifti1 outFile(spgrFile, 1);
 	outFile.description = version;
 	for (int r = 0; r < NR; r++) {
 		string outName = outPrefix + names[r] + ".nii.gz";

@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 
 	try { // To fix uncaught exceptions on Mac
 
-	Nifti spgrFile, B1File, maskFile;
+	Nifti::Nifti1 spgrFile, B1File, maskFile;
 	MultiArray<float, 3> B1Vol;
 	MultiArray<int8_t, 3> maskVol;
 	
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
 
 	if (verbose)
 		cout << "Writing results." << endl;
-	Nifti outFile(spgrFile, 1);
+	Nifti::Nifti1 outFile(spgrFile, 1);
 	outFile.description = version;
 	outFile.open(outPrefix + "D1_T1.nii.gz", Nifti::Mode::Write);
 	outFile.writeVolumes(T1Vol.begin(), T1Vol.end());

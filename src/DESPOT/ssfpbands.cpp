@@ -64,7 +64,7 @@ static struct option long_options[] =
 //******************************************************************************
 int main(int argc, char **argv)
 {
-	Nifti maskFile;
+	Nifti::Nifti1 maskFile;
 	MultiArray<int8_t, 3> maskData;
 	
 	int indexptr = 0, c;
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	if (verbose) cout << "Opening input file: " << argv[optind] << endl;
-	Nifti inputFile;
+	Nifti::Nifti1 inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
 	if (maskFile.isOpen() && !maskFile.matchesSpace(inputFile)) {
 		cerr << "Mask does not match input file." << endl;

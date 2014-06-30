@@ -14,6 +14,7 @@
 #include "Nifti/Nifti.h"
 
 using namespace std;
+using namespace Nifti;
 
 const string usage = "nifti_hdr - A utility for getting information from Nifti headers.\n\
 \n\
@@ -57,7 +58,7 @@ static struct option long_options[] =
 	{0, 0, 0, 0}
 };
 
-string voxMessage(const Nifti &im) {
+string voxMessage(const Nifti1 &im) {
 	stringstream m;
 	m << "Voxel sizes: " << im.voxDims().transpose() << " " << im.spaceUnits();
 	if (im.voxDims().rows() > 3) {
@@ -66,16 +67,16 @@ string voxMessage(const Nifti &im) {
 	return m.str();
 }
 
-string sizeMessage(const Nifti &im) {
+string sizeMessage(const Nifti1 &im) {
 	stringstream m;
 	m << "Voxels per slice, per volume, total: "
       << im.dims().head(2).prod() << ", " << im.dims().head(3).prod() << ", " << im.dims().prod();
 	return m.str();
 }
 
-string dataMessage(const Nifti &im) {
+string dataMessage(const Nifti1 &im) {
 	stringstream m;
-	m << "Datatype: " << Nifti::TypeInfo(im.datatype()).name << ", size in bytes: " << Nifti::TypeInfo(im.datatype()).size;
+	m << "Datatype: " << TypeInfo(im.datatype()).name << ", size in bytes: " << TypeInfo(im.datatype()).size;
 	return m.str();
 }
 
@@ -103,7 +104,7 @@ int main(int argc, char **argv) {
 	if (optind == 1) { // No options specified, default is short header
 		mode = Abbreviated;
 	}
-	vector<Nifti> images;
+	vector<Nifti1> images;
 	try {
 		images.reserve(argc - optind); // emplace_back can still trigger copies if the vector has to be resized
 		for (;optind < argc; optind++) {
@@ -152,9 +153,9 @@ int main(int argc, char **argv) {
 			cout << "Intent params: " << im.intent_p1 << ", " << im.intent_p2 << ", " << im.intent_p3 << endl;
 			cout << "Description: " << im.description << endl;
 			cout << "Aux File:    " << im.aux_file << endl;
-			cout << "QForm: " << Nifti::XFormName(im.qcode()) << endl;
+			cout << "QForm: " << Nifti1::XFormName(im.qcode()) << endl;
 			cout << im.qform().matrix() << endl;
-			cout << "SForm: " << Nifti::XFormName(im.scode()) << endl;
+			cout << "SForm: " << Nifti1::XFormName(im.scode()) << endl;
 			cout << im.sform().matrix() << endl;
 			cout << "Number of extensions: " << im.extensions().size() << endl;
 		}

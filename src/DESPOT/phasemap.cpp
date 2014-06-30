@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 	int indexptr = 0, c;
 	double TE1, TE2, deltaTE, phasetime = 0.;
 	vector<double> data1, data2, B0, mask;
-	Nifti maskFile, inFile;
+	Nifti::Nifti1 maskFile, inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
 	cout << "Writing off-resonance map (in Hz)." << endl;
 	string outPath = outPrefix + "f0.nii.gz";
 	
-	Nifti outFile(inFile, 1);
+	Nifti::Nifti1 outFile(inFile, 1);
 	outFile.description = version;
 	outFile.open(outPath, Nifti::Mode::Write);
 	outFile.writeVolumes(B0.begin(), B0.end(), 0, 1);
