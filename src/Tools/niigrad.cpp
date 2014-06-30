@@ -21,6 +21,7 @@
 #include "QUIT/ThreadPool.h"
 
 using namespace std;
+using namespace QUIT;
 
 //******************************************************************************
 // Arguments / Usage

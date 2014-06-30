@@ -14,6 +14,8 @@
 #include "Nifti/ExtensionCodes.h"
 
 using namespace std;
+using namespace QUIT;
+
 int main(int argc, char **argv) {
 
 	if (argc != 2) {

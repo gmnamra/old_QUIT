@@ -1,12 +1,20 @@
-//
-//  ThreadPool.cpp
-//  DESPOT
-//
-//  Created by Tobias Wood on 29/07/2013.
-//
-//
+/*
+ *  ThreadPool.cpp
+ *  Part of the QUantitative Image Toolbox
+ *
+ *  Copyright (c) 2013, 2014 Tobias Wood. All rights reserved.
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ */
 
 #include "ThreadPool.h"
+
+using namespace std;
+
+namespace QUIT {
 
 ThreadPool::ThreadPool(const size_t num_threads) {
 	m_size = num_threads;
@@ -46,3 +54,5 @@ void ThreadPool::for_loop(const function<void(size_t)> f, const size_t stop) {
 void ThreadPool::stop() {
 	m_run = false;
 }
+
+} // End namespace QUIT

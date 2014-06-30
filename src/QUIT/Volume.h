@@ -1,16 +1,22 @@
-//
-//  MultiArray.h
-//  MultiArray
-//
-//  Created by Tobias Wood on 23/04/2014.
-//  Copyright (c) 2014 Tobias Wood. All rights reserved.
-//
+/*
+ *  Volume.h
+ *  Part of the QUantitative Image Toolbox
+ *
+ *  Copyright (c) 2014 Tobias Wood. All rights reserved.
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ */
 
-#ifndef VOLUME_H
-#define VOLUME_H
+#ifndef QUIT_VOLUME_H
+#define QUIT_VOLUME_H
 
 #include "Nifti/Nifti.h"
 #include "QUIT/MultiArray.h"
+
+namespace QUIT {
 
 enum class Extrap { Zero, Clamp, Error };
 enum class Interp { NN };
@@ -58,6 +64,9 @@ class VolumeBase {
 template<typename Tp> using Volume = VolumeBase<Tp, 3>;
 template<typename Tp> using Series = VolumeBase<Tp, 4>;
 
+// Template Definitions
 #include "Volume-inl.h"
+
+} // End namespace QUIT
 
 #endif

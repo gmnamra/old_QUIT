@@ -116,7 +116,7 @@ public:
 	const vector<string> &names() const;
 	const ArrayXXd bounds(const FieldStrength f) const;
 	
-	ArrayXcd loadSignals(vector<MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k) const;
+	ArrayXcd loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k) const;
 	
 	void addSignal(const SignalType &st, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 };

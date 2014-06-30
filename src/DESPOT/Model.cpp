@@ -341,7 +341,7 @@ const bool Model::validParameters(const VectorXd &params) const {
 	}
 }
 
-ArrayXcd Model::loadSignals(vector<MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k) const {
+ArrayXcd Model::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k) const {
 	ArrayXcd signal(size());
 	size_t start = 0;
 	for (size_t s = 0; s < m_signals.size(); s++) {

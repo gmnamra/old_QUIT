@@ -1,7 +1,21 @@
-#ifndef VOLUMEFUNCTIONS_H
-#define VOLUMEFUNCTIONS_H
+/*
+ *  VolumeFunctions.h
+ *  Part of the QUantitative Image Toolbox
+ *
+ *  Copyright (c) 2014 Tobias Wood. All rights reserved.
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ */
+
+#ifndef QUIT_VOLUMEFUNCTIONS_H
+#define QUIT_VOLUMEFUNCTIONS_H
 
 #include "Volume.h"
+
+namespace QUIT {
 
 enum class DiffType { Forward, Backward, Central };
 
@@ -37,4 +51,6 @@ void VolumeDerivative(const Volume<Tp> &vol, Volume<Tp> g, Volume<Eigen::Vector3
 	}
 }
 
-#endif // VOLUMEFUNCTIONS_H
+} // End namespace QUIT
+
+#endif // QUIT_VOLUMEFUNCTIONS_H

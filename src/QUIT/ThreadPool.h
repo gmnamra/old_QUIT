@@ -1,35 +1,42 @@
-//
-//  ThreadPool.h
-//  DESPOT
-//
-//  Created by Tobias Wood on 29/07/2013.
-//
-//
+/*
+ *  ThreadPool.h
+ *  Part of the QUantitative Image Toolbox
+ *
+ *  Copyright (c) 2013, 2014 Tobias Wood. All rights reserved.
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ */
 
-#ifndef THREAD_POOL
-#define THREAD_POOL
+#ifndef QUIT_THREAD_POOL
+#define QUIT_THREAD_POOL
 
 #include <iostream>
 #include <thread>
 #include <functional>
 #include <vector>
 
-using namespace std;
+namespace QUIT {
 
 class ThreadPool {
 	private:
-		vector<thread> m_pool;
+		std::vector<std::thread> m_pool;
 		size_t m_size;
 		bool m_run;
 
 	public:
-		ThreadPool(const size_t num_threads = thread::hardware_concurrency());
+		ThreadPool(const size_t num_threads = std::thread::hardware_concurrency());
 		ThreadPool(ThreadPool &) = delete;
 		ThreadPool(ThreadPool &&) = delete;
 		
 		void resize(const size_t num_threads);
-		void for_loop(const function<void(size_t)> f, const size_t start, const size_t stop, const size_t step);
-		void for_loop(const function<void(size_t)> f, const size_t stop);
+		void for_loop(const std::function<void(size_t)> f, const size_t start, const size_t stop, const size_t step);
+		void for_loop(const std::function<void(size_t)> f, const size_t stop);
 		void stop();
 };
-#endif
+
+} // End namespace QUIT
+
+#endif // QUIT_THREAD_POOL

@@ -1,13 +1,17 @@
-//
-//  MultiArray-inl.h
-//  MultiArray
-//
-//  Created by Tobias Wood on 10/03/2014.
-//  Copyright (c) 2014 Tobias Wood. All rights reserved.
-//
+/*
+ *  MultiArray-inl.h
+ *  Part of the QUantitative Image Toolbox
+ *
+ *  Copyright (c) 2014 Tobias Wood. All rights reserved.
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ */
 
-#ifndef MULTIARRAY_INL_H
-#define MULTIARRAY_INL_H
+#ifndef QUIT_MULTIARRAY_INL
+#define QUIT_MULTIARRAY_INL
 
 template<typename Tp, size_t rank>
 auto MultiArray<Tp, rank>::CalcStrides(const Index &dims) -> Index {

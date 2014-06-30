@@ -1,5 +1,17 @@
-#ifndef VOLUMEINL_H
-#define VOLUMEINL_H
+/*
+ *  Volume-inl.h
+ *  Part of the QUantitative Image Toolbox
+ *
+ *  Copyright (c) 2014 Tobias Wood. All rights reserved.
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ */
+
+#ifndef QUIT_VOLUMEINL
+#define QUIT_VOLUMEINL
 
 template<typename Tp, size_t rank> VolumeBase<Tp, rank>::VolumeBase() { }
 

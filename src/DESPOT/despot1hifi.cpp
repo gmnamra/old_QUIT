@@ -24,6 +24,7 @@
 
 using namespace std;
 using namespace Eigen;
+using namespace QUIT;
 
 //******************************************************************************
 #pragma mark HIFI Calculation functions

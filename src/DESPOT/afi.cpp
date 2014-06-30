@@ -15,11 +15,12 @@
 #include <time.h>
 #include <getopt.h>
 
-using namespace std;
-
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
 #include "DESPOT.h"
+
+using namespace std;
+using namespace QUIT;
 
 const string usage{
 "Usage is: afi [options] input \n\

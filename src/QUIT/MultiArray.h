@@ -1,13 +1,17 @@
-//
-//  MultiArray.h
-//  MultiArray
-//
-//  Created by Tobias Wood on 10/03/2014.
-//  Copyright (c) 2014 Tobias Wood. All rights reserved.
-//
+/*
+ *  MultiArray.h
+ *  Part of the QUantitative Image Toolbox
+ *
+ *  Copyright (c) 2014 Tobias Wood. All rights reserved.
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ */
 
-#ifndef MULTIARRAY_H
-#define MULTIARRAY_H
+#ifndef QUIT_MULTIARRAY_H
+#define QUIT_MULTIARRAY_H
 
 #include <iostream>
 #include <vector>
@@ -18,6 +22,8 @@
 
 #include "Eigen/Core"
 #include "Eigen/Geometry"
+
+namespace QUIT {
 
 template<typename Tp, size_t rank>
 class MultiArray {
@@ -101,6 +107,9 @@ class MultiArray {
 		}
 };
 
+// Template definitions
 #include "MultiArray-inl.h"
+
+} // End namespace QUIT
 
 #endif //MULTIARRAY_H
