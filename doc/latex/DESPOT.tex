@@ -13,7 +13,7 @@
 
 \begin{document}
 
-\title{Manual for DESPOT Tools}
+\title{DESPOT Tools}
 \author{Tobias C Wood}
 \affil{King's College London, Institute of Psychiatry, Department of Neuroimaging}
 \maketitle
@@ -22,38 +22,32 @@
 
 \chapter{Introduction}
 
-This is a manual for the several programs I have written to process Driven Equilibrium Single-Pulse Observation of T1\&2 (DESPOT) images, and the various extensions to these techniques which were mainly invented by Sean Deoni. Most of you reading this will be interested in multi-component DESPOT (mcDESPOT).
+This is a manual for several programs written to process Driven Equilibrium Single-Pulse Observation of T1\&2 (DESPOT) images. They form part of QUIT, the QUantitative Imaging Tools. These programs can process various datasets to produce T1, T2, B1 and B0 maps, and can also apply more advanced multi-component processing techniques to produce Myelin Water Fraction (MWF) maps.
 
-The subsequent sections mostly assume that you are processing a full mcDESPOT data set. If you are only interested in DESPOT1 or DESPOT2, then there are parts of the processing you can skip.
+The original science for several of these techniques, and in particular multi-component DESPOT, is the work of Sean Deoni. I have implemented and extended his original algorithms and introduced some new methods. I am grateful in particular to Sam Hurley for his input on multiple points. I would estimate that these programs are the result of over 500 hours of work, most of which went into the \texttt{mcdespot} program.
 
-These programs have been written over the course of 18 months and have been revised multiple times as I have learnt more about DESPOT, the nifti file format and have re-learned some rusty C++ skills. Processing mcDESPOT data in particular is a difficult problem that I do not consider fully solved. I would estimate that these programs are the result of over 500 hours of work, most of which went into the \texttt{mcdespot} program.
+\section{Methods & Academic Credit}\label{credit}
 
-\section{Credit / Methods}\label{credit}
+I cannot write a general purpose methods section because most projects use subtly different acquisition protocols. However, you should include something along the lines of "images were processed using programs written in C++ using the Quantitative Imaging Tools~\cite{quitweb}".
 
-I cannot write a general purpose methods section because most projects use subtly different acquisition protocols. However, you should include something along the lines of "images were processed using programs written in C++ using the Eigen matrix maths library~\cite{eigenweb}".
-
-As of writing, I do not currently have a methods paper for people to cite. I am hoping this will change soon. In the meantime I am usually happy to be listed as an author on any papers using these programs (somewhere in the middle is fine). You should cite these papers by Sean Deoni: DESPOT1~\cite{Deoni:2007}, DESPOT2~\cite{Deoni:2009a}, mcDESPOT~\cite{Deoni:2008c, Deoni:2012}.
+There are multiple papers describing the various DESPOT methods. A non-exhaustive list of papers you should consider citing include: DESPOT1~\cite{Deoni:2007}, DESPOT2~\cite{Deoni:2009a}, mcDESPOT~\cite{Deoni:2008c, Deoni:2012}.
 
 \printbibliography[heading=subbibliography]
-
-\section{Accessing These Programs}
-
-If you are a member of the Institute of Psychiatry, all of these programs are available to use on the Neuro-Analysis Network (NAN). They are installed in my public area, \texttt{/software/local/k1078535/}. Inside that directory is a script called \texttt{set\_paths.sh}. You need to \texttt{source} this script in order to use the programs. Preferably you should add the line \texttt{source /software/local/k1078535/set\_paths.sh} to the end of your \texttt{.cshrc} file in your home area.
-
-If you are not a member of the Institute of Psychiatry, I hope I have already given you the programs to run, otherwise I'm not sure how you got hold of this document. At some point they will be available to download from the King's College website.
 
 \chapter{Preprocessing}
 
 \section{Data Required}
 
-In general, DESPOT requires the following of scans.
+In general, DESPOT requires a subset of the following data:
 \begin{enumerate} \itemsep1pt \parskip0pt \parsep0pt
   \item A Spoiled Gradient Recalled (SPGR) image at multiple flip-angles
   \item A balanced Steady-State Free Precession (bSSFP, FIESTA or true FISP) image at multiple flip-angles and at least 2 phase-cycling patterns.
   \item A B1 (RF inhomogeneity) map.
 \end{enumerate}
 
-For most data acquired at the IoP, the B1 map will be in the form of an Inversion Recovery SPGR (IR-SPGR) scan, the SPGR and SSFP scans will have 8 flip angles and there will be two phase-cycling patterns (180 and 0 degrees).
+To produce a T1 map, you require only the SPGR images. You must know the $TR$ and flip-angles used. To produce a T2 map, you require a T1 map (and so usually the SPGR data as well), and the SSFP data. For mcDESPOT you require both.
+
+A B1 map is recommended at all field strengths. There are now several different B1 mapping protocols, some available as product sequences.
 
 \section{File Formats}
 
