@@ -28,7 +28,7 @@ INCLUDE    := -I$(EIGEN_DIR) -Isrc -Isrc/Agilent
 
 #Rules for libNifti
 NIFTI_DIR  := Nifti
-NIFTI_SRC  := Nifti Internal ZipFile Extension
+NIFTI_SRC  := Nifti Header Internal ZipFile Extension
 NIFTI_OBJ  := $(addprefix $(BUILD_DIR)/$(NIFTI_DIR)/, $(addsuffix .o, $(NIFTI_SRC)))
 NIFTI_HDR := $(addprefix $(SOURCE_DIR)/$(NIFTI_DIR)/, Nifti.h Nifti-inl.h ExtensionCodes.h)
 $(BUILD_DIR)/$(NIFTI_DIR)/%.o : $(SOURCE_DIR)/$(NIFTI_DIR)/%.cpp | EIGEN

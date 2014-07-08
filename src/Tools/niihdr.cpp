@@ -153,9 +153,9 @@ int main(int argc, char **argv) {
 			cout << "Intent params: " << im.intent_p1 << ", " << im.intent_p2 << ", " << im.intent_p3 << endl;
 			cout << "Description: " << im.description << endl;
 			cout << "Aux File:    " << im.aux_file << endl;
-			cout << "QForm: " << Nifti1::XFormName(im.qcode()) << endl;
+			cout << "QForm: " << XFormName(im.qcode()) << endl;
 			cout << im.qform().matrix() << endl;
-			cout << "SForm: " << Nifti1::XFormName(im.scode()) << endl;
+			cout << "SForm: " << XFormName(im.scode()) << endl;
 			cout << im.sform().matrix() << endl;
 			cout << "Number of extensions: " << im.extensions().size() << endl;
 		}

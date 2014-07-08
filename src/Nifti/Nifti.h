@@ -26,6 +26,7 @@
 
 #include "ZipFile.h"
 #include "Extension.h"
+#include "Header.h"
 
 namespace Nifti {
 
@@ -33,33 +34,10 @@ enum class Mode : char {
 	Closed = 0, Read = 'r', ReadHeader = 'h', Write = 'w'
 };
 
-enum class DataType {
-	UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64,
-	FLOAT32, FLOAT64, FLOAT128, COMPLEX64, COMPLEX128, COMPLEX256,
-	RGB24, RGBA32
-};
-DataType DataTypeForCode(const int code);
-
-struct DataTypeInfo {
-	DataType type;
-	size_t code, size, swapsize;
-	std::string name;
-}; //!< Contains all the information needed to read/write a Nifti datatype
-const DataTypeInfo &TypeInfo(const DataType dt);
-
 class Nifti1 {
 	public:
 		typedef Eigen::Array<size_t, Eigen::Dynamic, 1> ArrayXs;
-		
-		enum class XForm {
-			Unknown, ScannerAnatomy, AlignedAnatomy, Talairach, MNI_152
-		};
-		static const std::string XFormName(const XForm t);
-
 	private:
-		static XForm XFormForCode(const int code);
-		static int XFormCode(const XForm t);
-		
 		Eigen::Array<size_t, 7, 1> m_dim;      //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
 		Eigen::Array<size_t, 7, 1> m_strides;  //!< Strides into the data on disk.
 		Eigen::Array<float, 7, 1> m_voxdim;    //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
