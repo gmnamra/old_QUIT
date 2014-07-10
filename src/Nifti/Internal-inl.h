@@ -9,7 +9,7 @@
 #ifndef NIFTI_INTERNAL_INL
 #define NIFTI_INTERNAL_INL
 
-inline float fixFloat(const float f) {
+inline float FixFloat(const float f) {
 	if (isfinite(f))
 		return f;
 	else
