@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	Nifti::Nifti1 maskFile;
+	Nifti::File maskFile;
 	MultiArray<int8_t, 3> maskVol;
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvm:o:", long_options, &indexptr)) != -1) {
@@ -80,9 +80,9 @@ int main(int argc, char **argv)
 	}
 
 	cout << "Opening magnitude file: " << argv[optind] << endl;
-	Nifti::Nifti1 inputFile;
+	Nifti::File inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
-	Nifti::Nifti1 templateFile(inputFile, 1);
+	Nifti::Header templateHdr = inputFile.header();
 	MultiArray<float, 4> mag{inputFile.dims()};
 	inputFile.readVolumes(mag.begin(), mag.end());
 	inputFile.close();
@@ -91,13 +91,13 @@ int main(int argc, char **argv)
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
 	MultiArray<float, 4> phase{inputFile.dims()};
 	inputFile.readVolumes(phase.begin(), phase.end());
-	if (!templateFile.matchesSpace(inputFile) || (maskFile.isOpen() && !templateFile.matchesSpace(maskFile))) {
+	if (!templateHdr.matchesSpace(inputFile.header()) || (maskFile.isOpen() && !templateHdr.matchesSpace(maskFile.header()))) {
 		cerr << "Input file dimensions or orientations do not match." << endl;
 		exit(EXIT_FAILURE);
 	}
 	inputFile.close();
 
-	auto dims = templateFile.dims().head(3);
+	auto dims = templateHdr.dims().head(3);
 	MultiArray<float, 3> Wv(dims), Fv(dims), Av(dims);
 	//**************************************************************************
 	// Do the fitting
@@ -144,15 +144,12 @@ int main(int argc, char **argv)
 
 	if (verbose)
 		cout << "Writing results." << endl;
-	templateFile.open(outPrefix + "W.nii.gz", Nifti::Mode::Write);
-	templateFile.writeVolumes(Wv.begin(), Wv.end());
-	templateFile.close();
-	templateFile.open(outPrefix + "F.nii.gz", Nifti::Mode::Write);
-	templateFile.writeVolumes(Fv.begin(), Fv.end());
-	templateFile.close();
-	templateFile.open(outPrefix + "A.nii.gz", Nifti::Mode::Write);
-	templateFile.writeVolumes(Av.begin(), Av.end());
-	templateFile.close();
+	Nifti::File outW(templateHdr, outPrefix + "W.nii.gz");
+	outW.writeVolumes(Wv.begin(), Wv.end());
+	Nifti::File outF(templateHdr, outPrefix + "F.nii.gz");
+	outF.writeVolumes(Fv.begin(), Fv.end());
+	Nifti::File outA(templateHdr, outPrefix + "A.nii.gz");
+	outA.writeVolumes(Av.begin(), Av.end());
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);
 }

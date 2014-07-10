@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 {
 	try { // To fix uncaught exceptions on Mac
 
-	Nifti::Nifti1 maskFile, B0File, B1File;
+	Nifti::File maskFile, B0File, B1File;
 	MultiArray<double, 3> maskVol, B1Vol;
 	string procPath;
 	
@@ -127,23 +127,23 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
-	Nifti::Nifti1 inFile(argv[optind++], Nifti::Mode::Read);
-	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
-		(B1File.isOpen() && !inFile.matchesSpace(B1File))){
+	Nifti::File inFile(argv[optind++], Nifti::Mode::Read);
+	if ((maskFile.isOpen() && !inFile.header().matchesSpace(maskFile.header())) ||
+		(B1File.isOpen() && !inFile.header().matchesSpace(B1File.header()))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
 	MultiArray<double, 3> T1Vol(inFile.dims().head(3));
 	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
 	inFile.close();
-	Nifti::Nifti1 outFile(inFile, 1); // Save the header data to write out files
+	Nifti::Header outHdr = inFile.header(); // Save the header data to write out files
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
 	Model ssfpMdl(Signal::Components::One, Model::Scaling::None);
 	if (verbose) cout << "Reading SSFP data from: " << argv[optind] << endl;
 	inFile.open(argv[optind], Nifti::Mode::Read);
-	if (!inFile.matchesSpace(outFile)) {
+	if (!inFile.header().matchesSpace(outHdr)) {
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -250,8 +250,9 @@ int main(int argc, char **argv)
 		cout << "Writing results." << endl;
 	}
 	printElapsedClock(startClock, voxCount);
-	outFile.description = version;
-	outFile.open(outPrefix + "D2_T2.nii.gz", Nifti::Mode::Write);
+	outHdr.description = version;
+	outHdr.setDim(4, 1);
+	Nifti::File outFile(outHdr, outPrefix + "D2_T2.nii.gz");
 	outFile.writeVolumes(T2Vol.begin(), T2Vol.end());
 	outFile.close();
 	outFile.open(outPrefix + "D2_PD.nii.gz", Nifti::Mode::Write);

@@ -78,14 +78,14 @@ int main(int argc, char **argv)
 	}
 
 	cout << "Opening input file: " << argv[optind] << endl;
-	Nifti::Nifti1 inFile(argv[optind], Nifti::Mode::Read);
+	Nifti::File inFile(argv[optind], Nifti::Mode::Read);
 	std::string basename = inFile.basePath();
-	Nifti::Nifti1 outFile(inFile); outFile.close(); outFile.open(basename + "_grad.nii.gz", Nifti::Mode::Write);
+	Nifti::File outFile(inFile); outFile.close(); outFile.open(basename + "_grad.nii.gz", Nifti::Mode::Write);
 	cout << "Allocating working memory." << endl;
 	auto d = inFile.dims().head(3);
-	Volume<float> data(d, inFile.transform());
-	Volume<float> grad(d, inFile.transform());
-	Volume<Eigen::Vector3f> deriv(d, inFile.transform());
+	Volume<float> data(d, inFile.header().transform());
+	Volume<float> grad(d, inFile.header().transform());
+	Volume<Eigen::Vector3f> deriv(d, inFile.header().transform());
 	cout << "Processing." << endl;
 	for (size_t vol = 0; vol < inFile.dim(4); vol++) {
 		inFile.readVolumes(data.data().begin(), data.data().end(), vol, 1);

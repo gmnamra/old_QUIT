@@ -16,7 +16,7 @@ using namespace std;
 
 namespace QUIT {
 
-bool ReadPP(const Nifti::Nifti1 &nii, Agilent::ProcPar &pp) {
+bool ReadPP(const Nifti::File &nii, Agilent::ProcPar &pp) {
 	const list<Nifti::Extension> &exts = nii.extensions();
 	for (auto &e : exts) {
 		if (e.code() == NIFTI_ECODE_COMMENT) {

@@ -40,10 +40,10 @@ class VolumeBase {
 		VolumeBase(const Index &dims, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity(), const Extrap ext = Extrap::Zero);
 		VolumeBase(const SmallIndex &dims, const size_t finalDim, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity(), const Extrap ext = Extrap::Zero);
 		VolumeBase(const MultiArray<Tp, rank> &a, const Eigen::Affine3f &xform = Eigen::Affine3f::Identity(), const Extrap ext = Extrap::Zero);
-		VolumeBase(Nifti::Nifti1 &img);
+		VolumeBase(Nifti::File &img);
 
-		void readFrom(Nifti::Nifti1 &img);
-		void writeTo(Nifti::Nifti1 &img);
+		void readFrom(Nifti::File &img);
+		void writeTo(Nifti::File &img);
 
 		Index dims() const;
 		size_t size() const;

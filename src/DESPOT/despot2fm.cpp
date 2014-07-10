@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 {
 	try { // To fix uncaught exceptions on Mac
 	
-	Nifti::Nifti1 maskFile, f0File, B1File;
+	Nifti::File maskFile, f0File, B1File;
 	MultiArray<int8_t, 3> maskVol;
 	MultiArray<float, 3> f0Vol, B1Vol;
 	string procPath;
@@ -201,21 +201,21 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
-	Nifti::Nifti1 inFile(argv[optind++], Nifti::Mode::Read);
+	Nifti::File inFile(argv[optind++], Nifti::Mode::Read);
 	MultiArray<float, 3> T1Vol{inFile.dims()};
 	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
 	inFile.close();
-	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
-	    (f0File.isOpen() && !inFile.matchesSpace(f0File)) ||
-		(B1File.isOpen() && !inFile.matchesSpace(B1File))){
+	if ((maskFile.isOpen() && !inFile.header().matchesSpace(maskFile.header())) ||
+	    (f0File.isOpen() && !inFile.header().matchesSpace(f0File.header())) ||
+		(B1File.isOpen() && !inFile.header().matchesSpace(B1File.header()))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
-	Nifti::Nifti1 templateFile(inFile, 1); // Save header data to write out results
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
 	size_t nFiles = argc - optind;
+	Nifti::Header hdr; // Save header data to write out results
 	vector<MultiArray<complex<float>, 4>> ssfpData(nFiles);
 	Model model(Signal::Components::One, scale);
 	VectorXd inFlip;
@@ -223,8 +223,8 @@ int main(int argc, char **argv)
 		if (verbose) cout << "Reading SSFP header from " << argv[optind] << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
 		if (p == 0)
-			templateFile = Nifti::Nifti1(inFile, 1);
-		if (!inFile.matchesSpace(templateFile)) {
+			hdr = inFile.header();
+		if (!inFile.header().matchesSpace(hdr)) {
 			cerr << "Input file dimensions and/or transforms do not match." << endl;
 			exit(EXIT_FAILURE);
 		}
@@ -269,14 +269,14 @@ int main(int argc, char **argv)
 	size_t nParams = 2;
 	if (scale == Model::Scaling::None)
 		nParams = 3;
-	MultiArray<float, 4> paramsVols(templateFile.dims().head(3), nParams);
-	MultiArray<float, 4> residualVols(templateFile.dims().head(3), model.size());
+	MultiArray<float, 4> paramsVols(hdr.dims().head(3), nParams);
+	MultiArray<float, 4> residualVols(hdr.dims().head(3), model.size());
 	MultiArray<float, 3> SoSVol(T1Vol.dims());
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	if (stop_slice > templateFile.dim(3))
-		stop_slice = templateFile.dim(3);
+	if (stop_slice > hdr.dim(3))
+		stop_slice = hdr.dim(3);
 	time_t startTime;
 	if (verbose) startTime = printStartTime();
 	clock_t startClock = clock();
@@ -340,38 +340,39 @@ int main(int argc, char **argv)
     printElapsedClock(startClock, voxCount);
 	
 	outPrefix = outPrefix + "FM_";
-	templateFile.description = version;
+	hdr.setDim(4, 1);
+	hdr.description = version;
 	if (scale == Model::Scaling::None) {
-		templateFile.open(outPrefix + model.names().at(0) + ".nii.gz", Nifti::Mode::Write);
+		Nifti::File out(hdr, outPrefix + model.names().at(0) + ".nii.gz");
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
-		templateFile.writeVolumes(p.begin(), p.end());
-		templateFile.close();
-		templateFile.open(outPrefix + model.names().at(2) + ".nii.gz", Nifti::Mode::Write);
+		out.writeVolumes(p.begin(), p.end());
+		out.close();
+		out.open(outPrefix + model.names().at(2) + ".nii.gz", Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
-		templateFile.writeVolumes(p.begin(), p.end());
-		templateFile.close();
-		templateFile.open(outPrefix + model.names().at(3) + ".nii.gz", Nifti::Mode::Write);
+		out.writeVolumes(p.begin(), p.end());
+		out.close();
+		out.open(outPrefix + model.names().at(3) + ".nii.gz", Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,2},{-1,-1,-1,0});
-		templateFile.writeVolumes(p.begin(), p.end());
-		templateFile.close();
+		out.writeVolumes(p.begin(), p.end());
+		out.close();
 	} else {
-		templateFile.open(outPrefix + model.names().at(2) + ".nii.gz", Nifti::Mode::Write);
+		Nifti::File out(hdr, outPrefix + model.names().at(2) + ".nii.gz");
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
-		templateFile.writeVolumes(p.begin(), p.end());
-		templateFile.close();
-		templateFile.open(outPrefix + model.names().at(3) + ".nii.gz", Nifti::Mode::Write);
+		out.writeVolumes(p.begin(), p.end());
+		out.close();
+		out.open(outPrefix + model.names().at(3) + ".nii.gz", Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
-		templateFile.writeVolumes(p.begin(), p.end());
-		templateFile.close();
+		out.writeVolumes(p.begin(), p.end());
+		out.close();
 	}
-	templateFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);
-	templateFile.writeVolumes(SoSVol.begin(), SoSVol.end());
-	templateFile.close();
+	Nifti::File SoS(hdr, outPrefix + "SoS.nii.gz");
+	SoS.writeVolumes(SoSVol.begin(), SoSVol.end());
+	SoS.close();
 	if (writeResiduals) {
-		templateFile.setDim(4, static_cast<int>(model.size()));
-		templateFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
-		templateFile.writeVolumes(residualVols.begin(), residualVols.end());
-		templateFile.close();
+		hdr.setDim(4, static_cast<int>(model.size()));
+		Nifti::File res(hdr, outPrefix + "residuals.nii.gz");
+		res.writeVolumes(residualVols.begin(), residualVols.end());
+		res.close();
 	}
 	
 	} catch (exception &e) {

@@ -21,7 +21,7 @@
 
 namespace QUIT {
 
-bool ReadPP(const Nifti::Nifti1 &nii, Agilent::ProcPar &pp);
+bool ReadPP(const Nifti::File &nii, Agilent::ProcPar &pp);
 time_t printStartTime();
 time_t printElapsedTime(const time_t &start);
 void printElapsedClock(const clock_t &clockStart, const int voxCount);

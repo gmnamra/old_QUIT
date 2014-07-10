@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 	
 	try { // To fix uncaught exceptions on Mac
 	
-	Nifti::Nifti1 maskFile, B1File;
+	Nifti::File maskFile, B1File;
 	MultiArray<int8_t, 3> maskVol;
 	MultiArray<float, 3> B1Vol;
 	int indexptr = 0, c;
@@ -163,19 +163,19 @@ int main(int argc, char **argv)
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << Signal::to_string(components) << " component model." << endl;
 	MultiArray<float, 4> paramsVols;
-	Nifti::Nifti1 saveFile;
+	Nifti::Header templateHdr;
 	if (prompt) cout << "Loading parameters." << endl;
 	for (size_t i = 0; i < model.nParameters(); i++) {
 		if (prompt) cout << "Enter path to " << model.names()[i] << " file: " << flush;
 		string filename; cin >> filename;
 		cout << "Opening " << filename << endl;
-		Nifti::Nifti1 input(filename, Nifti::Mode::Read);
+		Nifti::File input(filename, Nifti::Mode::Read);
 
 		if (i == 0) {
-			saveFile = Nifti::Nifti1(input, model.size());
+			templateHdr = input.header();
 			paramsVols = MultiArray<float, 4>(input.dims().head(3), model.nParameters());
 		} else {
-			if (!input.matchesSpace(saveFile)) {
+			if (!input.header().matchesSpace(templateHdr)) {
 				cout << "Mismatched input volumes" << endl;
 				exit(EXIT_FAILURE);
 			}
@@ -203,12 +203,12 @@ int main(int argc, char **argv)
 	
 	cout << "Finished calculating." << endl;
 	cout << "Saving data." << endl;
-	saveFile.setDatatype(Nifti::DataType::COMPLEX64);
+	templateHdr.setDatatype(Nifti::DataType::COMPLEX64);
 	size_t startVol = 0;
 	for (size_t i = 0; i < model.m_signals.size(); i++) {
 		size_t thisSize = model.m_signals[i]->size();
-		saveFile.setDim(4, thisSize);
-		saveFile.open(outPrefix + to_string(i) + ".nii.gz", Nifti::Mode::Write);
+		templateHdr.setDim(4, thisSize);
+		Nifti::File saveFile(templateHdr, outPrefix + to_string(i) + ".nii.gz");
 		auto thisSignal = signalVols.slice<4>({0,0,0,startVol},{-1,-1,-1,thisSize});
 		saveFile.writeVolumes(thisSignal.begin(), thisSignal.end());
 		saveFile.close();

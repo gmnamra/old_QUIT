@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	string fileName(argv[optind]);
-	Nifti1 input(fileName, Mode::Read);
+	File input(fileName, Mode::Read);
 	auto exts = input.extensions();
 	optind = 1;
 	while ((c = getopt_long(argc, argv, "d?e?s?h", long_options, &indexptr)) != -1) {

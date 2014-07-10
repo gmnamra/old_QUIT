@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	Nifti1 file1, file2;
+	File file1, file2;
 	if (verbose) cout << "Opening input file: " << argv[optind] << endl;
 	file1.open(argv[optind++], Mode::Read);
 	size_t nEl = file1.dims().prod();
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 		case Type::MagPhase: {
 			if (verbose) cout << "Opening input file: " << argv[optind] << endl;
 			file2.open(argv[optind++], Mode::Read);
-			if (!file2.matchesSpace(file1)) {
+			if (!file2.header().matchesSpace(file1.header())) {
 				cerr << "Magnitude and phase files are incompatible." << endl;
 				exit(EXIT_FAILURE);
 			}
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 		case Type::RealImag: {
 			if (verbose) cout << "Opening input file: " << argv[optind] << endl;
 			file2.open(argv[optind++], Nifti::Mode::Read);
-			if (!file2.matchesSpace(file1)) {
+			if (!file2.header().matchesSpace(file1.header())) {
 				cerr << "Real and imaginary files are incompatible." << endl;
 				exit(EXIT_FAILURE);
 			}
@@ -151,22 +151,23 @@ int main(int argc, char **argv)
 	}
 
 	file1.close();
+	Header outHdr = file1.header();
 	if (forceDType) {
-		file1.setDatatype(outDType);
+		outHdr.setDatatype(outDType);
 	} else {
 
 	}
 
 	switch (outputType) {
 		case Type::MagPhase: {
-			switch (file1.datatype()) {
+			switch (outHdr.datatype()) {
 				case (Nifti::DataType::FLOAT32) : case (Nifti::DataType::COMPLEX64) :
-					file1.setDatatype(Nifti::DataType::FLOAT32);  break;
+					outHdr.setDatatype(Nifti::DataType::FLOAT32);  break;
 				case (Nifti::DataType::FLOAT64) : case (Nifti::DataType::COMPLEX128) :
-					file1.setDatatype(Nifti::DataType::FLOAT64); break;
+					outHdr.setDatatype(Nifti::DataType::FLOAT64); break;
 				case (Nifti::DataType::FLOAT128) : case (Nifti::DataType::COMPLEX256) :
-					file1.setDatatype(Nifti::DataType::FLOAT128); break;
-				default: file1.setDatatype(Nifti::DataType::FLOAT128); break;
+					outHdr.setDatatype(Nifti::DataType::FLOAT128); break;
+				default: outHdr.setDatatype(Nifti::DataType::FLOAT64); break;
 			}
 			vector<long double> absData(nEl), argData(nEl);
 			for (size_t i = 0; i < nEl; i++) {
@@ -174,23 +175,23 @@ int main(int argc, char **argv)
 				argData[i] = arg(complexData[i]);
 			}
 			if (verbose) cout << "Writing magnitude file: " << argv[optind] << endl;
-			file1.open(argv[optind++], Nifti::Mode::Write);
-			file1.writeAll(absData.begin(), absData.end());
-			file1.close();
+			File out1(outHdr, argv[optind++]);
+			out1.writeAll(absData.begin(), absData.end());
+			out1.close();
 			if (verbose) cout << "Writing phase file: " << argv[optind] << endl;
-			file1.open(argv[optind++], Nifti::Mode::Write);
-			file1.writeAll(argData.begin(), argData.end());
-			file1.close();
+			File out2(outHdr, argv[optind++]);
+			out2.writeAll(argData.begin(), argData.end());
+			out2.close();
 		} break;
 		case Type::RealImag: {
-			switch (file1.datatype()) {
+			switch (outHdr.datatype()) {
 				case (Nifti::DataType::FLOAT32) : case (Nifti::DataType::COMPLEX64) :
-					file1.setDatatype(Nifti::DataType::FLOAT32);  break;
+					outHdr.setDatatype(Nifti::DataType::FLOAT32);  break;
 				case (Nifti::DataType::FLOAT64) : case (Nifti::DataType::COMPLEX128) :
-					file1.setDatatype(Nifti::DataType::FLOAT64); break;
+					outHdr.setDatatype(Nifti::DataType::FLOAT64); break;
 				case (Nifti::DataType::FLOAT128) : case (Nifti::DataType::COMPLEX256) :
-					file1.setDatatype(Nifti::DataType::FLOAT128); break;
-				default: file1.setDatatype(Nifti::DataType::FLOAT128); break;
+					outHdr.setDatatype(Nifti::DataType::FLOAT128); break;
+				default: outHdr.setDatatype(Nifti::DataType::FLOAT128); break;
 			}
 			vector<long double> realData(nEl), imagData(nEl);
 			for (size_t i = 0; i < nEl; i++) {
@@ -198,26 +199,26 @@ int main(int argc, char **argv)
 				imagData[i] = imag(complexData[i]);
 			}
 			if (verbose) cout << "Writing real file: " << argv[optind] << endl;
-			file1.open(argv[optind++], Nifti::Mode::Write);
-			file1.writeAll(realData.begin(), realData.end());
-			file1.close();
+			File out1(outHdr, argv[optind++]);
+			out1.writeAll(realData.begin(), realData.end());
+			out1.close();
 			if (verbose) cout << "Writing imaginary file: " << argv[optind] << endl;
-			file1.open(argv[optind++], Nifti::Mode::Write);
-			file1.writeAll(imagData.begin(), imagData.end());
-			file1.close();
+			File out2(outHdr, argv[optind++]);
+			out2.writeAll(imagData.begin(), imagData.end());
+			out2.close();
 
 		} break;
 		case Type::Complex : {
-			switch (file1.datatype()) {
-				case (Nifti::DataType::FLOAT32) :    file1.setDatatype(Nifti::DataType::COMPLEX64);  break;
-				case (Nifti::DataType::FLOAT64) :    file1.setDatatype(Nifti::DataType::COMPLEX128); break;
-				case (Nifti::DataType::FLOAT128) :   file1.setDatatype(Nifti::DataType::COMPLEX256); break;
-				default: file1.setDatatype(Nifti::DataType::COMPLEX64); break;
+			switch (outHdr.datatype()) {
+				case (Nifti::DataType::FLOAT32) :    outHdr.setDatatype(Nifti::DataType::COMPLEX64);  break;
+				case (Nifti::DataType::FLOAT64) :    outHdr.setDatatype(Nifti::DataType::COMPLEX128); break;
+				case (Nifti::DataType::FLOAT128) :   outHdr.setDatatype(Nifti::DataType::COMPLEX256); break;
+				default: outHdr.setDatatype(Nifti::DataType::COMPLEX64); break;
 			}
 			if (verbose) cout << "Writing complex file: " << argv[optind] << endl;
-			file1.open(argv[optind++], Nifti::Mode::Write);
-			file1.writeAll(complexData.begin(), complexData.end());
-			file1.close();
+			File out(outHdr, argv[optind++]);
+			out.writeAll(complexData.begin(), complexData.end());
+			out.close();
 		} break;
 	}
 	exit(EXIT_SUCCESS);

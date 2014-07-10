@@ -58,25 +58,25 @@ static struct option long_options[] =
 	{0, 0, 0, 0}
 };
 
-string voxMessage(const Nifti1 &im) {
+string voxMessage(const Header &hdr) {
 	stringstream m;
-	m << "Voxel sizes: " << im.voxDims().transpose() << " " << im.spaceUnits();
-	if (im.voxDims().rows() > 3) {
-		m << "/" << im.timeUnits();
+	m << "Voxel sizes: " << hdr.voxDims().transpose() << " " << hdr.spaceUnits();
+	if (hdr.voxDims().rows() > 3) {
+		m << "/" << hdr.timeUnits();
 	}
 	return m.str();
 }
 
-string sizeMessage(const Nifti1 &im) {
+string sizeMessage(const Header &hdr) {
 	stringstream m;
 	m << "Voxels per slice, per volume, total: "
-      << im.dims().head(2).prod() << ", " << im.dims().head(3).prod() << ", " << im.dims().prod();
+      << hdr.dims().head(2).prod() << ", " << hdr.dims().head(3).prod() << ", " << hdr.dims().prod();
 	return m.str();
 }
 
-string dataMessage(const Nifti1 &im) {
+string dataMessage(const Header &hdr) {
 	stringstream m;
-	m << "Datatype: " << TypeInfo(im.datatype()).name << ", size in bytes: " << TypeInfo(im.datatype()).size;
+	m << "Datatype: " << TypeInfo(hdr.datatype()).name << ", size in bytes: " << TypeInfo(hdr.datatype()).size;
 	return m.str();
 }
 
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 	if (optind == 1) { // No options specified, default is short header
 		mode = Abbreviated;
 	}
-	vector<Nifti1> images;
+	vector<File> images;
 	try {
 		images.reserve(argc - optind); // emplace_back can still trigger copies if the vector has to be resized
 		for (;optind < argc; optind++) {
@@ -116,47 +116,49 @@ int main(int argc, char **argv) {
 
 	if (mode == Compare) { // Compare first image to all others and check headers are compatible
 		for (auto im = images.begin() + 1; im != images.end(); im++) {
-			if (!images[0].matchesSpace(*im)) {
+			if (!images[0].header().matchesSpace(im->header())) {
 				cout << "Header does not match against file: " << im->imagePath() << endl;
 			}
 		}
 	}
 	
 	for (auto& im: images) {
+		Header hdr = im.header();
 		if (printDims) cout << im.dims().transpose() << endl;
-		if (printVoxdims) cout << voxMessage(im) << endl;
-		if (printTransform) cout << im.transform().matrix() << endl;
-		if (printSize) cout << sizeMessage(im) << endl;
-		if (printData) cout << dataMessage(im) << endl;
+		if (printVoxdims) cout << voxMessage(hdr) << endl;
+		if (printTransform) cout << hdr.transform().matrix() << endl;
+		if (printSize) cout << sizeMessage(hdr) << endl;
+		if (printData) cout << dataMessage(hdr) << endl;
 		
 		if (mode == Abbreviated) {
 			cout << "Short Nifti Header for file: " << im.imagePath() << endl;
-			cout << "Dimensions:  " << im.dims().transpose() << endl;
-			cout << voxMessage(im) << endl;
-			cout << "XForm matrix: " << endl << im.transform().matrix() << endl;
+			cout << "Dimensions:  " << hdr.dims().transpose() << endl;
+			cout << dataMessage(hdr) << endl;
+			cout << voxMessage(hdr) << endl;
+			cout << "XForm matrix: " << endl << hdr.transform().matrix() << endl;
 			(im.extensions().size() > 0) ? cout << "Has extensions." << endl : cout << "No extensions." << endl;
 		} else if (mode == Full) {
 			cout << "Full Nifti Header for file: " << im.imagePath() << endl;
-			cout << dataMessage(im) << endl;
+			cout << dataMessage(hdr) << endl;
 			cout << "Dimensions: " << im.dims().transpose() << endl;
-			cout << voxMessage(im) << endl;
+			cout << voxMessage(hdr) << endl;
 			
-			cout << "Calibration (min, max): " << im.calibration_min << ", " << im.calibration_max << endl;
-			cout << "Scaling (slope, inter): " << im.scaling_slope << ", " << im.scaling_inter << endl;
-			cout << "Dimension labels (Phase, Freq, Slice):   " << im.phase_dim << ", " << im.freq_dim << ", " << im.slice_dim << endl;
-			cout << "Slice info (Code, Start, End, Duration): " << ", " << im.slice_code << ", " << im.slice_start << ", " << im.slice_end << ", " << im.slice_duration << endl;
-			cout << "Slice name: " << im.sliceName() << endl;
-			cout << "Time offset: " << im.toffset << endl;
+			cout << "Calibration (min, max): " << hdr.calibration_min << ", " << hdr.calibration_max << endl;
+			cout << "Scaling (slope, inter): " << hdr.scaling_slope << ", " << hdr.scaling_inter << endl;
+			cout << "Dimension labels (Phase, Freq, Slice):   " << hdr.phase_dim << ", " << hdr.freq_dim << ", " << hdr.slice_dim << endl;
+			cout << "Slice info (Code, Start, End, Duration): " << ", " << hdr.slice_code << ", " << hdr.slice_start << ", " << hdr.slice_end << ", " << hdr.slice_duration << endl;
+			cout << "Slice name: " << hdr.sliceName() << endl;
+			cout << "Time offset: " << hdr.toffset << endl;
 			
-			cout << "Intent name:   " << im.intent_name << endl;
-			cout << "Intent code:   " << im.intentName() << endl;
-			cout << "Intent params: " << im.intent_p1 << ", " << im.intent_p2 << ", " << im.intent_p3 << endl;
-			cout << "Description: " << im.description << endl;
-			cout << "Aux File:    " << im.aux_file << endl;
-			cout << "QForm: " << XFormName(im.qcode()) << endl;
-			cout << im.qform().matrix() << endl;
-			cout << "SForm: " << XFormName(im.scode()) << endl;
-			cout << im.sform().matrix() << endl;
+			cout << "Intent name:   " << hdr.intent_name << endl;
+			cout << "Intent code:   " << hdr.intentName() << endl;
+			cout << "Intent params: " << hdr.intent_p1 << ", " << hdr.intent_p2 << ", " << hdr.intent_p3 << endl;
+			cout << "Description: " << hdr.description << endl;
+			cout << "Aux File:    " << hdr.aux_file << endl;
+			cout << "QForm: " << XFormName(hdr.qcode()) << endl;
+			cout << hdr.qform().matrix() << endl;
+			cout << "SForm: " << XFormName(hdr.scode()) << endl;
+			cout << hdr.sform().matrix() << endl;
 			cout << "Number of extensions: " << im.extensions().size() << endl;
 		}
 	}

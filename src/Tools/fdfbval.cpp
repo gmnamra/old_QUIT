@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
 	cout << "Reading diffusion directions from: " << iname << endl;
 	Agilent::ProcPar pp;
 	try {
-		Nifti1 f(iname, Mode::Read);
+		File f(iname, Mode::Read);
 		ReadPP(f, pp);
 		outprefix = f.basePath();
 	} catch (runtime_error &e) {

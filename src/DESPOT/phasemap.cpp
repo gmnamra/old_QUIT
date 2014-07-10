@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 	int indexptr = 0, c;
 	double TE1, TE2, deltaTE, phasetime = 0.;
 	vector<double> data1, data2, B0, mask;
-	Nifti::Nifti1 maskFile, inFile;
+	Nifti::File maskFile, inFile;
 	while ((c = getopt_long(argc, argv, "m:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
 	if ((argc - optind) == 2) {
 		cout << "Opening input file " << argv[optind] << "." << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
-		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
+		if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
 	} else if ((argc - optind) == 3) {
 		cout << "Opening input file 1" << argv[optind] << "." << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
-		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
+		if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
-		if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
+		if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			exit(EXIT_FAILURE);
 		}
@@ -145,9 +145,10 @@ int main(int argc, char** argv) {
 	cout << "Writing off-resonance map (in Hz)." << endl;
 	string outPath = outPrefix + "f0.nii.gz";
 	
-	Nifti::Nifti1 outFile(inFile, 1);
-	outFile.description = version;
-	outFile.open(outPath, Nifti::Mode::Write);
+	Nifti::Header outHdr = inFile.header();
+	outHdr.setDim(4, 1);
+	outHdr.description = version;
+	Nifti::File outFile(outHdr, outPath);
 	outFile.writeVolumes(B0.begin(), B0.end(), 0, 1);
 	outFile.close();
 	cout << "Finished." << endl;
