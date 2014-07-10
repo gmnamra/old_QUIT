@@ -40,9 +40,9 @@ DataType DataTypeForCode(const int code) {
 
 /*	Internal map of datatype properties
  *
- *  The map is declared here because making it a static member of Nifti1 was
+ *  The map is declared here because making it a static member of File was
  *  causing problems with looking up the datatype in close() when called by
- *  ~Nifti1. It's possible for C++ to destruct static members even when
+ *  ~File. It's possible for C++ to destruct static members even when
  *  objects still exist in another translation unit.
  */
 const DataTypeInfo &TypeInfo(const DataType dt) {
@@ -68,7 +68,7 @@ const DataTypeInfo &TypeInfo(const DataType dt) {
 	if (info != DTInfo.end())
 		return info->second;
 	else
-		throw(std::invalid_argument("Missing type information, contact libNifti1 author."));
+		throw(std::invalid_argument("Missing type information, contact libFile author."));
 }
 
 /*
@@ -339,7 +339,7 @@ Header::operator nifti_1_header() const {
 	nhdr.dim[0] = rank(); //pixdim[0] is set later with qform
 	for (size_t i = 0; i < 7; i++) { // Convert back to short/float
 		if (m_dim[i] > numeric_limits<short>::max()) {
-			throw(std::runtime_error("Nifti1 does not support dimensions greater than " + to_string(numeric_limits<short>::max())));
+			throw(std::runtime_error("File does not support dimensions greater than " + to_string(numeric_limits<short>::max())));
 		}
 		nhdr.dim[i + 1] = m_dim[i];
 		nhdr.pixdim[i + 1] = m_voxdim[i];
@@ -430,7 +430,7 @@ Header::operator nifti_2_header() const {
 	nhdr.dim[0] = rank(); //pixdim[0] is set later with qform
 	for (size_t i = 0; i < 7; i++) { // Convert back to short/float
 		if (m_dim[i] > numeric_limits<short>::max()) {
-			throw(std::runtime_error("Nifti1 does not support dimensions greater than " + to_string(numeric_limits<short>::max())));
+			throw(std::runtime_error("File does not support dimensions greater than " + to_string(numeric_limits<short>::max())));
 		}
 		nhdr.dim[i + 1] = m_dim[i];
 		nhdr.pixdim[i + 1] = m_voxdim[i];
@@ -531,7 +531,7 @@ void Header::setDatatype(const DataType dt) { m_typeinfo = TypeInfo(dt);
 
 const string &Header::magic() const { return m_magic; }
 void Header::setMagic(const Version v, const bool isNii) {
-	if (v == Version::Nifti1) {
+	if (v == Version::File) {
 		if (isNii)
 			m_magic = "n+1";
 		else

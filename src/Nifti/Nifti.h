@@ -29,7 +29,7 @@ namespace Nifti {
 
 enum class Mode : char { Closed = 0, Read = 'r', ReadHeader = 'h', Write = 'w' };
 
-class Nifti1 {
+class File {
 	private:
 		std::string m_basepath;            //!< Path to file without extension.
 		ZipFile m_file;                    //!< Actual disk file
@@ -57,13 +57,13 @@ class Nifti1 {
 
 	#pragma mark Public Class Methods
 	public:
-		~Nifti1();
-		Nifti1();                               //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
-		Nifti1(const Nifti1 &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
-		Nifti1(Nifti1 &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
-		Nifti1(const Header &hdr, const std::string &filename); //!< Creates a new File and opens it for writing with the specified header and filename.
-		Nifti1(const Nifti1 &other, const size_t nt, const DataType dtype = DataType::FLOAT32);                        //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
-		Nifti1(const std::string &filename, const Mode &mode);
+		~File();
+		File();                               //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
+		File(const File &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
+		File(File &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
+		File(const Header &hdr, const std::string &filename); //!< Creates a new File and opens it for writing with the specified header and filename.
+		File(const File &other, const size_t nt, const DataType dtype = DataType::FLOAT32);                        //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
+		File(const std::string &filename, const Mode &mode);
 		
 		void open(const std::string &filename, const Mode &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
 		void close();                                             //!< Closes the file

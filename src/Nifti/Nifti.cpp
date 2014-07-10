@@ -6,20 +6,20 @@ using namespace Eigen;
 
 namespace Nifti {
 
-Nifti1::Nifti1() :
+File::File() :
 	m_mode(Mode::Closed), m_gz(false), m_swap(false),
 	m_basepath(""), m_header()
 {
 
 }
 
-Nifti1::~Nifti1()
+File::~File()
 {
 	if (m_mode != Mode::Closed)
 		close();
 }
 
-Nifti1::Nifti1(const Nifti1 &other) :
+File::File(const File &other) :
 	m_mode(other.m_mode), m_gz(other.m_gz),
 	m_swap(other.m_swap), m_header(other.m_header)
 {
@@ -32,27 +32,27 @@ Nifti1::Nifti1(const Nifti1 &other) :
 	}
 }
 
-Nifti1::Nifti1(Nifti1 &&other) noexcept :
+File::File(File &&other) noexcept :
 	m_mode(other.m_mode), m_gz(other.m_gz),
 	m_swap(other.m_swap), m_header(other.m_header)
 {
 	other.m_mode = Mode::Closed;
 }
 
-Nifti1::Nifti1(const Header &hdr, const string &filename) : Nifti1() {
+File::File(const Header &hdr, const string &filename) : File() {
 	m_header = hdr;
 	open(filename, Mode::Write);
 }
 
-Nifti1::Nifti1(const string &filename, const Mode &mode) :
-	Nifti1()
+File::File(const string &filename, const Mode &mode) :
+	File()
 {
 	open(filename, mode);
 }
 
 #pragma mark Open/Header Routines
 
-void Nifti1::open(const string &path, const Mode &mode) {
+void File::open(const string &path, const Mode &mode) {
 	if (m_mode != Mode::Closed) {
 		throw(std::runtime_error("Cannot open " + path + ", file: " + basePath() + " is already open."));
 	}
@@ -99,14 +99,14 @@ void Nifti1::open(const string &path, const Mode &mode) {
 	m_mode = mode;
 }
 
-bool Nifti1::isOpen() {
+bool File::isOpen() {
 	if (m_mode == Mode::Closed)
 		return false;
 	else
 		return true;
 }
 
-void Nifti1::close() {
+void File::close() {
 	if (m_mode == Mode::Closed) {
 		throw(std::logic_error("Cannot close already closed file: " + imagePath()));
 	} else if ((m_mode == Mode::Read) || (m_mode == Mode::ReadHeader)) {
@@ -130,7 +130,7 @@ void Nifti1::close() {
 	}
 }
 
-void Nifti1::setPaths(const string &path) {
+void File::setPaths(const string &path) {
 	size_t lastDot = path.find_last_of(".");
 	string ext;
 	if (path.substr(lastDot + 1) == "gz") {
@@ -153,7 +153,7 @@ void Nifti1::setPaths(const string &path) {
 	m_header.setMagic(m_nifti_version, m_nii);
 }
 
-void Nifti1::readHeader() {
+void File::readHeader() {
 	int32_t tag;
 	if (m_file.read(&tag, sizeof(tag)) < sizeof(tag)) {
 		throw(std::runtime_error("Could not read first 4 bytes from " + headerPath()));
@@ -163,14 +163,14 @@ void Nifti1::readHeader() {
 	// As per Mark Jenkinson's pseudocode
 	m_swap = false;
 	if (tag == 348) {
-		m_nifti_version = Version::Nifti1;
+		m_nifti_version = Version::File;
 	} else if (tag == 540) {
 		m_nifti_version = Version::Nifti2;
 	} else {
 		SwapBytes(1, 4, &tag);
 		m_swap = true;
 		if (tag == 348) {
-			m_nifti_version = Version::Nifti1;
+			m_nifti_version = Version::File;
 		} else if (tag == 540) {
 			m_nifti_version = Version::Nifti2;
 		} else {
@@ -179,7 +179,7 @@ void Nifti1::readHeader() {
 	}
 
 	m_file.seek(0, SEEK_SET);
-	if (m_nifti_version == Version::Nifti1) {
+	if (m_nifti_version == Version::File) {
 		struct nifti_1_header n1hdr;
 		if (m_file.read(&n1hdr, sizeof(n1hdr)) < sizeof(n1hdr)) {
 			throw(std::runtime_error("Could not read header from " + headerPath()));
@@ -210,9 +210,9 @@ void Nifti1::readHeader() {
 	}
 }
 
-void Nifti1::writeHeader() {
+void File::writeHeader() {
 	switch (m_nifti_version) {
-		case Version::Nifti1: {
+		case Version::File: {
 			struct nifti_1_header nhdr = (nifti_1_header)m_header;
 			if(m_file.write(&nhdr, sizeof(nhdr)) < sizeof(nhdr)) {
 				throw(std::runtime_error("Could not write header to file: " + headerPath()));
@@ -231,23 +231,23 @@ void Nifti1::writeHeader() {
 
 #pragma mark Extensions
 
-void Nifti1::addExtension(const int code, const vector<char> &data) {
+void File::addExtension(const int code, const vector<char> &data) {
 	m_extensions.emplace_back(code, data);
 }
 
-void Nifti1::addExtension(const Extension &e) {
+void File::addExtension(const Extension &e) {
 	m_extensions.push_back(e);
 }
 
-const list<Extension> &Nifti1::extensions() const {
+const list<Extension> &File::extensions() const {
 	return m_extensions;
 }
 
-void Nifti1::setExtensions(const list<Extension> &newExts) {
+void File::setExtensions(const list<Extension> &newExts) {
 	m_extensions = newExts;
 }
 
-int Nifti1::totalExtensionSize() {
+int File::totalExtensionSize() {
 	int total = 0;
 	for (auto ext: m_extensions) {
 		total += ext.size();
@@ -255,7 +255,7 @@ int Nifti1::totalExtensionSize() {
 	return total;
 }
 
-void Nifti1::readExtensions()
+void File::readExtensions()
 {
 	long target = m_header.voxoffset();
 	if (!m_nii) {
@@ -299,7 +299,7 @@ void Nifti1::readExtensions()
 	}
 }
 
-void Nifti1::writeExtensions() {
+void File::writeExtensions() {
 	m_file.seek(sizeof(nifti_1_header), SEEK_SET);
 	char extender[4] = {0, 0, 0, 0};
 	if (m_extensions.size() > 0)
@@ -310,7 +310,7 @@ void Nifti1::writeExtensions() {
 	
 	for (auto ext : m_extensions) {
 		if (ext.rawSize() > numeric_limits<int>::max()) {
-			throw(std::runtime_error("Extension is larger than Nifti1 standard permits in file: " + headerPath()));
+			throw(std::runtime_error("Extension is larger than File standard permits in file: " + headerPath()));
 		}
 		int size = ext.size();
 		int padding = ext.padding();
@@ -337,8 +337,8 @@ void Nifti1::writeExtensions() {
 
 #pragma mark Path Getters
 
-const string &Nifti1::basePath() const { return m_basepath; }
-string Nifti1::imagePath() const {
+const string &File::basePath() const { return m_basepath; }
+string File::imagePath() const {
 	string path(m_basepath);
 	if (m_nii) {
 		path += ".nii";
@@ -350,7 +350,7 @@ string Nifti1::imagePath() const {
 	
 	return path;
 }
-string Nifti1::headerPath() const {
+string File::headerPath() const {
 	string path(m_basepath);
 	if (m_nii) {
 		path += ".nii";
@@ -363,10 +363,10 @@ string Nifti1::headerPath() const {
 	return path;
 }
 
-const Header &Nifti1::header() const { return m_header; }
-Index Nifti1::rank() const { return m_header.rank(); }
-Index Nifti1::dim(const size_t d) const { return m_header.dim(d); }
-IndexArray Nifti1::dims() const { return m_header.dims(); }
+const Header &File::header() const { return m_header; }
+Index File::rank() const { return m_header.rank(); }
+Index File::dim(const size_t d) const { return m_header.dim(d); }
+IndexArray File::dims() const { return m_header.dims(); }
 
 /**
   * Seeks to a particular voxel on the disk.
@@ -376,7 +376,7 @@ IndexArray Nifti1::dims() const { return m_header.dims(); }
   * @throws std::out_of_range if the target is outside the image dimensions.
   * @throws std::runtime_error if the seek fails.
   */
-void Nifti1::seekToVoxel(const IndexArray &target) {
+void File::seekToVoxel(const IndexArray &target) {
 	if ((target > m_header.dims().head(target.rows())).any()) {
 		throw(std::out_of_range("Target voxel is outside image dimensions."));
 	}
@@ -394,7 +394,7 @@ void Nifti1::seekToVoxel(const IndexArray &target) {
   *   Internal function to actually read bytes from an image file.
   *   @param buffer Array to store read bytes in.
   */
-void Nifti1::readBytes(std::vector<char> &buffer) {
+void File::readBytes(std::vector<char> &buffer) {
 	if (!(m_mode == Mode::Read)) {
 		throw(std::logic_error("File not opened for reading: " + imagePath()));
 	}
@@ -415,7 +415,7 @@ void Nifti1::readBytes(std::vector<char> &buffer) {
   *   Internal function to actually write bytes to an image file.
   *   @param buffer Array of bytes to write
   */
-void Nifti1::writeBytes(const std::vector<char> &buffer) {
+void File::writeBytes(const std::vector<char> &buffer) {
 	if (!(m_mode == Mode::Write)) {
 		throw(std::logic_error("File not opened for writing: " + imagePath()));
 	}

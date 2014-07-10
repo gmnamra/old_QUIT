@@ -19,7 +19,7 @@ namespace Nifti {
 typedef size_t Index;
 typedef Eigen::Array<Index, Eigen::Dynamic, 1> IndexArray;
 
-enum class Version { Nifti1, Nifti2 };
+enum class Version { File, Nifti2 };
 
 enum class DataType {
 	UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64,
