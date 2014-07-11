@@ -67,16 +67,30 @@ class File::Scale<std::complex<FromTp>, std::complex<ToTp>> {
  *   @parem end   Iterator to the end of the data storage.
  */
 template<typename Iter>
-void File::readWriteVoxels(const IndexArray &start, const IndexArray &inSize, Iter &storageBegin, Iter &storageEnd) {
-	IndexArray size = inSize;
+void File::readWriteVoxels(const IndexArray &inStart, const IndexArray &inSize, Iter &storageBegin, Iter &storageEnd) {
+
+	// Now go through some tedious input validation
+	if (inStart.rows() != inSize.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
+	Index rank = 0;
+	for (size_t d = inSize.rows(); d > 0; d--) {
+		// Remember 0 represents full dimension
+		if (inSize[d - 1] != 1) {
+			rank = d;
+			break;
+		}
+	}
+	if (rank != m_header.rank()) {
+		throw(std::out_of_range("Rank of I/O operation (" + std::to_string(rank) + ") does not equal data rank (" + std::to_string(m_header.rank()) + ") in image: " + imagePath()));
+	}
 	const IndexArray dims = m_header.dims();
 	const DataTypeInfo dt = TypeInfo(m_header.datatype());
+	IndexArray start = inStart.head(rank);
+	IndexArray size  = inSize.head(rank);
 	// 0 indicates read whole dimension, so swap for the real size
-	for (IndexArray::Index i = 0; i < size.rows(); i++)
-		if (size(i) == 0) size(i) = dims(i);
-	
-	if (start.rows() != size.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
-	if (start.rows() > dims.rows()) throw(std::out_of_range("Too many read/write dimensions specified in image: " + imagePath()));
+	for (IndexArray::Index i = 0; i < rank; i++) {
+		if (size(i) == 0)
+			size(i) = dims(i);
+	}
 	if (((start + size) > dims.head(start.rows())).any()) throw(std::out_of_range("Read/write past image dimensions requested: " + imagePath()));
 	if (size.prod() != std::distance(storageBegin, storageEnd)) throw(std::out_of_range("Storage size does not match requested read/write size in image: " + imagePath()));
 	

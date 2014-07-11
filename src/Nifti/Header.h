@@ -6,6 +6,7 @@
 #define NIFTI_HEADER_H
 
 #include <string>
+#include <iostream>
 #include <map>
 
 #include <Eigen/Core>
@@ -18,6 +19,7 @@ namespace Nifti {
 
 typedef size_t Index;
 typedef Eigen::Array<Index, Eigen::Dynamic, 1> IndexArray;
+typedef Eigen::Array<Index, 7, 1> Indices;
 
 enum class Version { Nifti1, Nifti2 };
 
@@ -42,8 +44,8 @@ XForm XFormForCode(const int c);
 
 class Header {
 	private:
-		Eigen::Array<Index, 7, 1> m_dim;     //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
-		Eigen::Array<Index, 7, 1> m_strides; //!< Strides into the data on disk.
+		Indices m_dim;     //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
+		Indices m_strides; //!< Strides into the data on disk.
 		Eigen::Array<float, 7, 1> m_voxdim;  //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
 		Index m_voxoffset;                   //!< Offset to start of voxel data.
 		DataTypeInfo m_typeinfo;             //!< Information for datatype on disk.
@@ -65,6 +67,8 @@ class Header {
 
 		explicit operator nifti_1_header() const;
 		explicit operator nifti_2_header() const;
+		friend std::ostream &operator<<(std::ostream &os, const Header &h);
+
 		const std::string &magic() const;
 		void setMagic(const Version v, const bool isNii);
 		const DataTypeInfo &typeInfo() const;
@@ -74,7 +78,8 @@ class Header {
 		Index rank() const;                                 //!< Get the rank (number of dimensions) of the image.
 		Index dim(const Index d) const;                     //!< Get the size (voxel count) of a dimension. Valid dimensions are 1-7.
 		void setDim(const Index d, const Index size);       //!< Set the size (voxel count) of a dimension. Valid dimensions are 1-7.
-		IndexArray dims() const;                            //!< Get all dimension sizes.
+		IndexArray dims() const;                            //!< Get the active dimension sizes (i.e. up to rank())
+		Indices fulldims() const;                           //!< Get all 7 dimension sizes.
 		IndexArray strides() const;                         //!< Get the strides for this image.
 		Index voxoffset() const;                            //!< Return the offset into the file where voxels actually start.
 		void setVoxoffset(const Version v,

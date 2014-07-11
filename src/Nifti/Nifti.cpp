@@ -8,7 +8,7 @@ namespace Nifti {
 
 File::File() :
 	m_mode(Mode::Closed), m_gz(false), m_swap(false),
-	m_basepath(""), m_header()
+	m_basepath(""), m_header(), m_nifti_version(Version::Nifti1)
 {
 
 }
@@ -39,8 +39,9 @@ File::File(File &&other) noexcept :
 	other.m_mode = Mode::Closed;
 }
 
-File::File(const Header &hdr, const string &filename) : File() {
+File::File(const Header &hdr, const string &filename, const Version v) : File() {
 	m_header = hdr;
+	m_nifti_version = v;
 	open(filename, Mode::Write);
 }
 
@@ -70,11 +71,9 @@ void File::open(const string &path, const Mode &mode) {
 			break;
 		case (Mode::Write):
 			setPaths(path);
-			cout << "Paths set: " << headerPath() << " " << imagePath() << " " << basePath() << endl;
 			if(!m_file.open(headerPath(), "wb", m_gz)) {
 				throw(std::runtime_error("Failed to open file: " + headerPath()));
 			}
-			cout << "Writing header..." << endl;
 			writeHeader();
 			writeExtensions();
 		break;
@@ -214,7 +213,7 @@ void File::readHeader() {
 void File::writeHeader() {
 	m_header.setMagic(m_nifti_version, m_nii);
 	m_header.setVoxoffset(m_nifti_version, m_nii, totalExtensionSize());
-	cout << "Voxoffset: " << m_header.voxoffset() << endl;
+	if (m_header.voxoffset() > 1024) exit(EXIT_FAILURE);
 	switch (m_nifti_version) {
 		case Version::Nifti1: {
 			struct nifti_1_header nhdr = (nifti_1_header)m_header;
@@ -386,7 +385,6 @@ void File::seekToVoxel(const IndexArray &target) {
 	}
 	size_t index = (target * m_header.strides().head(target.rows())).sum() * m_header.typeInfo().size + m_header.voxoffset();
 	size_t current = m_file.tell();
-	cout << __PRETTY_FUNCTION__ << endl << "index " << index << " current " << current << endl << flush;
 	if ((index - current != 0) && !m_file.seek(index - current, SEEK_CUR)) {
 		stringstream ss; ss << target.transpose();
 		throw(std::runtime_error("Failed to seek to target voxel: " + ss.str() + ", index: " + to_string(index) + " in file: " + imagePath()));

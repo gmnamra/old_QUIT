@@ -8,7 +8,6 @@
 #define NIFTI_NIFTI
 
 #include <string>
-#include <iostream>
 #include <algorithm>
 #include <iterator>
 #include <complex>
@@ -61,7 +60,7 @@ class File {
 		File();                               //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
 		File(const File &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
 		File(File &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
-		File(const Header &hdr, const std::string &filename); //!< Creates a new File and opens it for writing with the specified header and filename.
+		File(const Header &hdr, const std::string &filename, const Version v = Version::Nifti1); //!< Creates a new File and opens it for writing with the specified header and filename.
 		File(const File &other, const size_t nt, const DataType dtype = DataType::FLOAT32);                        //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
 		File(const std::string &filename, const Mode &mode);
 		

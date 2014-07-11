@@ -513,6 +513,33 @@ Header::operator nifti_2_header() const {
 	return nhdr;
 }
 
+ostream &operator << (ostream &os, const Header &hdr) {
+	os << "Datatype:    " << hdr.typeInfo().name << " (" << hdr.typeInfo().size << " bytes)" << endl;
+	os << "Dimensions:  " << hdr.m_dim.transpose() << endl;
+	os << "Voxel sizes: " << hdr.m_voxdim.transpose() << " " << hdr.spaceUnits();
+	if (hdr.rank() > 3) {
+		os << "/" << hdr.timeUnits();
+	}
+	os << endl;
+	os << "Calibration (min, max): " << hdr.calibration_min << ", " << hdr.calibration_max << endl;
+	os << "Scaling (slope, inter): " << hdr.scaling_slope << ", " << hdr.scaling_inter << endl;
+	os << "Dimension labels (Phase, Freq, Slice):   " << hdr.phase_dim << ", " << hdr.freq_dim << ", " << hdr.slice_dim << endl;
+	os << "Slice info (Code, Start, End, Duration): " << hdr.slice_code << ", " << hdr.slice_start << ", " << hdr.slice_end << ", " << hdr.slice_duration << endl;
+	os << "Slice name: " << hdr.sliceName() << endl;
+	os << "Time offset: " << hdr.toffset << endl;
+
+	os << "Intent name:   " << hdr.intent_name << endl;
+	os << "Intent code:   " << hdr.intentName() << endl;
+	os << "Intent params: " << hdr.intent_p1 << ", " << hdr.intent_p2 << ", " << hdr.intent_p3 << endl;
+	os << "Description: " << hdr.description << endl;
+	os << "Aux File:    " << hdr.aux_file << endl;
+	os << "QForm: " << XFormName(hdr.qcode()) << endl;
+	os << hdr.qform().matrix() << endl;
+	os << "SForm: " << XFormName(hdr.scode()) << endl;
+	os << hdr.sform().matrix() << endl;
+	return os;
+}
+
 /**
   *   Simple function to calculate the strides into the data on disk. Used for
   *   subvolume/voxel-wise reads.
@@ -563,6 +590,7 @@ void Header::setDim(const Index d, const Index size) {
 }
 
 IndexArray Header::dims() const { return m_dim.head(rank()); }
+Indices Header::fulldims() const { return m_dim; }
 IndexArray Header::strides() const { return m_strides.head(rank()); }
 Index Header::voxoffset() const { return m_voxoffset; }
 /*
@@ -571,10 +599,10 @@ Index Header::voxoffset() const { return m_voxoffset; }
  */
 void Header::setVoxoffset(const Version v, const bool isNii, const size_t extSize) {
 	if (isNii) {
-		size_t hdrSize;
+		size_t hdrSize(0);
 		switch (v) {
-			case Version::Nifti1 : hdrSize = sizeof(nifti_1_header); break;
-			case Version::Nifti2 : hdrSize = sizeof(nifti_2_header); break;
+			case (Version::Nifti1): hdrSize = sizeof(nifti_1_header); break;
+			case (Version::Nifti2): hdrSize = sizeof(nifti_2_header); break;
 		}
 		m_voxoffset = hdrSize + 4 + extSize; // The 4 is for the nifti_extender struct
 	} else {
