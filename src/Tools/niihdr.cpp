@@ -14,83 +14,40 @@
 #include "Nifti/Nifti.h"
 
 using namespace std;
-using namespace Nifti;
 
-const string usage = "nifti_hdr - A utility for getting information from Nifti headers.\n\
+const string usage = "niihdr - A utility for getting information from Nifti headers.\n\
 \n\
 Usage: nifti_hdr [options] file1 [other files]\n\
 By default the abbreviated header will be printed for each file.\n\
 Abbreviated, full and compare modes are mutually exclusive.\n\
 \n\
 Options:\n\
-	-d, --dims :  Print the size of each dimension for each file.\n\
-	-v, --vox :   Print the voxel sizes for each file (with units). \n\
-	-t, --trans : Print the XForm to physical space with precedence.\n\
-	-a, --abbrev: Print the abbreviated header.\n\
+	-a, --abbrev: Print the abbreviated header (default).\n\
 	-f, --full:   Print the entire header.\n\
 	-c, --comp:   Compare first file to all others and print message if the.\n\
 	              physical spaces are different.\n\
 	-h, --help:   Print this message and quit.\n\
 ";
 
-enum Modes {
-	Nothing = 0,
-	Abbreviated,
-	Full,
-	Compare
-};
+enum class Mode { Abbrev, Full, Cmp };
 
-static int mode = Nothing;
-static int printDims = false, printVoxdims = false, printSize = false, printData = false,
-           printTransform = false;
+static Mode mode = Mode::Abbrev;
 
-static struct option long_options[] =
-{
-	{"dims",   no_argument, &printDims, true},
-	{"vox",    no_argument, &printVoxdims, true},
-	{"form",   no_argument, &printTransform, true},
-	{"size",   no_argument, &printSize, true},
-	{"data",   no_argument, &printData, true},
-	{"abbrev", no_argument, &mode, Abbreviated},
-	{"full",   no_argument, &mode, Full},
-	{"comp",   no_argument, &mode, Compare},
+static struct option long_options[] = {
+	{"abbrev", no_argument, 0, 'a'},
+	{"full",   no_argument, 0, 'f'},
+	{"comp",   no_argument, 0, 'c'},
 	{"help",   no_argument, 0, 'h'},
 	{0, 0, 0, 0}
 };
 
-string voxMessage(const Header &hdr) {
-	stringstream m;
-	m << "Voxel sizes: " << hdr.voxDims().transpose() << " " << hdr.spaceUnits();
-	if (hdr.voxDims().rows() > 3) {
-		m << "/" << hdr.timeUnits();
-	}
-	return m.str();
-}
-
-string sizeMessage(const Header &hdr) {
-	stringstream m;
-	m << "Voxels per slice, per volume, total: "
-      << hdr.dims().head(2).prod() << ", " << hdr.dims().head(3).prod() << ", " << hdr.dims().prod();
-	return m.str();
-}
-
-string dataMessage(const Header &hdr) {
-	stringstream m;
-	m << "Datatype: " << TypeInfo(hdr.datatype()).name << ", size in bytes: " << TypeInfo(hdr.datatype()).size;
-	return m.str();
-}
-
 int main(int argc, char **argv) {
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "dvtafchse", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "afch", long_options, &indexptr)) != -1) {
 		switch (c) {
-			case 'd': printDims = true; break;
-			case 'v': printVoxdims = true; break;
-			case 't': printTransform = true; break;
-			case 's': printSize = true; break;
-			case 'a': mode = Abbreviated; break;
-			case 'f': mode = Full; break;
-			case 'c': mode = Compare; break;
+			case 'a': mode = Mode::Abbrev; break;
+			case 'f': mode = Mode::Full; break;
+			case 'c': mode = Mode::Cmp; break;
 			case '?': // getopt will print an error message
 			case 'h':
 				cout << usage << endl;
@@ -99,12 +56,10 @@ int main(int argc, char **argv) {
 	}
 	if ((argc - optind) <= 0 ) {
 		cerr << "No input image file specified." << endl;
+		cout << usage << endl;
 		exit(EXIT_FAILURE);
 	}
-	if (optind == 1) { // No options specified, default is short header
-		mode = Abbreviated;
-	}
-	vector<File> images;
+	vector<Nifti::File> images;
 	try {
 		images.reserve(argc - optind); // emplace_back can still trigger copies if the vector has to be resized
 		for (;optind < argc; optind++) {
@@ -114,51 +69,30 @@ int main(int argc, char **argv) {
 		cerr << e.what() << endl;
 	}
 
-	if (mode == Compare) { // Compare first image to all others and check headers are compatible
+	size_t did_not_match = 0;
+	if (mode == Mode::Cmp) { // Compare first image to all others and check headers are compatible
+		cout << "Checking headers against: " << images[0].headerPath() << endl;
 		for (auto im = images.begin() + 1; im != images.end(); im++) {
 			if (!images[0].header().matchesSpace(im->header())) {
-				cout << "Header does not match against file: " << im->imagePath() << endl;
+				cout << im->headerPath() << " does not match." << endl;
+				did_not_match++;
 			}
 		}
+		cout << did_not_match << " headers did not match." << endl;
 	}
 	
 	for (auto& im: images) {
-		Header hdr = im.header();
-		if (printDims) cout << im.dims().transpose() << endl;
-		if (printVoxdims) cout << voxMessage(hdr) << endl;
-		if (printTransform) cout << hdr.transform().matrix() << endl;
-		if (printSize) cout << sizeMessage(hdr) << endl;
-		if (printData) cout << dataMessage(hdr) << endl;
-		
-		if (mode == Abbreviated) {
-			cout << "Short Nifti Header for file: " << im.imagePath() << endl;
-			cout << "Dimensions:  " << hdr.dims().transpose() << endl;
-			cout << dataMessage(hdr) << endl;
-			cout << voxMessage(hdr) << endl;
-			cout << "XForm matrix: " << endl << hdr.transform().matrix() << endl;
+		Nifti::Header hdr = im.header();
+		if (mode == Mode::Abbrev) {
+			cout << "Image path: " << im.imagePath() << endl;
+			cout << "Datatype:   " << hdr.typeInfo().name << endl;
+			cout << "Dimensions: " << hdr.dims().transpose() << " (rank " << to_string(hdr.rank()) << ")" << endl;
+			cout << "Voxel size: " << hdr.voxDims().transpose() << endl;
+			cout << "XForm: " << endl << hdr.transform().matrix() << endl;
 			(im.extensions().size() > 0) ? cout << "Has extensions." << endl : cout << "No extensions." << endl;
-		} else if (mode == Full) {
+		} else if (mode == Mode::Full) {
 			cout << "Full Nifti Header for file: " << im.imagePath() << endl;
-			cout << dataMessage(hdr) << endl;
-			cout << "Dimensions: " << im.dims().transpose() << endl;
-			cout << voxMessage(hdr) << endl;
-			
-			cout << "Calibration (min, max): " << hdr.calibration_min << ", " << hdr.calibration_max << endl;
-			cout << "Scaling (slope, inter): " << hdr.scaling_slope << ", " << hdr.scaling_inter << endl;
-			cout << "Dimension labels (Phase, Freq, Slice):   " << hdr.phase_dim << ", " << hdr.freq_dim << ", " << hdr.slice_dim << endl;
-			cout << "Slice info (Code, Start, End, Duration): " << ", " << hdr.slice_code << ", " << hdr.slice_start << ", " << hdr.slice_end << ", " << hdr.slice_duration << endl;
-			cout << "Slice name: " << hdr.sliceName() << endl;
-			cout << "Time offset: " << hdr.toffset << endl;
-			
-			cout << "Intent name:   " << hdr.intent_name << endl;
-			cout << "Intent code:   " << hdr.intentName() << endl;
-			cout << "Intent params: " << hdr.intent_p1 << ", " << hdr.intent_p2 << ", " << hdr.intent_p3 << endl;
-			cout << "Description: " << hdr.description << endl;
-			cout << "Aux File:    " << hdr.aux_file << endl;
-			cout << "QForm: " << XFormName(hdr.qcode()) << endl;
-			cout << hdr.qform().matrix() << endl;
-			cout << "SForm: " << XFormName(hdr.scode()) << endl;
-			cout << hdr.sform().matrix() << endl;
+			cout << hdr << endl;
 			cout << "Number of extensions: " << im.extensions().size() << endl;
 		}
 	}

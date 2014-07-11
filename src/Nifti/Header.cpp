@@ -536,7 +536,7 @@ ostream &operator << (ostream &os, const Header &hdr) {
 	os << "QForm: " << XFormName(hdr.qcode()) << endl;
 	os << hdr.qform().matrix() << endl;
 	os << "SForm: " << XFormName(hdr.scode()) << endl;
-	os << hdr.sform().matrix() << endl;
+	os << hdr.sform().matrix();
 	return os;
 }
 
