@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
-	MultiArray<double, 3> T1Vol(inFile.dims().head(3));
+	MultiArray<double, 3> T1Vol(inFile.header().fulldims().head(3));
 	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
 	inFile.close();
 	Nifti::Header outHdr = inFile.header(); // Save the header data to write out files
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
-	MultiArray<complex<double>, 4> ssfpVols(inFile.dims().head(4));
+	MultiArray<complex<double>, 4> ssfpVols(inFile.header().fulldims().head(4));
 	inFile.readVolumes(ssfpVols.begin(), ssfpVols.end());
 	Agilent::ProcPar pp; ReadPP(inFile, pp);
 	if (elliptical) {
@@ -163,21 +163,22 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	MultiArray<float, 3> T2Vol(ssfpVols.dims().head(3)), PDVol(ssfpVols.dims().head(3)),
-	                     offResVol(ssfpVols.dims().head(3)), SoSVol(ssfpVols.dims().head(3));
+	const auto dims = ssfpVols.dims().head(3);
+	cout << dims.transpose() << endl;
+	MultiArray<float, 3> T2Vol(dims), PDVol(dims), offResVol(dims), SoSVol(dims);
 	time_t startTime;
 	if (verbose)
 		startTime = printStartTime();
 	clock_t startClock = clock();
 	int voxCount = 0;
 	ThreadPool pool;
-	for (size_t k = 0; k < inFile.dim(3); k++) {
+	for (size_t k = 0; k < dims(2); k++) {
 		if (verbose)
 			cout << "Starting slice " << k << "..." << flush;
 		clock_t loopStart = clock();
 		atomic<int> sliceCount{0};
 		function<void (const int&)> process = [&] (const int &j) {
-			for (size_t i = 0; i < inFile.dim(1); i++) {
+			for (size_t i = 0; i < dims(0); i++) {
 				if (!maskFile.isOpen() || (maskVol[{i,j,k}])) {
 					sliceCount++;
 					double B1, T1, T2, E1, E2, PD, offRes, SoS;
@@ -241,7 +242,7 @@ int main(int argc, char **argv)
 				}
 			}
 		};
-		pool.for_loop(process, inFile.dim(2));
+		pool.for_loop(process, dims(1));
 		if (verbose) printLoopTime(loopStart, sliceCount);
 		voxCount += sliceCount;
 	}

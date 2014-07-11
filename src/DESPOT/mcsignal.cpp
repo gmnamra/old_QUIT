@@ -173,7 +173,7 @@ int main(int argc, char **argv)
 
 		if (i == 0) {
 			templateHdr = input.header();
-			paramsVols = MultiArray<float, 4>(input.dims().head(3), model.nParameters());
+			paramsVols = MultiArray<float, 4>(input.header().fulldims().head(3), model.nParameters());
 		} else {
 			if (!input.header().matchesSpace(templateHdr)) {
 				cout << "Mismatched input volumes" << endl;
