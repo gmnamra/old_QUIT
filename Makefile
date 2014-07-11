@@ -42,6 +42,7 @@ $(BUILD_DIR)/libNifti.a : $(NIFTI_OBJ) $(NIFTI_HDR)
 AGILENT_DIR := Agilent
 AGILENT_SRC := fdf fdfFile FID FIDFile procpar util
 AGILENT_OBJ := $(patsubst %, $(BUILD_DIR)/$(AGILENT_DIR)/%.o, $(AGILENT_SRC))
+AGILENT_HDR := $(addprefix $(SOURCE_DIR)/$(AGILENT_DIR)/., $(addsuffix .h, $(AGILENT_SRC)))
 $(BUILD_DIR)/$(AGILENT_DIR)/%.o : $(SOURCE_DIR)/$(AGILENT_DIR)/%.cpp | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
@@ -54,10 +55,10 @@ QUIT_DIR   := QUIT
 QUIT_SRC   := Util ThreadPool
 QUIT_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, MultiArray.h MultiArray-inl.h Volume.h Volume-inl.h)
 QUIT_OBJ   := $(addprefix $(BUILD_DIR)/$(QUIT_DIR)/, $(addsuffix .o, $(QUIT_SRC)))
-$(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp libNifti.a | EIGEN
+$(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp $(NIFTI_HDR) $(AGILENT_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_PHDR)
+$(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_HDR)
 	@mkdir -p $(dir $@)
 	ar rcs $@ $(QUIT_OBJ)
 
