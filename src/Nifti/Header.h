@@ -19,7 +19,7 @@ namespace Nifti {
 typedef size_t Index;
 typedef Eigen::Array<Index, Eigen::Dynamic, 1> IndexArray;
 
-enum class Version { File, Nifti2 };
+enum class Version { Nifti1, Nifti2 };
 
 enum class DataType {
 	UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64,
@@ -77,7 +77,9 @@ class Header {
 		IndexArray dims() const;                            //!< Get all dimension sizes.
 		IndexArray strides() const;                         //!< Get the strides for this image.
 		Index voxoffset() const;                            //!< Return the offset into the file where voxels actually start.
-
+		void setVoxoffset(const Version v,
+		                  const bool isNii,
+		                  const size_t extSize);            //!< Calculates and sets the correct voxel offset
 		float voxDim(const size_t d) const;                 //!< Get the voxel size along dimension d. Valid dimensions are 1-7.
 		Eigen::ArrayXf voxDims() const;                     //!< Get all voxel sizes.
 		void setVoxDim(const size_t d, const float f);      //!< Set the voxel size along dimension d. Valid dimensions are 1-7.

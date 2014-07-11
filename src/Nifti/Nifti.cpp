@@ -70,9 +70,11 @@ void File::open(const string &path, const Mode &mode) {
 			break;
 		case (Mode::Write):
 			setPaths(path);
+			cout << "Paths set: " << headerPath() << " " << imagePath() << " " << basePath() << endl;
 			if(!m_file.open(headerPath(), "wb", m_gz)) {
 				throw(std::runtime_error("Failed to open file: " + headerPath()));
 			}
+			cout << "Writing header..." << endl;
 			writeHeader();
 			writeExtensions();
 		break;
@@ -150,7 +152,6 @@ void File::setPaths(const string &path) {
 	} else {
 		throw(std::invalid_argument("Invalid NIfTI extension for file: " + path));
 	}
-	m_header.setMagic(m_nifti_version, m_nii);
 }
 
 void File::readHeader() {
@@ -163,14 +164,14 @@ void File::readHeader() {
 	// As per Mark Jenkinson's pseudocode
 	m_swap = false;
 	if (tag == 348) {
-		m_nifti_version = Version::File;
+		m_nifti_version = Version::Nifti1;
 	} else if (tag == 540) {
 		m_nifti_version = Version::Nifti2;
 	} else {
 		SwapBytes(1, 4, &tag);
 		m_swap = true;
 		if (tag == 348) {
-			m_nifti_version = Version::File;
+			m_nifti_version = Version::Nifti1;
 		} else if (tag == 540) {
 			m_nifti_version = Version::Nifti2;
 		} else {
@@ -179,7 +180,7 @@ void File::readHeader() {
 	}
 
 	m_file.seek(0, SEEK_SET);
-	if (m_nifti_version == Version::File) {
+	if (m_nifti_version == Version::Nifti1) {
 		struct nifti_1_header n1hdr;
 		if (m_file.read(&n1hdr, sizeof(n1hdr)) < sizeof(n1hdr)) {
 			throw(std::runtime_error("Could not read header from " + headerPath()));
@@ -211,8 +212,11 @@ void File::readHeader() {
 }
 
 void File::writeHeader() {
+	m_header.setMagic(m_nifti_version, m_nii);
+	m_header.setVoxoffset(m_nifti_version, m_nii, totalExtensionSize());
+	cout << "Voxoffset: " << m_header.voxoffset() << endl;
 	switch (m_nifti_version) {
-		case Version::File: {
+		case Version::Nifti1: {
 			struct nifti_1_header nhdr = (nifti_1_header)m_header;
 			if(m_file.write(&nhdr, sizeof(nhdr)) < sizeof(nhdr)) {
 				throw(std::runtime_error("Could not write header to file: " + headerPath()));
@@ -382,6 +386,7 @@ void File::seekToVoxel(const IndexArray &target) {
 	}
 	size_t index = (target * m_header.strides().head(target.rows())).sum() * m_header.typeInfo().size + m_header.voxoffset();
 	size_t current = m_file.tell();
+	cout << __PRETTY_FUNCTION__ << endl << "index " << index << " current " << current << endl << flush;
 	if ((index - current != 0) && !m_file.seek(index - current, SEEK_CUR)) {
 		stringstream ss; ss << target.transpose();
 		throw(std::runtime_error("Failed to seek to target voxel: " + ss.str() + ", index: " + to_string(index) + " in file: " + imagePath()));

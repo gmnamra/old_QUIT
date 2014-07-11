@@ -531,7 +531,7 @@ void Header::setDatatype(const DataType dt) { m_typeinfo = TypeInfo(dt);
 
 const string &Header::magic() const { return m_magic; }
 void Header::setMagic(const Version v, const bool isNii) {
-	if (v == Version::File) {
+	if (v == Version::Nifti1) {
 		if (isNii)
 			m_magic = "n+1";
 		else
@@ -565,6 +565,22 @@ void Header::setDim(const Index d, const Index size) {
 IndexArray Header::dims() const { return m_dim.head(rank()); }
 IndexArray Header::strides() const { return m_strides.head(rank()); }
 Index Header::voxoffset() const { return m_voxoffset; }
+/*
+ * Sets the correct voxel offset in the header, given the version, file format
+ * and size of the extensions
+ */
+void Header::setVoxoffset(const Version v, const bool isNii, const size_t extSize) {
+	if (isNii) {
+		size_t hdrSize;
+		switch (v) {
+			case Version::Nifti1 : hdrSize = sizeof(nifti_1_header); break;
+			case Version::Nifti2 : hdrSize = sizeof(nifti_2_header); break;
+		}
+		m_voxoffset = hdrSize + 4 + extSize; // The 4 is for the nifti_extender struct
+	} else {
+		m_voxoffset = 0;
+	}
+}
 
 float Header::voxDim(const size_t d) const {
 	assert((d > 0) && (d <= m_voxdim.rows()));
