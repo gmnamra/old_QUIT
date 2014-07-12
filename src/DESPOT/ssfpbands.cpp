@@ -107,7 +107,8 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	if (verbose) cout << "Opening input file: " << argv[optind] << endl;
-	Nifti::File inputFile(argv[optind++], Nifti::Mode::Read);
+	string fname(argv[optind++]);
+	Nifti::File inputFile(fname);
 	Nifti::Header inHdr = inputFile.header();
 	if (maskFile.isOpen() && !maskFile.header().matchesSpace(inHdr)) {
 		cerr << "Mask does not match input file." << endl;

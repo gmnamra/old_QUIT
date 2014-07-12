@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
 	try {
 		images.reserve(argc - optind); // emplace_back can still trigger copies if the vector has to be resized
 		for (;optind < argc; optind++) {
-			images.emplace_back(argv[optind], Nifti::Mode::Read);
+			images.emplace_back(argv[optind]);
 		}
 	} catch (exception &e) {
 		cerr << e.what() << endl;

@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 					default: dType = Nifti::DataTypeForCode(atoi(optarg)); break;
 				} break;
 			case 'x': {
-				Nifti::File other(optarg, Nifti::Mode::ReadHeader);
+				Nifti::File other(optarg);
 				xform = other.header().transform();
 			} break;
 			case 'b': isBlank = true; break;

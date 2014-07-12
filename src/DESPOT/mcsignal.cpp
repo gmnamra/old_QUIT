@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 		if (prompt) cout << "Enter path to " << model.names()[i] << " file: " << flush;
 		string filename; cin >> filename;
 		cout << "Opening " << filename << endl;
-		Nifti::File input(filename, Nifti::Mode::Read);
+		Nifti::File input(filename);
 
 		if (i == 0) {
 			templateHdr = input.header();

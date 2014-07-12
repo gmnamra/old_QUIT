@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
-	Nifti::File inFile(argv[optind++], Nifti::Mode::Read);
+	Nifti::File inFile(argv[optind++]);
 	if ((maskFile.isOpen() && !inFile.header().matchesSpace(maskFile.header())) ||
 		(B1File.isOpen() && !inFile.header().matchesSpace(B1File.header()))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;

@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
-	Nifti::File inFile(argv[optind++], Nifti::Mode::Read);
+	Nifti::File inFile(argv[optind++]);
 	const auto dims = inFile.header().fulldims().head(3);
 	MultiArray<float, 3> T1Vol(dims);
 	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);

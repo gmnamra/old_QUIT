@@ -122,7 +122,7 @@ Nifti::Header parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &sign
 		}
 		if (prompt) cout << "Enter image path: " << flush;
 		getline(cin, path);
-		Nifti::File inFile(path, Nifti::Mode::Read);
+		Nifti::File inFile(path);
 		if (signalVols.size() == 0) {
 			hdr = inFile.header(); // Save header info for later
 		} else {

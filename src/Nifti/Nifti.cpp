@@ -45,10 +45,8 @@ File::File(const Header &hdr, const string &filename, const Version v) : File() 
 	open(filename, Mode::Write);
 }
 
-File::File(const string &filename, const Mode &mode) :
-	File()
-{
-	open(filename, mode);
+File::File(const string &filename) : File() {
+	open(filename, Mode::Read);
 }
 
 #pragma mark Open/Header Routines
