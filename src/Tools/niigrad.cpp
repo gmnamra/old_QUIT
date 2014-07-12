@@ -16,9 +16,7 @@
 #include <atomic>
 
 #include "Nifti/Nifti.h"
-#include "QUIT/Volume.h"
-#include "QUIT/VolumeFunctions.h"
-#include "QUIT/ThreadPool.h"
+#include "QUIT/QUIT.h"
 
 using namespace std;
 using namespace QUIT;
@@ -80,7 +78,7 @@ int main(int argc, char **argv)
 	cout << "Opening input file: " << argv[optind] << endl;
 	Nifti::File inFile(argv[optind], Nifti::Mode::Read);
 	std::string basename = inFile.basePath();
-	Nifti::File outFile(inFile); outFile.close(); outFile.open(basename + "_grad.nii.gz", Nifti::Mode::Write);
+	Nifti::File outFile(inFile); outFile.close(); outFile.open(basename + "_grad" + OutExt(), Nifti::Mode::Write);
 	cout << "Allocating working memory." << endl;
 	auto d = inFile.dims().head(3);
 	Volume<float> data(d, inFile.header().transform());

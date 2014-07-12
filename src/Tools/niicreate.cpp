@@ -16,8 +16,7 @@
 #include <functional>
 
 #include "Nifti/Nifti.h"
-#include "QUIT/MultiArray.h"
-#include "QUIT/ThreadPool.h"
+#include "QUIT/QUIT.h"
 using namespace std;
 using namespace QUIT;
 
@@ -115,6 +114,7 @@ int main(int argc, char **argv)
 	}
 
 	string fName(argv[optind++]);
+	fName += OutExt();
 	MultiArray<float, 4>::Index dims;
 	Eigen::ArrayXf vdims(4);
 	for (size_t i = 0; i < 4; i++) { dims[i] = atoi(argv[optind++]); }

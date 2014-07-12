@@ -344,34 +344,34 @@ int main(int argc, char **argv)
 	hdr.setDim(4, 1);
 	hdr.description = version;
 	if (scale == Model::Scaling::None) {
-		Nifti::File out(hdr, outPrefix + model.names().at(0) + ".nii.gz");
+		Nifti::File out(hdr, outPrefix + model.names().at(0) + "" + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		out.open(outPrefix + model.names().at(2) + ".nii.gz", Nifti::Mode::Write);
+		out.open(outPrefix + model.names().at(2) + "" + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		out.open(outPrefix + model.names().at(3) + ".nii.gz", Nifti::Mode::Write);
+		out.open(outPrefix + model.names().at(3) + "" + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,2},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
 	} else {
-		Nifti::File out(hdr, outPrefix + model.names().at(2) + ".nii.gz");
+		Nifti::File out(hdr, outPrefix + model.names().at(2) + "" + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		out.open(outPrefix + model.names().at(3) + ".nii.gz", Nifti::Mode::Write);
+		out.open(outPrefix + model.names().at(3) + "" + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
 	}
-	Nifti::File SoS(hdr, outPrefix + "SoS.nii.gz");
+	Nifti::File SoS(hdr, outPrefix + "SoS" + OutExt());
 	SoS.writeVolumes(SoSVol.begin(), SoSVol.end());
 	SoS.close();
 	if (writeResiduals) {
 		hdr.setDim(4, static_cast<int>(model.size()));
-		Nifti::File res(hdr, outPrefix + "residuals.nii.gz");
+		Nifti::File res(hdr, outPrefix + "residuals" + OutExt());
 		res.writeVolumes(residualVols.begin(), residualVols.end());
 		res.close();
 	}

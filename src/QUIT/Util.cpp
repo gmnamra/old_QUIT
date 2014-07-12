@@ -16,6 +16,28 @@ using namespace std;
 
 namespace QUIT {
 
+const std::string &OutExt() {
+	static char *env_ext = getenv("QUIT_EXT");
+	static string ext;
+	static bool checked = false;
+	if (!checked) {
+		static map<string, string> valid_ext{
+			{"NIFTI", ".nii"},
+			{"NIFTI_PAIR", ".img"},
+			{"NIFTI_GZ", ".nii.gz"},
+			{"NIFTI_PAIR_GZ", ".img.gz"},
+		};
+		if (!env_ext || (valid_ext.find(env_ext) == valid_ext.end())) {
+			cerr << "Environment variable QUIT_EXT is not valid, defaulting to NIFTI_GZ" << endl;
+			ext = valid_ext["NIFTI_GZ"];
+		} else {
+			ext = valid_ext[env_ext];
+		}
+		checked = true;
+	}
+	return ext;
+}
+
 bool ReadPP(const Nifti::File &nii, Agilent::ProcPar &pp) {
 	const list<Nifti::Extension> &exts = nii.extensions();
 	for (auto &e : exts) {

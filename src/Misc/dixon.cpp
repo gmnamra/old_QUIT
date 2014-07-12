@@ -13,8 +13,7 @@
 #include "Eigen/Dense"
 
 #include "Nifti/Nifti.h"
-#include "QUIT/Volume.h"
-#include "QUIT/ThreadPool.h"
+#include "QUIT/QUIT.h"
 
 using namespace std;
 using namespace Eigen;
@@ -144,11 +143,11 @@ int main(int argc, char **argv)
 
 	if (verbose)
 		cout << "Writing results." << endl;
-	Nifti::File outW(templateHdr, outPrefix + "W.nii.gz");
+	Nifti::File outW(templateHdr, outPrefix + "W" + OutExt());
 	outW.writeVolumes(Wv.begin(), Wv.end());
-	Nifti::File outF(templateHdr, outPrefix + "F.nii.gz");
+	Nifti::File outF(templateHdr, outPrefix + "F" + OutExt());
 	outF.writeVolumes(Fv.begin(), Fv.end());
-	Nifti::File outA(templateHdr, outPrefix + "A.nii.gz");
+	Nifti::File outA(templateHdr, outPrefix + "A" + OutExt());
 	outA.writeVolumes(Av.begin(), Av.end());
 	cout << "All done." << endl;
 	exit(EXIT_SUCCESS);

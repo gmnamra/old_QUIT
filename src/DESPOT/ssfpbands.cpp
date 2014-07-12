@@ -187,12 +187,12 @@ int main(int argc, char **argv)
 	inHdr.setDim(4, nFlip);
 	inHdr.setDatatype(Nifti::DataType::COMPLEX64);
 	switch (save) {
-		case SaveMode::LineReg:    outname += "_lreg.nii.gz"; break;
-		case SaveMode::MagReg:     outname += "_mreg.nii.gz"; break;
-		case SaveMode::CrossPoint: outname += "_cross.nii.gz"; break;
-		case SaveMode::ComplexSum: outname += "_sum.nii.gz"; break;
-		case SaveMode::Lambda:     outname += "_lambda.nii.gz"; inHdr.setDatatype(Nifti::DataType::FLOAT64); break;
-		case SaveMode::Mu:         outname += "_mu.nii.gz";     inHdr.setDatatype(Nifti::DataType::FLOAT64); break;
+		case SaveMode::LineReg:    outname += "_lreg" + OutExt(); break;
+		case SaveMode::MagReg:     outname += "_mreg" + OutExt(); break;
+		case SaveMode::CrossPoint: outname += "_cross" + OutExt(); break;
+		case SaveMode::ComplexSum: outname += "_sum" + OutExt(); break;
+		case SaveMode::Lambda:     outname += "_lambda" + OutExt(); inHdr.setDatatype(Nifti::DataType::FLOAT64); break;
+		case SaveMode::Mu:         outname += "_mu" + OutExt();     inHdr.setDatatype(Nifti::DataType::FLOAT64); break;
 	}
 	if (verbose) cout << "Writing output file: " << outname << endl;
 	Nifti::File outFile(inHdr, outname);

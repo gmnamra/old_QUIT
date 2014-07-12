@@ -213,13 +213,13 @@ int main(int argc, char **argv)
 	Nifti::Header outHdr = spgrFile.header();
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
-	Nifti::File outFile(outHdr, "D1_T1.nii.gz");
+	Nifti::File outFile(outHdr, "D1_T1" + OutExt());
 	outFile.writeVolumes(T1Vol.begin(), T1Vol.end());
 	outFile.close();
-	outFile.open(outPrefix + "D1_PD.nii.gz", Nifti::Mode::Write);
+	outFile.open(outPrefix + "D1_PD" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(PDVol.begin(), PDVol.end());
 	outFile.close();
-	outFile.open(outPrefix + "D1_SoS.nii.gz", Nifti::Mode::Write);
+	outFile.open(outPrefix + "D1_SoS" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(SoSVol.begin(), SoSVol.end());
 	outFile.close();
 

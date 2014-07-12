@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
 		}
 	}
 	cout << "Writing off-resonance map (in Hz)." << endl;
-	string outPath = outPrefix + "f0.nii.gz";
+	string outPath = outPrefix + "f0" + OutExt();
 	
 	Nifti::Header outHdr = inFile.header();
 	outHdr.setDim(4, 1);

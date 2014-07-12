@@ -368,17 +368,17 @@ int main(int argc, char **argv)
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	for (size_t p = 1; p < model.nParameters(); p++) { // Skip PD for now
-		Nifti::File file(hdr, outPrefix + model.names().at(p) + ".nii.gz");
+		Nifti::File file(hdr, outPrefix + model.names().at(p) + "" + OutExt());
 		auto param = paramsVols.slice<3>({0,0,0,p},{-1,-1,-1,0});
 		file.writeVolumes(param.begin(), param.end());
 		file.close();
 	}
-	Nifti::File SoS(hdr, outPrefix + "SoS.nii.gz");
+	Nifti::File SoS(hdr, outPrefix + "SoS" + OutExt());
 	SoS.writeVolumes(SoSVol.begin(), SoSVol.end());
 	SoS.close();
 	if (writeResiduals) {
 		hdr.setDim(4, static_cast<int>(model.size()));
-		Nifti::File res(hdr, outPrefix + "residuals.nii.gz");
+		Nifti::File res(hdr, outPrefix + "residuals" + OutExt());
 		res.writeVolumes(residualVols.begin(), residualVols.end());
 		res.close();
 	}

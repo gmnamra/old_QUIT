@@ -253,16 +253,16 @@ int main(int argc, char **argv)
 	printElapsedClock(startClock, voxCount);
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
-	Nifti::File outFile(outHdr, outPrefix + "D2_T2.nii.gz");
+	Nifti::File outFile(outHdr, outPrefix + "D2_T2" + OutExt());
 	outFile.writeVolumes(T2Vol.begin(), T2Vol.end());
 	outFile.close();
-	outFile.open(outPrefix + "D2_PD.nii.gz", Nifti::Mode::Write);
+	outFile.open(outPrefix + "D2_PD" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(PDVol.begin(), PDVol.end());
 	outFile.close();
-	outFile.open(outPrefix + "D2_SoS.nii.gz", Nifti::Mode::Write);
+	outFile.open(outPrefix + "D2_SoS" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(SoSVol.begin(), SoSVol.end());
 	outFile.close();
-	outFile.open(outPrefix + "D2_f0.nii.gz", Nifti::Mode::Write);
+	outFile.open(outPrefix + "D2_f0" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(offResVol.begin(), offResVol.end());
 	outFile.close();
 

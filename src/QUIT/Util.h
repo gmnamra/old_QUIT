@@ -13,6 +13,8 @@
 #ifndef QUIT_UTIL_H
 #define QUIT_UTIL_H
 
+#include <string>
+#include <map>
 #include <time.h>
 
 #include "Agilent/procpar.h"
@@ -21,6 +23,7 @@
 
 namespace QUIT {
 
+const std::string &OutExt(); //!< Return the extension stored in $QUIT_EXT
 bool ReadPP(const Nifti::File &nii, Agilent::ProcPar &pp);
 time_t printStartTime();
 time_t printElapsedTime(const time_t &start);

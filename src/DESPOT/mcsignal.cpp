@@ -208,7 +208,7 @@ int main(int argc, char **argv)
 	for (size_t i = 0; i < model.m_signals.size(); i++) {
 		size_t thisSize = model.m_signals[i]->size();
 		templateHdr.setDim(4, thisSize);
-		Nifti::File saveFile(templateHdr, outPrefix + to_string(i) + ".nii.gz");
+		Nifti::File saveFile(templateHdr, outPrefix + to_string(i) + OutExt());
 		auto thisSignal = signalVols.slice<4>({0,0,0,startVol},{-1,-1,-1,thisSize});
 		saveFile.writeVolumes(thisSignal.begin(), thisSignal.end());
 		saveFile.close();

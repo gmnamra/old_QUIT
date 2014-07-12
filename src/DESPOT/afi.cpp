@@ -125,13 +125,13 @@ int main(int argc, char **argv) {
 	Nifti::Header outHdr = inFile.header();
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
-	string outPath = outPrefix + "angle.nii.gz";
+	string outPath = outPrefix + "angle" + OutExt();
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
 	Nifti::File outAngle(outHdr, outPath);
 	outAngle.writeVolumes(flip.begin(), flip.end(), 0, 1);
 	outAngle.close();
 	
-	outPath = outPrefix + "B1.nii.gz";
+	outPath = outPrefix + "B1" + OutExt();
 	cout << "Writing B1 ratio to " << outPath << "..." << endl;
 	Nifti::File outB1(outHdr, outPath);
 	outB1.writeVolumes(B1.begin(), B1.end(), 0, 1);
