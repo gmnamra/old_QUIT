@@ -253,6 +253,7 @@ int main(int argc, char **argv)
 	printElapsedClock(startClock, voxCount);
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
+	outHdr.setDatatype(Nifti::DataType::FLOAT32);
 	Nifti::File outFile(outHdr, outPrefix + "D2_T2" + OutExt());
 	outFile.writeVolumes(T2Vol.begin(), T2Vol.end());
 	outFile.close();

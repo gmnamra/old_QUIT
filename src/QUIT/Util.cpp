@@ -87,6 +87,8 @@ void printLoopTime(const clock_t &loopStart, const int voxCount) {
 	if (voxCount > 0) {
 		cout << voxCount << " unmasked voxels, CPU time per voxel was "
 		     << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s" << endl;
+	} else {
+		cout << " no voxels." << endl;
 	}
 }
 

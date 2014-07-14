@@ -78,6 +78,7 @@ static struct option long_options[] = {
 	{"stop", required_argument, 0, 'p'},
 	{"scale", required_argument, 0, 'S'},
 	{"tesla", required_argument, 0, 't'},
+	{"threads", required_argument, 0, 'T'},
 	{"model", no_argument, 0, 'M'},
 	{"complex", no_argument, 0, 'x'},
 	{"contract", no_argument, 0, 'c'},
@@ -110,7 +111,7 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvnm:o:f:b:s:p:S:t:M:xcri:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvnm:o:f:b:s:p:S:t:T:M:xcri:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
@@ -164,6 +165,9 @@ int main(int argc, char **argv)
 						exit(EXIT_FAILURE);
 						break;
 				} break;
+			case 'T':
+				threads.resize(atoi(optarg));
+				break;
 			case 'M':
 				switch (*optarg) {
 					case 's': fitFinite = false; cout << "Simple model selected." << endl; break;
@@ -249,11 +253,9 @@ int main(int argc, char **argv)
 	ArrayXd thresh(model.nParameters()); thresh.setConstant(0.05);
 	ArrayXXd bounds = model.bounds(tesla);
 	if (tesla == Model::FieldStrength::User) {
-		cout << "Enter parameter pairs (low then high)" << endl;
-		for (size_t i = 0; i < model.nParameters() - 1; i++) {
-			cout << model.names()[i] << ": " << flush;
-			cin >> bounds(i, 0) >> bounds(i, 1);
-		}
+		cout << "Enter T2 limits:" << endl;
+		cin >> bounds(2, 0) >> bounds(2, 1);
+		cout << "Bounds:" << endl << bounds.transpose() << endl;
 	}
 	if (f0fit == OffRes::FitSym) {
 		bounds(model.nParameters() - 1, 0) = 0.;
@@ -309,7 +311,6 @@ int main(int argc, char **argv)
 														samples, retain, contract, expand, (voxI > 0));
 					ArrayXd params(model.nParameters()); params.setZero();
 					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
-
 					if (scale == Model::Scaling::None) {
 						// Skip T1
 						paramsVols[{i,j,k,0}] = params(0);
@@ -342,26 +343,27 @@ int main(int argc, char **argv)
 	
 	outPrefix = outPrefix + "FM_";
 	hdr.setDim(4, 1);
+	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	if (scale == Model::Scaling::None) {
-		Nifti::File out(hdr, outPrefix + model.names().at(0) + "" + OutExt());
+		Nifti::File out(hdr, outPrefix + model.names().at(0) + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		out.open(outPrefix + model.names().at(2) + "" + OutExt(), Nifti::Mode::Write);
+		out.open(outPrefix + model.names().at(2) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		out.open(outPrefix + model.names().at(3) + "" + OutExt(), Nifti::Mode::Write);
+		out.open(outPrefix + model.names().at(3) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,2},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
 	} else {
-		Nifti::File out(hdr, outPrefix + model.names().at(2) + "" + OutExt());
+		Nifti::File out(hdr, outPrefix + model.names().at(2) + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		out.open(outPrefix + model.names().at(3) + "" + OutExt(), Nifti::Mode::Write);
+		out.open(outPrefix + model.names().at(3) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
