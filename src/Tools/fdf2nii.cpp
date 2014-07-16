@@ -111,9 +111,10 @@ int main(int argc, char **argv) {
 			Affine3d outTransform = (scaleXForm * input.transform());
 			
 			try {
-				Nifti::Nifti1 output(input.dims(), outVoxDims.cast<float>(), Nifti::DataType::FLOAT32);
-				output.setTransform(outTransform.cast<float>());
-				output.setDim(4, nOutImages);
+				Nifti::Header outHdr(input.dims(), outVoxDims.cast<float>(), Nifti::DataType::FLOAT32);
+				outHdr.setTransform(outTransform.cast<float>());
+				outHdr.setDim(4, nOutImages);
+				Nifti::File output(outHdr, outPath);
 				if (procpar) {
 					ifstream pp_file(inPath + "/procpar", ios::binary);
 					pp_file.seekg(ios::end);
@@ -123,7 +124,6 @@ int main(int argc, char **argv) {
 					data.assign(istreambuf_iterator<char>(pp_file), istreambuf_iterator<char>());
 					output.addExtension(NIFTI_ECODE_COMMENT, data);
 				}
-				output.open(outPath, Nifti::Mode::Write);
 				size_t outVol = 0;
 				for (size_t inVol = 0; inVol < input.dim(3); inVol++) {
 					if (verbose)

@@ -16,7 +16,29 @@ using namespace std;
 
 namespace QUIT {
 
-bool ReadPP(const Nifti::Nifti1 &nii, Agilent::ProcPar &pp) {
+const std::string &OutExt() {
+	static char *env_ext = getenv("QUIT_EXT");
+	static string ext;
+	static bool checked = false;
+	if (!checked) {
+		static map<string, string> valid_ext{
+			{"NIFTI", ".nii"},
+			{"NIFTI_PAIR", ".img"},
+			{"NIFTI_GZ", ".nii.gz"},
+			{"NIFTI_PAIR_GZ", ".img.gz"},
+		};
+		if (!env_ext || (valid_ext.find(env_ext) == valid_ext.end())) {
+			cerr << "Environment variable QUIT_EXT is not valid, defaulting to NIFTI_GZ" << endl;
+			ext = valid_ext["NIFTI_GZ"];
+		} else {
+			ext = valid_ext[env_ext];
+		}
+		checked = true;
+	}
+	return ext;
+}
+
+bool ReadPP(const Nifti::File &nii, Agilent::ProcPar &pp) {
 	const list<Nifti::Extension> &exts = nii.extensions();
 	for (auto &e : exts) {
 		if (e.code() == NIFTI_ECODE_COMMENT) {
@@ -65,6 +87,8 @@ void printLoopTime(const clock_t &loopStart, const int voxCount) {
 	if (voxCount > 0) {
 		cout << voxCount << " unmasked voxels, CPU time per voxel was "
 		     << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s" << endl;
+	} else {
+		cout << " no voxels." << endl;
 	}
 }
 

@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
 	// Argument Processing
 	//**************************************************************************
 	cout << version << endl << credit_shared << endl;
-	Nifti::Nifti1 maskFile, spgrFile, irFile;
+	Nifti::File maskFile, spgrFile, irFile;
 	vector<double> maskData;
 	
 	int indexptr = 0, c;
@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind], Nifti::Mode::Read);
-	if (maskFile.isOpen() && !maskFile.matchesSpace(spgrFile)) {
+	if (maskFile.isOpen() && !maskFile.header().matchesSpace(spgrFile.header())) {
 		cerr << "SPGR file dimensions or transform do not match mask." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************	
 	cout << "Opening IR-SPGR file: " << argv[++optind] << endl;
 	irFile.open(argv[optind], Nifti::Mode::Read);
-	if (!irFile.matchesSpace(spgrFile)) {
+	if (!irFile.header().matchesSpace(spgrFile.header())) {
 		cerr << "Header of " << spgrFile.imagePath() << " does not match " << irFile.imagePath() << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -333,13 +333,17 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	#pragma mark Write out data
 	//**************************************************************************
-	Nifti::Nifti1 outFile(spgrFile, 1);
-	outFile.description = version;
+	Nifti::Header outHdr = spgrFile.header();
+	outHdr.description = version;
+	outHdr.setDim(4, 1);
+	outHdr.setDatatype(Nifti::DataType::FLOAT32);
+	outHdr.intent = Nifti::Intent::Estimate;
 	for (int r = 0; r < NR; r++) {
-		string outName = outPrefix + names[r] + ".nii.gz";
+		string outName = outPrefix + names[r] + "" + OutExt();
+		outHdr.intent_name = names[r];
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
-		outFile.open(outName, Nifti::Mode::Write);
+		Nifti::File outFile(outHdr, outName);
 		outFile.writeVolumes(resultsData[r].begin(), resultsData[r].end(), 0, 1);
 		outFile.close();
 	}

@@ -1,13 +1,10 @@
-//
-//  ExtensionCodes.h
-//  NiftiImage
-//
-//  Created by Tobias Wood on 18/09/2013.
-//  Copyright (c) 2013 Tobias Wood. All rights reserved.
-//
-
-#ifndef NIFTI_EXTENSIONCODES
-#define NIFTI_EXTENSIONCODES
+/** \file Header.h
+ \brief Nifti Extension Codes. The user is more likely to need these, so they are made available separately to the other NIFTI_... defines
+ - Written by Tobias Wood, IoP KCL
+ - This code is released to the public domain. Do with it what you will.
+ */
+#ifndef LIBNIFTI_EXTENSIONCODES
+#define LIBNIFTI_EXTENSIONCODES
 
 #pragma mark Extension Codes
 /* NIfTI-1.1 extension codes: see http://nifti.nimh.nih.gov/nifti-1/documentation/faq#Q21 */

@@ -4,11 +4,10 @@
  - Based on nifti1_io.h (Thanks to Robert Cox et al)
  - This code is released to the public domain. Do with it what you will.
  */
-#ifndef NIFTI_NIFTI
-#define NIFTI_NIFTI
+#ifndef LIBNIFTI_NIFTI
+#define LIBNIFTI_NIFTI
 
 #include <string>
-#include <iostream>
 #include <algorithm>
 #include <iterator>
 #include <complex>
@@ -21,59 +20,23 @@
 #include <cstdint>
 #include <type_traits>
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-
+#include "Enum.h"
+#include "Header.h"
 #include "ZipFile.h"
 #include "Extension.h"
 
 namespace Nifti {
-
-enum class Mode : char {
-	Closed = 0, Read = 'r', ReadHeader = 'h', Write = 'w'
-};
-
-enum class DataType {
-	UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64,
-	FLOAT32, FLOAT64, FLOAT128, COMPLEX64, COMPLEX128, COMPLEX256,
-	RGB24, RGBA32
-};
-DataType DataTypeForCode(const int code);
-
-struct DataTypeInfo {
-	DataType type;
-	size_t code, size, swapsize;
-	std::string name;
-}; //!< Contains all the information needed to read/write a Nifti datatype
-const DataTypeInfo &TypeInfo(const DataType dt);
-
-class Nifti1 {
-	public:
-		typedef Eigen::Array<size_t, Eigen::Dynamic, 1> ArrayXs;
-		
-		enum class XForm {
-			Unknown, ScannerAnatomy, AlignedAnatomy, Talairach, MNI_152
-		};
-		static const std::string XFormName(const XForm t);
-
+class File {
 	private:
-		static XForm XFormForCode(const int code);
-		static int XFormCode(const XForm t);
-		
-		Eigen::Array<size_t, 7, 1> m_dim;      //!< Number of voxels in each dimension. Note that here we do NOT store the rank in dim[0], so only 7 elements required.
-		Eigen::Array<size_t, 7, 1> m_strides;  //!< Strides into the data on disk.
-		Eigen::Array<float, 7, 1> m_voxdim;    //!< Size of each voxel. As above, only 7 elements because the rank is not stored.
-		Eigen::Affine3f m_qform, m_sform;      //!< Tranformation matrices from voxel indices to physical co-ords.
-		XForm m_qcode, m_scode;                //!< Codes to define what the transformations represent.
-		std::string m_basepath;                //!< Path to file without extension.
-		bool m_nii, m_gz;
-		Mode m_mode;                    //!< Whether the file is closed or open for reading/writing.
-		ZipFile m_file;
-		DataTypeInfo m_typeinfo;        //!< Informatio for datatype on disk.
-		int m_voxoffset;                //!< Offset to start of voxel data.
-		int m_swap;                     //!< True if byte order on disk is different to CPU.
-		
-		std::list<Extension> m_extensions;
+		std::string m_basepath;            //!< Path to file without extension.
+		ZipFile m_file;                    //!< Actual disk file
+		Header m_header;                   //!< The header object for this file
+		std::list<Extension> m_extensions; //!< List of Nifti extensions
+		Mode m_mode;                       //!< Whether the file is closed or open for reading/writing.
+		bool m_nii;                        //!< Is this a .nii file?
+		bool m_gz;                         //!< Is this a gzipped file?
+		Version m_nifti_version;           //!< Is this a nifti1 or a nifti2 file?
+		int m_swap;                        //!< True if byte order on disk is different to CPU.
 		
 		void setPaths(const std::string &path); //!< Works out the basepath and file extensions.
 		void readHeader();                 //!< Attempts to read a header structure from the currently open file.
@@ -82,102 +45,48 @@ class Nifti1 {
 		void writeExtensions();            //!< Attempts to write extensions
 		int totalExtensionSize();          //!< Counts the total number of bytes for all extensions.
 
-		void calcStrides();
-		void seekToVoxel(const ArrayXs &target);
+		void seekToVoxel(const IndexArray &target);
 		void readBytes(std::vector<char> &data);
 		void writeBytes(const std::vector<char> &data);
 
 		template<typename FromTp, typename ToTp> class Scale; //!< Templated class to scale and cast between types. Definitions in Nifti-inl.h
-		template<typename Iter> void readWriteVoxels(const ArrayXs &start, const ArrayXs &size, Iter &begin, Iter &end); //!< Core IO routine. Can read/write to any storage that supports iterators/pointers
+		template<typename Iter> void readWriteVoxels(const IndexArray &start, const IndexArray &size, Iter &begin, Iter &end); //!< Core IO routine. Can read/write to any storage that supports iterators/pointers
 
 	#pragma mark Public Class Methods
 	public:
-		~Nifti1();
-		Nifti1();                               //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
-		Nifti1(const Nifti1 &other);             //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
-		Nifti1 &operator=(const Nifti1 &other);  //!< Copy Assignment. Copies all elements except file handles, and marks destination as Closed.
-		Nifti1(Nifti1 &&other) noexcept;         //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
-		Nifti1 &operator=(Nifti1 &&other);       //!< Move assignment. Copies all elements, including the file handles, and marks the original as Closed.
-		Nifti1(const int nx, const int ny, const int nz, const int nt,
-			  const float dx, const float dy, const float dz, const float dt,
-			  const DataType dtype = DataType::FLOAT32); //!< Constructs a header with the specified dimension and voxel sizes.
-		Nifti1(const ArrayXs &dim, const Eigen::ArrayXf &voxdim,
-			  const DataType dtype = DataType::FLOAT32); //!< Constructs a header with the specified dimension and voxel sizes.
-		Nifti1(const Nifti1 &other, const size_t nt, const DataType dtype = DataType::FLOAT32);                        //!< Copies only basic geometry information from other, then sets the datatype and number of volumes. Does not copy scaling information etc.
-		Nifti1(const std::string &filename, const Mode &mode);
+		~File();
+		File();                                  //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
+		File(const File &other);                 //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
+		File(File &&other) noexcept;             //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
+		File(const std::string &filename);       //!< Opens a new File for reading.
+		File(const Header &hdr,
+		     const std::string &filename,
+		     const Version v = Version::Nifti1); //!< Creates a new File and opens it for writing with the specified header and filename.
 		
-		void open(const std::string &filename, const Mode &mode); //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
-		void close();                                             //!< Closes the file
-		bool isOpen();                                            //!< Returns true if file is currently open for reading or writing.
+		void open(const std::string &filename,
+		          const Mode &mode);             //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
+		void close();                            //!< Closes the file
+		bool isOpen();                           //!< Returns true if file is currently open for reading or writing.
 		
 		const std::string &basePath() const;
 		std::string imagePath() const;
 		std::string headerPath() const;
 		
-		const DataType &datatype() const;
-		void setDatatype(const DataType dt);
-		
+		const Header &header() const;                           //!< Get the header information for this image.
 		size_t rank() const;                                    //!< Get the rank (number of dimensions) of the image.
 		size_t dim(const size_t d) const;                       //!< Get the size (voxel count) of a dimension. Valid dimensions are 1-7.
-		ArrayXs dims() const;                                   //!< Get all dimension sizes.
-		void setDim(const size_t d, const size_t n);            //!< Set the size (voxel count) of a dimension. Valid dimensions are 1-7.
-		void setDims(const ArrayXs &newDims);                   //!< Set all dimension sizes.
-		
-		float voxDim(const size_t d) const;                     //!< Get the voxel size along dimension d. Valid dimensions are 1-7.
-		Eigen::ArrayXf voxDims() const;                  //!< Get all voxel sizes.
-		void setVoxDim(const size_t d, const float f);          //!< Set the voxel size along dimension d. Valid dimensions are 1-7.
-		void setVoxDims(const Eigen::ArrayXf &newVoxDims);      //!< Set all voxel sizes.
-		
-		void setTransform(const Eigen::Affine3f &t, const XForm tc = XForm::ScannerAnatomy); //!< Set the qform and sform from a 4x4 general matrix. The qform will be set to closest matching linear XForm, the sform will be an exact copy.
-		const Eigen::Affine3f &transform() const;            //!< Return the XForm with the highest priority.
-		const Eigen::Affine3f &qform() const;                //!< Return just the qform.
-		const Eigen::Affine3f &sform() const;                //!< Return just the sform.
-		const XForm &qcode() const;               //!< Find out what transformation the qform represents.
-		const XForm &scode() const;               //!< Find out what transformation the sform represents.
-		bool matchesSpace(const Nifti1 &other) const;  //!< Check if voxel dimensions, data size and XForm match
-		bool matchesVoxels(const Nifti1 &other) const; //!< Looser check if voxel dimensions and data size match
-		
-		template<typename IterTp> void readVoxels(IterTp begin, IterTp end, const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size);
+		IndexArray dims() const;                                //!< Get all dimension sizes.
+
+		template<typename IterTp> void readVoxels(IterTp begin, IterTp end, const Eigen::Ref<IndexArray> &start, const Eigen::Ref<IndexArray> &size);
 		template<typename IterTp> void readVolumes(IterTp begin, IterTp end, const size_t first = 0, const size_t nvol = 0);
 		template<typename IterTp> void readAll(IterTp begin, IterTp end);
-		template<typename IterTp> void writeVoxels(IterTp begin, IterTp end, const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size);
+		template<typename IterTp> void writeVoxels(IterTp begin, IterTp end, const Eigen::Ref<IndexArray> &start, const Eigen::Ref<IndexArray> &size);
 		template<typename IterTp> void writeVolumes(IterTp begin, IterTp end, const size_t first = 0, const size_t nvol = 0);
 		template<typename IterTp> void writeAll(IterTp begin, IterTp end);
 		void addExtension(const int code, const std::vector<char> &data);
 		void addExtension(const Extension &e);
 		const std::list<Extension> &extensions() const;
 		void setExtensions(const std::list<Extension> &es);
-		
-		#pragma mark Information bits of the NIfTI header
-		float scaling_slope;          //!< Slope of scaling between data on disk and in memory.
-		float scaling_inter;          //!< Intercept of scaling between data on disk and in memory.
-		float calibration_min;        //!< Suggested minimum for display.
-		float calibration_max;        //!< Suggested maximum for display.
-		
-		int freq_dim ;                //!< Index of the frequency encode direction (1-3).
-		int phase_dim;                //!< Index of the phase encode direction (1-3).
-		int slice_dim;                //!< Index of the slice direction (1-3).
-		
-		int   slice_code;             //!< code for slice timing pattern
-		int   slice_start;            //!< index for start of slices
-		int   slice_end;              //!< index for end of slices
-		float slice_duration;         //!< time between individual slices
-		float toffset;                //!< time coordinate offset
-	
-		int xyz_units;                //!< dx,dy,dz units: NIFTI_UNITS_* code
-		int time_units;               //!< dt       units: NIFTI_UNITS_* code
-		int   intent_code ;           //!< statistic type (or something)
-		float intent_p1 ;             //!< intent parameters
-		float intent_p2 ;             //!< intent parameters
-		float intent_p3 ;             //!< intent parameters
-		std::string intent_name;      //!< optional description of intent data
-		std::string description;      //!< optional text to describe dataset
-		std::string aux_file;         //!< auxiliary filename
-		
-		const std::string &spaceUnits() const;
-		const std::string &timeUnits() const;
-		const std::string &intentName() const;
-		const std::string &sliceName() const;
 };
 
 #include "Nifti-inl.h"

@@ -1,5 +1,10 @@
-#ifndef EXTENSION_H
-#define EXTENSION_H
+/** \file Header.h
+ \brief Code for dealing with Nifti Extensions
+ - Written by Tobias Wood, IoP KCL
+ - This code is released to the public domain. Do with it what you will.
+ */
+#ifndef LIBNIFTI_EXTENSION_H
+#define LIBNIFTI_EXTENSION_H
 
 namespace Nifti {
 

@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 	string procPath, outPrefix = "";
 	double n, nomFlip;
 	vector<double> mask;
-	Nifti::Nifti1 maskFile, inFile;
+	Nifti::File maskFile, inFile;
 	while ((c = getopt_long(argc, argv, "m:o:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'm':
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 	}
 	cout << "Opening input file " << argv[optind] << endl;
 	inFile.open(argv[optind], Nifti::Mode::Read);
-	if (maskFile.isOpen() && !maskFile.matchesSpace(inFile)) {
+	if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
 		cerr << "Mask dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -122,19 +122,23 @@ int main(int argc, char **argv) {
 		else
 			B1[vox] = 1.; // So smoothing doesn't get messed up
 	}
-	Nifti::Nifti1 outFile(inFile, 1);
-	outFile.description = version;
-	string outPath = outPrefix + "angle.nii.gz";
+	Nifti::Header outHdr = inFile.header();
+	outHdr.description = version;
+	outHdr.setDim(4, 1);
+	outHdr.setDatatype(Nifti::DataType::FLOAT32);
+	outHdr.intent = Nifti::Intent::Estimate;
+	outHdr.intent_name = "Flip Angle";
+	string outPath = outPrefix + "angle" + OutExt();
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
-	outFile.open(outPath, Nifti::Mode::Write);
-	outFile.writeVolumes(flip.begin(), flip.end(), 0, 1);
-	outFile.close();
-	
-	outPath = outPrefix + "B1.nii.gz";
+	Nifti::File outAngle(outHdr, outPath);
+	outAngle.writeVolumes(flip.begin(), flip.end(), 0, 1);
+	outAngle.close();
+	outPath = outPrefix + "B1" + OutExt();
+	outHdr.intent_name = "B1 Field Ratio";
 	cout << "Writing B1 ratio to " << outPath << "..." << endl;
-	outFile.open(outPath, Nifti::Mode::Write);
-	outFile.writeVolumes(B1.begin(), B1.end(), 0, 1);
-	outFile.close();
+	Nifti::File outB1(outHdr, outPath);
+	outB1.writeVolumes(B1.begin(), B1.end(), 0, 1);
+	outB1.close();
 	
 	cout << "Finished." << endl;
 	

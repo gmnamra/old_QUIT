@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
 				}
 				pps.push_back(pp);
 			} else {
-				Nifti1 nii(p, Mode::ReadHeader);
+				File nii(p);
 				const list<Extension> &exts = nii.extensions();
 				for (auto &e : exts) {
 					if (e.code() == NIFTI_ECODE_COMMENT) {

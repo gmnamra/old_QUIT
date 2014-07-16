@@ -71,10 +71,10 @@ int main(int argc, char **argv)
 {
 	try { // To fix uncaught exceptions on Mac
 
-	Nifti::Nifti1 maskFile, B0File, B1File;
+	Nifti::File maskFile, B0File, B1File;
 	MultiArray<double, 3> maskVol, B1Vol;
 	string procPath;
-	
+
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hm:o:b:vna:i:e", long_options, &indexptr)) != -1) {
 		switch (c) {
@@ -127,27 +127,27 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
-	Nifti::Nifti1 inFile(argv[optind++], Nifti::Mode::Read);
-	if ((maskFile.isOpen() && !inFile.matchesSpace(maskFile)) ||
-		(B1File.isOpen() && !inFile.matchesSpace(B1File))){
+	Nifti::File inFile(argv[optind++]);
+	if ((maskFile.isOpen() && !inFile.header().matchesSpace(maskFile.header())) ||
+		(B1File.isOpen() && !inFile.header().matchesSpace(B1File.header()))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
-	MultiArray<double, 3> T1Vol(inFile.dims().head(3));
+	MultiArray<double, 3> T1Vol(inFile.header().fulldims().head(3));
 	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
 	inFile.close();
-	Nifti::Nifti1 outFile(inFile, 1); // Save the header data to write out files
+	Nifti::Header outHdr = inFile.header(); // Save the header data to write out files
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
 	Model ssfpMdl(Signal::Components::One, Model::Scaling::None);
 	if (verbose) cout << "Reading SSFP data from: " << argv[optind] << endl;
 	inFile.open(argv[optind], Nifti::Mode::Read);
-	if (!inFile.matchesSpace(outFile)) {
+	if (!inFile.header().matchesSpace(outHdr)) {
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
-	MultiArray<complex<double>, 4> ssfpVols(inFile.dims().head(4));
+	MultiArray<complex<double>, 4> ssfpVols(inFile.header().fulldims().head(4));
 	inFile.readVolumes(ssfpVols.begin(), ssfpVols.end());
 	Agilent::ProcPar pp; ReadPP(inFile, pp);
 	if (elliptical) {
@@ -163,21 +163,21 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	MultiArray<float, 3> T2Vol(ssfpVols.dims().head(3)), PDVol(ssfpVols.dims().head(3)),
-	                     offResVol(ssfpVols.dims().head(3)), SoSVol(ssfpVols.dims().head(3));
+	const auto dims = ssfpVols.dims().head(3);
+	MultiArray<float, 3> T2Vol(dims), PDVol(dims), offResVol(dims), SoSVol(dims);
 	time_t startTime;
 	if (verbose)
 		startTime = printStartTime();
 	clock_t startClock = clock();
 	int voxCount = 0;
 	ThreadPool pool;
-	for (size_t k = 0; k < inFile.dim(3); k++) {
+	for (size_t k = 0; k < dims(2); k++) {
 		if (verbose)
 			cout << "Starting slice " << k << "..." << flush;
 		clock_t loopStart = clock();
 		atomic<int> sliceCount{0};
 		function<void (const int&)> process = [&] (const int &j) {
-			for (size_t i = 0; i < inFile.dim(1); i++) {
+			for (size_t i = 0; i < dims(0); i++) {
 				if (!maskFile.isOpen() || (maskVol[{i,j,k}])) {
 					sliceCount++;
 					double B1, T1, T2, E1, E2, PD, offRes, SoS;
@@ -241,7 +241,7 @@ int main(int argc, char **argv)
 				}
 			}
 		};
-		pool.for_loop(process, inFile.dim(2));
+		pool.for_loop(process, dims(1));
 		if (verbose) printLoopTime(loopStart, sliceCount);
 		voxCount += sliceCount;
 	}
@@ -250,17 +250,24 @@ int main(int argc, char **argv)
 		cout << "Writing results." << endl;
 	}
 	printElapsedClock(startClock, voxCount);
-	outFile.description = version;
-	outFile.open(outPrefix + "D2_T2.nii.gz", Nifti::Mode::Write);
+	outHdr.description = version;
+	outHdr.setDim(4, 1);
+	outHdr.setDatatype(Nifti::DataType::FLOAT32);
+	outHdr.intent = Nifti::Intent::Estimate;
+	outHdr.intent_name = "T2 (s)";
+	Nifti::File outFile(outHdr, outPrefix + "D2_T2" + OutExt());
 	outFile.writeVolumes(T2Vol.begin(), T2Vol.end());
 	outFile.close();
-	outFile.open(outPrefix + "D2_PD.nii.gz", Nifti::Mode::Write);
+	outHdr.intent_name = "PD (au)";
+	outFile.open(outPrefix + "D2_PD" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(PDVol.begin(), PDVol.end());
 	outFile.close();
-	outFile.open(outPrefix + "D2_SoS.nii.gz", Nifti::Mode::Write);
+	outHdr.intent_name = "Sum of Squared Residuals";
+	outFile.open(outPrefix + "D2_SoS" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(SoSVol.begin(), SoSVol.end());
 	outFile.close();
-	outFile.open(outPrefix + "D2_f0.nii.gz", Nifti::Mode::Write);
+	outHdr.intent_name = "Off-resonance (Hz)";
+	outFile.open(outPrefix + "D2_f0" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(offResVol.begin(), offResVol.end());
 	outFile.close();
 

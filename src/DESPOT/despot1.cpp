@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 
 	try { // To fix uncaught exceptions on Mac
 
-	Nifti::Nifti1 spgrFile, B1File, maskFile;
+	Nifti::File spgrFile, B1File, maskFile;
 	MultiArray<float, 3> B1Vol;
 	MultiArray<int8_t, 3> maskVol;
 	
@@ -127,8 +127,8 @@ int main(int argc, char **argv)
 	Model spgrMdl(Signal::Components::One, Model::Scaling::None);
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind], Nifti::Mode::Read);
-	if ((maskFile.isOpen() && !maskFile.matchesSpace(spgrFile)) ||
-	    (B1File.isOpen() && !B1File.matchesSpace(spgrFile))) {
+	if ((maskFile.isOpen() && !maskFile.header().matchesSpace(spgrFile.header())) ||
+	    (B1File.isOpen() && !B1File.header().matchesSpace(spgrFile.header()))) {
 		cerr << "Mask or B1 dimensions/transform do not match SPGR file." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -210,15 +210,21 @@ int main(int argc, char **argv)
 
 	if (verbose)
 		cout << "Writing results." << endl;
-	Nifti::Nifti1 outFile(spgrFile, 1);
-	outFile.description = version;
-	outFile.open(outPrefix + "D1_T1.nii.gz", Nifti::Mode::Write);
+	Nifti::Header outHdr = spgrFile.header();
+	outHdr.description = version;
+	outHdr.setDim(4, 1);
+	outHdr.setDatatype(Nifti::DataType::FLOAT32);
+	outHdr.intent = Nifti::Intent::Estimate;
+	outHdr.intent_name = "T1 (seconds)";
+	Nifti::File outFile(outHdr, "D1_T1" + OutExt());
 	outFile.writeVolumes(T1Vol.begin(), T1Vol.end());
 	outFile.close();
-	outFile.open(outPrefix + "D1_PD.nii.gz", Nifti::Mode::Write);
+	outHdr.intent_name = "PD (au)";
+	outFile.open(outPrefix + "D1_PD" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(PDVol.begin(), PDVol.end());
 	outFile.close();
-	outFile.open(outPrefix + "D1_SoS.nii.gz", Nifti::Mode::Write);
+	outHdr.intent_name = "Sum of Squared Residuals";
+	outFile.open(outPrefix + "D1_SoS" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(SoSVol.begin(), SoSVol.end());
 	outFile.close();
 

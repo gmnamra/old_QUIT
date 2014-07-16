@@ -6,9 +6,8 @@
  - This file should NOT be included directly in projects. It is just to 
  - separate the interface from the definition a bit better.
  */
-
-#ifndef NIFTI_NIFTI_INL
-#define NIFTI_NIFTI_INL
+#ifndef LIBNIFTI_NIFTI_INL
+#define LIBNIFTI_NIFTI_INL
 
 /*
  *   Simple class to apply the Nifti scaling (slope & intercept) and cast between the file datatype
@@ -21,28 +20,28 @@
  *
  */
 template<typename FromTp, typename ToTp>
-class Nifti1::Scale{
+class File::Scale{
 	public:
 	static ToTp Forward(const FromTp val, const float &slope, const float &inter) { return static_cast<ToTp>(val * slope + inter); }
 	static ToTp Reverse(const FromTp val, const float &slope, const float &inter) { return static_cast<ToTp>((val - inter) / slope); }
 };
 
 template<typename FromTp, typename ToTp>
-class Nifti1::Scale<FromTp, std::complex<ToTp>> {
+class File::Scale<FromTp, std::complex<ToTp>> {
 	public:
 	static std::complex<ToTp> Forward(const FromTp val, const float &slope, const float &inter) { return std::complex<ToTp>(val * slope + inter, 0.); }
 	static std::complex<ToTp> Reverse(const FromTp val, const float &slope, const float &inter) { return std::complex<ToTp>((val - inter) / slope, 0.); }
 };
 
 template<typename FromTp, typename ToTp>
-class Nifti1::Scale<std::complex<FromTp>, ToTp> {
+class File::Scale<std::complex<FromTp>, ToTp> {
 	public:
 	static ToTp Forward(const std::complex<FromTp> val, const float &slope, const float &inter) { return static_cast<ToTp>(std::abs(val) * slope + inter); }
 	static ToTp Reverse(const std::complex<FromTp> val, const float &slope, const float &inter) { return static_cast<ToTp>((std::abs(val) - inter) / slope); }
 };
 
 template<typename FromTp, typename ToTp>
-class Nifti1::Scale<std::complex<FromTp>, std::complex<ToTp>> {
+class File::Scale<std::complex<FromTp>, std::complex<ToTp>> {
 	public:
 	static std::complex<ToTp> Forward(const std::complex<FromTp> val, const float &slope, const float &inter) { return static_cast<std::complex<ToTp>>(val * static_cast<FromTp>(slope) + static_cast<FromTp>(inter)); }
 	static std::complex<ToTp> Reverse(const std::complex<FromTp> val, const float &slope, const float &inter) { return static_cast<std::complex<ToTp>>((val - static_cast<FromTp>(inter)) / static_cast<FromTp>(slope)); }
@@ -67,26 +66,42 @@ class Nifti1::Scale<std::complex<FromTp>, std::complex<ToTp>> {
  *   @parem end   Iterator to the end of the data storage.
  */
 template<typename Iter>
-void Nifti1::readWriteVoxels(const ArrayXs &start, const ArrayXs &inSize, Iter &storageBegin, Iter &storageEnd) {
-	ArrayXs size = inSize;
+void File::readWriteVoxels(const IndexArray &inStart, const IndexArray &inSize, Iter &storageBegin, Iter &storageEnd) {
+
+	// Now go through some tedious input validation
+	if (inStart.rows() != inSize.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
+	Index rank = 0;
+	for (size_t d = inSize.rows(); d > 0; d--) {
+		// Remember 0 represents full dimension
+		if (inSize[d - 1] != 1) {
+			rank = d;
+			break;
+		}
+	}
+	if (rank != m_header.rank()) {
+		throw(std::out_of_range("Rank of I/O operation (" + std::to_string(rank) + ") does not equal data rank (" + std::to_string(m_header.rank()) + ") in image: " + imagePath()));
+	}
+	const IndexArray dims = m_header.dims();
+	const DataTypeInfo dt = TypeInfo(m_header.datatype());
+	IndexArray start = inStart.head(rank);
+	IndexArray size  = inSize.head(rank);
 	// 0 indicates read whole dimension, so swap for the real size
-	for (ArrayXs::Index i = 0; i < size.rows(); i++)
-		if (size(i) == 0) size(i) = m_dim(i);
-	
-	if (start.rows() != size.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
-	if (start.rows() > m_dim.rows()) throw(std::out_of_range("Too many read/write dimensions specified in image: " + imagePath()));
-	if (((start + size) > m_dim.head(start.rows())).any()) throw(std::out_of_range("Read/write past image dimensions requested: " + imagePath()));
+	for (IndexArray::Index i = 0; i < rank; i++) {
+		if (size(i) == 0)
+			size(i) = dims(i);
+	}
+	if (((start + size) > dims.head(start.rows())).any()) throw(std::out_of_range("Read/write past image dimensions requested: " + imagePath()));
 	if (size.prod() != std::distance(storageBegin, storageEnd)) throw(std::out_of_range("Storage size does not match requested read/write size in image: " + imagePath()));
 	
 	// Now collapse sequential reads/writes into the biggest read/write we can for efficiency
 	size_t firstDim = 0; // We can always read first dimension in one go
 	size_t blockSize = size(firstDim);
-	while ((size(firstDim) == m_dim(firstDim)) && (firstDim < size.rows() - 1)) {
+	while ((size(firstDim) == dims(firstDim)) && (firstDim < size.rows() - 1)) {
 		firstDim++;
 		blockSize *= size(firstDim);
 	}
-	std::vector<char> blockBytes(blockSize * m_typeinfo.size);
-	ArrayXs blockStart = start;
+	std::vector<char> blockBytes(blockSize * dt.size);
+	IndexArray blockStart = start;
 	Iter blockIter{storageBegin};
 	std::function<void ()> scaleAndCast = [&] () {
 
@@ -95,14 +110,14 @@ void Nifti1::readWriteVoxels(const ArrayXs &start, const ArrayXs &inSize, Iter &
 			auto bytePtr = reinterpret_cast<TYPE *>(blockBytes.data());\
 			if (m_mode == Mode::Read) {\
 				auto scale = Scale<TYPE, typename std::remove_reference<decltype(*blockIter)>::type>::Forward;\
-				for (size_t el = 0; el < blockSize; el++, bytePtr++, blockIter++) { *blockIter = scale(*bytePtr, scaling_slope, scaling_inter); }\
+				for (size_t el = 0; el < blockSize; el++, bytePtr++, blockIter++) { *blockIter = scale(*bytePtr, m_header.scaling_slope, m_header.scaling_inter); }\
 			} else {\
 				auto scale = Scale<typename std::remove_reference<decltype(*blockIter)>::type, TYPE>::Reverse;\
-				for (size_t el = 0; el < blockSize; el++, bytePtr++, blockIter++) { *bytePtr = scale(*blockIter, scaling_slope, scaling_inter); }\
+				for (size_t el = 0; el < blockSize; el++, bytePtr++, blockIter++) { *bytePtr = scale(*blockIter, m_header.scaling_slope, m_header.scaling_inter); }\
 			}
 		// End Helper Macro
 
-		switch (m_typeinfo.type) {
+		switch (dt.type) {
 			case DataType::INT8:       { DECL_LOOP(int8_t) }; break;
 			case DataType::INT16:      { DECL_LOOP(int16_t) }; break;
 			case DataType::INT32:      { DECL_LOOP(int32_t) }; break;
@@ -146,14 +161,14 @@ void Nifti1::readWriteVoxels(const ArrayXs &start, const ArrayXs &inSize, Iter &
 }
 
 template<typename IterTp>
-void Nifti1::readVoxels(IterTp begin, IterTp end, const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size) {
+void File::readVoxels(IterTp begin, IterTp end, const Eigen::Ref<IndexArray> &start, const Eigen::Ref<IndexArray> &size) {
 	if (!(m_mode == Mode::Read))
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
 	readWriteVoxels(start, size, begin, end);
 }
 
 template<typename IterTp>
-void Nifti1::readVolumes(IterTp begin, IterTp end, const size_t first, const size_t invol) {
+void File::readVolumes(IterTp begin, IterTp end, const size_t first, const size_t invol) {
 	if (!(m_mode == Mode::Read))
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
 	size_t nvol = (invol == 0) ? dim(4) : invol;
@@ -162,23 +177,23 @@ void Nifti1::readVolumes(IterTp begin, IterTp end, const size_t first, const siz
 	readWriteVoxels(start, size, begin, end);
 }
 
-template<typename IterTp> void Nifti1::readAll(IterTp begin, IterTp end) {
+template<typename IterTp> void File::readAll(IterTp begin, IterTp end) {
 	if (!(m_mode == Mode::Read))
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
-	ArrayXs start = ArrayXs::Zero(rank());
-	ArrayXs size  = ArrayXs::Zero(rank());
+	IndexArray start = IndexArray::Zero(rank());
+	IndexArray size  = IndexArray::Zero(rank());
 	readWriteVoxels(start, size, begin, end);
 }
 
 template<typename IterTp>
-void Nifti1::writeVoxels(IterTp begin, IterTp end, const Eigen::Ref<ArrayXs> &start, const Eigen::Ref<ArrayXs> &size) {
+void File::writeVoxels(IterTp begin, IterTp end, const Eigen::Ref<IndexArray> &start, const Eigen::Ref<IndexArray> &size) {
 	if (!(m_mode == Mode::Write))
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
 	readWriteVoxels(start, size, begin, end);
 }
 
 template<typename IterTp>
-void Nifti1::writeVolumes(IterTp begin, IterTp end, const size_t first, const size_t invol) {
+void File::writeVolumes(IterTp begin, IterTp end, const size_t first, const size_t invol) {
 	if (!(m_mode == Mode::Write))
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
 	size_t nvol = (invol == 0) ? dim(4) : invol;
@@ -187,11 +202,11 @@ void Nifti1::writeVolumes(IterTp begin, IterTp end, const size_t first, const si
 	readWriteVoxels(start, size, begin, end);
 }
 
-template<typename IterTp> void Nifti1::writeAll(IterTp begin, IterTp end) {
+template<typename IterTp> void File::writeAll(IterTp begin, IterTp end) {
 	if (!(m_mode == Mode::Write))
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
-	ArrayXs start = ArrayXs::Zero(rank());
-	ArrayXs size  = ArrayXs::Zero(rank());
+	IndexArray start = IndexArray::Zero(rank());
+	IndexArray size  = IndexArray::Zero(rank());
 	readWriteVoxels(start, size, begin, end);
 }
 

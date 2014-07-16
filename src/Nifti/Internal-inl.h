@@ -1,15 +1,12 @@
-//
-//  Internal-inl.h
-//  NiftiImage
-//
-//  Created by Tobias Wood on 18/09/2013.
-//  Copyright (c) 2013 Tobias Wood. All rights reserved.
-//
+/** \file Internal.h
+ \brief Inline internal library functions that the user should not need.
+ - Written by Tobias Wood, IoP KCL
+ - This code is released to the public domain. Do with it what you will.
+ */
+#ifndef LIBNIFTI_INTERNAL_INL
+#define LIBNIFTI_INTERNAL_INL
 
-#ifndef NIFTI_INTERNAL_INL
-#define NIFTI_INTERNAL_INL
-
-inline float fixFloat(const float f) {
+inline float FixFloat(const float f) {
 	if (isfinite(f))
 		return f;
 	else

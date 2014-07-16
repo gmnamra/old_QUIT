@@ -109,21 +109,10 @@ void int_handler(int) {
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-//Utility function
-Nifti::Nifti1 openAndCheck(const string &path, const Nifti::Nifti1 &saved);
-Nifti::Nifti1 openAndCheck(const string &path, const Nifti::Nifti1 &saved) {
-	Nifti::Nifti1 in(path, Nifti::Mode::Read);
-	if (!(in.matchesSpace(saved))) {
-		cerr << "Header for " << in.imagePath() << " does not match " << saved.imagePath() << endl;
-		exit(EXIT_FAILURE);
-	}
-	return in;
-}
-
-Nifti::Nifti1 parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols);
-Nifti::Nifti1 parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols)
+Nifti::Header parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols);
+Nifti::Header parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols)
 {
-	Nifti::Nifti1 templateFile, inFile;
+	Nifti::Header hdr;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
@@ -133,11 +122,14 @@ Nifti::Nifti1 parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &sign
 		}
 		if (prompt) cout << "Enter image path: " << flush;
 		getline(cin, path);
+		Nifti::File inFile(path);
 		if (signalVols.size() == 0) {
-			inFile.open(path, Nifti::Mode::Read);
-			templateFile = Nifti::Nifti1(inFile, 1); // Save header info for later
+			hdr = inFile.header(); // Save header info for later
 		} else {
-			inFile = openAndCheck(path, templateFile);
+			if (!hdr.matchesSpace(inFile.header())) {
+				cerr << "Header for " << inFile.imagePath() << " does not match first header." << endl;
+				exit(EXIT_FAILURE);
+			}
 		}
 		if (verbose) cout << "Opened: " << inFile.imagePath() << endl;
 		Agilent::ProcPar pp; ReadPP(inFile, pp);
@@ -157,7 +149,7 @@ Nifti::Nifti1 parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &sign
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
-	return templateFile;
+	return hdr;
 }
 //******************************************************************************
 // Main
@@ -172,7 +164,7 @@ int main(int argc, char **argv)
 	
 	try { // To fix uncaught exceptions on Mac
 	
-	Nifti::Nifti1 maskFile, f0File, B1File, templateFile;
+	Nifti::File maskFile, f0File, B1File;
 	MultiArray<int8_t, 3> maskVol;
 	MultiArray<float, 3> f0Vol, B1Vol;
 	
@@ -276,19 +268,19 @@ int main(int argc, char **argv)
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << Signal::to_string(components) << " component model." << endl;
 	vector<MultiArray<complex<float>, 4>> signalVols;
-	templateFile = parseInput(model, signalVols);
-	if ((maskFile.isOpen() && !templateFile.matchesSpace(maskFile)) ||
-		(f0File.isOpen() && !templateFile.matchesSpace(f0File)) ||
-		(B1File.isOpen() && !templateFile.matchesSpace(B1File))){
+	Nifti::Header hdr = parseInput(model, signalVols);
+	if ((maskFile.isOpen() && !hdr.matchesSpace(maskFile.header())) ||
+		(f0File.isOpen() && !hdr.matchesSpace(f0File.header())) ||
+		(B1File.isOpen() && !hdr.matchesSpace(B1File.header()))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	//**************************************************************************
-	MultiArray<float, 4> paramsVols(templateFile.dims().head(3), model.nParameters());
-	MultiArray<float, 4> residualVols(templateFile.dims().head(3), model.size());;
-	MultiArray<float, 3> SoSVol(templateFile.dims().head(3));
+	MultiArray<float, 4> paramsVols(hdr.dims().head(3), model.nParameters());
+	MultiArray<float, 4> residualVols(hdr.dims().head(3), model.size());;
+	MultiArray<float, 3> SoSVol(hdr.dims().head(3));
 	
 	ArrayXd threshes(model.nParameters()); threshes.setConstant(0.05);
 	ArrayXXd bounds = model.bounds(tesla);
@@ -316,9 +308,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Do the fitting
 	//**************************************************************************
-	if (stop_slice > templateFile.dim(3))
-		stop_slice = templateFile.dim(3);
-	size_t sliceSize = templateFile.dims().head(2).prod();
+	if (stop_slice > hdr.dim(3))
+		stop_slice = hdr.dim(3);
+	size_t sliceSize = hdr.dims().head(2).prod();
 	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	
     time_t procStart = time(NULL);
@@ -330,7 +322,7 @@ int main(int argc, char **argv)
 		atomic<int> voxCount{0};
 		clock_t loopStart = clock();
 		function<void (const size_t&)> processVox = [&] (const size_t &j) {
-			for (size_t i = 0; i < templateFile.dim(1); i++) {
+			for (size_t i = 0; i < hdr.dim(1); i++) {
 				if (!maskFile.isOpen() || maskVol[{i,j,k}]) {
 					voxCount++;
 					ArrayXcd signal = model.loadSignals(signalVols, i, j, k);
@@ -351,7 +343,7 @@ int main(int argc, char **argv)
 			}
 		};
 		if (voxI == 0)
-			threads.for_loop(processVox, templateFile.dim(2));
+			threads.for_loop(processVox, hdr.dim(2));
 		else {
 			processVox(voxI);
 			exit(0);
@@ -372,23 +364,27 @@ int main(int argc, char **argv)
 		 << difftime(procEnd, procStart) << " s." << endl;
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
 	outPrefix = outPrefix + Signal::to_string(components) + "C_";
-	templateFile.setDim(4, 1);
-	templateFile.setDatatype(Nifti::DataType::FLOAT32);
-	templateFile.description = version;
+	hdr.setDim(4, 1);
+	hdr.setDatatype(Nifti::DataType::FLOAT32);
+	hdr.description = version;
+	hdr.intent = Nifti::Intent::Estimate;
 	for (size_t p = 1; p < model.nParameters(); p++) { // Skip PD for now
-		templateFile.open(outPrefix + model.names().at(p) + ".nii.gz", Nifti::Mode::Write);
+		hdr.intent_name = model.names().at(p);
+		Nifti::File file(hdr, outPrefix + model.names().at(p) + "" + OutExt());
 		auto param = paramsVols.slice<3>({0,0,0,p},{-1,-1,-1,0});
-		templateFile.writeVolumes(param.begin(), param.end());
-		templateFile.close();
+		file.writeVolumes(param.begin(), param.end());
+		file.close();
 	}
-	templateFile.open(outPrefix + "SoS.nii.gz", Nifti::Mode::Write);
-	templateFile.writeVolumes(SoSVol.begin(), SoSVol.end());
-	templateFile.close();
+	hdr.intent_name = "Sum of Squared Residuals";
+	Nifti::File SoS(hdr, outPrefix + "SoS" + OutExt());
+	SoS.writeVolumes(SoSVol.begin(), SoSVol.end());
+	SoS.close();
 	if (writeResiduals) {
-		templateFile.setDim(4, static_cast<int>(model.size()));
-		templateFile.open(outPrefix + "residuals.nii.gz", Nifti::Mode::Write);
-		templateFile.writeVolumes(residualVols.begin(), residualVols.end());
-		templateFile.close();
+		hdr.setDim(4, static_cast<int>(model.size()));
+		hdr.intent_name = "Residual";
+		Nifti::File res(hdr, outPrefix + "residuals" + OutExt());
+		res.writeVolumes(residualVols.begin(), residualVols.end());
+		res.close();
 	}
 	cout << "Finished writing data." << endl;
 	

@@ -45,7 +45,7 @@ SPGRSimple::SPGRSimple(const bool prompt, const Agilent::ProcPar &pp) {
 		m_TR = pp.realValue("tr");
 	} else {
 		size_t nFlip;
-		if (prompt) cout << "Enter number of flip-angles: " << nFlip << flush; cin >> nFlip;
+		if (prompt) cout << "Enter number of flip-angles: " << flush; cin >> nFlip;
 		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
 		for (int i = 0; i < inAngles.size(); i++)

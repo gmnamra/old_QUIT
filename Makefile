@@ -28,13 +28,13 @@ INCLUDE    := -I$(EIGEN_DIR) -Isrc -Isrc/Agilent
 
 #Rules for libNifti
 NIFTI_DIR  := Nifti
-NIFTI_SRC  := Nifti Internal ZipFile Extension
+NIFTI_SRC  := Nifti Header Internal ZipFile Extension
 NIFTI_OBJ  := $(addprefix $(BUILD_DIR)/$(NIFTI_DIR)/, $(addsuffix .o, $(NIFTI_SRC)))
-NIFTI_HDR := $(addprefix $(SOURCE_DIR)/$(NIFTI_DIR)/, Nifti.h Nifti-inl.h ExtensionCodes.h)
+NIFTI_HDR  := $(addprefix $(SOURCE_DIR)/$(NIFTI_DIR)/, Nifti.h Nifti-inl.h ExtensionCodes.h)
 $(BUILD_DIR)/$(NIFTI_DIR)/%.o : $(SOURCE_DIR)/$(NIFTI_DIR)/%.cpp | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(BUILD_DIR)/libNifti.a : $(NIFTI_OBJ) $(NIFTI_PHDR)
+$(BUILD_DIR)/libNifti.a : $(NIFTI_OBJ) $(NIFTI_HDR)
 	@mkdir -p $(dir $@)
 	ar rcs $@ $(NIFTI_OBJ)
 
@@ -42,6 +42,7 @@ $(BUILD_DIR)/libNifti.a : $(NIFTI_OBJ) $(NIFTI_PHDR)
 AGILENT_DIR := Agilent
 AGILENT_SRC := fdf fdfFile FID FIDFile procpar util
 AGILENT_OBJ := $(patsubst %, $(BUILD_DIR)/$(AGILENT_DIR)/%.o, $(AGILENT_SRC))
+AGILENT_HDR := $(addprefix $(SOURCE_DIR)/$(AGILENT_DIR)/, $(addsuffix .h, $(AGILENT_SRC)))
 $(BUILD_DIR)/$(AGILENT_DIR)/%.o : $(SOURCE_DIR)/$(AGILENT_DIR)/%.cpp | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
@@ -52,12 +53,13 @@ $(BUILD_DIR)/libAgilent.a : $(AGILENT_OBJ)
 #Rules for libQUIT
 QUIT_DIR   := QUIT
 QUIT_SRC   := Util ThreadPool
-QUIT_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, MultiArray.h MultiArray-inl.h Volume.h Volume-inl.h)
+QUIT_TPL   := MultiArray MultiArray-inl Volume Volume-inl
+QUIT_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, $(addsuffix .h, QUIT $(QUIT_SRC) $(QUIT_TPL)))
 QUIT_OBJ   := $(addprefix $(BUILD_DIR)/$(QUIT_DIR)/, $(addsuffix .o, $(QUIT_SRC)))
-$(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp | EIGEN libNifti.a
+$(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp $(NIFTI_HDR) $(AGILENT_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_PHDR)
+$(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_HDR)
 	@mkdir -p $(dir $@)
 	ar rcs $@ $(QUIT_OBJ)
 
@@ -68,9 +70,9 @@ PYTOOLS    := fdf2nii.py
 $(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp $(NIFTI_HDR) $(QUIT_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(addprefix $(BUILD_DIR)/, $(TOOLS)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(TOOL_DIR)/%.o | libAgilent.a libNifti.a libQUIT.a
+$(addprefix $(BUILD_DIR)/, $(TOOLS)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(TOOL_DIR)/%.o libNifti.a libAgilent.a libQUIT.a
 	@mkdir -p $(dir $@)
-	$(CXX) $^ -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
+	$(CXX) $< -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
 $(addprefix $(BUILD_DIR)/, $(PYTOOLS)) :
 	cp $(patsubst $(BUILD_DIR)/%, $(SOURCE_DIR)/$(TOOL_DIR)/%, $@) $(BUILD_DIR)
 
@@ -80,12 +82,12 @@ DESPOT_DIR  := DESPOT
 DESPOT_SRC  := DESPOT DESPOT_Functors Model
 DESPOT_HDR  := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, RegionContraction.h DESPOT_Functors.h)
 DESPOT_OBJ  := $(patsubst %, $(BUILD_DIR)/$(DESPOT_DIR)/%.o, $(DESPOT_SRC))
-$(BUILD_DIR)/$(DESPOT_DIR)/%.o : $(SOURCE_DIR)/$(DESPOT_DIR)/%.cpp $(DESPOT_HDR) $(QUIT_HDR) $(QUIT_OBJ) $(NIFTI_HDR) | EIGEN
+$(BUILD_DIR)/$(DESPOT_DIR)/%.o : $(SOURCE_DIR)/$(DESPOT_DIR)/%.cpp $(DESPOT_HDR) $(QUIT_HDR) $(NIFTI_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(addprefix $(BUILD_DIR)/, $(DESPOT)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(DESPOT_DIR)/%.o $(DESPOT_OBJ) | libAgilent.a libNifti.a libQUIT.a
+$(addprefix $(BUILD_DIR)/, $(DESPOT)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(DESPOT_DIR)/%.o $(DESPOT_OBJ) libNifti.a libAgilent.a libQUIT.a
 	@mkdir -p $(dir $@)
-	$(CXX) $^ -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
+	$(CXX) $< $(DESPOT_OBJ) -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
 
 #Rules for Misc
 MISC     := dixon
@@ -93,9 +95,9 @@ MISC_DIR := Misc
 $(BUILD_DIR)/$(MISC_DIR)/%.o : $(SOURCE_DIR)/$(MISC_DIR)/%.cpp $(QUIT_HDR) $(NIFTI_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(addprefix $(BUILD_DIR)/, $(MISC)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(MISC_DIR)/%.o $(MISC_OBJ) | libAgilent.a libNifti.a libQUIT.a
+$(addprefix $(BUILD_DIR)/, $(MISC)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(MISC_DIR)/%.o $(MISC_OBJ) libNifti.a libAgilent.a libQUIT.a
 	@mkdir -p $(dir $@)
-	$(CXX) $^ -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
+	$(CXX) $< -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
 
 TARGETS := $(TOOLS) $(PYTOOLS) $(DESPOT) $(MISC)
 LIB_TGT := libNifti.a libAgilent.a libQUIT.a
@@ -109,7 +111,8 @@ install :
 	cp $(addprefix $(BUILD_DIR)/, $(TARGETS)) $(INSTALL_DIR)/
 	chmod ugo+rx $(addprefix $(INSTALL_DIR)/, $(TARGETS))
 
-.PHONY  : all install clean $(LIB_TGT) $(TARGETS) EIGEN
+.PHONY  : all install clean
+.INTERMEDIATE : $(LIB_TGT) $(TARGETS) EIGEN
 .DEFAULT_GOAL := all
 
 $(TARGETS) : % : $(BUILD_DIR)/%

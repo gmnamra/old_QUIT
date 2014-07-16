@@ -16,8 +16,7 @@
 #include <functional>
 
 #include "Nifti/Nifti.h"
-#include "QUIT/MultiArray.h"
-#include "QUIT/ThreadPool.h"
+#include "QUIT/QUIT.h"
 using namespace std;
 using namespace QUIT;
 
@@ -93,8 +92,8 @@ int main(int argc, char **argv)
 					default: dType = Nifti::DataTypeForCode(atoi(optarg)); break;
 				} break;
 			case 'x': {
-				Nifti::Nifti1 other(optarg, Nifti::Mode::ReadHeader);
-				xform = other.transform();
+				Nifti::File other(optarg);
+				xform = other.header().transform();
 			} break;
 			case 'b': isBlank = true; break;
 			case 'v': fillTypes.at(atoi(optarg)) = FillType::Value; expected_extra_args += 1; break;
@@ -115,13 +114,14 @@ int main(int argc, char **argv)
 	}
 
 	string fName(argv[optind++]);
+	fName += OutExt();
 	MultiArray<float, 4>::Index dims;
 	Eigen::ArrayXf vdims(4);
 	for (size_t i = 0; i < 4; i++) { dims[i] = atoi(argv[optind++]); }
 	for (size_t i = 0; i < 4; i++) { vdims[i] = atof(argv[optind++]); }
-	Nifti::Nifti1 file(dims, vdims, dType);
-	file.setTransform(xform);
-	file.open(fName, Nifti::Mode::Write);
+	Nifti::Header hdr(dims, vdims, dType);
+	hdr.setTransform(xform);
+	Nifti::File file(hdr, fName);
 
 	if (!isBlank) {
 		MultiArray<float, 4> data(dims);

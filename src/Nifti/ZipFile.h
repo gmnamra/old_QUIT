@@ -4,10 +4,8 @@
  - Based on znzlib (Thanks to Robert Cox et al)
  - This code is released to the public domain. Do with it what you will.
  */
-
-
-#ifndef NIFTI_ZIPFILE
-#define NIFTI_ZIPFILE
+#ifndef LIBNIFTI_ZIPFILE
+#define LIBNIFTI_ZIPFILE
 
 #include <cstdio>
 #include <string>

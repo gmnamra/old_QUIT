@@ -64,7 +64,7 @@ static struct option long_options[] =
 //******************************************************************************
 int main(int argc, char **argv)
 {
-	Nifti::Nifti1 maskFile;
+	Nifti::File maskFile;
 	MultiArray<int8_t, 3> maskData;
 	
 	int indexptr = 0, c;
@@ -107,9 +107,10 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	if (verbose) cout << "Opening input file: " << argv[optind] << endl;
-	Nifti::Nifti1 inputFile;
-	inputFile.open(argv[optind++], Nifti::Mode::Read);
-	if (maskFile.isOpen() && !maskFile.matchesSpace(inputFile)) {
+	string fname(argv[optind++]);
+	Nifti::File inputFile(fname);
+	Nifti::Header inHdr = inputFile.header();
+	if (maskFile.isOpen() && !maskFile.header().matchesSpace(inHdr)) {
 		cerr << "Mask does not match input file." << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -184,20 +185,20 @@ int main(int argc, char **argv)
 		pool.for_loop(processVox, d[2]);
 	}
 	printElapsedClock(startClock, d.prod());
-	inputFile.setDim(4, nFlip);
-	inputFile.setDatatype(Nifti::DataType::COMPLEX64);
+	inHdr.setDim(4, nFlip);
+	inHdr.setDatatype(Nifti::DataType::COMPLEX64);
 	switch (save) {
-		case SaveMode::LineReg:    outname += "_lreg.nii.gz"; break;
-		case SaveMode::MagReg:     outname += "_mreg.nii.gz"; break;
-		case SaveMode::CrossPoint: outname += "_cross.nii.gz"; break;
-		case SaveMode::ComplexSum: outname += "_sum.nii.gz"; break;
-		case SaveMode::Lambda:     outname += "_lambda.nii.gz"; inputFile.setDatatype(Nifti::DataType::FLOAT64); break;
-		case SaveMode::Mu:         outname += "_mu.nii.gz";     inputFile.setDatatype(Nifti::DataType::FLOAT64); break;
+		case SaveMode::LineReg:    outname += "_lreg" + OutExt(); break;
+		case SaveMode::MagReg:     outname += "_mreg" + OutExt(); break;
+		case SaveMode::CrossPoint: outname += "_cross" + OutExt(); break;
+		case SaveMode::ComplexSum: outname += "_sum" + OutExt(); break;
+		case SaveMode::Lambda:     outname += "_lambda" + OutExt(); inHdr.setDatatype(Nifti::DataType::FLOAT64); break;
+		case SaveMode::Mu:         outname += "_mu" + OutExt();     inHdr.setDatatype(Nifti::DataType::FLOAT64); break;
 	}
 	if (verbose) cout << "Writing output file: " << outname << endl;
-	inputFile.open(outname, Nifti::Mode::Write);
-	inputFile.writeVolumes(output.begin(), output.end());
-	inputFile.close();
+	Nifti::File outFile(inHdr, outname);
+	outFile.writeVolumes(output.begin(), output.end());
+	outFile.close();
 	if (verbose) cout << "Finished." << endl;
 	exit(EXIT_SUCCESS);
 }
