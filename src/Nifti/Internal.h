@@ -9,6 +9,8 @@
 #include <cstddef>
 #include <cmath>
 #include <string>
+#include <exception>
+#include <stdexcept>
 
 #include "Nifti/Enum.h"
 

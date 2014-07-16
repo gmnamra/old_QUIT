@@ -30,7 +30,7 @@ INCLUDE    := -I$(EIGEN_DIR) -Isrc -Isrc/Agilent
 NIFTI_DIR  := Nifti
 NIFTI_SRC  := Nifti Header Internal ZipFile Extension
 NIFTI_OBJ  := $(addprefix $(BUILD_DIR)/$(NIFTI_DIR)/, $(addsuffix .o, $(NIFTI_SRC)))
-NIFTI_HDR  := $(addprefix $(SOURCE_DIR)/$(NIFTI_DIR)/, Nifti.h Nifti-inl.h ExtensionCodes.h)
+NIFTI_HDR  := $(addprefix $(SOURCE_DIR)/$(NIFTI_DIR)/, Nifti.h Nifti-inl.h Enum.h ExtensionCodes.h)
 $(BUILD_DIR)/$(NIFTI_DIR)/%.o : $(SOURCE_DIR)/$(NIFTI_DIR)/%.cpp | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
