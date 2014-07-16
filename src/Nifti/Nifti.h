@@ -20,14 +20,12 @@
 #include <cstdint>
 #include <type_traits>
 
+#include "Enum.h"
+#include "Header.h"
 #include "ZipFile.h"
 #include "Extension.h"
-#include "Header.h"
 
 namespace Nifti {
-
-enum class Mode : char { Closed = 0, Read = 'r', ReadHeader = 'h', Write = 'w' };
-
 class File {
 	private:
 		std::string m_basepath;            //!< Path to file without extension.

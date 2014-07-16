@@ -24,13 +24,6 @@ typedef size_t Index;
 typedef Eigen::Array<Index, Eigen::Dynamic, 1> IndexArray;
 typedef Eigen::Array<Index, 7, 1> Indices;
 
-enum class Version { Nifti1, Nifti2 };
-
-enum class DataType {
-	UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64,
-	FLOAT32, FLOAT64, FLOAT128, COMPLEX64, COMPLEX128, COMPLEX256,
-	RGB24, RGBA32
-};
 DataType DataTypeForCode(const int code);
 
 struct DataTypeInfo {

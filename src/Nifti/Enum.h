@@ -8,6 +8,13 @@
 
 namespace Nifti {
 
+enum class Mode : char { Closed = 0, Read = 'r', ReadHeader = 'h', Write = 'w' };
+enum class Version { Nifti1, Nifti2 };
+enum class DataType {
+	UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64,
+	FLOAT32, FLOAT64, FLOAT128, COMPLEX64, COMPLEX128, COMPLEX256,
+	RGB24, RGBA32
+};
 enum class Intent {
 	None, Correlation, TTest, FTest, ZScore, ChiSquared, Beta, Binomial,
 	Gamma, Poisson, Normal, FTestNonCentral, ChiSquaredNonCentral,
