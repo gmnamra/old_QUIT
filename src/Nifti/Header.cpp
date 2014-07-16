@@ -1,5 +1,7 @@
 #include "Header.h"
 #include "Internal.h"
+#include "nifti1.h"
+#include "nifti2.h"
 
 using namespace std;
 using namespace Eigen;
@@ -123,7 +125,7 @@ Header::Header() :
 	freq_dim(0), phase_dim(0), slice_dim(0),
 	slice_code(0), slice_start(0), slice_end(0), slice_duration(0),
 	toffset(0), xyz_units(NIFTI_UNITS_MM), time_units(NIFTI_UNITS_SEC),
-	intent_code(NIFTI_INTENT_NONE), intent_p1(0), intent_p2(0), intent_p3(0),
+	intent(Intent::None), intent_p1(0), intent_p2(0), intent_p3(0),
 	intent_name(""), description(""), aux_file(""),
 	m_qform(Affine3f::Identity()), m_sform(Affine3d::Identity())
 {}
@@ -187,7 +189,7 @@ Header::Header(const struct nifti_1_header &nhdr) {
 	if (scaling_slope == 0.)
 		scaling_slope = 1.;
 
-	intent_code     = nhdr.intent_code;
+	intent          = IntentForCode(nhdr.intent_code);
 	intent_p1       = FixFloat(nhdr.intent_p1);
 	intent_p2       = FixFloat(nhdr.intent_p2);
 	intent_p3       = FixFloat(nhdr.intent_p3);
@@ -273,7 +275,7 @@ Header::Header(const struct nifti_2_header &nhdr) {
 	if (scaling_slope == 0.)
 		scaling_slope = 1.;
 
-	intent_code     = nhdr.intent_code;
+	intent     = IntentForCode(nhdr.intent_code);
 	intent_p1       = FixFloat(nhdr.intent_p1);
 	intent_p2       = FixFloat(nhdr.intent_p2);
 	intent_p3       = FixFloat(nhdr.intent_p3);
@@ -363,7 +365,7 @@ Header::operator nifti_1_header() const {
 
 	strcpy(nhdr.magic,m_magic.c_str());
 
-	nhdr.intent_code = intent_code;
+	nhdr.intent_code = CodeForIntent(intent);
 	nhdr.intent_p1   = intent_p1;
 	nhdr.intent_p2   = intent_p2;
 	nhdr.intent_p3   = intent_p3;
@@ -454,7 +456,7 @@ Header::operator nifti_2_header() const {
 
 	strcpy(nhdr.magic,m_magic.c_str());
 
-	nhdr.intent_code = intent_code;
+	nhdr.intent_code = CodeForIntent(intent);
 	nhdr.intent_p1   = intent_p1;
 	nhdr.intent_p2   = intent_p2;
 	nhdr.intent_p3   = intent_p3;
@@ -702,49 +704,8 @@ const string &Header::timeUnits() const {
  *
  *\sa NIFTI1_INTENT_CODES group in nifti1.h
  */
-const string &Header::intentName() const {
-	static const map<int, string> Intents {
-		{ NIFTI_INTENT_CORREL,     "Correlation statistic" },
-		{ NIFTI_INTENT_TTEST,      "T-statistic" },
-		{ NIFTI_INTENT_FTEST,      "F-statistic" },
-		{ NIFTI_INTENT_ZSCORE,     "Z-score"     },
-		{ NIFTI_INTENT_CHISQ,      "Chi-squared distribution" },
-		{ NIFTI_INTENT_BETA,       "Beta distribution" },
-		{ NIFTI_INTENT_BINOM,      "Binomial distribution" },
-		{ NIFTI_INTENT_GAMMA,      "Gamma distribution" },
-		{ NIFTI_INTENT_POISSON,    "Poisson distribution" },
-		{ NIFTI_INTENT_NORMAL,     "Normal distribution" },
-		{ NIFTI_INTENT_FTEST_NONC, "F-statistic noncentral" },
-		{ NIFTI_INTENT_CHISQ_NONC, "Chi-squared noncentral" },
-		{ NIFTI_INTENT_LOGISTIC,   "Logistic distribution" },
-		{ NIFTI_INTENT_LAPLACE,    "Laplace distribution" },
-		{ NIFTI_INTENT_UNIFORM,    "Uniform distribition" },
-		{ NIFTI_INTENT_TTEST_NONC, "T-statistic noncentral" },
-		{ NIFTI_INTENT_WEIBULL,    "Weibull distribution" },
-		{ NIFTI_INTENT_CHI,        "Chi distribution" },
-		{ NIFTI_INTENT_INVGAUSS,   "Inverse Gaussian distribution" },
-		{ NIFTI_INTENT_EXTVAL,     "Extreme Value distribution" },
-		{ NIFTI_INTENT_PVAL,       "P-value" },
-		{ NIFTI_INTENT_LOGPVAL,    "Log P-value" },
-		{ NIFTI_INTENT_LOG10PVAL,  "Log10 P-value" },
-		{ NIFTI_INTENT_ESTIMATE,   "Estimate" },
-		{ NIFTI_INTENT_LABEL,      "Label index" },
-		{ NIFTI_INTENT_NEURONAME,  "NeuroNames index" },
-		{ NIFTI_INTENT_GENMATRIX,  "General matrix" },
-		{ NIFTI_INTENT_SYMMATRIX,  "Symmetric matrix" },
-		{ NIFTI_INTENT_DISPVECT,   "Displacement vector" },
-		{ NIFTI_INTENT_VECTOR,     "Vector" },
-		{ NIFTI_INTENT_POINTSET,   "Pointset" },
-		{ NIFTI_INTENT_TRIANGLE,   "Triangle" },
-		{ NIFTI_INTENT_QUATERNION, "Quaternion" },
-		{ NIFTI_INTENT_DIMLESS,    "Dimensionless number" }
-	};
-	static const string unknown("Unknown intent code");
-	auto it = Intents.find(intent_code);
-	if (it == Intents.end())
-		return unknown;
-	else
-		return it->second;
+string Header::intentName() const {
+	return IntentName(intent);
 }
 
 /*

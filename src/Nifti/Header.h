@@ -12,10 +12,12 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include "Nifti/Enum.h"
+
 namespace Nifti {
 
-#include "nifti1.h"
-#include "nifti2.h"
+struct nifti_1_header;
+struct nifti_2_header;
 
 typedef size_t Index;
 typedef Eigen::Array<Index, Eigen::Dynamic, 1> IndexArray;
@@ -116,17 +118,17 @@ class Header {
 
 		int xyz_units;                //!< dx,dy,dz units: NIFTI_UNITS_* code
 		int time_units;               //!< dt       units: NIFTI_UNITS_* code
-		int   intent_code ;           //!< statistic type (or something)
-		float intent_p1 ;             //!< intent parameters
-		float intent_p2 ;             //!< intent parameters
-		float intent_p3 ;             //!< intent parameters
+		Intent intent;                //!< What this data actually means (e.g. p-values)
+		float intent_p1;              //!< A value associated with the intent, e.g. distribution parameter
+		float intent_p2;              //!< A value associated with the intent, e.g. distribution parameter
+		float intent_p3;              //!< A value associated with the intent, e.g. distribution parameter
 		std::string intent_name;      //!< optional description of intent data
 		std::string description;      //!< optional text to describe dataset
 		std::string aux_file;         //!< auxiliary filename
 
 		const std::string &spaceUnits() const;
 		const std::string &timeUnits() const;
-		const std::string &intentName() const;
+		std::string intentName() const;
 		const std::string &sliceName() const;
 };
 

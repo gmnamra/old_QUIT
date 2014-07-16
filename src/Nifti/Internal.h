@@ -11,6 +11,9 @@
 
 #include <cstddef>
 #include <cmath>
+#include <string>
+
+#include "Nifti/Enum.h"
 
 namespace Nifti {
 
@@ -27,6 +30,10 @@ void SwapAnalyzeHeader(nifti_analyze75 *h);
 inline float FixFloat(const float f); //!< Converts invalid floats to 0 to ensure a marginally sane header
 
 #include "Nifti/Internal-inl.h"
+
+int CodeForIntent(const Intent i);
+Intent IntentForCode(const int c);
+std::string IntentName(Intent i);
 
 } // End namespace Nifti
 
