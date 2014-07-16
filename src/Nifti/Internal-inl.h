@@ -7,7 +7,7 @@
 #define LIBNIFTI_INTERNAL_INL
 
 inline float FixFloat(const float f) {
-	if (isfinite(f))
+	if (std::isfinite(f))
 		return f;
 	else
 		return 0.;
