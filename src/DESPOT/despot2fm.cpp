@@ -345,29 +345,36 @@ int main(int argc, char **argv)
 	hdr.setDim(4, 1);
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
+	hdr.intent = Nifti::Intent::Estimate;
 	if (scale == Model::Scaling::None) {
+		hdr.intent_name = model.names().at(0);
 		Nifti::File out(hdr, outPrefix + model.names().at(0) + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
+		hdr.intent_name = model.names().at(2);
 		out.open(outPrefix + model.names().at(2) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
+		hdr.intent_name = model.names().at(3);
 		out.open(outPrefix + model.names().at(3) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,2},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
 	} else {
+		hdr.intent_name = model.names().at(2);
 		Nifti::File out(hdr, outPrefix + model.names().at(2) + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
+		hdr.intent_name = model.names().at(3);
 		out.open(outPrefix + model.names().at(3) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
 	}
+	hdr.intent_name = "Sum of Squared Residuals";
 	Nifti::File SoS(hdr, outPrefix + "SoS" + OutExt());
 	SoS.writeVolumes(SoSVol.begin(), SoSVol.end());
 	SoS.close();

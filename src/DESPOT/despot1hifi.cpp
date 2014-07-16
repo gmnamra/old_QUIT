@@ -337,8 +337,10 @@ int main(int argc, char **argv) {
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
 	outHdr.setDatatype(Nifti::DataType::FLOAT32);
+	outHdr.intent = Nifti::Intent::Estimate;
 	for (int r = 0; r < NR; r++) {
 		string outName = outPrefix + names[r] + "" + OutExt();
+		outHdr.intent_name = names[r];
 		if (verbose)
 			cout << "Writing result header: " << outName << endl;
 		Nifti::File outFile(outHdr, outName);

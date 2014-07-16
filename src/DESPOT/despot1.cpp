@@ -214,12 +214,16 @@ int main(int argc, char **argv)
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
 	outHdr.setDatatype(Nifti::DataType::FLOAT32);
+	outHdr.intent = Nifti::Intent::Estimate;
+	outHdr.intent_name = "T1 (seconds)";
 	Nifti::File outFile(outHdr, "D1_T1" + OutExt());
 	outFile.writeVolumes(T1Vol.begin(), T1Vol.end());
 	outFile.close();
+	outHdr.intent_name = "PD (au)";
 	outFile.open(outPrefix + "D1_PD" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(PDVol.begin(), PDVol.end());
 	outFile.close();
+	outHdr.intent_name = "Sum of Squared Residuals";
 	outFile.open(outPrefix + "D1_SoS" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(SoSVol.begin(), SoSVol.end());
 	outFile.close();

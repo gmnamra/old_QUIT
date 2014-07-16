@@ -367,17 +367,21 @@ int main(int argc, char **argv)
 	hdr.setDim(4, 1);
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
+	hdr.intent = Nifti::Intent::Estimate;
 	for (size_t p = 1; p < model.nParameters(); p++) { // Skip PD for now
+		hdr.intent_name = model.names().at(p);
 		Nifti::File file(hdr, outPrefix + model.names().at(p) + "" + OutExt());
 		auto param = paramsVols.slice<3>({0,0,0,p},{-1,-1,-1,0});
 		file.writeVolumes(param.begin(), param.end());
 		file.close();
 	}
+	hdr.intent_name = "Sum of Squared Residuals";
 	Nifti::File SoS(hdr, outPrefix + "SoS" + OutExt());
 	SoS.writeVolumes(SoSVol.begin(), SoSVol.end());
 	SoS.close();
 	if (writeResiduals) {
 		hdr.setDim(4, static_cast<int>(model.size()));
+		hdr.intent_name = "Residual";
 		Nifti::File res(hdr, outPrefix + "residuals" + OutExt());
 		res.writeVolumes(residualVols.begin(), residualVols.end());
 		res.close();

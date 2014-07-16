@@ -126,13 +126,15 @@ int main(int argc, char **argv) {
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
 	outHdr.setDatatype(Nifti::DataType::FLOAT32);
+	outHdr.intent = Nifti::Intent::Estimate;
+	outHdr.intent_name = "Flip Angle";
 	string outPath = outPrefix + "angle" + OutExt();
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
 	Nifti::File outAngle(outHdr, outPath);
 	outAngle.writeVolumes(flip.begin(), flip.end(), 0, 1);
 	outAngle.close();
-	
 	outPath = outPrefix + "B1" + OutExt();
+	outHdr.intent_name = "B1 Field Ratio";
 	cout << "Writing B1 ratio to " << outPath << "..." << endl;
 	Nifti::File outB1(outHdr, outPath);
 	outB1.writeVolumes(B1.begin(), B1.end(), 0, 1);
