@@ -4,8 +4,8 @@
  - Based on nifti1_io.h (Thanks to Robert Cox et al)
  - This code is released to the public domain. Do with it what you will.
  */
-#ifndef NIFTI_NIFTI
-#define NIFTI_NIFTI
+#ifndef LIBNIFTI_NIFTI
+#define LIBNIFTI_NIFTI
 
 #include <string>
 #include <algorithm>

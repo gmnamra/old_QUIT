@@ -1,9 +1,10 @@
 /** \file Header.h
  \brief Declaration for Header class
  - Written by Tobias Wood, IoP KCL
+ - This code is released to the public domain. Do with it what you will.
  */
-#ifndef NIFTI_HEADER_H
-#define NIFTI_HEADER_H
+#ifndef LIBNIFTI_HEADER_H
+#define LIBNIFTI_HEADER_H
 
 #include <string>
 #include <iostream>

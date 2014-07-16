@@ -6,9 +6,8 @@
  - This file should NOT be included directly in projects. It is just to 
  - separate the interface from the definition a bit better.
  */
-
-#ifndef NIFTI_NIFTI_INL
-#define NIFTI_NIFTI_INL
+#ifndef LIBNIFTI_NIFTI_INL
+#define LIBNIFTI_NIFTI_INL
 
 /*
  *   Simple class to apply the Nifti scaling (slope & intercept) and cast between the file datatype
