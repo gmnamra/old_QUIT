@@ -336,6 +336,7 @@ int main(int argc, char **argv) {
 	Nifti::Header outHdr = spgrFile.header();
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
+	outHdr.setDatatype(Nifti::DataType::FLOAT32);
 	for (int r = 0; r < NR; r++) {
 		string outName = outPrefix + names[r] + "" + OutExt();
 		if (verbose)

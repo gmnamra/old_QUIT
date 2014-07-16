@@ -125,6 +125,7 @@ int main(int argc, char **argv) {
 	Nifti::Header outHdr = inFile.header();
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
+	outHdr.setDatatype(Nifti::DataType::FLOAT32);
 	string outPath = outPrefix + "angle" + OutExt();
 	cout << "Writing actual flip angle to " << outPath << "..." << endl;
 	Nifti::File outAngle(outHdr, outPath);

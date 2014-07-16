@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	Nifti::File maskFile, B0File, B1File;
 	MultiArray<double, 3> maskVol, B1Vol;
 	string procPath;
-	
+
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hm:o:b:vna:i:e", long_options, &indexptr)) != -1) {
 		switch (c) {
@@ -164,7 +164,6 @@ int main(int argc, char **argv)
 	// Do the fitting
 	//**************************************************************************
 	const auto dims = ssfpVols.dims().head(3);
-	cout << dims.transpose() << endl;
 	MultiArray<float, 3> T2Vol(dims), PDVol(dims), offResVol(dims), SoSVol(dims);
 	time_t startTime;
 	if (verbose)

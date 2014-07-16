@@ -213,6 +213,7 @@ int main(int argc, char **argv)
 	Nifti::Header outHdr = spgrFile.header();
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
+	outHdr.setDatatype(Nifti::DataType::FLOAT32);
 	Nifti::File outFile(outHdr, "D1_T1" + OutExt());
 	outFile.writeVolumes(T1Vol.begin(), T1Vol.end());
 	outFile.close();
