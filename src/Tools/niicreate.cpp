@@ -104,13 +104,13 @@ int main(int argc, char **argv)
 			case 'G': fillTypes.at(atoi(optarg)) = FillType::Gaussian; expected_extra_args += 2; break;
 			case 'h':
 			case '?': // getopt will print an error message
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 		}
 	}
 	if ((argc - optind) != expected_extra_args) {
 		cerr << "Wrong number of arguments." << endl;
 		cout << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	string fName(argv[optind++]);
@@ -145,11 +145,11 @@ int main(int argc, char **argv)
 					ends[d] = atoi(argv[optind++]);
 					if (starts[d] >= data.dims()[d]) {
 						cerr << "Invalid slab start slice." << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 					}
 					if (ends[d] > data.dims()[d]) {
 						cerr << "Invalid slab end slice." << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 					}
 					break;
 				case FillType::Gradient:

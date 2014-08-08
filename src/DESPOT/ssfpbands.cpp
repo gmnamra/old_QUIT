@@ -93,18 +93,18 @@ int main(int argc, char **argv)
 					case 'u': save = SaveMode::Mu; break;
 					default:
 						cout << "Unknown regularisation mode '" << *optarg << "'" << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 				}
 				break;
 			case 'h':
 			case '?': // getopt will print an error message
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 		}
 	}
 	if (verbose) cout << version << endl << credit_me << endl;
 	if ((argc - optind) != 1) {
 		cout << "Incorrect number of arguments." << endl << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	if (verbose) cout << "Opening input file: " << argv[optind] << endl;
 	string fname(argv[optind++]);
@@ -112,11 +112,11 @@ int main(int argc, char **argv)
 	Nifti::Header inHdr = inputFile.header();
 	if (maskFile.isOpen() && !maskFile.header().matchesSpace(inHdr)) {
 		cerr << "Mask does not match input file." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	if ((inputFile.rank() < 4) || ((inputFile.dim(4) % 4) != 0)) {
 		cout << "Input must contain 4 phase-cycles (0, 90, 180, 270)." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	MultiArray<complex<float>, 4> input(inputFile.dims());
 	inputFile.readVolumes(input.begin(), input.end());

@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 	while (getopt_long(argc, argv, "d?e?s?h", long_options, &indexptr) != -1) {}
 	if ((argc - optind) != 1) {
 		cerr << "Must have exactly one Nifti filename to process." << endl << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	string fileName(argv[optind]);
 	File input(fileName);

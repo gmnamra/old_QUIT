@@ -72,8 +72,7 @@ void parseInput(Model &mdl) {
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
 		if (type != "SPGR" && type != "SSFP") {
-			cerr << "Unknown signal type: " << type << endl;
-			exit(EXIT_FAILURE);
+			throw(std::runtime_error("Unknown signal type: " + type));
 		}
 		if ((type == "SPGR") && !finiteModel) {
 			mdl.addSignal(SignalType::SPGR, prompt);
@@ -135,7 +134,7 @@ int main(int argc, char **argv)
 					case 'f': finiteModel = true; if (prompt) cout << "Finite pulse correction selected." << endl; break;
 					default:
 						cout << "Unknown model type " << *optarg << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 						break;
 				}
 				break;
@@ -177,7 +176,7 @@ int main(int argc, char **argv)
 		} else {
 			if (!input.header().matchesSpace(templateHdr)) {
 				cout << "Mismatched input volumes" << endl;
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 			}
 		}
 		auto inVol = paramsVols.slice<3>({0,0,0,i},{-1,-1,-1,0});

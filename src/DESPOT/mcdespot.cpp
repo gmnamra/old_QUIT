@@ -117,8 +117,7 @@ Nifti::Header parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &sign
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
 		if (type != "SPGR" && type != "SSFP") {
-			cerr << "Unknown signal type: " << type << endl;
-			exit(EXIT_FAILURE);
+			throw(std::runtime_error("Unknown signal type: " + type));
 		}
 		if (prompt) cout << "Enter image path: " << flush;
 		getline(cin, path);
@@ -127,8 +126,7 @@ Nifti::Header parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &sign
 			hdr = inFile.header(); // Save header info for later
 		} else {
 			if (!hdr.matchesSpace(inFile.header())) {
-				cerr << "Header for " << inFile.imagePath() << " does not match first header." << endl;
-				exit(EXIT_FAILURE);
+				throw(std::runtime_error("Header for " + inFile.imagePath() + " does not match first header."));
 			}
 		}
 		if (verbose) cout << "Opened: " << inFile.imagePath() << endl;
@@ -213,7 +211,7 @@ int main(int argc, char **argv)
 					case 2 : scale = Model::Scaling::NormToMean; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 						break;
 				} break;
 			case 't':
@@ -223,7 +221,7 @@ int main(int argc, char **argv)
 					case 'u': tesla = Model::FieldStrength::User; break;
 					default:
 						cout << "Unknown boundaries type " << *optarg << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 						break;
 				} break;
 			case 'M':
@@ -232,7 +230,7 @@ int main(int argc, char **argv)
 					case 'f': fitFinite = true;  if (verbose) cout << "Finite pulse correction selected." << endl; break;
 					default:
 						cout << "Unknown model type " << *optarg << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 						break;
 				}
 				break;
@@ -273,7 +271,7 @@ int main(int argc, char **argv)
 		(f0File.isOpen() && !hdr.matchesSpace(f0File.header())) ||
 		(B1File.isOpen() && !hdr.matchesSpace(B1File.header()))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.

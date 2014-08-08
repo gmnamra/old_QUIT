@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 					case 1 : scale = Model::Scaling::None; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 						break;
 				} break;
 			case 't':
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 					case 'u': tesla = Model::FieldStrength::User; break;
 					default:
 						cout << "Unknown boundaries type " << optarg << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 						break;
 				} break;
 			case 'T':
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
 					case 'f': fitFinite = true; cout << "Finite pulse correction selected." << endl; break;
 					default:
 						cout << "Unknown model type " << *optarg << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 						break;
 				}
 				break;
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
 	Eigen::initParallel();
 	if ((argc - optind) < 2) {
 		cout << "Wrong number of arguments. Need at least a T1 map and 1 SSFP file." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
 	Nifti::File inFile(argv[optind++]);
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 	    (f0File.isOpen() && !inFile.header().matchesSpace(f0File.header())) ||
 		(B1File.isOpen() && !inFile.header().matchesSpace(B1File.header()))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	//**************************************************************************
 	// Gather SSFP Data
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
 			hdr = inFile.header();
 		if (!inFile.header().matchesSpace(hdr)) {
 			cerr << "Input file dimensions and/or transforms do not match." << endl;
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 		Agilent::ProcPar pp; ReadPP(inFile, pp);
 		if (fitFinite) {
@@ -247,7 +247,7 @@ int main(int argc, char **argv)
 	}
 	if (optind != argc) {
 		cerr << "Unprocessed arguments supplied.\n" << usage;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	
 	ArrayXd thresh(model.nParameters()); thresh.setConstant(0.05);

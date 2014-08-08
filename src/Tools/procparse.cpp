@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 	
 	if ((argc - optind) <= 0) {
 		cout << "No procpar file specified." << endl << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	paths.emplace_front((argv[optind++]));
 		
@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
 			}
 		} catch (exception &e) {
 			cerr << e.what() << endl;
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 	}
 	

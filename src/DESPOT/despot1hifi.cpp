@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
 				inversionMode = atoi(optarg);
 				if ((inversionMode < 0) || (inversionMode > 3)) {
 					cout << "Bad inversion mode (" << inversionMode << "). Must be 0-3" << endl;
-					exit(EXIT_FAILURE);
+					return EXIT_FAILURE;
 				}
 				break;
 			case 'm':
@@ -172,12 +172,12 @@ int main(int argc, char **argv) {
 				break;
 			case 'v': verbose = true; break;
 			case '?': // getopt will print an error message
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 		}
 	}
 	if ((argc - optind) != 2) {
 		cout << "Incorrect number of arguments." << endl << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	
 	//**************************************************************************
@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
 	spgrFile.open(argv[optind], Nifti::Mode::Read);
 	if (maskFile.isOpen() && !maskFile.header().matchesSpace(spgrFile.header())) {
 		cerr << "SPGR file dimensions or transform do not match mask." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	size_t nSPGR = spgrFile.dim(4);
 	ArrayXd spgrAngles(nSPGR);
@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
 	irFile.open(argv[optind], Nifti::Mode::Read);
 	if (!irFile.header().matchesSpace(spgrFile.header())) {
 		cerr << "Header of " << spgrFile.imagePath() << " does not match " << irFile.imagePath() << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	size_t nIR = irFile.dim(4);
 	ArrayXd irTI(nIR);

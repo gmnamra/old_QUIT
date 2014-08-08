@@ -70,13 +70,13 @@ int main(int argc, char **argv) {
 	}
 	if ((argc - optind) != 1) {
 		cout << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	cout << "Opening input file " << argv[optind] << endl;
 	inFile.open(argv[optind], Nifti::Mode::Read);
 	if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
 		cerr << "Mask dimensions/transform do not match SPGR file." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	Agilent::ProcPar pp;
 	if (ReadPP(inFile, pp)) {

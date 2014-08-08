@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 	
 	if ((argc - optind) <= 0) {
 		cout << "No fdf file specified." << endl << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	paths.emplace_front((argv[optind++]));
 		

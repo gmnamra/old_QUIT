@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
 
 	if (argc != 2) {
 		cout << "Exactly one input file (procpar or nifti) required." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	string iname(argv[1]), outprefix;

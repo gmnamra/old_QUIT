@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 					case 'c': inputType = Type::Complex; cout << "Input is complex." << endl; break;
 					default:
 						cerr << "Unknown input type " << optarg << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 						break;
 				} break;
 			case 'o':
@@ -83,12 +83,12 @@ int main(int argc, char **argv)
 					case 'c': outputType = Type::Complex; cout << "Output will be complex." << endl; break;
 					default:
 						cerr << "Unknown output type " << optarg << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 						break;
 				} break;
 			case 'h':
 			case '?': // getopt will print an error message
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 		}
 	}
 
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 	}
 	if (expected_number_of_arguments != (argc - optind)) {
 		cout << "Expected " << expected_number_of_arguments<<  " filenames, but " << (argc - optind) << " were given." << endl << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	File file1, file2;
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 			file2.open(argv[optind++], Mode::Read);
 			if (!file2.header().matchesSpace(file1.header())) {
 				cerr << "Magnitude and phase files are incompatible." << endl;
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 			}
 			vector<long double> magData(nEl), phaseData(nEl);
 			file1.readAll(magData.begin(), magData.end());
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 			file2.open(argv[optind++], Nifti::Mode::Read);
 			if (!file2.header().matchesSpace(file1.header())) {
 				cerr << "Real and imaginary files are incompatible." << endl;
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 			}
 			vector<long double> realData(nEl), imagData(nEl);
 			file1.readAll(realData.begin(), realData.end());

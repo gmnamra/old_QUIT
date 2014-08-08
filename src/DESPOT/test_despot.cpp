@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 				outPrefix = std::string("test_") + optarg + "c";
 				if ((components < 1) || (components > 3)) {
 					std::cout << "Valid models are 1 to 3 components." << std::endl;
-					exit(EXIT_FAILURE);
+					return EXIT_FAILURE;
 				}
 				break;
 			case 's': testSpeed = true; break;

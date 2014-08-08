@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
 		inFile.open(argv[optind], Nifti::Mode::Read);
 		if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 		Agilent::ProcPar pp;
 		if (ReadPP(inFile, pp)) {
@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
 		inFile.open(argv[optind], Nifti::Mode::Read);
 		if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 		Agilent::ProcPar pp;
 		if (ReadPP(inFile, pp)) {
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 		inFile.open(argv[optind], Nifti::Mode::Read);
 		if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 		if (ReadPP(inFile, pp)){
 			TE2 = pp.realValue("te", 0);
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 		inFile.close();
 	} else {
 		cerr << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	string outPrefix(argv[++optind]);
 	if (TE2 < TE1) {	// Swap them

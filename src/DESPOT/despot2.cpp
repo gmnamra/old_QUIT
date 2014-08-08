@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 					case 'n': algo = Algos::NLLS; if (verbose) cout << "NLLS algorithm selected." << endl; break;
 					default:
 						cout << "Unknown algorithm type " << optarg << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 						break;
 				} break;
 			case 'i':
@@ -124,14 +124,14 @@ int main(int argc, char **argv)
 	if ((argc - optind) != 2) {
 		cout << "Wrong number of arguments. Need a T1 map and 1 SSFP file." << endl;
 		cout << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
 	Nifti::File inFile(argv[optind++]);
 	if ((maskFile.isOpen() && !inFile.header().matchesSpace(maskFile.header())) ||
 		(B1File.isOpen() && !inFile.header().matchesSpace(B1File.header()))){
 		cerr << "Dimensions/transforms do not match in input files." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	MultiArray<double, 3> T1Vol(inFile.matrix());
 	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 	inFile.open(argv[optind], Nifti::Mode::Read);
 	if (!inFile.header().matchesSpace(outHdr)) {
 		cerr << "Dimensions/transforms do not match in input files." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	MultiArray<complex<double>, 4> ssfpVols(inFile.header().fulldims().head(4));
 	inFile.readVolumes(ssfpVols.begin(), ssfpVols.end());

@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 					case 'n': algo = Algos::NLLS; cout << "NLLS algorithm selected." << endl; break;
 					default:
 						cout << "Unknown algorithm type " << optarg << endl;
-						exit(EXIT_FAILURE);
+						return EXIT_FAILURE;
 						break;
 				} break;
 			case 'i':
@@ -118,12 +118,12 @@ int main(int argc, char **argv)
 				break;
 			case 'h':
 			case '?': // getopt will print an error message
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 		}
 	}
 	if ((argc - optind) != 1) {
 		cout << "Incorrect number of arguments." << endl << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	
 	//**************************************************************************
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 	if ((maskFile.isOpen() && !maskFile.header().matchesSpace(spgrFile.header())) ||
 	    (B1File.isOpen() && !B1File.header().matchesSpace(spgrFile.header()))) {
 		cerr << "Mask or B1 dimensions/transform do not match SPGR file." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	Agilent::ProcPar pp; ReadPP(spgrFile, pp);
 	spgrMdl.addSignal(SignalType::SPGR, true, pp);

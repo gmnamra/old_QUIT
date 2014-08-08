@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 			case 'd': outputDeriv = true; break;
 			case 'h':
 			case '?': // getopt will print an error message
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 		}
 	}
 	// Make sure we output something
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 
 	if ((argc - optind) != 1) {
 		cerr << "Incorrect number of files to process." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	cout << "Opening input file: " << argv[optind] << endl;

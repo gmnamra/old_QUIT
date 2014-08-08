@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 	
 	if ((argc - optind) <= 0) {
 		cout << "No input images specified." << endl << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	while (optind < argc) {
 		string inPath(argv[optind]);

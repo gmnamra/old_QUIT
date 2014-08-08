@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 	if ((argc - optind) <= 0 ) {
 		cerr << "No input image file specified." << endl;
 		cout << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	vector<Nifti::File> images;
 	try {

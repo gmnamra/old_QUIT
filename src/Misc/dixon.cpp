@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 				break;
 			case 'h':
 			case '?': // getopt will print an error message
-				exit(EXIT_FAILURE);
+				return EXIT_FAILURE;
 		}
 	}
 	//**************************************************************************
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	if ((argc - optind) != 2) {
 		cout << "Requires 1 magnitude file and 1 phase file with 3 echos each as input." << endl << usage << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	cout << "Opening magnitude file: " << argv[optind] << endl;
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 	inputFile.readVolumes(phase.begin(), phase.end());
 	if (!templateHdr.matchesSpace(inputFile.header()) || (maskFile.isOpen() && !templateHdr.matchesSpace(maskFile.header()))) {
 		cerr << "Input file dimensions or orientations do not match." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	inputFile.close();
 
