@@ -143,6 +143,8 @@ int main(int argc, char **argv)
 
 	if (verbose)
 		cout << "Writing results." << endl;
+	templateHdr.setDim(4,1);
+	templateHdr.setDatatype(Nifti::DataType::FLOAT32);
 	Nifti::File outW(templateHdr, outPrefix + "W" + OutExt());
 	outW.writeVolumes(Wv.begin(), Wv.end());
 	Nifti::File outF(templateHdr, outPrefix + "F" + OutExt());
