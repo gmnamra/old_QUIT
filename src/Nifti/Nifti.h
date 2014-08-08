@@ -76,6 +76,7 @@ class File {
 		size_t rank() const;                                    //!< Get the rank (number of dimensions) of the image.
 		size_t dim(const size_t d) const;                       //!< Get the size (voxel count) of a dimension. Valid dimensions are 1-7.
 		IndexArray dims() const;                                //!< Get all dimension sizes.
+		MatrixSize matrix() const;                              //!< Get the spatial dimensions (first 3, a.k.a. matrix size)
 
 		template<typename IterTp> void readVoxels(IterTp begin, IterTp end, const Eigen::Ref<IndexArray> &start, const Eigen::Ref<IndexArray> &size);
 		template<typename IterTp> void readVolumes(IterTp begin, IterTp end, const size_t first = 0, const size_t nvol = 0);

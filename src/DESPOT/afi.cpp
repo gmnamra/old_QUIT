@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
 			case 'm':
 				cout << "Reading mask." << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				mask.resize(maskFile.dims().head(3).prod());
+				mask.resize(maskFile.matrix().prod());
 				maskFile.readVolumes(mask.begin(), mask.end(), 0, 1);
 				break;
 			case 'o':
@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 		cin >> n >> nomFlip;
 	}
 	nomFlip = nomFlip * M_PI / 180.;
-	size_t nVoxels = inFile.dims().head(3).prod();
+	size_t nVoxels = inFile.matrix().prod();
 	vector<double> tr1(nVoxels), tr2(nVoxels);
 	inFile.readVolumes(tr1.begin(), tr1.end(), 0, 1);
 	inFile.readVolumes(tr2.begin(), tr2.end(), 1, 1);

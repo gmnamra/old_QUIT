@@ -23,6 +23,7 @@ struct nifti_2_header;
 typedef size_t Index;
 typedef Eigen::Array<Index, Eigen::Dynamic, 1> IndexArray;
 typedef Eigen::Array<Index, 7, 1> Indices;
+typedef Eigen::Array<Index, 3, 1> MatrixSize;
 
 DataType DataTypeForCode(const int code);
 
@@ -76,6 +77,7 @@ class Header {
 		void setDim(const Index d, const Index size);       //!< Set the size (voxel count) of a dimension. Valid dimensions are 1-7.
 		IndexArray dims() const;                            //!< Get the active dimension sizes (i.e. up to rank())
 		Indices fulldims() const;                           //!< Get all 7 dimension sizes.
+		MatrixSize matrix() const;                          //!< Return the first 3 dimensions (i.e. just the spatial ones)
 		IndexArray strides() const;                         //!< Get the strides for this image.
 		Index voxoffset() const;                            //!< Return the offset into the file where voxels actually start.
 		void setVoxoffset(const Version v,

@@ -367,7 +367,8 @@ string File::headerPath() const {
 const Header &File::header() const { return m_header; }
 Index File::rank() const { return m_header.rank(); }
 Index File::dim(const size_t d) const { return m_header.dim(d); }
-IndexArray File::dims() const { return m_header.dims(); }
+IndexArray File::dims() const { return m_header.fulldims(); }
+MatrixSize File::matrix() const { return m_header.matrix(); }
 
 /**
   * Seeks to a particular voxel on the disk.

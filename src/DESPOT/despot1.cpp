@@ -59,6 +59,7 @@ static struct option long_options[] =
 	{"B1", required_argument, 0, 'b'},
 	{"algo", required_argument, 0, 'a'},
 	{"its", required_argument, 0, 'i'},
+	{"threads", required_argument, 0, 'T'},
 	{0, 0, 0, 0}
 };
 //******************************************************************************
@@ -77,9 +78,10 @@ int main(int argc, char **argv)
 	Nifti::File spgrFile, B1File, maskFile;
 	MultiArray<float, 3> B1Vol;
 	MultiArray<int8_t, 3> maskVol;
-	
+	ThreadPool threads;
+
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:b:a:i:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:b:a:i:T:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
@@ -110,6 +112,9 @@ int main(int argc, char **argv)
 				} break;
 			case 'i':
 				nIterations = atoi(optarg);
+				break;
+			case 'T':
+				threads.resize(atoi(optarg));
 				break;
 			case 'h':
 			case '?': // getopt will print an error message
@@ -146,9 +151,8 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	MultiArray<float, 3> T1Vol(spgrVols.dims().head(3)), PDVol(spgrVols.dims().head(3)),
-	                     SoSVol(spgrVols.dims().head(3));
-	ThreadPool pool;
+	const auto dims = spgrFile.matrix();
+	MultiArray<float, 3> T1Vol(dims), PDVol(dims), SoSVol(dims);
 	for (size_t k = 0; k < spgrFile.dim(3); k++) {
 		clock_t loopStart;
 		if (verbose)
@@ -197,7 +201,7 @@ int main(int argc, char **argv)
 			}
 		};
 			
-		pool.for_loop(process, spgrFile.dim(2));
+		threads.for_loop(process, spgrFile.dim(2));
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -216,7 +220,7 @@ int main(int argc, char **argv)
 	outHdr.setDatatype(Nifti::DataType::FLOAT32);
 	outHdr.intent = Nifti::Intent::Estimate;
 	outHdr.intent_name = "T1 (seconds)";
-	Nifti::File outFile(outHdr, "D1_T1" + OutExt());
+	Nifti::File outFile(outHdr, outPrefix + "D1_T1" + OutExt());
 	outFile.writeVolumes(T1Vol.begin(), T1Vol.end());
 	outFile.close();
 	outHdr.intent_name = "PD (au)";

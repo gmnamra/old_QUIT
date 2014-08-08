@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 	}
 	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
 	Nifti::File inFile(argv[optind++]);
-	const auto dims = inFile.header().fulldims().head(3);
+	const auto dims = inFile.matrix();
 	MultiArray<float, 3> T1Vol(dims);
 	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
 	inFile.close();
@@ -272,8 +272,8 @@ int main(int argc, char **argv)
 	size_t nParams = 2;
 	if (scale == Model::Scaling::None)
 		nParams = 3;
-	MultiArray<float, 4> paramsVols(hdr.dims().head(3), nParams);
-	MultiArray<float, 4> residualVols(hdr.dims().head(3), model.size());
+	MultiArray<float, 4> paramsVols(hdr.matrix(), nParams);
+	MultiArray<float, 4> residualVols(hdr.matrix(), model.size());
 	MultiArray<float, 3> SoSVol(T1Vol.dims());
 	//**************************************************************************
 	// Do the fitting

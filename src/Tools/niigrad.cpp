@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 	std::string basename = inFile.basePath();
 	Nifti::File outFile(inFile); outFile.close(); outFile.open(basename + "_grad" + OutExt(), Nifti::Mode::Write);
 	cout << "Allocating working memory." << endl;
-	auto d = inFile.dims().head(3);
+	auto d = inFile.matrix();
 	Volume<float> data(d, inFile.header().transform());
 	Volume<float> grad(d, inFile.header().transform());
 	Volume<Eigen::Vector3f> deriv(d, inFile.header().transform());

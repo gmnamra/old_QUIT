@@ -593,6 +593,7 @@ void Header::setDim(const Index d, const Index size) {
 
 IndexArray Header::dims() const { return m_dim.head(rank()); }
 Indices Header::fulldims() const { return m_dim; }
+MatrixSize Header::matrix() const { return m_dim.head(3).eval(); }
 IndexArray Header::strides() const { return m_strides.head(rank()); }
 Index Header::voxoffset() const { return m_voxoffset; }
 /*

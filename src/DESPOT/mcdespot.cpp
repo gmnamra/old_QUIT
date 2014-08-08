@@ -278,9 +278,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	//**************************************************************************
-	MultiArray<float, 4> paramsVols(hdr.dims().head(3), model.nParameters());
-	MultiArray<float, 4> residualVols(hdr.dims().head(3), model.size());;
-	MultiArray<float, 3> SoSVol(hdr.dims().head(3));
+	MultiArray<float, 4> paramsVols(hdr.matrix(), model.nParameters());
+	MultiArray<float, 4> residualVols(hdr.matrix(), model.size());;
+	MultiArray<float, 3> SoSVol(hdr.matrix());
 	
 	ArrayXd threshes(model.nParameters()); threshes.setConstant(0.05);
 	ArrayXXd bounds = model.bounds(tesla);

@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
 			case 'm':
 				cout << "Reading mask from " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				mask.resize(maskFile.dims().head(3).prod());
+				mask.resize(maskFile.matrix().prod());
 				maskFile.readVolumes(mask.begin(), mask.end(), 0, 1);
 				break;
 			case 'p':
@@ -77,8 +77,8 @@ int main(int argc, char** argv) {
 			cout << "Enter TE2 & TE2 (seconds): ";
 			cin >> TE1 >> TE2;
 		}
-		data1.resize(inFile.dims().head(3).prod());
-		data2.resize(inFile.dims().head(3).prod());
+		data1.resize(inFile.matrix().prod());
+		data2.resize(inFile.matrix().prod());
 		inFile.readVolumes(data1.begin(), data1.end(), 0, 1);
 		inFile.readVolumes(data2.begin(), data2.end(), 1, 1);
 		inFile.close();
@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
 			cout << "Enter TE1 (seconds): ";
 			cin >> TE1;
 		}
-		data1.resize(inFile.dims().head(3).prod());
+		data1.resize(inFile.matrix().prod());
 		inFile.readVolumes(data1.begin(), data1.end(), 0, 1);
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
 			cout << "Enter TE2 (seconds): ";
 			cin >> TE2;
 		}
-		data2.resize(inFile.dims().head(3).prod());
+		data2.resize(inFile.matrix().prod());
 		inFile.readVolumes(data2.begin(), data2.end(), 0, 1);
 		inFile.close();
 	} else {
@@ -128,9 +128,9 @@ int main(int argc, char** argv) {
 	}
 	deltaTE = TE2 - TE1;
 	cout << "Delta TE = " << deltaTE << endl;
-	B0.resize(inFile.dims().head(3).prod());
+	B0.resize(inFile.matrix().prod());
 	cout << "Processing..." << endl;
-	for (size_t vox = 0; vox < inFile.dims().head(3).prod(); vox++) {
+	for (size_t vox = 0; vox < inFile.matrix().prod(); vox++) {
 		if (!maskFile.isOpen() || mask[vox] > 0.) {
 			double deltaPhase = data2[vox] - data1[vox];
 			B0[vox] = deltaPhase / (2 * M_PI * deltaTE);

@@ -85,13 +85,13 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskVol.resize(maskFile.dims().head(3));
+				maskVol.resize(maskFile.matrix());
 				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol.resize(B1File.dims().head(3));
+				B1Vol.resize(B1File.matrix());
 				B1File.readVolumes(B1Vol.begin(), B1Vol.end(), 0, 1);
 				break;
 			case 'a':
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 		cerr << "Dimensions/transforms do not match in input files." << endl;
 		exit(EXIT_FAILURE);
 	}
-	MultiArray<double, 3> T1Vol(inFile.header().fulldims().head(3));
+	MultiArray<double, 3> T1Vol(inFile.matrix());
 	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
 	inFile.close();
 	Nifti::Header outHdr = inFile.header(); // Save the header data to write out files
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	const auto dims = ssfpVols.dims().head(3);
+	const auto dims = inFile.matrix();
 	MultiArray<float, 3> T2Vol(dims), PDVol(dims), offResVol(dims), SoSVol(dims);
 	time_t startTime;
 	if (verbose)

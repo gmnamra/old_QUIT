@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData.resize(maskFile.dims().head(3));
+				maskData.resize(maskFile.matrix());
 				maskFile.readVolumes(maskData.begin(), maskData.end(), 0, 1);
 				break;
 			case 'o':
@@ -126,8 +126,8 @@ int main(int argc, char **argv)
 	inputFile.close();
 
 	// Results storage
-	auto d = input.dims().head(3);
-	size_t nFlip = input.dims()[3] / 4;
+	const auto d = inputFile.matrix();
+	size_t nFlip = inputFile.dim(4) / 4;
 	MultiArray<complex<float>, 5>::Index nd; nd << d, 0, 0;
 	nd[phase_dim] = 4;
 	nd[flip_dim] = nFlip;

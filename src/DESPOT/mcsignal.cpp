@@ -173,7 +173,7 @@ int main(int argc, char **argv)
 
 		if (i == 0) {
 			templateHdr = input.header();
-			paramsVols = MultiArray<float, 4>(input.header().fulldims().head(3), model.nParameters());
+			paramsVols = MultiArray<float, 4>(input.matrix(), model.nParameters());
 		} else {
 			if (!input.header().matchesSpace(templateHdr)) {
 				cout << "Mismatched input volumes" << endl;
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 		cout << "Reading data." << endl;
 		input.readVolumes(inVol.begin(), inVol.end(), 0, 1);
 	}
-	auto d = paramsVols.dims();
+	const auto d = paramsVols.dims();
 	MultiArray<complex<float>, 4> signalVols(d.head(3), model.size());
 	cout << "Calculating..." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &k) {

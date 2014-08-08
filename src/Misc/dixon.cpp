@@ -82,13 +82,13 @@ int main(int argc, char **argv)
 	Nifti::File inputFile;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
 	Nifti::Header templateHdr = inputFile.header();
-	MultiArray<float, 4> mag{inputFile.dims()};
+	MultiArray<float, 4> mag{inputFile.dims().head(4)};
 	inputFile.readVolumes(mag.begin(), mag.end());
 	inputFile.close();
 
 	cout << "Opening phase file: " << argv[optind] << endl;
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
-	MultiArray<float, 4> phase{inputFile.dims()};
+	MultiArray<float, 4> phase{inputFile.dims().head(4)};
 	inputFile.readVolumes(phase.begin(), phase.end());
 	if (!templateHdr.matchesSpace(inputFile.header()) || (maskFile.isOpen() && !templateHdr.matchesSpace(maskFile.header()))) {
 		cerr << "Input file dimensions or orientations do not match." << endl;
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 	}
 	inputFile.close();
 
-	auto dims = templateHdr.dims().head(3);
+	const auto dims = templateHdr.matrix().eval();
 	MultiArray<float, 3> Wv(dims), Fv(dims), Av(dims);
 	//**************************************************************************
 	// Do the fitting

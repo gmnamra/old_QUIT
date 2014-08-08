@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData.resize(maskFile.dims().head(3).prod());
+				maskData.resize(maskFile.matrix().prod());
 				maskFile.readVolumes(maskData.begin(), maskData.end(), 0, 1);
 				break;
 			case 'o':
@@ -268,7 +268,7 @@ int main(int argc, char **argv) {
 	// Allocate memory for slices
 	//**************************************************************************	
 	size_t voxelsPerSlice = spgrFile.dims().head(2).prod();
-	size_t voxelsPerVolume = spgrFile.dims().head(3).prod();
+	size_t voxelsPerVolume = spgrFile.matrix().prod();
 	
 	cout << "Reading image data..." << flush;
 	vector<double> SPGR(voxelsPerVolume * nSPGR), IR(voxelsPerVolume * nIR);
