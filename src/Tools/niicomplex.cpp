@@ -221,5 +221,5 @@ int main(int argc, char **argv)
 			out.close();
 		} break;
 	}
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

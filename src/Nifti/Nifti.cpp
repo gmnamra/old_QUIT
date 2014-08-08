@@ -211,7 +211,6 @@ void File::readHeader() {
 void File::writeHeader() {
 	m_header.setMagic(m_nifti_version, m_nii);
 	m_header.setVoxoffset(m_nifti_version, m_nii, totalExtensionSize());
-	if (m_header.voxoffset() > 1024) exit(EXIT_FAILURE);
 	switch (m_nifti_version) {
 		case Version::Nifti1: {
 			struct nifti_1_header nhdr = (nifti_1_header)m_header;

@@ -200,5 +200,5 @@ int main(int argc, char **argv)
 	outFile.writeVolumes(output.begin(), output.end());
 	outFile.close();
 	if (verbose) cout << "Finished." << endl;
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

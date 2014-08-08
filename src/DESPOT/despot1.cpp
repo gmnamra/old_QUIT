@@ -237,5 +237,5 @@ int main(int argc, char **argv)
 		cerr << e.what() << endl;
 		return EXIT_FAILURE;
 	}
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

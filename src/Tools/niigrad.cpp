@@ -94,5 +94,5 @@ int main(int argc, char **argv)
 	inFile.close();
 	outFile.close();
 	cout << "Finished." << endl;
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

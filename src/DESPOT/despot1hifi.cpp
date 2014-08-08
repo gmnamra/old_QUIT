@@ -348,5 +348,5 @@ int main(int argc, char **argv) {
 		outFile.close();
 	}
 	cout << "All done." << endl;
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

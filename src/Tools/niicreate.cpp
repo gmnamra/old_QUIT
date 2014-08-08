@@ -199,6 +199,6 @@ int main(int argc, char **argv)
 		file.writeAll(data.begin(), data.end());
 	}
 	file.close();
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
 

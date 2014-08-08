@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 			case 'h':
 			default:
 				cout << usage << endl;
-				exit(EXIT_SUCCESS);
+				return EXIT_SUCCESS;
 				break;
 		}
 	}

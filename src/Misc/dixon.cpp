@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 	}
 	inputFile.close();
 
-	const auto dims = templateHdr.matrix().eval();
+	const auto dims = templateHdr.matrix();
 	MultiArray<float, 3> Wv(dims), Fv(dims), Av(dims);
 	//**************************************************************************
 	// Do the fitting
@@ -151,7 +151,6 @@ int main(int argc, char **argv)
 	outF.writeVolumes(Fv.begin(), Fv.end());
 	Nifti::File outA(templateHdr, outPrefix + "A" + OutExt());
 	outA.writeVolumes(Av.begin(), Av.end());
-	cout << "All done." << endl;
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
 

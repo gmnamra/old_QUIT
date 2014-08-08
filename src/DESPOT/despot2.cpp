@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 			case '?': // getopt will print an error message
 			case 'h':
 				cout << usage << endl;				
-				exit(EXIT_SUCCESS);
+				return EXIT_SUCCESS;
 		}
 	}
 	if (verbose) cout << version << credit_shared << endl;
@@ -276,5 +276,5 @@ int main(int argc, char **argv)
 		cerr << e.what() << endl;
 		return EXIT_FAILURE;
 	}
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
