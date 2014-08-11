@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F61B0B3D1976656000C5F458 /* Header.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F61B0B391976656000C5F458 /* Header.cpp */; };
+		F61B0B3E1976656000C5F458 /* Header.h in Headers */ = {isa = PBXBuildFile; fileRef = F61B0B3A1976656000C5F458 /* Header.h */; };
+		F61B0B3F1976656000C5F458 /* nifti2.h in Headers */ = {isa = PBXBuildFile; fileRef = F61B0B3B1976656000C5F458 /* nifti2.h */; };
+		F61B0B401976656000C5F458 /* Extension.h in Headers */ = {isa = PBXBuildFile; fileRef = F61B0B3C1976656000C5F458 /* Extension.h */; };
 		F6BA458318EAABFD00E69FDD /* Extension.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6BA457418EAABFD00E69FDD /* Extension.cpp */; };
 		F6BA458418EAABFD00E69FDD /* ExtensionCodes.h in Headers */ = {isa = PBXBuildFile; fileRef = F6BA457518EAABFD00E69FDD /* ExtensionCodes.h */; };
 		F6BA458618EAABFD00E69FDD /* Internal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F6BA457718EAABFD00E69FDD /* Internal.cpp */; };
@@ -20,6 +24,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		F61B0B391976656000C5F458 /* Header.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Header.cpp; path = Nifti/Header.cpp; sourceTree = "<group>"; };
+		F61B0B3A1976656000C5F458 /* Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Header.h; path = Nifti/Header.h; sourceTree = "<group>"; };
+		F61B0B3B1976656000C5F458 /* nifti2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = nifti2.h; path = Nifti/nifti2.h; sourceTree = "<group>"; };
+		F61B0B3C1976656000C5F458 /* Extension.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Extension.h; path = Nifti/Extension.h; sourceTree = "<group>"; };
 		F6BA457418EAABFD00E69FDD /* Extension.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Extension.cpp; path = Nifti/Extension.cpp; sourceTree = "<group>"; };
 		F6BA457518EAABFD00E69FDD /* ExtensionCodes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ExtensionCodes.h; path = Nifti/ExtensionCodes.h; sourceTree = "<group>"; };
 		F6BA457618EAABFD00E69FDD /* Internal-inl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "Internal-inl.h"; path = "Nifti/Internal-inl.h"; sourceTree = "<group>"; };
@@ -57,6 +65,10 @@
 		F6E9DAB516022D0B005D73E3 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				F61B0B391976656000C5F458 /* Header.cpp */,
+				F61B0B3A1976656000C5F458 /* Header.h */,
+				F61B0B3B1976656000C5F458 /* nifti2.h */,
+				F61B0B3C1976656000C5F458 /* Extension.h */,
 				F6BA457418EAABFD00E69FDD /* Extension.cpp */,
 				F6BA457518EAABFD00E69FDD /* ExtensionCodes.h */,
 				F6BA457618EAABFD00E69FDD /* Internal-inl.h */,
@@ -82,9 +94,12 @@
 			files = (
 				F6BA458418EAABFD00E69FDD /* ExtensionCodes.h in Headers */,
 				F6BA459118EAABFD00E69FDD /* ZipFile.h in Headers */,
+				F61B0B3F1976656000C5F458 /* nifti2.h in Headers */,
+				F61B0B401976656000C5F458 /* Extension.h in Headers */,
 				F6BA458918EAABFD00E69FDD /* Nifti-inl.h in Headers */,
 				F6BA458B18EAABFD00E69FDD /* Nifti.h in Headers */,
 				F6BA458818EAABFD00E69FDD /* nifti_analyze.h in Headers */,
+				F61B0B3E1976656000C5F458 /* Header.h in Headers */,
 				F6BA458C18EAABFD00E69FDD /* nifti1.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -141,6 +156,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F6BA458618EAABFD00E69FDD /* Internal.cpp in Sources */,
+				F61B0B3D1976656000C5F458 /* Header.cpp in Sources */,
 				F6BA458A18EAABFD00E69FDD /* Nifti.cpp in Sources */,
 				F6BA459018EAABFD00E69FDD /* ZipFile.cpp in Sources */,
 				F6BA458318EAABFD00E69FDD /* Extension.cpp in Sources */,
