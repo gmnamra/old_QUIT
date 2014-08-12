@@ -22,7 +22,7 @@ BUILD_DIR   := build
 SOURCE_DIR  := src
 INSTALL_DIR := ./bin
 
-CXXFLAGS := -std=c++11 $(STDLIB) $(THREADS) -g -O3 -m64 -msse3 -mssse3 -msse4.1 -msse4.2 -Wfatal-errors $(MOREFLAGS)
+CXXFLAGS := -std=c++11 $(STDLIB) $(THREADS) -m64 -Wfatal-errors $(MOREFLAGS)
 LDFLAGS  := -std=c++11 $(STDLIB) $(THREADS) -m64 -L$(BUILD_DIR)
 INCLUDE    := -I$(EIGEN_DIR) -Isrc -Isrc/Agilent
 
@@ -101,7 +101,13 @@ $(addprefix $(BUILD_DIR)/, $(MISC)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(MISC_DIR)/
 
 TARGETS := $(TOOLS) $(PYTOOLS) $(DESPOT) $(MISC)
 LIB_TGT := libNifti.a libAgilent.a libQUIT.a
+
+all     : CXXFLAGS += -O3 -msse3 -mssse3 -msse4.1 -msse4.2
 all     : $(LIB_TGT) $(TARGETS)
+
+debug   : CXXFLAGS += -g
+debug   : LDFLAGS  += -g
+debug   : $(LIB_TGT) $(TARGETS)
 
 clean :
 	rm -rf $(BUILD_DIR)
