@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 			case 'm':
 				if (verbose) cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskVol.resize(maskFile.dims());
+				maskVol.resize(maskFile.matrix());
 				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
 			case 'o':
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 			case 'b':
 				if (verbose) cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol.resize(B1File.dims());
+				B1Vol.resize(B1File.matrix());
 				B1File.readVolumes(B1Vol.begin(), B1Vol.end(), 0, 1);
 				break;
 			case 's': start_slice = atoi(optarg); break;
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 			model.addSignal(SignalType::SSFP, prompt, pp);
 		}
 		if (verbose) cout << "Reading data." << endl;
-		ssfpData.at(p).resize(inFile.dims());
+		ssfpData.at(p).resize(inFile.dims().head(4));
 		inFile.readVolumes(ssfpData.at(p).begin(), ssfpData.at(p).end());
 		inFile.close();
 		optind++;

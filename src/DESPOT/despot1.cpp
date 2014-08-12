@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskVol.resize(maskFile.dims());
+				maskVol.resize(maskFile.matrix());
 				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
 			case 'o':
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol.resize(B1File.dims());
+				B1Vol.resize(B1File.matrix());
 				B1File.readVolumes(B1Vol.begin(), B1Vol.end());
 				break;
 			case 'a':
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 	}
 	double TR = spgrMdl.m_signals.at(0)->m_TR;
 	cout << "Reading SPGR data..." << flush;
-	MultiArray<complex<float>, 4> spgrVols(spgrFile.dims());
+	MultiArray<complex<float>, 4> spgrVols(spgrFile.dims().head(4));
 	spgrFile.readVolumes(spgrVols.begin(), spgrVols.end());
 	cout << "done." << endl;
 	//**************************************************************************

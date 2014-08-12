@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 		cout << "Input must contain 4 phase-cycles (0, 90, 180, 270)." << endl;
 		return EXIT_FAILURE;
 	}
-	MultiArray<complex<float>, 4> input(inputFile.dims());
+	MultiArray<complex<float>, 4> input(inputFile.dims().head(4));
 	inputFile.readVolumes(input.begin(), input.end());
 	if (outname == "") {
 		outname = inputFile.basePath();
@@ -187,6 +187,7 @@ int main(int argc, char **argv)
 	printElapsedClock(startClock, d.prod());
 	inHdr.setDim(4, nFlip);
 	inHdr.setDatatype(Nifti::DataType::COMPLEX64);
+
 	switch (save) {
 		case SaveMode::LineReg:    outname += "_lreg" + OutExt(); break;
 		case SaveMode::MagReg:     outname += "_mreg" + OutExt(); break;

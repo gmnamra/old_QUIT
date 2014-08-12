@@ -6,7 +6,15 @@
 #ifndef LIBNIFTI_ENUM_H
 #define LIBNIFTI_ENUM_H
 
+#include <Eigen/Core>
+
 namespace Nifti {
+
+typedef size_t Index;
+static const Index MaxIndex = std::numeric_limits<Index>::max();
+typedef Eigen::Array<Index, Eigen::Dynamic, 1> IndexArray;
+typedef Eigen::Array<Index, 7, 1> Indices;
+typedef Eigen::Array<Index, 3, 1> MatrixSize;
 
 enum class Mode : char { Closed = 0, Read = 'r', ReadHeader = 'h', Write = 'w' };
 enum class Version { Nifti1, Nifti2 };

@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 				return EXIT_SUCCESS;
 		}
 	}
-	if (verbose) cout << version << credit_shared << endl;
+	if (verbose) cout << version << endl << credit_shared << endl;
 	Eigen::initParallel();
 	if ((argc - optind) != 2) {
 		cout << "Wrong number of arguments. Need a T1 map and 1 SSFP file." << endl;

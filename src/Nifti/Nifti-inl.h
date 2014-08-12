@@ -67,30 +67,21 @@ class File::Scale<std::complex<FromTp>, std::complex<ToTp>> {
  */
 template<typename Iter>
 void File::readWriteVoxels(const IndexArray &inStart, const IndexArray &inSize, Iter &storageBegin, Iter &storageEnd) {
-
-	// Now go through some tedious input validation
-	if (inStart.rows() != inSize.rows()) throw(std::out_of_range("Start and size must have same dimension in image: " + imagePath()));
-	Index rank = 0;
-	for (size_t d = inSize.rows(); d > 0; d--) {
-		// Remember 0 represents full dimension
-		if (inSize[d - 1] != 1) {
-			rank = d;
-			break;
-		}
-	}
-	if (rank != m_header.rank()) {
-		throw(std::out_of_range("Rank of I/O operation (" + std::to_string(rank) + ") does not equal data rank (" + std::to_string(m_header.rank()) + ") in image: " + imagePath()));
-	}
-	const IndexArray dims = m_header.dims();
+	const Indices dims = m_header.fulldims();
 	const DataTypeInfo dt = TypeInfo(m_header.datatype());
-	IndexArray start = inStart.head(rank);
-	IndexArray size  = inSize.head(rank);
-	// 0 indicates read whole dimension, so swap for the real size
-	for (IndexArray::Index i = 0; i < rank; i++) {
-		if (size(i) == 0)
+
+	Indices start = Indices::Zero();
+	Indices size  = Indices::Ones();
+
+	start.head(inStart.size()) = inStart;
+	size.head(inSize.size()) = inSize;
+
+	// MaxIndex indicates read whole dimension, so swap for the real size
+	for (Indices::Index i = 0; i < size.rows(); i++) {
+		if (size(i) == MaxIndex)
 			size(i) = dims(i);
 	}
-	if (((start + size) > dims.head(start.rows())).any()) throw(std::out_of_range("Read/write past image dimensions requested: " + imagePath()));
+	if (((start + size) > dims).any()) throw(std::out_of_range("Read/write past image dimensions requested: " + imagePath()));
 	if (size.prod() != std::distance(storageBegin, storageEnd)) throw(std::out_of_range("Storage size does not match requested read/write size in image: " + imagePath()));
 	
 	// Now collapse sequential reads/writes into the biggest read/write we can for efficiency
@@ -181,7 +172,7 @@ template<typename IterTp> void File::readAll(IterTp begin, IterTp end) {
 	if (!(m_mode == Mode::Read))
 		throw(std::runtime_error("File must be opened for reading: " + basePath()));
 	IndexArray start = IndexArray::Zero(rank());
-	IndexArray size  = IndexArray::Zero(rank());
+	IndexArray size  = dims().head(rank());
 	readWriteVoxels(start, size, begin, end);
 }
 
@@ -206,7 +197,7 @@ template<typename IterTp> void File::writeAll(IterTp begin, IterTp end) {
 	if (!(m_mode == Mode::Write))
 		throw(std::runtime_error("File must be opened for writing: " + basePath()));
 	IndexArray start = IndexArray::Zero(rank());
-	IndexArray size  = IndexArray::Zero(rank());
+	IndexArray size  = dims().head(rank());
 	readWriteVoxels(start, size, begin, end);
 }
 

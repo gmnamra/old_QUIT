@@ -88,6 +88,7 @@ class File {
 		void addExtension(const Extension &e);
 		const std::list<Extension> &extensions() const;
 		void setExtensions(const std::list<Extension> &es);
+		void clearExtensions();
 };
 
 #include "Nifti-inl.h"

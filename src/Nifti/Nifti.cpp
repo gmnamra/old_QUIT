@@ -247,6 +247,10 @@ void File::setExtensions(const list<Extension> &newExts) {
 	m_extensions = newExts;
 }
 
+void File::clearExtensions() {
+	m_extensions.clear();
+}
+
 int File::totalExtensionSize() {
 	int total = 0;
 	for (auto ext: m_extensions) {
@@ -377,11 +381,15 @@ MatrixSize File::matrix() const { return m_header.matrix(); }
   * @throws std::out_of_range if the target is outside the image dimensions.
   * @throws std::runtime_error if the seek fails.
   */
-void File::seekToVoxel(const IndexArray &target) {
-	if ((target > m_header.dims().head(target.rows())).any()) {
+void File::seekToVoxel(const IndexArray &inTarget) {
+	if (inTarget.rows() > dims().rows()) {
+		throw(std::out_of_range("Target voxel has too many dimensions."));
+	}
+	if ((inTarget >= dims().head(inTarget.rows())).any()) {
 		throw(std::out_of_range("Target voxel is outside image dimensions."));
 	}
-	size_t index = (target * m_header.strides().head(target.rows())).sum() * m_header.typeInfo().size + m_header.voxoffset();
+	IndexArray target = inTarget.head(rank());
+	size_t index = (target * m_header.strides()).sum() * m_header.typeInfo().size + m_header.voxoffset();
 	size_t current = m_file.tell();
 	if ((index - current != 0) && !m_file.seek(index - current, SEEK_CUR)) {
 		stringstream ss; ss << target.transpose();

@@ -9,6 +9,7 @@
 #include <string>
 #include <iostream>
 #include <map>
+#include <limits>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -19,11 +20,6 @@ namespace Nifti {
 
 struct nifti_1_header;
 struct nifti_2_header;
-
-typedef size_t Index;
-typedef Eigen::Array<Index, Eigen::Dynamic, 1> IndexArray;
-typedef Eigen::Array<Index, 7, 1> Indices;
-typedef Eigen::Array<Index, 3, 1> MatrixSize;
 
 DataType DataTypeForCode(const int code);
 
