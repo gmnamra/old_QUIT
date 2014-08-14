@@ -92,4 +92,14 @@ void printLoopTime(const clock_t &loopStart, const int voxCount) {
 	}
 }
 
+void checkHeaders(const Nifti::Header &n1, std::vector<const Nifti::File> ns) {
+	auto compare = ns.begin();
+	while (compare != ns.end()) {
+		if (*compare && !(n1.matchesSpace(compare->header()))) {
+			throw(runtime_error("Incompatible matrix or transform in file: " + compare->imagePath()));
+		}
+		compare++;
+	}
+}
+
 } // End namespace QUIT
