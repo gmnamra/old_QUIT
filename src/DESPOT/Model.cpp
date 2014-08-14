@@ -1,5 +1,5 @@
 /*
- *  Model.cpp
+ *  Sequences.cpp
  *
  *  Created by Tobias Wood on 14/11/2012.
  *  Copyright (c) 2013 Tobias Wood.
@@ -12,10 +12,7 @@
 
 #include "Model.h"
 
-//******************************************************************************
-#pragma mark Signal Functors
-//******************************************************************************
-const string Signal::to_string(const Components& c) {
+const string to_string(const Components& c) {
 	switch (c) {
 		case Components::One: return "1";
 		case Components::Two: return "2";
@@ -23,22 +20,42 @@ const string Signal::to_string(const Components& c) {
 	}
 };
 
-Signal::Signal() {}
-Signal::Signal(const ArrayXd &flip, const double TR) : m_flip(flip), m_TR(TR) {}
+const string to_string(const FieldStrength& f) {
+	static const string f3{"3T"}, f7{"7T"}, fu{"User"};
+	switch (f) {
+		case FieldStrength::Three: return f3;
+		case FieldStrength::Seven: return f7;
+		case FieldStrength::User: return fu;
+	}
+}
 
-ostream& operator<<(ostream& os, const Signal& s) {
+const string to_string(const Scale &p) {
+	static const string sn{"None"}, snm{"Normalised to Mean"};
+	switch (p) {
+		case Scale::None: return sn;
+		case Scale::NormToMean: return snm;
+	}
+}
+
+//******************************************************************************
+#pragma mark Sequence Functors
+//******************************************************************************
+Sequence::Sequence() {}
+Sequence::Sequence(const ArrayXd &flip, const double TR) : m_flip(flip), m_TR(TR) {}
+
+ostream& operator<<(ostream& os, const Sequence& s) {
 	s.write(os);
 	return os;
 }
 
-ArrayXd Signal::B1flip(const double B1) const {
+ArrayXd Sequence::B1flip(const double B1) const {
 	return B1 * m_flip;
 }
 
 // Parameters are PD, T1, T2, f0
 //                PD, T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0
 //				  PD, T1_a, T2_a, T1_b, T2_b, T1_c, T2_c, tau_a, f_a, f_c, f0
-SPGRSimple::SPGRSimple(const ArrayXd &flip, const double TR) : Signal(flip, TR) {}
+SPGRSimple::SPGRSimple(const ArrayXd &flip, const double TR) : Sequence(flip, TR) {}
 SPGRSimple::SPGRSimple(const bool prompt, const Agilent::ProcPar &pp) {
 	if (pp) {
 		m_flip = pp.realValues("flip1") * M_PI / 180.;
@@ -95,7 +112,7 @@ ArrayXcd SPGRFinite::signal(const Components nC, const VectorXd &p, const double
 }
 
 
-SSFPSimple::SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases) : Signal(flip, TR), m_phases(phases) {}
+SSFPSimple::SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases) : Sequence(flip, TR), m_phases(phases) {}
 SSFPSimple::SSFPSimple(const bool prompt, const Agilent::ProcPar &pp) {
 	if (pp) {
 		m_phases = pp.realValues("rfphase") * M_PI / 180.;
@@ -203,55 +220,46 @@ ArrayXcd SSFPEllipse::signal(const Components nC, const VectorXd &p, const doubl
 }
 
 //******************************************************************************
-#pragma mark Model Class
+#pragma mark Sequences Class
 //******************************************************************************
-const string Model::to_string(const FieldStrength& f) {
-	static const string f3{"3T"}, f7{"7T"}, fu{"User"};
-	switch (f) {
-		case FieldStrength::Three: return f3;
-		case FieldStrength::Seven: return f7;
-		case FieldStrength::User: return fu;
-	}
-}
-const string Model::to_string(const Scaling &p) {
-	static const string sn{"None"}, snm{"Normalised to Mean"};
-	switch (p) {
-		case Scaling::None: return sn;
-		case Scaling::NormToMean: return snm;
-	}
-}
+Sequences::Sequences(const Components c, const Scale s) : m_nC(c), m_scaling(s) {}
 
-
-Model::Model(const Signal::Components c, const Scaling s) : m_nC(c), m_scaling(s) {}
-
-ostream& operator<<(ostream &os, const Model& m) {
-	os << "Model Parameters: " << m.nParameters() << endl;
+ostream& operator<<(ostream &os, const Sequences& m) {
+	os << "Sequences Parameters: " << m.nParameters() << endl;
 	os << "Names:\t"; for (auto& n : m.names()) os << n << "\t"; os << endl;
-	os << "Signals: " << m.m_signals.size() << "\tTotal size: " << m.size() << endl;
-	for (auto& sig : m.m_signals)
+	os << "Signals: " << m.m_sequences.size() << "\tCombined size: " << m.combinedSize() << endl;
+	for (auto& sig : m.m_sequences)
 		os << *sig;
 	return os;
 }
 
-size_t Model::nSignals() const {
-	return m_signals.size();
+size_t Sequences::count() const {
+	return m_sequences.size();
 }
 
-size_t Model::size() const {
+shared_ptr<Sequence> Sequences::sequence(const size_t i) const {
+	return m_sequences.at(i);
+}
+
+const ArrayXcd Sequences::signal(const size_t i, const VectorXd &p, const double B1) const {
+	return m_sequences.at(i)->signal(m_nC, p, B1);
+}
+
+size_t Sequences::combinedSize() const {
 	size_t sz = 0;
-	for (auto& sig : m_signals)
+	for (auto& sig : m_sequences)
 		sz += sig->size();
 	return sz;
 }
 
-const ArrayXcd Model::signal(const VectorXd &p, const double B1) const {
-	ArrayXcd result(size());
+const ArrayXcd Sequences::combinedSignal(const VectorXd &p, const double B1) const {
+	ArrayXcd result(combinedSize());
 	size_t start = 0;
-	for (auto &sig : m_signals) {
+	for (auto &sig : m_sequences) {
 		ArrayXcd thisResult = sig->signal(m_nC, p, B1);
 		switch (m_scaling) {
-			case Scaling::None :       break;
-			case Scaling::NormToMean : thisResult /= thisResult.abs().mean();
+			case Scale::None :       break;
+			case Scale::NormToMean : thisResult /= thisResult.abs().mean();
 		}
 		result.segment(start, sig->size()) = thisResult;
 		start += sig->size();
@@ -259,52 +267,52 @@ const ArrayXcd Model::signal(const VectorXd &p, const double B1) const {
 	return result;
 }
 
-const size_t Model::nParameters() const {
+const size_t Sequences::nParameters() const {
 	switch (m_nC) {
-		case Signal::Components::One: return 4;
-		case Signal::Components::Two: return 8;
-		case Signal::Components::Three: return 11;
+		case Components::One: return 4;
+		case Components::Two: return 8;
+		case Components::Three: return 11;
 	}
 }
 
-const vector<string> &Model::names() const {
+const vector<string> &Sequences::names() const {
 	static vector<string> n1 {"PD", "T1", "T2", "f0"},
 	                      n2 {"PD", "T1_a", "T2_a", "T1_b", "T2_b", "tau_a", "f_a", "f0"},
 				          n3 {"PD", "T1_a", "T2_a", "T1_b", "T2_b", "T1_c", "T2_c", "tau_a", "f_a", "f_c", "f0"};
 	
 	switch (m_nC) {
-		case Signal::Components::One: return n1;
-		case Signal::Components::Two: return n2;
-		case Signal::Components::Three: return n3;
+		case Components::One: return n1;
+		case Components::Two: return n2;
+		case Components::Three: return n3;
 	}
 }
 
-const ArrayXXd Model::bounds(const FieldStrength f) const {
+const ArrayXXd Sequences::bounds(const FieldStrength f) const {
 	size_t nP = nParameters();
 	ArrayXXd b(nP, 2);
 	switch (f) {
 		case FieldStrength::Three:
 			switch (m_nC) {
-				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 4.5, 0.010, 2.500; break;
-				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.030, 0.700, 4.500, 0.050, 0.200, 0.025, 0.600, 0.00, 1.0; break;
-				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.030, 0.700, 2.000, 0.050, 0.200, 3.000, 4.500, 1.50, 2.50, 0.025, 0.600, 0.0, 1.0, 0, 1.0; break;
+				case Components::One:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 4.5, 0.010, 2.500; break;
+				case Components::Two:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.030, 0.700, 4.500, 0.050, 0.200, 0.025, 0.600, 0.00, 1.0; break;
+				case Components::Three: b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.030, 0.700, 2.000, 0.050, 0.200, 3.000, 4.500, 1.50, 2.50, 0.025, 0.600, 0.0, 1.0, 0, 1.0; break;
 			} break;
 		case FieldStrength::Seven:
 			switch (m_nC) {
-				case Signal::Components::One:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 4.5, 0.010, 2.500; break;
-				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.025, 1.5, 4.5, 0.04, 0.20, 0.025, 0.600, 0.0, 1.0; break;
-				case Signal::Components::Three: b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.025, 1.5, 2.5, 0.04, 0.20, 3.000, 4.500, 1.5, 2.5, 0.025, 0.600, 0.0, 1.0, 0.0, 1.0; break;
+				case Components::One:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 4.5, 0.010, 2.500; break;
+				case Components::Two:   b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.025, 1.5, 4.5, 0.04, 0.20, 0.025, 0.600, 0.0, 1.0; break;
+				case Components::Three: b.block(0, 0, nP - 1, 2) << 1.0, 1.0, 0.1, 0.5, 0.001, 0.025, 1.5, 2.5, 0.04, 0.20, 3.000, 4.500, 1.5, 2.5, 0.025, 0.600, 0.0, 1.0, 0.0, 1.0; break;
 			} break;
 		case FieldStrength::User:
 			switch (m_nC) {
-				case Signal::Components::One:   b.block(0, 0, nP - 1, 2).setZero(); break;
-				case Signal::Components::Two:   b.block(0, 0, nP - 1, 2).setZero(); break;
-				case Signal::Components::Three: b.block(0, 0, nP - 1, 2).setZero(); break;
+				case Components::One:   b.block(0, 0, nP - 1, 2).setZero(); break;
+				case Components::Two:   b.block(0, 0, nP - 1, 2).setZero(); break;
+				case Components::Three: b.block(0, 0, nP - 1, 2).setZero(); break;
 			} break;
 	}
 	
 	double minTR = numeric_limits<double>::max();
-	for (auto &s : m_signals) {
+	for (auto &s : m_sequences) {
 		if (s->m_TR < minTR)
 			minTR = s->m_TR;
 	}
@@ -313,14 +321,14 @@ const ArrayXXd Model::bounds(const FieldStrength f) const {
 	return b;
 }
 
-const bool Model::validParameters(const VectorXd &params) const {
+const bool Sequences::validParameters(const VectorXd &params) const {
 	// Negative T1/T2 makes no sense
 	if ((params[1] <= 0.) || (params[2] <= 0.))
 		return false;
 	
 	switch (m_nC) {
-		case Signal::Components::One : return true;
-		case Signal::Components::Two :
+		case Components::One : return true;
+		case Components::Two :
 			// Check that T1_a, T2_a < T1_b, T2_b and that f_a makes sense
 			if ((params[1] < params[3]) &&
 				(params[2] < params[4]) &&
@@ -328,7 +336,7 @@ const bool Model::validParameters(const VectorXd &params) const {
 				return true;
 			else
 				return false;
-		case Signal::Components::Three :
+		case Components::Three :
 			// Check that T1/2_a < T1/2_b < T1/2_c and that f_a + f_c makes sense
 			if ((params[1] < params[3]) &&
 				(params[2] < params[4]) &&
@@ -341,12 +349,12 @@ const bool Model::validParameters(const VectorXd &params) const {
 	}
 }
 
-ArrayXcd Model::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k) const {
-	ArrayXcd signal(size());
+ArrayXcd Sequences::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k) const {
+	ArrayXcd signal(combinedSize());
 	size_t start = 0;
-	for (size_t s = 0; s < m_signals.size(); s++) {
+	for (size_t s = 0; s < m_sequences.size(); s++) {
 		ArrayXcd thisSig = sigs.at(s).slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
-		if (m_scaling == Scaling::NormToMean)
+		if (m_scaling == Scale::NormToMean)
 			thisSig /= thisSig.abs().mean();
 		signal.segment(start, thisSig.rows()) = thisSig;
 		start += thisSig.rows();
@@ -355,12 +363,12 @@ ArrayXcd Model::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, c
 }
 
 
-void Model::addSignal(const SignalType &st, const bool prompt, const Agilent::ProcPar &pp) {
+void Sequences::addSequence(const SequenceType &st, const bool prompt, const Agilent::ProcPar &pp) {
 	switch (st) {
-		case SignalType::SPGR:         m_signals.push_back(make_shared<SPGRSimple>(prompt, pp)); break;
-		case SignalType::SPGR_Finite:  m_signals.push_back(make_shared<SPGRFinite>(prompt, pp)); break;
-		case SignalType::SSFP:         m_signals.push_back(make_shared<SSFPSimple>(prompt, pp)); break;
-		case SignalType::SSFP_Finite:  m_signals.push_back(make_shared<SSFPFinite>(prompt, pp)); break;
-		case SignalType::SSFP_Ellipse: m_signals.push_back(make_shared<SSFPEllipse>(prompt, pp)); break;
+		case SequenceType::SPGR:         m_sequences.push_back(make_shared<SPGRSimple>(prompt, pp)); break;
+		case SequenceType::SPGR_Finite:  m_sequences.push_back(make_shared<SPGRFinite>(prompt, pp)); break;
+		case SequenceType::SSFP:         m_sequences.push_back(make_shared<SSFPSimple>(prompt, pp)); break;
+		case SequenceType::SSFP_Finite:  m_sequences.push_back(make_shared<SSFPFinite>(prompt, pp)); break;
+		case SequenceType::SSFP_Ellipse: m_sequences.push_back(make_shared<SSFPEllipse>(prompt, pp)); break;
 	}
 }

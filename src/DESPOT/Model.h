@@ -26,26 +26,34 @@ using namespace std;
 using namespace Eigen;
 
 //******************************************************************************
-#pragma mark Signal Functors
+// Some convenience Enums
 //******************************************************************************
-class Signal {
+enum class Components { One, Two, Three };
+const string to_string(const Components& c);
+
+enum class Scale { None, NormToMean };
+const string to_string(const Scale &p);
+
+enum class FieldStrength { Three, Seven, User };
+const string to_string(const FieldStrength& f);
+//******************************************************************************
+// Sequence Functors
+//******************************************************************************
+class Sequence {
 	public:
-		enum class Components { One, Two, Three };
-		static const string to_string(const Components& c);
-		
 		double m_TR;
 		ArrayXd m_flip;
-		Signal();
-		Signal(const ArrayXd &flip, const double TR);
+		Sequence();
+		Sequence(const ArrayXd &flip, const double TR);
 		ArrayXd B1flip(const double B1) const;
 		virtual ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const = 0;
 		virtual size_t size() const { return m_flip.rows(); }
 		virtual void write(ostream &os) const = 0;
 		virtual string name() const = 0;
 };
-ostream& operator<<(ostream& os, const Signal& s);
+ostream& operator<<(ostream& os, const Sequence& s);
 
-class SPGRSimple : public Signal {
+class SPGRSimple : public Sequence {
 	public:
 		SPGRSimple(const ArrayXd &flip, const double TR);
 		SPGRSimple(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
@@ -62,7 +70,7 @@ class SPGRFinite : public SPGRSimple {
 		void write(ostream& os) const override;
 		string name() const override { return "SPGR_Finite"; } ;
 };
-class SSFPSimple : public Signal {
+class SSFPSimple : public Sequence {
 	public:
 		ArrayXd m_phases;
 		SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases);
@@ -81,7 +89,7 @@ class SSFPFinite : public SSFPSimple {
 		void write(ostream& os) const override;
 		string name() const override { return "SSFP_Finite"; } ;
 };
-class SSFPEllipse : public Signal {
+class SSFPEllipse : public Sequence {
 	public:
 		SSFPEllipse(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Components nC, const VectorXd &p, const double B1 = 1.) const override;
@@ -89,28 +97,26 @@ class SSFPEllipse : public Signal {
 		string name() const override { return "SSFP_Ellipse"; };
 };
 
-enum class SignalType { SPGR, SPGR_Finite, SSFP, SSFP_Finite, SSFP_Ellipse };
+enum class SequenceType { SPGR, SPGR_Finite, SSFP, SSFP_Finite, SSFP_Ellipse };
 enum class OffRes { Fit, FitSym, Map }; // Put this here so mcdespot and despot2fm can access it
 
-class Model {
+class Sequences {
+private:
+	Components m_nC;
+	Scale m_scaling;
+	vector<shared_ptr<Sequence>> m_sequences;
+
 public:
-	enum class Scaling { None, NormToMean };
-	enum class FieldStrength { Three, Seven, User };
-	
-	static const string to_string(const FieldStrength& f);
-	static const string to_string(const Scaling &p);
+	Sequences(const Components c, const Scale s);
+	friend ostream& operator<<(ostream& os, const Sequences& m);
 
-	Signal::Components m_nC;
-	Scaling m_scaling;
-	vector<shared_ptr<Signal>> m_signals;
-	
-	Model(const Signal::Components c, const Scaling s);
-	friend ostream& operator<<(ostream& os, const Model& m);
+	size_t count() const;
+	shared_ptr<Sequence> sequence(const size_t i) const;
+	const ArrayXcd signal(const size_t i, const VectorXd &p, const double B1) const;
 
-	const ArrayXcd signal(const VectorXd &p, const double B1) const;
-	size_t nSignals() const;
-	size_t size() const;
-	
+	size_t combinedSize() const;
+	const ArrayXcd combinedSignal(const VectorXd &p, const double B1) const;
+
 	const size_t nParameters() const;
 	const bool validParameters(const VectorXd &params) const;
 	const vector<string> &names() const;
@@ -118,7 +124,7 @@ public:
 	
 	ArrayXcd loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k) const;
 	
-	void addSignal(const SignalType &st, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+	void addSequence(const SequenceType &st, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 };
 
 #endif
