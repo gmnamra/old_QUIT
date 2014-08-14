@@ -98,7 +98,7 @@ void File::open(const string &path, const Mode &mode) {
 	m_mode = mode;
 }
 
-bool File::isOpen() {
+File::operator bool() const {
 	if (m_mode == Mode::Closed)
 		return false;
 	else

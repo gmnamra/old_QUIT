@@ -66,7 +66,7 @@ class File {
 		void open(const std::string &filename,
 		          const Mode &mode);             //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.
 		void close();                            //!< Closes the file
-		bool isOpen();                           //!< Returns true if file is currently open for reading or writing.
+		explicit operator bool() const;          //!< Returns true if file is currently open for reading or writing.
 		
 		const std::string &basePath() const;
 		std::string imagePath() const;
