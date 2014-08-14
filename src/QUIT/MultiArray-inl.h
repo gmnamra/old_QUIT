@@ -106,10 +106,26 @@ typename MultiArray<Tp, rank>::reference MultiArray<Tp, rank>::operator[](const 
 	return const_cast<reference>(static_cast<const MultiArray<Tp, rank> &>(*this).operator[](i));
 }
 
+template<typename Tp, size_t rank>
+MultiArray<Tp, rank> MultiArray<Tp, rank>::pack() const {
+	if (isPacked()) {
+		return MultiArray<Tp, rank>(*this);
+	} else {
+		MultiArray<Tp, rank> p(m_dims);
+		iterator this_it = begin();
+		iterator that_it = p.begin();
+		while (this_it != end()) {
+			*that_it++ = *this_it++;
+		}
+	}
+}
 
 template<typename Tp, size_t rank>
 template<size_t newRank>
 MultiArray<Tp, newRank> MultiArray<Tp, rank>::reshape(const typename MultiArray<Tp, newRank>::Index &newDims) {
+	if (!isPacked()) {
+		throw(std::runtime_error("MultiArrays must be packed before reshaping."));
+	}
 	if (newDims.prod() != m_dims.prod()) {
 		throw(std::logic_error("Reshape cannot change the number of voxels."));
 	}
