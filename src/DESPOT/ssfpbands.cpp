@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 	string fname(argv[optind++]);
 	Nifti::File inputFile(fname);
 	Nifti::Header inHdr = inputFile.header();
-	if (maskFile.isOpen() && !maskFile.header().matchesSpace(inHdr)) {
+	if (maskFile && !maskFile.header().matchesSpace(inHdr)) {
 		cerr << "Mask does not match input file." << endl;
 		return EXIT_FAILURE;
 	}
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 					case SaveMode::Lambda:     out = lm.cast<complex<float>>(); break;
 					case SaveMode::Mu:         out = mu.cast<complex<float>>(); break;
 				}
-				if (maskFile.isOpen()) {
+				if (maskFile) {
 					auto m = maskData.slice<1>({0,j,k},{-1,0,0}).asArray();
 					out = m.select(out, 0);
 				}

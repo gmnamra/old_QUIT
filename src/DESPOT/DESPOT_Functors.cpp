@@ -10,16 +10,16 @@
 //******************************************************************************
 #pragma mark DESPOTFunctor
 //******************************************************************************
-DESPOTFunctor::DESPOTFunctor(Model &m, const ArrayXcd &data, const double B1, const bool fitComplex, const bool debug) :
-	m_model(m), m_data(data), m_B1(B1), m_complex(fitComplex), m_debug(debug)
+DESPOTFunctor::DESPOTFunctor(Sequences &cs, const ArrayXcd &data, const double B1, const bool fitComplex, const bool debug) :
+	m_sequences(cs), m_data(data), m_B1(B1), m_complex(fitComplex), m_debug(debug)
 {
-	m_nV = m_model.size();
+	m_nV = m_sequences.combinedSize();
 	assert(static_cast<size_t>(m_data.rows()) == m_nV);
 }
 
 int DESPOTFunctor::operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 	eigen_assert(diffs.size() == values());
-	ArrayXcd s = m_model.signal(params, m_B1);
+	ArrayXcd s = m_sequences.combinedSignal(params, m_B1);
 	if (m_complex) {
 		diffs = (s - m_data).abs();
 	} else {
@@ -36,5 +36,5 @@ int DESPOTFunctor::operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) c
 }
 
 const bool DESPOTFunctor::constraint(const VectorXd &params) const {
-	return m_model.validParameters(params);
+	return m_sequences.validParameters(params);
 }

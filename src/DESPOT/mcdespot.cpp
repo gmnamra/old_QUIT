@@ -53,18 +53,18 @@ Options:\n\
 	--tesla, -t 3     : Boundaries suitable for 3T (default)\n\
 	            7     : Boundaries suitable for 7T \n\
 	            u     : User specified boundaries from stdin\n\
-	--model, -M s     : Use simple model (default)\n\
+	--sequences, -M s     : Use simple sequences (default)\n\
 	            f     : Use Finite Pulse Length correction\n\
 	--complex, -x    : Fit to complex data\n\
 	--contract, -c n  : Read contraction settings from stdin (Will prompt)\n\
 	--resid, -r       : Write out per-flip angle residuals\n\
 	--no-prompt, -n   : Don't print prompts for input\n\
-	--1, --2, --3     : Use 1, 2 or 3 component model (default 3)\n"
+	--1, --2, --3     : Use 1, 2 or 3 component sequences (default 3)\n"
 };
 
-static auto components = Signal::Components::Three;
-static auto scale = Model::Scaling::NormToMean;
-static auto tesla = Model::FieldStrength::Three;
+static auto components = Components::Three;
+static auto scale = Scale::NormToMean;
+static auto tesla = FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, writeResiduals = false,
@@ -84,7 +84,7 @@ static struct option long_options[] = {
 	{"stop", required_argument, 0, 'p'},
 	{"scale", required_argument, 0, 'S'},
 	{"tesla", required_argument, 0, 't'},
-	{"model", no_argument, 0, 'M'},
+	{"sequences", no_argument, 0, 'M'},
 	{"complex", no_argument, 0, 'x'},
 	{"contract", no_argument, 0, 'c'},
 	{"resid", no_argument, 0, 'r'},
@@ -109,8 +109,8 @@ void int_handler(int) {
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-Nifti::Header parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols);
-Nifti::Header parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &signalVols)
+Nifti::Header parseInput(Sequences &seq, vector<MultiArray<complex<float>, 4>> &signalVols);
+Nifti::Header parseInput(Sequences &seq, vector<MultiArray<complex<float>, 4>> &signalVols)
 {
 	Nifti::Header hdr;
 	string type, path;
@@ -125,20 +125,18 @@ Nifti::Header parseInput(Model &mdl, vector<MultiArray<complex<float>, 4>> &sign
 		if (signalVols.size() == 0) {
 			hdr = inFile.header(); // Save header info for later
 		} else {
-			if (!hdr.matchesSpace(inFile.header())) {
-				throw(std::runtime_error("Header for " + inFile.imagePath() + " does not match first header."));
-			}
+			checkHeaders(hdr, {inFile});
 		}
 		if (verbose) cout << "Opened: " << inFile.imagePath() << endl;
 		Agilent::ProcPar pp; ReadPP(inFile, pp);
 		if ((type == "SPGR") && !fitFinite) {
-			mdl.addSignal(SignalType::SPGR, prompt, pp);
+			seq.addSequence(SequenceType::SPGR, prompt, pp);
 		} else if ((type == "SPGR" && fitFinite)) {
-			mdl.addSignal(SignalType::SPGR_Finite, prompt, pp);
+			seq.addSequence(SequenceType::SPGR_Finite, prompt, pp);
 		} else if ((type == "SSFP" && !fitFinite)) {
-			mdl.addSignal(SignalType::SSFP, inFile.dim(4), pp);
+			seq.addSequence(SequenceType::SSFP, inFile.dim(4), pp);
 		} else if ((type == "SSFP" && fitFinite)) {
-			mdl.addSignal(SignalType::SSFP_Finite, inFile.dim(4), pp);
+			seq.addSequence(SequenceType::SSFP_Finite, inFile.dim(4), pp);
 		}
 		MultiArray<complex<float>, 4> inData(inFile.dims().head(4));
 		inFile.readVolumes(inData.begin(), inData.end());
@@ -171,9 +169,9 @@ int main(int argc, char **argv)
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
-			case '1': components = Signal::Components::One; break;
-			case '2': components = Signal::Components::Two; break;
-			case '3': components = Signal::Components::Three; break;
+			case '1': components = Components::One; break;
+			case '2': components = Components::Two; break;
+			case '3': components = Components::Three; break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
@@ -207,8 +205,8 @@ int main(int argc, char **argv)
 			case 'p': stop_slice = atoi(optarg); break;
 			case 'S':
 				switch (atoi(optarg)) {
-					case 1 : scale = Model::Scaling::None; break;
-					case 2 : scale = Model::Scaling::NormToMean; break;
+					case 1 : scale = Scale::None; break;
+					case 2 : scale = Scale::NormToMean; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						return EXIT_FAILURE;
@@ -216,9 +214,9 @@ int main(int argc, char **argv)
 				} break;
 			case 't':
 				switch (*optarg) {
-					case '3': tesla = Model::FieldStrength::Three; break;
-					case '7': tesla = Model::FieldStrength::Seven; break;
-					case 'u': tesla = Model::FieldStrength::User; break;
+					case '3': tesla = FieldStrength::Three; break;
+					case '7': tesla = FieldStrength::Seven; break;
+					case 'u': tesla = FieldStrength::User; break;
 					default:
 						cout << "Unknown boundaries type " << *optarg << endl;
 						return EXIT_FAILURE;
@@ -226,10 +224,10 @@ int main(int argc, char **argv)
 				} break;
 			case 'M':
 				switch (*optarg) {
-					case 's': fitFinite = false; if (verbose) cout << "Simple model selected." << endl; break;
+					case 's': fitFinite = false; if (verbose) cout << "Simple sequences selected." << endl; break;
 					case 'f': fitFinite = true;  if (verbose) cout << "Finite pulse correction selected." << endl; break;
 					default:
-						cout << "Unknown model type " << *optarg << endl;
+						cout << "Unknown sequences type " << *optarg << endl;
 						return EXIT_FAILURE;
 						break;
 				}
@@ -262,43 +260,38 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	Model model(components, scale);
+	Sequences sequences(components, scale);
 	// Build a Functor here so we can query number of parameters etc.
-	cout << "Using " << Signal::to_string(components) << " component model." << endl;
+	cout << "Using " << to_string(components) << " component sequences." << endl;
 	vector<MultiArray<complex<float>, 4>> signalVols;
-	Nifti::Header hdr = parseInput(model, signalVols);
-	if ((maskFile.isOpen() && !hdr.matchesSpace(maskFile.header())) ||
-		(f0File.isOpen() && !hdr.matchesSpace(f0File.header())) ||
-		(B1File.isOpen() && !hdr.matchesSpace(B1File.header()))){
-		cerr << "Dimensions/transforms do not match in input files." << endl;
-		return EXIT_FAILURE;
-	}
+	Nifti::Header hdr = parseInput(sequences, signalVols);
+	checkHeaders(hdr, {maskFile, f0File, B1File});
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	//**************************************************************************
-	MultiArray<float, 4> paramsVols(hdr.matrix(), model.nParameters());
-	MultiArray<float, 4> residualVols(hdr.matrix(), model.size());;
+	MultiArray<float, 4> paramsVols(hdr.matrix(), sequences.nParameters());
+	MultiArray<float, 4> residualVols(hdr.matrix(), sequences.combinedSize());;
 	MultiArray<float, 3> SoSVol(hdr.matrix());
 	
-	ArrayXd threshes(model.nParameters()); threshes.setConstant(0.05);
-	ArrayXXd bounds = model.bounds(tesla);
-	if (tesla == Model::FieldStrength::User) {
+	ArrayXd threshes(sequences.nParameters()); threshes.setConstant(0.05);
+	ArrayXXd bounds = sequences.bounds(tesla);
+	if (tesla == FieldStrength::User) {
 		if (prompt) cout << "Enter parameter pairs (low then high)" << endl;
-		for (size_t i = 0; i < model.nParameters() - 1; i++) {
-			if (prompt) cout << model.names()[i] << ": " << flush;
+		for (size_t i = 0; i < sequences.nParameters() - 1; i++) {
+			if (prompt) cout << sequences.names()[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 	}
 	if (f0fit == OffRes::FitSym) {
-		bounds(model.nParameters() - 1, 0) = 0.;
+		bounds(sequences.nParameters() - 1, 0) = 0.;
 	}
-	ArrayXd weights(model.size()); weights.setOnes();
+	ArrayXd weights(sequences.combinedSize()); weights.setOnes();
 	if (verbose) {
-		cout << model;
+		cout << sequences;
 		cout << "Bounds:" << endl <<  bounds.transpose() << endl;
 		ofstream boundsFile(outPrefix + "bounds.txt");
-		for (size_t p = 0; p < model.nParameters(); p++) {
-			boundsFile << model.names()[p] << "\t" << bounds.row(p) << endl;
+		for (size_t p = 0; p < sequences.nParameters(); p++) {
+			boundsFile << sequences.names()[p] << "\t" << bounds.row(p) << endl;
 		}
 		boundsFile.close();
 	}
@@ -321,18 +314,18 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 		function<void (const size_t&)> processVox = [&] (const size_t &j) {
 			for (size_t i = 0; i < hdr.dim(1); i++) {
-				if (!maskFile.isOpen() || maskVol[{i,j,k}]) {
+				if (!maskFile || maskVol[{i,j,k}]) {
 					voxCount++;
-					ArrayXcd signal = model.loadSignals(signalVols, i, j, k);
+					ArrayXcd signal = sequences.loadSignals(signalVols, i, j, k);
 					ArrayXXd localBounds = bounds;
 					if (f0fit == OffRes::Map) {
-						localBounds.row(model.nParameters() - 1).setConstant(f0Vol[{i,j,k}]);
+						localBounds.row(sequences.nParameters() - 1).setConstant(f0Vol[{i,j,k}]);
 					}
-					double B1 = B1File.isOpen() ? B1Vol[{i,j,k}] : 1.;
-					DESPOTFunctor func(model, signal, B1, fitComplex, false);
+					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
+					DESPOTFunctor func(sequences, signal, B1, fitComplex, false);
 					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
 														samples, retain, contract, expand, (voxI != 0));
-					ArrayXd params(model.nParameters());
+					ArrayXd params(sequences.nParameters());
 					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
 					paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
 					residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
@@ -361,14 +354,14 @@ int main(int argc, char **argv)
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 		 << difftime(procEnd, procStart) << " s." << endl;
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
-	outPrefix = outPrefix + Signal::to_string(components) + "C_";
+	outPrefix = outPrefix + to_string(components) + "C_";
 	hdr.setDim(4, 1);
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
-	for (size_t p = 1; p < model.nParameters(); p++) { // Skip PD for now
-		hdr.intent_name = model.names().at(p);
-		Nifti::File file(hdr, outPrefix + model.names().at(p) + "" + OutExt());
+	for (size_t p = 1; p < sequences.nParameters(); p++) { // Skip PD for now
+		hdr.intent_name = sequences.names().at(p);
+		Nifti::File file(hdr, outPrefix + sequences.names().at(p) + "" + OutExt());
 		auto param = paramsVols.slice<3>({0,0,0,p},{-1,-1,-1,0});
 		file.writeVolumes(param.begin(), param.end());
 		file.close();
@@ -378,7 +371,7 @@ int main(int argc, char **argv)
 	SoS.writeVolumes(SoSVol.begin(), SoSVol.end());
 	SoS.close();
 	if (writeResiduals) {
-		hdr.setDim(4, static_cast<int>(model.size()));
+		hdr.setDim(4, static_cast<int>(sequences.combinedSize()));
 		hdr.intent_name = "Residual";
 		Nifti::File res(hdr, outPrefix + "residuals" + OutExt());
 		res.writeVolumes(residualVols.begin(), residualVols.end());

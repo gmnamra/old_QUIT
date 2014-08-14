@@ -90,10 +90,7 @@ int main(int argc, char **argv)
 	inputFile.open(argv[optind++], Nifti::Mode::Read);
 	MultiArray<float, 4> phase{inputFile.dims().head(4)};
 	inputFile.readVolumes(phase.begin(), phase.end());
-	if (!templateHdr.matchesSpace(inputFile.header()) || (maskFile.isOpen() && !templateHdr.matchesSpace(maskFile.header()))) {
-		cerr << "Input file dimensions or orientations do not match." << endl;
-		return EXIT_FAILURE;
-	}
+	checkHeaders(templateHdr, {inputFile, maskFile});
 	inputFile.close();
 
 	const auto dims = templateHdr.matrix();
@@ -120,7 +117,7 @@ int main(int argc, char **argv)
 		//cout << Ws << endl << Fs << endl << As << endl;
 		function<void (const size_t)> processVox = [&] (const size_t j) {
 			for (size_t i = 0; i < S0.dims()[0]; i++)
-				if (!maskFile.isOpen() || maskVol[{i,j,k}]) {
+				if (!maskFile || maskVol[{i,j,k}]) {
 					// From Ma et al JMR 1997
 					Av[{i,j,k}] = sqrt(S2[{i,j,k}] / S0[{i,j,k}]);
 					float phi = (phi2[{i,j,k}] - phi0[{i,j,k}]) / 2.;

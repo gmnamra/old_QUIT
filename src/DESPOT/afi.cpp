@@ -74,10 +74,7 @@ int main(int argc, char **argv) {
 	}
 	cout << "Opening input file " << argv[optind] << endl;
 	inFile.open(argv[optind], Nifti::Mode::Read);
-	if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
-		cerr << "Mask dimensions/transform do not match SPGR file." << endl;
-		return EXIT_FAILURE;
-	}
+	checkHeaders(inFile.header(), {maskFile});
 	Agilent::ProcPar pp;
 	if (ReadPP(inFile, pp)) {
 		if (pp.contains("afi_dummy")) {
@@ -108,7 +105,7 @@ int main(int argc, char **argv) {
 	cout << "Allocated output memory." << endl;
 	cout << "Processing..." << endl;
 	for (size_t vox = 0; vox < nVoxels; vox++) {
-		if (!maskFile.isOpen() || mask[vox] > 0.) {
+		if (!maskFile || mask[vox] > 0.) {
 			double r = tr2[vox] / tr1[vox];
 			double temp = (r*n - 1.) / (n - r);
 			if (temp > 1.)

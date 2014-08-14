@@ -41,14 +41,14 @@ Options:\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
 	--B1, -b file     : B1 Map file (ratio)\n\
 	--no-prompt, -n   : Don't print prompts for input.\n\
-	--1, --2, --3     : Use 1, 2 or 3 component model (default 3).\n\
-	--model, -M s     : Use simple model (default).\n\
+	--1, --2, --3     : Use 1, 2 or 3 component sequences (default 3).\n\
+	--sequences, -M s     : Use simple sequences (default).\n\
 	            f     : Use Finite Pulse Length correction.\n"
 };
 
-static auto components = Signal::Components::Three;
-static bool verbose = false, prompt = true, finiteModel = false;
-static string outPrefix = "signal_";
+static auto components = Components::Three;
+static bool verbose = false, prompt = true, finitesequences = false;
+static string outPrefix = "";
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
@@ -58,7 +58,7 @@ static struct option long_options[] = {
 	{"1", no_argument, 0, '1'},
 	{"2", no_argument, 0, '2'},
 	{"3", no_argument, 0, '3'},
-	{"model", no_argument, 0, 'M'},
+	{"sequences", no_argument, 0, 'M'},
 	{"B1", required_argument, 0, 'b'},
 	{0, 0, 0, 0}
 };
@@ -66,22 +66,26 @@ static struct option long_options[] = {
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-void parseInput(Model &mdl);
-void parseInput(Model &mdl) {
+void parseInput(Sequences &cs, vector<string> &names);
+void parseInput(Sequences &cs, vector<string> &names) {
 	string type;
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
 		if (type != "SPGR" && type != "SSFP") {
 			throw(std::runtime_error("Unknown signal type: " + type));
 		}
-		if ((type == "SPGR") && !finiteModel) {
-			mdl.addSignal(SignalType::SPGR, prompt);
-		} else if ((type == "SPGR" && finiteModel)) {
-			mdl.addSignal(SignalType::SPGR_Finite, prompt);
-		} else if ((type == "SSFP" && !finiteModel)) {
-			mdl.addSignal(SignalType::SSFP, prompt);
-		} else if ((type == "SSFP" && finiteModel)) {
-			mdl.addSignal(SignalType::SSFP_Finite, prompt);
+		if (prompt) cout << "Enter output filename: " << flush;
+		string filename;
+		getline(cin, filename);
+		names.push_back(filename);
+		if ((type == "SPGR") && !finitesequences) {
+			cs.addSequence(SequenceType::SPGR, prompt);
+		} else if ((type == "SPGR" && finitesequences)) {
+			cs.addSequence(SequenceType::SPGR_Finite, prompt);
+		} else if ((type == "SSFP" && !finitesequences)) {
+			cs.addSequence(SequenceType::SSFP, prompt);
+		} else if ((type == "SSFP" && finitesequences)) {
+			cs.addSequence(SequenceType::SSFP_Finite, prompt);
 		}
 		// Print message ready for next loop
 		string temp; getline(cin, temp); // Just to eat the newline
@@ -125,15 +129,15 @@ int main(int argc, char **argv)
 				B1Vol.resize(B1File.matrix());
 				B1File.readVolumes(B1Vol.begin(), B1Vol.end(), 0, 1);
 				break;
-			case '1': components = Signal::Components::One; break;
-			case '2': components = Signal::Components::Two; break;
-			case '3': components = Signal::Components::Three; break;
+			case '1': components = Components::One; break;
+			case '2': components = Components::Two; break;
+			case '3': components = Components::Three; break;
 			case 'M':
 				switch (*optarg) {
-					case 's': finiteModel = false; if (prompt) cout << "Simple model selected." << endl; break;
-					case 'f': finiteModel = true; if (prompt) cout << "Finite pulse correction selected." << endl; break;
+					case 's': finitesequences = false; if (prompt) cout << "Simple sequences selected." << endl; break;
+					case 'f': finitesequences = true; if (prompt) cout << "Finite pulse correction selected." << endl; break;
 					default:
-						cout << "Unknown model type " << *optarg << endl;
+						cout << "Unknown sequences type " << *optarg << endl;
 						return EXIT_FAILURE;
 						break;
 				}
@@ -151,28 +155,29 @@ int main(int argc, char **argv)
 	}
 
 	//**************************************************************************
-	#pragma mark  Set up model
+	#pragma mark  Set up sequences
 	//**************************************************************************
-	Model model(components, Model::Scaling::None);
-	parseInput(model);
-	cout << model << endl;
+	Sequences sequences(components, Scale::None);
+	vector<string> filenames;
+	parseInput(sequences, filenames);
+	cout << sequences << endl;
 	//**************************************************************************
 	#pragma mark Read in parameter files
 	//**************************************************************************
 	// Build a Functor here so we can query number of parameters etc.
-	cout << "Using " << Signal::to_string(components) << " component model." << endl;
+	cout << "Using " << to_string(components) << " component sequences." << endl;
 	MultiArray<float, 4> paramsVols;
 	Nifti::Header templateHdr;
 	if (prompt) cout << "Loading parameters." << endl;
-	for (size_t i = 0; i < model.nParameters(); i++) {
-		if (prompt) cout << "Enter path to " << model.names()[i] << " file: " << flush;
+	for (size_t i = 0; i < sequences.nParameters(); i++) {
+		if (prompt) cout << "Enter path to " << sequences.names()[i] << " file: " << flush;
 		string filename; cin >> filename;
 		cout << "Opening " << filename << endl;
 		Nifti::File input(filename);
 
 		if (i == 0) {
 			templateHdr = input.header();
-			paramsVols = MultiArray<float, 4>(input.matrix(), model.nParameters());
+			paramsVols = MultiArray<float, 4>(input.matrix(), sequences.nParameters());
 		} else {
 			if (!input.header().matchesSpace(templateHdr)) {
 				cout << "Mismatched input volumes" << endl;
@@ -184,15 +189,20 @@ int main(int argc, char **argv)
 		input.readVolumes(inVol.begin(), inVol.end(), 0, 1);
 	}
 	const auto d = paramsVols.dims();
-	MultiArray<complex<float>, 4> signalVols(d.head(3), model.size());
+	vector<MultiArray<complex<float>, 4>> signalVols(sequences.count()); //d.head(3), sequences.combinedSize());
+	for (size_t s = 0; s < sequences.count(); s++) {
+		signalVols[s] = MultiArray<complex<float>, 4>(d.head(3), sequences.sequence(s)->size());
+	}
 	cout << "Calculating..." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &k) {
 		for (size_t j = 0; j < d[1]; j++) {
 			for (size_t i = 0; i < d[0]; i++) {
-				if ((maskFile.isOpen() == 0) || (maskVol[{i,j,k}])) {
+				if (!maskFile || (maskVol[{i,j,k}])) {
 					ArrayXd params = paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
-					double B1 = B1File.isOpen() ? B1Vol[{i,j,k}] : 1.;
-					signalVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = model.signal(params, B1).cast<complex<float>>();
+					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
+					for (size_t s = 0; s < sequences.count(); s++) {
+						signalVols[s].slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = sequences.signal(s, params, B1).cast<complex<float>>();
+					}
 				}
 			}
 		}
@@ -204,11 +214,11 @@ int main(int argc, char **argv)
 	cout << "Saving data." << endl;
 	templateHdr.setDatatype(Nifti::DataType::COMPLEX64);
 	size_t startVol = 0;
-	for (size_t i = 0; i < model.m_signals.size(); i++) {
-		size_t thisSize = model.m_signals[i]->size();
+	for (size_t i = 0; i < sequences.count(); i++) {
+		size_t thisSize = sequences.sequence(i)->size();
 		templateHdr.setDim(4, thisSize);
-		Nifti::File saveFile(templateHdr, outPrefix + to_string(i) + OutExt());
-		auto thisSignal = signalVols.slice<4>({0,0,0,startVol},{-1,-1,-1,thisSize});
+		Nifti::File saveFile(templateHdr, outPrefix + filenames[i] + OutExt());
+		auto thisSignal = signalVols[i].slice<4>({0,0,0,startVol},{-1,-1,-1,thisSize});
 		saveFile.writeVolumes(thisSignal.begin(), thisSignal.end());
 		saveFile.close();
 	}

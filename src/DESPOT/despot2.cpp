@@ -127,43 +127,39 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 	if (verbose) cout << "Reading T1 Map from: " << argv[optind] << endl;
-	Nifti::File inFile(argv[optind++]);
-	if ((maskFile.isOpen() && !inFile.header().matchesSpace(maskFile.header())) ||
-		(B1File.isOpen() && !inFile.header().matchesSpace(B1File.header()))){
-		cerr << "Dimensions/transforms do not match in input files." << endl;
-		return EXIT_FAILURE;
-	}
-	MultiArray<double, 3> T1Vol(inFile.matrix());
-	inFile.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
-	inFile.close();
-	Nifti::Header outHdr = inFile.header(); // Save the header data to write out files
+	Nifti::File T1File(argv[optind++]);
+	MultiArray<double, 3> T1Vol(T1File.matrix());
+	T1File.readVolumes(T1Vol.begin(), T1Vol.end(), 0, 1);
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	Model ssfpMdl(Signal::Components::One, Model::Scaling::None);
-	if (verbose) cout << "Reading SSFP data from: " << argv[optind] << endl;
-	inFile.open(argv[optind], Nifti::Mode::Read);
-	if (!inFile.header().matchesSpace(outHdr)) {
-		cerr << "Dimensions/transforms do not match in input files." << endl;
-		return EXIT_FAILURE;
-	}
-	MultiArray<complex<double>, 4> ssfpVols(inFile.header().fulldims().head(4));
-	inFile.readVolumes(ssfpVols.begin(), ssfpVols.end());
-	Agilent::ProcPar pp; ReadPP(inFile, pp);
+	Sequences ssfp(Components::One, Scale::None);
+	if (verbose) cout << "Opening SSFP file: " << argv[optind] << endl;
+	Nifti::File SSFPFile(argv[optind++]);
+	if (verbose) cout << "Checking headers for consistency." << endl;
+	checkHeaders(SSFPFile.header(), {T1File, maskFile, B1File});
+	if (verbose) cout << "Checking for ProcPar." << endl;
+	Agilent::ProcPar pp; ReadPP(SSFPFile, pp);
+	if (verbose) cout << "Reading sequence parameters." << endl;
 	if (elliptical) {
-		ssfpMdl.addSignal(SignalType::SSFP_Ellipse, prompt, pp);
+		ssfp.addSequence(SequenceType::SSFP_Ellipse, prompt, pp);
 	} else {
-		ssfpMdl.addSignal(SignalType::SSFP, prompt, pp);
+		ssfp.addSequence(SequenceType::SSFP, prompt, pp);
+	}
+	if (ssfp.combinedSize() != SSFPFile.header().dim(4)) {
+		throw(std::runtime_error("The specified number of flip-angles and phase-cycles does not match the input file: " + SSFPFile.imagePath()));
 	}
 	if (verbose) {
-		cout << ssfpMdl;
-		cout << "Ouput prefix will be: " << outPrefix << endl;
+		cout << ssfp;
+		cout << "Reading data." << endl;
 	}
-	double TR = ssfpMdl.m_signals.at(0)->m_TR;
+	MultiArray<complex<double>, 4> ssfpVols(SSFPFile.header().fulldims().head(4));
+	SSFPFile.readVolumes(ssfpVols.begin(), ssfpVols.end());
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
-	const auto dims = inFile.matrix();
+	const auto dims = SSFPFile.matrix();
+	double TR = ssfp.sequence(0)->m_TR;
 	MultiArray<float, 3> T2Vol(dims), PDVol(dims), offResVol(dims), SoSVol(dims);
 	time_t startTime;
 	if (verbose)
@@ -178,13 +174,13 @@ int main(int argc, char **argv)
 		atomic<int> sliceCount{0};
 		function<void (const int&)> process = [&] (const int &j) {
 			for (size_t i = 0; i < dims(0); i++) {
-				if (!maskFile.isOpen() || (maskVol[{i,j,k}])) {
+				if (!maskFile || (maskVol[{i,j,k}])) {
 					sliceCount++;
 					double B1, T1, T2, E1, E2, PD, offRes, SoS;
-					B1 = B1File.isOpen() ? B1Vol[{i,j,k}] : 1.;
+					B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 					T1 = T1Vol[{i,j,k}];
 					E1 = exp(-TR / T1);
-					ArrayXd localAngles(ssfpMdl.m_signals.at(0)->B1flip(B1));
+					ArrayXd localAngles(ssfp.sequence(0)->B1flip(B1));
 					auto data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
 					auto s = data.abs();
 					auto p = data.imag().binaryExpr(data.real(), ptr_fun<double,double,double>(atan2));
@@ -204,7 +200,7 @@ int main(int argc, char **argv)
 						PD = b[1] * (1. - E1*E2) / (1. - E1);
 					}
 					if (algo == Algos::WLLS) {
-						VectorXd W(ssfpMdl.size());
+						VectorXd W(ssfp.combinedSize());
 						for (size_t n = 0; n < nIterations; n++) {
 							if (elliptical) {
 								W = ((1. - E1*E2) * localAngles.sin() / (1. - E1*E2*E2 - (E1 - E2*E2)*localAngles.cos())).square();
@@ -223,7 +219,7 @@ int main(int argc, char **argv)
 							}
 						}
 					} else if (algo == Algos::NLLS) {
-						DESPOTFunctor f(ssfpMdl, s.cast<complex<double>>(), B1, false, false);
+						DESPOTFunctor f(ssfp, s.cast<complex<double>>(), B1, false, false);
 						NumericalDiff<DESPOTFunctor> nDiff(f);
 						LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
 						lm.parameters.maxfev = nIterations;
@@ -232,7 +228,7 @@ int main(int argc, char **argv)
 						lm.lmder1(p);
 						PD = p(0); T1 = p(1); T2 = p(2); offRes = p(3);
 					}
-					ArrayXcd theory = ssfpMdl.signal(Vector4d(PD, T1, T2, offRes), B1);
+					ArrayXcd theory = ssfp.combinedSignal(Vector4d(PD, T1, T2, offRes), B1);
 					SoS = (data - theory).abs2().sum();
 					T2Vol[{i,j,k}]  = static_cast<float>(T2);
 					PDVol[{i,j,k}]  = static_cast<float>(PD);
@@ -250,6 +246,7 @@ int main(int argc, char **argv)
 		cout << "Writing results." << endl;
 	}
 	printElapsedClock(startClock, voxCount);
+	Nifti::Header outHdr = SSFPFile.header();
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
 	outHdr.setDatatype(Nifti::DataType::FLOAT32);

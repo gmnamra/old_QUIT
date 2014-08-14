@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
 	if ((argc - optind) == 2) {
 		cout << "Opening input file " << argv[optind] << "." << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
-		if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
+		if (maskFile && !maskFile.header().matchesSpace(inFile.header())) {
 			cerr << "Mask dimensions/transform do not match input file." << endl;
 			return EXIT_FAILURE;
 		}
@@ -85,10 +85,7 @@ int main(int argc, char** argv) {
 	} else if ((argc - optind) == 3) {
 		cout << "Opening input file 1" << argv[optind] << "." << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
-		if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
-			cerr << "Mask dimensions/transform do not match input file." << endl;
-			return EXIT_FAILURE;
-		}
+		checkHeaders(inFile.header(), {maskFile});
 		Agilent::ProcPar pp;
 		if (ReadPP(inFile, pp)) {
 			TE1 = pp.realValue("te", 0);
@@ -101,10 +98,7 @@ int main(int argc, char** argv) {
 		inFile.close();
 		cout << "Opening input file 2" << argv[++optind] << "." << endl;
 		inFile.open(argv[optind], Nifti::Mode::Read);
-		if (maskFile.isOpen() && !maskFile.header().matchesSpace(inFile.header())) {
-			cerr << "Mask dimensions/transform do not match input file." << endl;
-			return EXIT_FAILURE;
-		}
+		checkHeaders(inFile.header(), {maskFile});
 		if (ReadPP(inFile, pp)){
 			TE2 = pp.realValue("te", 0);
 		} else {
@@ -131,7 +125,7 @@ int main(int argc, char** argv) {
 	B0.resize(inFile.matrix().prod());
 	cout << "Processing..." << endl;
 	for (size_t vox = 0; vox < inFile.matrix().prod(); vox++) {
-		if (!maskFile.isOpen() || mask[vox] > 0.) {
+		if (!maskFile || mask[vox] > 0.) {
 			double deltaPhase = data2[vox] - data1[vox];
 			B0[vox] = deltaPhase / (2 * M_PI * deltaTE);
 			if (phasetime > 0.) {

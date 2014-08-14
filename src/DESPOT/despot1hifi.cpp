@@ -185,10 +185,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind], Nifti::Mode::Read);
-	if (maskFile.isOpen() && !maskFile.header().matchesSpace(spgrFile.header())) {
-		cerr << "SPGR file dimensions or transform do not match mask." << endl;
-		return EXIT_FAILURE;
-	}
+	checkHeaders(spgrFile.header(),{maskFile});
 	size_t nSPGR = spgrFile.dim(4);
 	ArrayXd spgrAngles(nSPGR);
 	double spgrTR;
@@ -302,7 +299,7 @@ int main(int argc, char **argv) {
 		
 		function<void (const size_t&)> processVox = [&] (const size_t &vox) {
 			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Assume B1 field is uniform for classic DESPOT
-			if (!maskFile.isOpen() || (maskData[sliceOffset + vox] > 0.)) {
+			if (!maskFile || (maskData[sliceOffset + vox] > 0.)) {
 				voxCount++;
 				ArrayXd spgrs(nSPGR), irs(nIR);
 				int vol = 0;
