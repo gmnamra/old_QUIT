@@ -92,7 +92,7 @@ void printLoopTime(const clock_t &loopStart, const int voxCount) {
 	}
 }
 
-void checkHeaders(const Nifti::Header &n1, std::vector<const Nifti::File> ns) {
+void checkHeaders(const Nifti::Header &n1, std::vector<Nifti::File> ns) {
 	auto compare = ns.begin();
 	while (compare != ns.end()) {
 		if (*compare && !(n1.matchesSpace(compare->header()))) {
