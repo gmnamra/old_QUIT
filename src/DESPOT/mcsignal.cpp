@@ -41,6 +41,7 @@ Options:\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
 	--B1, -b file     : B1 Map file (ratio)\n\
 	--no-prompt, -n   : Don't print prompts for input.\n\
+	--noise, -N val   : Add complex noise with std=val.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component sequences (default 3).\n\
 	--sequences, -M s     : Use simple sequences (default).\n\
 	            f     : Use Finite Pulse Length correction.\n"
@@ -49,12 +50,14 @@ Options:\n\
 static auto components = Components::Three;
 static bool verbose = false, prompt = true, finitesequences = false;
 static string outPrefix = "";
+static double sigma = 0.;
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"mask", required_argument, 0, 'm'},
 	{"out", required_argument, 0, 'o'},
 	{"no-prompt", no_argument, 0, 'n'},
+	{"noise", required_argument, 0, 'N'},
 	{"1", no_argument, 0, '1'},
 	{"2", no_argument, 0, '2'},
 	{"3", no_argument, 0, '3'},
@@ -109,10 +112,11 @@ int main(int argc, char **argv)
 	MultiArray<int8_t, 3> maskVol;
 	MultiArray<float, 3> B1Vol;
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvnm:o:b:123M:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvnN:m:o:b:123M:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
+			case 'N': sigma = atof(optarg); break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
@@ -201,7 +205,11 @@ int main(int argc, char **argv)
 					ArrayXd params = paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
 					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 					for (size_t s = 0; s < sequences.count(); s++) {
-						signalVols[s].slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = sequences.signal(s, params, B1).cast<complex<float>>();
+						ArrayXcd signal = sequences.signal(s, params, B1);
+						ArrayXcd noise(sequences.combinedSize());
+						noise.real() = (ArrayXd::Ones(sequences.combinedSize()) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
+						noise.imag() = (ArrayXd::Ones(sequences.combinedSize()) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
+						signalVols[s].slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = (signal + noise).cast<complex<float>>();
 					}
 				}
 			}

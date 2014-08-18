@@ -16,6 +16,8 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <random>
+#include <functional>
 #include <time.h>
 
 #include "Agilent/procpar.h"
@@ -32,6 +34,13 @@ void printElapsedClock(const clock_t &clockStart, const int voxCount);
 void printLoopTime(const clock_t &loopStart, const int voxCount);
 void checkHeaders(const Nifti::Header &n1, std::vector<const Nifti::File> n_other); //!< Throws an exception if the passed in Nifti files do not share same matrix size and transform
 
+template<typename T>
+T randNorm(double sigma)
+{
+  static std::mt19937_64 twister(time(NULL));
+  static std::normal_distribution<T> nd(0., sigma);
+  return nd(twister);
+}
 
 } // End namespace QUIT
 
