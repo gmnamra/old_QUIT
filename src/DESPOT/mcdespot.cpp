@@ -142,6 +142,9 @@ Nifti::Header parseInput(Sequences &seq, vector<MultiArray<complex<float>, 4>> &
 		inFile.readVolumes(inData.begin(), inData.end());
 		signalVols.push_back(inData);
 		inFile.close();
+		// Eat stray new-lines
+		string temp;
+		getline(cin, temp);
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
