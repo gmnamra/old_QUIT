@@ -32,7 +32,7 @@ time_t printStartTime();
 time_t printElapsedTime(const time_t &start);
 void printElapsedClock(const clock_t &clockStart, const int voxCount);
 void printLoopTime(const clock_t &loopStart, const int voxCount);
-void checkHeaders(const Nifti::Header &n1, std::vector<const Nifti::File> n_other); //!< Throws an exception if the passed in Nifti files do not share same matrix size and transform
+void checkHeaders(const Nifti::Header &n1, std::vector<Nifti::File> n_other); //!< Throws an exception if the passed in Nifti files do not share same matrix size and transform
 
 template<typename T>
 T randNorm(double sigma)
