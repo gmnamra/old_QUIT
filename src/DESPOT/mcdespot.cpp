@@ -138,13 +138,15 @@ Nifti::Header parseInput(Sequences &seq, vector<MultiArray<complex<float>, 4>> &
 		} else if ((type == "SSFP" && fitFinite)) {
 			seq.addSequence(SequenceType::SSFP_Finite, inFile.dim(4), pp);
 		}
+		if (seq.sequence(seq.count() - 1)->size() != inFile.dim(4)) {
+			throw(std::runtime_error("Number of volumes in file " + inFile.imagePath() + " does not match input."));
+		}
 		MultiArray<complex<float>, 4> inData(inFile.dims().head(4));
+		if (verbose) cout << "Reading data..." << flush;
 		inFile.readVolumes(inData.begin(), inData.end());
 		signalVols.push_back(inData);
 		inFile.close();
-		// Eat stray new-lines
-		string temp;
-		getline(cin, temp);
+		if (verbose) cout << "done." << endl;
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}

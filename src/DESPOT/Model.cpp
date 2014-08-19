@@ -62,13 +62,14 @@ SPGRSimple::SPGRSimple(const bool prompt, const Agilent::ProcPar &pp) {
 		m_TR = pp.realValue("tr");
 	} else {
 		size_t nFlip;
-		if (prompt) cout << "Enter number of flip-angles: " << flush; cin >> nFlip;
+		if (prompt) cout << "Enter number of flip-angles: " << flush;
+		QUIT::Read<size_t>::FromLine(cin, nFlip);
 		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
-		for (int i = 0; i < inAngles.size(); i++)
-			cin >> inAngles[i];
+		QUIT::Read<ArrayXd>::FromLine(cin, inAngles);
 		m_flip = inAngles * M_PI / 180.;
-		if (prompt) cout << "Enter TR (seconds): " << flush; cin >> m_TR;
+		if (prompt) cout << "Enter TR (seconds): " << flush;
+		QUIT::Read<double>::FromLine(cin, m_TR);
 	}
 }
 
@@ -92,8 +93,10 @@ SPGRFinite::SPGRFinite(const bool prompt, const Agilent::ProcPar &pp) : SPGRSimp
 		m_Trf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
 		m_TE = pp.realValue("te");
 	} else {
-		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> m_Trf;
-		if (prompt) cout << "Enter TE (seconds): " << flush; cin >> m_TE;
+		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush;
+		QUIT::Read<double>::FromLine(cin, m_Trf);
+		if (prompt) cout << "Enter TE (seconds): " << flush;
+		QUIT::Read<double>::FromLine(cin, m_TE);
 	}
 }
 
@@ -120,22 +123,21 @@ SSFPSimple::SSFPSimple(const bool prompt, const Agilent::ProcPar &pp) {
 		m_TR = pp.realValue("tr");
 	} else {
 		size_t nFlip;
-		if (prompt) cout << "Enter number of flip-angles: " << flush; cin >> nFlip;
+		if (prompt) cout << "Enter number of flip-angles: " << flush;
+		QUIT::Read<size_t>::FromLine(cin, nFlip);
 		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
-		for (int i = 0; i < inAngles.size(); i++)
-			cin >> inAngles[i];
+		QUIT::Read<ArrayXd>::FromLine(cin, inAngles);
 		m_flip = inAngles * M_PI / 180.;
-
 		size_t nPhases;
-		if (prompt) cout << "Enter number of phase-cycles: " << flush; cin >> nPhases;
+		if (prompt) cout << "Enter number of phase-cycles: " << flush;
+		QUIT::Read<size_t>::FromLine(cin, nPhases);
 		ArrayXd inPhases(nPhases);
 		if (prompt) cout << "Enter " << inPhases.size() << " phase-cycles (degrees): " << flush;
-		for (size_t i = 0; i < inPhases.size(); i++)
-			cin >> inPhases(i);
+		QUIT::Read<ArrayXd>::FromLine(cin, inPhases);
 		m_phases = inPhases * M_PI / 180.;
-
-		if (prompt) cout << "Enter TR (seconds): " << flush; cin >> m_TR;
+		if (prompt) cout << "Enter TR (seconds): " << flush;
+		QUIT::Read<double>::FromLine(cin, m_TR);
 	}
 }
 
@@ -165,7 +167,8 @@ SSFPFinite::SSFPFinite(const bool prompt, const Agilent::ProcPar &pp) : SSFPSimp
 	if (pp) {
 		m_Trf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
 	} else {
-		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush; cin >> m_Trf;
+		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush;
+		QUIT::Read<double>::FromLine(cin, m_Trf);
 	}
 }
 
@@ -195,13 +198,14 @@ SSFPEllipse::SSFPEllipse(const bool prompt, const Agilent::ProcPar &pp) {
 		m_TR = pp.realValue("tr");
 	} else {
 		size_t nFlip;
-		if (prompt) cout << "Enter number of flip-angles: " << flush; cin >> nFlip;
+		if (prompt) cout << "Enter number of flip-angles: " << flush;
+		QUIT::Read<size_t>::FromLine(cin, nFlip);
 		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
-		for (int i = 0; i < inAngles.size(); i++)
-			cin >> inAngles[i];
+		QUIT::Read<ArrayXd>::FromLine(cin, inAngles);
 		m_flip = inAngles * M_PI / 180.;
-		if (prompt) cout << "Enter TR (seconds): " << flush; cin >> m_TR;
+		if (prompt) cout << "Enter TR (seconds): " << flush;
+		QUIT::Read<double>::FromLine(cin, m_TR);
 	}
 }
 

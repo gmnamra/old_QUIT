@@ -42,6 +42,31 @@ T randNorm(double sigma)
   return nd(twister);
 }
 
+
+template<typename T> class Read;
+
+template<typename T> class Read {
+	public:
+	static void FromLine(std::istream &in, T &val) {
+		std::string line;
+		std::getline(in, line);
+		std::istringstream stream(line);
+		stream >> val;
+	}
+};
+
+template<typename T> class Read<Eigen::Array<T, Eigen::Dynamic, 1>> {
+	public:
+	static void FromLine(std::istream & in, Eigen::Array<T, Eigen::Dynamic, 1> &vals) {
+		std::string line;
+		std::getline(in, line);
+		std::istringstream stream(line);
+		for (typename Eigen::Array<T, Eigen::Dynamic, 1>::Index i = 0; i < vals.size(); i++) {
+			stream >> vals[i];
+		}
+	}
+};
+
 } // End namespace QUIT
 
 #endif // QUIT_UTIL_H
