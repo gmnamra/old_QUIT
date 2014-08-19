@@ -70,7 +70,7 @@ const DataTypeInfo &TypeInfo(const DataType dt) {
 	if (info != DTInfo.end())
 		return info->second;
 	else
-		throw(std::invalid_argument("Missing type information, contact libFile author."));
+		throw(std::invalid_argument("Missing type information, contact libNifti author."));
 }
 
 /*
@@ -127,7 +127,9 @@ Header::Header() :
 	toffset(0), xyz_units(NIFTI_UNITS_MM), time_units(NIFTI_UNITS_SEC),
 	intent(Intent::None), intent_p1(0), intent_p2(0), intent_p3(0),
 	intent_name(""), description(""), aux_file(""),
-	m_qform(Affine3f::Identity()), m_sform(Affine3d::Identity())
+	m_qform(Affine3f::Identity()), m_sform(Affine3d::Identity()),
+	m_dim(Indices::Ones()), m_strides(Indices::Zero()),
+	m_voxdim(Eigen::Array<float, 7, 1>::Zero()), m_voxoffset(0)
 {}
 
 Header::Header(const struct nifti_1_header &nhdr) {
@@ -303,9 +305,8 @@ Header::Header(const struct nifti_2_header &nhdr) {
 }
 
 Header::Header(const int nx, const int ny, const int nz, const int nt,
-		     const float dx, const float dy, const float dz, const float dt,
-			 const DataType dtype) :
-	Header()
+               const float dx, const float dy, const float dz, const float dt,
+               const DataType dtype) : Header()
 {
 	m_typeinfo = TypeInfo(dtype);
 	m_dim[0] = nx < 1 ? 1 : nx;
@@ -341,7 +342,7 @@ Header::operator nifti_1_header() const {
 	nhdr.dim[0] = rank(); //pixdim[0] is set later with qform
 	for (size_t i = 0; i < 7; i++) { // Convert back to short/float
 		if (m_dim[i] > numeric_limits<short>::max()) {
-			throw(std::runtime_error("File does not support dimensions greater than " + to_string(numeric_limits<short>::max())));
+			throw(std::runtime_error("Nifti1 does not support dimensions greater than " + to_string(numeric_limits<short>::max())));
 		}
 		nhdr.dim[i + 1] = m_dim[i];
 		nhdr.pixdim[i + 1] = m_voxdim[i];
@@ -431,8 +432,8 @@ Header::operator nifti_2_header() const {
 
 	nhdr.dim[0] = rank(); //pixdim[0] is set later with qform
 	for (size_t i = 0; i < 7; i++) { // Convert back to short/float
-		if (m_dim[i] > numeric_limits<short>::max()) {
-			throw(std::runtime_error("File does not support dimensions greater than " + to_string(numeric_limits<short>::max())));
+		if (m_dim[i] > numeric_limits<uint64_t>::max()) {
+			throw(std::runtime_error("Nifti2 does not support dimensions greater than " + to_string(numeric_limits<uint64_t>::max())));
 		}
 		nhdr.dim[i + 1] = m_dim[i];
 		nhdr.pixdim[i + 1] = m_voxdim[i];
@@ -589,6 +590,7 @@ Index Header::dim(const Index d) const {
 void Header::setDim(const Index d, const Index size) {
 	assert((d > 0) && (d <= m_dim.rows()));
 	m_dim[d - 1] = size;
+	calcStrides();
 }
 
 IndexArray Header::dims() const { return m_dim.head(rank()); }

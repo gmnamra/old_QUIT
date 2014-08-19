@@ -39,9 +39,11 @@ File::File(File &&other) noexcept :
 	other.m_mode = Mode::Closed;
 }
 
-File::File(const Header &hdr, const string &filename, const Version v) : File() {
+File::File(const Header &hdr, const string &filename,
+           const list<Extension> &exts, const Version v) : File() {
 	m_header = hdr;
 	m_nifti_version = v;
+	m_extensions = exts;
 	open(filename, Mode::Write);
 }
 

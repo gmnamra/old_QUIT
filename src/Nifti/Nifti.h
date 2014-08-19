@@ -24,6 +24,7 @@
 #include "Header.h"
 #include "ZipFile.h"
 #include "Extension.h"
+#include "ExtensionCodes.h"
 
 namespace Nifti {
 class File {
@@ -61,7 +62,8 @@ class File {
 		File(const std::string &filename);       //!< Opens a new File for reading.
 		File(const Header &hdr,
 		     const std::string &filename,
-		     const Version v = Version::Nifti1); //!< Creates a new File and opens it for writing with the specified header and filename.
+		     const std::list<Extension> &exts = {},
+             const Version v = Version::Nifti1); //!< Creates a new File and opens it for writing with the specified header, extensions and filename.
 		
 		void open(const std::string &filename,
 		          const Mode &mode);             //!< Attempts to open a NIfTI file. Throws runtime_error or invalid_argument on failure.

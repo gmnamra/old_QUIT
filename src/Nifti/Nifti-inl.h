@@ -72,7 +72,8 @@ void File::readWriteVoxels(const IndexArray &inStart, const IndexArray &inSize, 
 
 	Indices start = Indices::Zero();
 	Indices size  = Indices::Ones();
-
+	
+	if ((inSize == 0).any()) throw(std::out_of_range("Read/write with one or more zero-length dimensions requested from: " + imagePath()));
 	start.head(inStart.size()) = inStart;
 	size.head(inSize.size()) = inSize;
 

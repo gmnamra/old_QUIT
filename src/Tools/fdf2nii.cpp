@@ -15,7 +15,6 @@
 
 #include "fdf.h"
 #include "Nifti/Nifti.h"
-#include "Nifti/ExtensionCodes.h"
 
 using namespace std;
 using namespace Eigen;
@@ -114,7 +113,9 @@ int main(int argc, char **argv) {
 				Nifti::Header outHdr(input.dims(), outVoxDims.cast<float>(), Nifti::DataType::FLOAT32);
 				outHdr.setTransform(outTransform.cast<float>());
 				outHdr.setDim(4, nOutImages);
-				Nifti::File output(outHdr, outPath);
+				cout << "nOut " << nOutImages << " dim(3) " << input.dim(3) << " dims " << input.dims().transpose() << endl;
+				cout << "out.dim(4) " << outHdr.dim(4) << endl;
+				list<Nifti::Extension> exts;
 				if (procpar) {
 					ifstream pp_file(inPath + "/procpar", ios::binary);
 					pp_file.seekg(ios::end);
@@ -122,18 +123,19 @@ int main(int argc, char **argv) {
 					pp_file.seekg(ios::beg);
 					vector<char> data; data.reserve(fileSize);
 					data.assign(istreambuf_iterator<char>(pp_file), istreambuf_iterator<char>());
-					output.addExtension(NIFTI_ECODE_COMMENT, data);
+					exts.emplace_back(NIFTI_ECODE_COMMENT, data);
 				}
+				Nifti::File output(outHdr, outPath, exts);
 				size_t outVol = 0;
 				for (size_t inVol = 0; inVol < input.dim(3); inVol++) {
-					if (verbose)
-						cout << "Writing volume " << (outVol + 1) << " of " << nOutImages << endl;
 					if (echoMode >= 0) {
 						vector<float> echo = input.readVolume<float>(inVol, echoMode);
+						if (verbose) cout << "Writing volume " << (outVol + 1) << " of " << nOutImages << endl;
 						output.writeVolumes(echo.begin(), echo.end(),outVol++, 1);
 					} else if (echoMode == -1) {
 						for (size_t e = 0; e < input.dim(4); e++) {
 							vector<float> echo = input.readVolume<float>(inVol, e);
+							if (verbose) cout << "Writing volume " << (outVol + 1) << " of " << nOutImages << endl;
 							output.writeVolumes(echo.begin(), echo.end(), outVol++, 1);
 						}
 					} else {
@@ -145,6 +147,7 @@ int main(int argc, char **argv) {
 						if (echoMode == -3) {
 							transform(sum.begin(), sum.end(), sum.begin(), [&](float &f) { return f / input.dim(4); });
 						}
+						if (verbose) cout << "Writing volume " << (outVol + 1) << " of " << nOutImages << endl;
 						output.writeVolumes(sum.begin(), sum.end(), outVol++, 1);
 					}
 				}
