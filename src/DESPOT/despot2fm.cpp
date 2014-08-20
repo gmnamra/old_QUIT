@@ -215,7 +215,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	size_t nFiles = argc - optind;
 	vector<MultiArray<complex<float>, 4>> ssfpData(nFiles);
-	Sequences sequences(Components::One, scale);
+	Sequences sequences(scale);
 	VectorXd inFlip;
 	for (size_t p = 0; p < nFiles; p++) {
 		if (verbose) cout << "Reading SSFP header from " << argv[optind] << endl;
@@ -238,17 +238,17 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	ArrayXd thresh(sequences.nParameters()); thresh.setConstant(0.05);
-	ArrayXXd bounds = sequences.bounds(tesla);
+	ArrayXd thresh(PoolInfo::nParameters(Pools::One)); thresh.setConstant(0.05);
+	ArrayXXd bounds = PoolInfo::Bounds(Pools::One, tesla, sequences.minTR());
 	if (tesla == FieldStrength::User) {
 		cout << "Enter T2 limits:" << endl;
 		cin >> bounds(2, 0) >> bounds(2, 1);
 		cout << "Bounds:" << endl << bounds.transpose() << endl;
 	}
 	if (f0fit == OffRes::FitSym) {
-		bounds(sequences.nParameters() - 1, 0) = 0.;
+		bounds(PoolInfo::nParameters(Pools::One) - 1, 0) = 0.;
 	}
-	ArrayXd weights(sequences.combinedSize()); weights.setOnes();
+	ArrayXd weights(sequences.size()); weights.setOnes();
 	
 	if (verbose) {
 		cout << sequences;
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
 	if (scale == Scale::None)
 		nParams = 3;
 	MultiArray<float, 4> paramsVols(dims, nParams);
-	MultiArray<float, 4> residualVols(dims, sequences.combinedSize());
+	MultiArray<float, 4> residualVols(dims, sequences.size());
 	MultiArray<float, 3> SoSVol(dims);
 	//**************************************************************************
 	// Do the fitting
@@ -294,10 +294,10 @@ int main(int argc, char **argv)
 						localBounds.row(3).setConstant(f0Vol[{i,j,k}]);
 					}
 					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-					DESPOTFunctor func(sequences, signal, B1, fitComplex, false);
+					DESPOTFunctor func(sequences, Pools::One, signal, B1, fitComplex, false);
 					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, thresh,
 														samples, retain, contract, expand, (voxI > 0));
-					ArrayXd params(sequences.nParameters()); params.setZero();
+					ArrayXd params(PoolInfo::nParameters(Pools::One)); params.setZero();
 					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
 					if (scale == Scale::None) {
 						// Skip T1
@@ -336,29 +336,29 @@ int main(int argc, char **argv)
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
 	if (scale == Scale::None) {
-		hdr.intent_name = sequences.names().at(0);
-		Nifti::File out(hdr, outPrefix + sequences.names().at(0) + OutExt());
+		hdr.intent_name = PoolInfo::Names(Pools::One).at(0);
+		Nifti::File out(hdr, outPrefix + PoolInfo::Names(Pools::One).at(0) + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		hdr.intent_name = sequences.names().at(2);
-		out.open(outPrefix + sequences.names().at(2) + OutExt(), Nifti::Mode::Write);
+		hdr.intent_name = PoolInfo::Names(Pools::One).at(2);
+		out.open(outPrefix + PoolInfo::Names(Pools::One).at(2) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		hdr.intent_name = sequences.names().at(3);
-		out.open(outPrefix + sequences.names().at(3) + OutExt(), Nifti::Mode::Write);
+		hdr.intent_name = PoolInfo::Names(Pools::One).at(3);
+		out.open(outPrefix + PoolInfo::Names(Pools::One).at(3) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,2},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
 	} else {
-		hdr.intent_name = sequences.names().at(2);
-		Nifti::File out(hdr, outPrefix + sequences.names().at(2) + OutExt());
+		hdr.intent_name = PoolInfo::Names(Pools::One).at(2);
+		Nifti::File out(hdr, outPrefix + PoolInfo::Names(Pools::One).at(2) + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		hdr.intent_name = sequences.names().at(3);
-		out.open(outPrefix + sequences.names().at(3) + OutExt(), Nifti::Mode::Write);
+		hdr.intent_name = PoolInfo::Names(Pools::One).at(3);
+		out.open(outPrefix + PoolInfo::Names(Pools::One).at(3) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
@@ -368,7 +368,7 @@ int main(int argc, char **argv)
 	SoS.writeVolumes(SoSVol.begin(), SoSVol.end());
 	SoS.close();
 	if (writeResiduals) {
-		hdr.setDim(4, static_cast<int>(sequences.combinedSize()));
+		hdr.setDim(4, static_cast<int>(sequences.size()));
 		Nifti::File res(hdr, outPrefix + "residuals" + OutExt());
 		res.writeVolumes(residualVols.begin(), residualVols.end());
 		res.close();

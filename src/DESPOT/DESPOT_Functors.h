@@ -64,7 +64,8 @@ class Functor {
 //******************************************************************************
 class DESPOTFunctor : public Functor<double> {
 	protected:
-		Sequences &m_sequences;
+		SequenceBase &m_sequence;
+		Pools m_p;
 		size_t m_nV;
 		ArrayXcd m_data;
 		
@@ -72,10 +73,10 @@ class DESPOTFunctor : public Functor<double> {
 		bool m_complex, m_debug;
 		double m_B1;
 		
-		const long inputs() const override { return m_sequences.nParameters(); }
+		const long inputs() const override { return PoolInfo::nParameters(m_p); }
 		const long values() const override { return m_nV; }
 		
-		DESPOTFunctor(Sequences &cs, const ArrayXcd &d, const double B1, const bool fitComplex, const bool debug = false);
+		DESPOTFunctor(SequenceBase &s, const Pools p, const ArrayXcd &d, const double B1, const bool fitComplex, const bool debug = false);
 		
 		const bool constraint(const VectorXd &params) const;
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const override;

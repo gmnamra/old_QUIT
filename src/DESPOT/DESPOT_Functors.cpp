@@ -10,16 +10,16 @@
 //******************************************************************************
 #pragma mark DESPOTFunctor
 //******************************************************************************
-DESPOTFunctor::DESPOTFunctor(Sequences &cs, const ArrayXcd &data, const double B1, const bool fitComplex, const bool debug) :
-	m_sequences(cs), m_data(data), m_B1(B1), m_complex(fitComplex), m_debug(debug)
+DESPOTFunctor::DESPOTFunctor(SequenceBase &cs, const Pools np, const ArrayXcd &data, const double B1, const bool fitComplex, const bool debug) :
+	m_sequence(cs), m_p(np), m_data(data), m_B1(B1), m_complex(fitComplex), m_debug(debug)
 {
-	m_nV = m_sequences.combinedSize();
+	m_nV = m_sequence.size();
 	assert(static_cast<size_t>(m_data.rows()) == m_nV);
 }
 
 int DESPOTFunctor::operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 	eigen_assert(diffs.size() == values());
-	ArrayXcd s = m_sequences.combinedSignal(params, m_B1);
+	ArrayXcd s = m_sequence.signal(m_p, params, m_B1);
 	if (m_complex) {
 		diffs = (s - m_data).abs();
 	} else {
@@ -36,5 +36,5 @@ int DESPOTFunctor::operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) c
 }
 
 const bool DESPOTFunctor::constraint(const VectorXd &params) const {
-	return m_sequences.validParameters(params);
+	return PoolInfo::ValidParameters(m_p, params);
 }

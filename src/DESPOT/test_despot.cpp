@@ -57,8 +57,8 @@ int main(int argc, char **argv)
 	alphaSSFP *= M_PI / 180.;
 	VectorXd p(11); p << 0.127495, 0.0174758,   1.82927,  0.101974,    3.8992,   3.32707,   0.27656,  0.151555,  0.848445,   22.7945,   94.2626;
 	
-	SPGRFinite spgr(Components::Three, alphaSPGR, 0.0081, 0.0005, 0.0037);
-	SSFPFinite ssfp(Components::Three, alphaSSFP, 0.003912, 0.0005, phases);
+	SPGRFinite spgr(Pools::Three, alphaSPGR, 0.0081, 0.0005, 0.0037);
+	SSFPFinite ssfp(Pools::Three, alphaSSFP, 0.003912, 0.0005, phases);
 	auto spgr_s = spgr.signal(p.head(10), 1.0, p(10));
 	auto ssfp_s = ssfp.signal(p.head(10), 1.0, p(10));
 	cout << spgr_s.transpose() << endl;

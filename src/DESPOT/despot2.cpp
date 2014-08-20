@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	Sequences ssfp(Components::One, Scale::None);
+	Sequences ssfp(Scale::None);
 	if (verbose) cout << "Opening SSFP file: " << argv[optind] << endl;
 	Nifti::File SSFPFile(argv[optind++]);
 	if (verbose) cout << "Checking headers for consistency." << endl;
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 	} else {
 		ssfp.addSequence(SequenceType::SSFP, prompt, pp);
 	}
-	if (ssfp.combinedSize() != SSFPFile.header().dim(4)) {
+	if (ssfp.size() != SSFPFile.header().dim(4)) {
 		throw(std::runtime_error("The specified number of flip-angles and phase-cycles does not match the input file: " + SSFPFile.imagePath()));
 	}
 	if (verbose) {
@@ -200,7 +200,7 @@ int main(int argc, char **argv)
 						PD = b[1] * (1. - E1*E2) / (1. - E1);
 					}
 					if (algo == Algos::WLLS) {
-						VectorXd W(ssfp.combinedSize());
+						VectorXd W(ssfp.size());
 						for (size_t n = 0; n < nIterations; n++) {
 							if (elliptical) {
 								W = ((1. - E1*E2) * localAngles.sin() / (1. - E1*E2*E2 - (E1 - E2*E2)*localAngles.cos())).square();
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
 							}
 						}
 					} else if (algo == Algos::NLLS) {
-						DESPOTFunctor f(ssfp, s.cast<complex<double>>(), B1, false, false);
+						DESPOTFunctor f(ssfp, Pools::One, s.cast<complex<double>>(), B1, false, false);
 						NumericalDiff<DESPOTFunctor> nDiff(f);
 						LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
 						lm.parameters.maxfev = nIterations;
@@ -228,7 +228,7 @@ int main(int argc, char **argv)
 						lm.lmder1(p);
 						PD = p(0); T1 = p(1); T2 = p(2); offRes = p(3);
 					}
-					ArrayXcd theory = ssfp.combinedSignal(Vector4d(PD, T1, T2, offRes), B1);
+					ArrayXcd theory = ssfp.signal(Pools::One, Vector4d(PD, T1, T2, offRes), B1);
 					SoS = (data - theory).abs2().sum();
 					T2Vol[{i,j,k}]  = static_cast<float>(T2);
 					PDVol[{i,j,k}]  = static_cast<float>(PD);

@@ -62,7 +62,7 @@ Options:\n\
 	--1, --2, --3     : Use 1, 2 or 3 component sequences (default 3)\n"
 };
 
-static auto components = Components::Three;
+static auto pools = Pools::Three;
 static auto scale = Scale::NormToMean;
 static auto tesla = FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
@@ -174,9 +174,9 @@ int main(int argc, char **argv)
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
-			case '1': components = Components::One; break;
-			case '2': components = Components::Two; break;
-			case '3': components = Components::Three; break;
+			case '1': pools = Pools::One; break;
+			case '2': pools = Pools::Two; break;
+			case '3': pools = Pools::Three; break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
@@ -265,38 +265,38 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	Sequences sequences(components, scale);
+	Sequences sequences(scale);
 	// Build a Functor here so we can query number of parameters etc.
-	cout << "Using " << to_string(components) << " component sequences." << endl;
+	cout << "Using " << to_string(pools) << " component sequences." << endl;
 	vector<MultiArray<complex<float>, 4>> signalVols;
 	Nifti::Header hdr = parseInput(sequences, signalVols);
 	checkHeaders(hdr, {maskFile, f0File, B1File});
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	//**************************************************************************
-	MultiArray<float, 4> paramsVols(hdr.matrix(), sequences.nParameters());
-	MultiArray<float, 4> residualVols(hdr.matrix(), sequences.combinedSize());;
+	MultiArray<float, 4> paramsVols(hdr.matrix(), PoolInfo::nParameters(pools));
+	MultiArray<float, 4> residualVols(hdr.matrix(), sequences.size());;
 	MultiArray<float, 3> SoSVol(hdr.matrix());
 	
-	ArrayXd threshes(sequences.nParameters()); threshes.setConstant(0.05);
-	ArrayXXd bounds = sequences.bounds(tesla);
+	ArrayXd threshes(PoolInfo::nParameters(pools)); threshes.setConstant(0.05);
+	ArrayXXd bounds = PoolInfo::Bounds(pools, tesla, sequences.minTR());
 	if (tesla == FieldStrength::User) {
 		if (prompt) cout << "Enter parameter pairs (low then high)" << endl;
-		for (size_t i = 0; i < sequences.nParameters() - 1; i++) {
-			if (prompt) cout << sequences.names()[i] << ": " << flush;
+		for (size_t i = 0; i < PoolInfo::nParameters(pools) - 1; i++) {
+			if (prompt) cout << PoolInfo::Names(pools)[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 	}
 	if (f0fit == OffRes::FitSym) {
-		bounds(sequences.nParameters() - 1, 0) = 0.;
+		bounds(PoolInfo::nParameters(pools) - 1, 0) = 0.;
 	}
-	ArrayXd weights(sequences.combinedSize()); weights.setOnes();
+	ArrayXd weights(sequences.size()); weights.setOnes();
 	if (verbose) {
 		cout << sequences;
 		cout << "Bounds:" << endl <<  bounds.transpose() << endl;
 		ofstream boundsFile(outPrefix + "bounds.txt");
-		for (size_t p = 0; p < sequences.nParameters(); p++) {
-			boundsFile << sequences.names()[p] << "\t" << bounds.row(p) << endl;
+		for (size_t p = 0; p < PoolInfo::nParameters(pools); p++) {
+			boundsFile << PoolInfo::Names(pools)[p] << "\t" << bounds.row(p) << endl;
 		}
 		boundsFile.close();
 	}
@@ -324,13 +324,13 @@ int main(int argc, char **argv)
 					ArrayXcd signal = sequences.loadSignals(signalVols, i, j, k);
 					ArrayXXd localBounds = bounds;
 					if (f0fit == OffRes::Map) {
-						localBounds.row(sequences.nParameters() - 1).setConstant(f0Vol[{i,j,k}]);
+						localBounds.row(PoolInfo::nParameters(pools) - 1).setConstant(f0Vol[{i,j,k}]);
 					}
 					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-					DESPOTFunctor func(sequences, signal, B1, fitComplex, false);
+					DESPOTFunctor func(sequences, pools, signal, B1, fitComplex, false);
 					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
 														samples, retain, contract, expand, (voxI != 0));
-					ArrayXd params(sequences.nParameters());
+					ArrayXd params(PoolInfo::nParameters(pools));
 					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
 					paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
 					residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
@@ -359,14 +359,14 @@ int main(int argc, char **argv)
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 		 << difftime(procEnd, procStart) << " s." << endl;
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
-	outPrefix = outPrefix + to_string(components) + "C_";
+	outPrefix = outPrefix + to_string(pools) + "C_";
 	hdr.setDim(4, 1);
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
-	for (size_t p = 1; p < sequences.nParameters(); p++) { // Skip PD for now
-		hdr.intent_name = sequences.names().at(p);
-		Nifti::File file(hdr, outPrefix + sequences.names().at(p) + "" + OutExt());
+	for (size_t p = 1; p < PoolInfo::nParameters(pools); p++) { // Skip PD for now
+		hdr.intent_name = PoolInfo::Names(pools).at(p);
+		Nifti::File file(hdr, outPrefix + PoolInfo::Names(pools).at(p) + "" + OutExt());
 		auto param = paramsVols.slice<3>({0,0,0,p},{-1,-1,-1,0});
 		file.writeVolumes(param.begin(), param.end());
 		file.close();
@@ -376,7 +376,7 @@ int main(int argc, char **argv)
 	SoS.writeVolumes(SoSVol.begin(), SoSVol.end());
 	SoS.close();
 	if (writeResiduals) {
-		hdr.setDim(4, static_cast<int>(sequences.combinedSize()));
+		hdr.setDim(4, static_cast<int>(sequences.size()));
 		hdr.intent_name = "Residual";
 		Nifti::File res(hdr, outPrefix + "residuals" + OutExt());
 		res.writeVolumes(residualVols.begin(), residualVols.end());

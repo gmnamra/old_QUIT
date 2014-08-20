@@ -133,16 +133,15 @@ int main(int argc, char **argv)
 	spgrFile.open(argv[optind], Nifti::Mode::Read);
 	checkHeaders(spgrFile.header(), {maskFile, B1File});
 	Agilent::ProcPar pp; ReadPP(spgrFile, pp);
-	Sequences spgrSequence(Components::One, Scale::None);
-	spgrSequence.addSequence(SequenceType::SPGR, true, pp);
+	SPGRSimple spgrSequence(true, pp);
 	if (verbose) {
 		cout << spgrSequence;
 		cout << "Ouput prefix will be: " << outPrefix << endl;
 	}
-	if (spgrSequence.combinedSize() != spgrFile.header().dim(4)) {
+	if (spgrSequence.size() != spgrFile.header().dim(4)) {
 		throw(std::runtime_error("Specified number of flip-angles does not match number of volumes in file: " + spgrFile.imagePath()));
 	}
-	double TR = spgrSequence.sequence(0)->m_TR;
+	double TR = spgrSequence.m_TR;
 	cout << "Reading SPGR data..." << flush;
 	MultiArray<complex<float>, 4> spgrVols(spgrFile.dims().head(4));
 	spgrFile.readVolumes(spgrVols.begin(), spgrVols.end());
@@ -163,7 +162,7 @@ int main(int argc, char **argv)
 				if (!maskFile || (maskVol[{i,j,k}])) {
 					voxCount++;
 					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-					ArrayXd localAngles(spgrSequence.sequence(0)->B1flip(B1));
+					ArrayXd localAngles(spgrSequence.B1flip(B1));
 					double T1, PD, SoS;
 					ArrayXd signal = spgrVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().abs().cast<double>();
 					VectorXd Y = signal / localAngles.sin();
@@ -174,7 +173,7 @@ int main(int argc, char **argv)
 					T1 = -TR / log(b[0]);
 					PD = b[1] / (1. - b[0]);
 					if (algo == Algos::WLLS) {
-						VectorXd W(spgrSequence.combinedSize());
+						VectorXd W(spgrSequence.size());
 						for (size_t n = 0; n < nIterations; n++) {
 							W = (localAngles.sin() / (1. - (exp(-TR/T1)*localAngles.cos()))).square();
 							b = (X.transpose() * W.asDiagonal() * X).partialPivLu().solve(X.transpose() * W.asDiagonal() * Y);
@@ -182,7 +181,7 @@ int main(int argc, char **argv)
 							PD = b[1] / (1. - b[0]);
 						}
 					} else if (algo == Algos::NLLS) {
-						DESPOTFunctor f(spgrSequence, signal.cast<complex<double>>(), B1, false, false);
+						DESPOTFunctor f(spgrSequence, Pools::One, signal.cast<complex<double>>(), B1, false, false);
 						NumericalDiff<DESPOTFunctor> nDiff(f);
 						LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
 						lm.parameters.maxfev = nIterations;
@@ -191,7 +190,7 @@ int main(int argc, char **argv)
 						lm.lmder1(p);
 						PD = p(0); T1 = p(1);
 					}
-					ArrayXd theory = spgrSequence.combinedSignal(Vector4d(PD, T1, 0., 0.), B1).abs();
+					ArrayXd theory = spgrSequence.signal(Pools::One, Vector4d(PD, T1, 0., 0.), B1).abs();
 					SoS = (signal - theory).square().sum();
 					T1Vol[{i,j,k}]  = static_cast<float>(T1);
 					PDVol[{i,j,k}]  = static_cast<float>(PD);
