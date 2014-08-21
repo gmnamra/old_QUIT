@@ -49,9 +49,13 @@ template<typename T> class Read {
 	public:
 	static void FromLine(std::istream &in, T &val) {
 		std::string line;
-		std::getline(in, line);
+		if (!std::getline(in, line)) {
+			throw(std::runtime_error("Failed to read input."));
+		}
 		std::istringstream stream(line);
-		stream >> val;
+		if (!(stream >> val)) {
+			throw(std::runtime_error("Failed to parse input line: " + line));
+		}
 	}
 };
 
@@ -59,10 +63,14 @@ template<typename T> class Read<Eigen::Array<T, Eigen::Dynamic, 1>> {
 	public:
 	static void FromLine(std::istream & in, Eigen::Array<T, Eigen::Dynamic, 1> &vals) {
 		std::string line;
-		std::getline(in, line);
+		if (!std::getline(in, line)) {
+			throw(std::runtime_error("Failed to read input."));
+		}
 		std::istringstream stream(line);
 		for (typename Eigen::Array<T, Eigen::Dynamic, 1>::Index i = 0; i < vals.size(); i++) {
-			stream >> vals[i];
+			if (!(stream >> vals[i])) {
+				throw(std::runtime_error("Failed to parse input line: " + line));
+			}
 		}
 	}
 };
