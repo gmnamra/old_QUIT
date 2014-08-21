@@ -34,26 +34,24 @@ const string usage {
 "Usage is: despot2-fm [options] T1_map ssfp_files\n\
 \
 Options:\n\
-	--help, -h       : Print this message\n\
-	--verbose, -v    : Print slice processing times\n\
-	--no-prompt, -n  : Suppress input prompts\n\
-	--mask, -m file  : Mask input with specified file\n\
-	--out, -o path   : Add a prefix to the output filenames\n\
-	--f0, -f SYM     : Fit symmetric f0 map (default)\n\
-	         ASYM    : Fit asymmetric f0 map\n\
-	         file    : Use f0 Map file (in Hertz)\n\
-	--B1, -b file    : B1 Map file (ratio)\n\
-	--start, -s N    : Start processing from slice N\n\
-	--stop, -p  N    : Stop processing at slice N\n\
-	--scale, -S 0    : Normalise signals to mean (default)\n\
-	            1    : Fit a scaling factor/proton density\n\
-	--tesla, -t 3    : Use boundaries suitable for 3T (default)\n\
-	            7    : Boundaries suitable for 7T\n\
-	            u    : User specified boundaries from stdin\n\
-	--sequences, -M s    : Use simple sequences (default)\n\
-	            f    : Use finite pulse length correction\n\
-	--complex, -x    : Fit to complex data\n\
-	--contract, -c n : Read contraction settings from stdin (Will prompt)\n"
+	--help, -h        : Print this message\n\
+	--verbose, -v     : Print slice processing times\n\
+	--no-prompt, -n   : Suppress input prompts\n\
+	--mask, -m file   : Mask input with specified file\n\
+	--out, -o path    : Add a prefix to the output filenames\n\
+	--f0, -f SYM      : Fit symmetric f0 map (default)\n\
+	         ASYM     : Fit asymmetric f0 map\n\
+	         file     : Use f0 Map file (in Hertz)\n\
+	--B1, -b file     : B1 Map file (ratio)\n\
+	--start, -s N     : Start processing from slice N\n\
+	--stop, -p  N     : Stop processing at slice N\n\
+	--scale, -S 0     : Normalise signals to mean (default)\n\
+	            1     : Fit a scaling factor/proton density\n\
+	--threads, -T N   : Use N threads (default=hardware limit)\n\
+	--sequences, -M s : Use simple sequences (default)\n\
+	            f     : Use finite pulse length correction\n\
+	--complex, -x     : Fit to complex data\n\
+	--contract, -c n  : Read contraction settings from stdin (Will prompt)\n"
 };
 
 static auto scale = Scale::NormToMean;
@@ -77,7 +75,6 @@ static struct option long_options[] = {
 	{"start", required_argument, 0, 's'},
 	{"stop", required_argument, 0, 'p'},
 	{"scale", required_argument, 0, 'S'},
-	{"tesla", required_argument, 0, 't'},
 	{"threads", required_argument, 0, 'T'},
 	{"sequences", no_argument, 0, 'M'},
 	{"complex", no_argument, 0, 'x'},
@@ -111,7 +108,7 @@ int main(int argc, char **argv)
 	string procPath;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvnm:o:f:b:s:p:S:t:T:M:xcri:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvnm:o:f:b:s:p:S:T:M:xcri:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
@@ -152,16 +149,6 @@ int main(int argc, char **argv)
 					case 1 : scale = Scale::None; break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
-						return EXIT_FAILURE;
-						break;
-				} break;
-			case 't':
-				switch (*optarg) {
-					case '3': tesla = FieldStrength::Three; break;
-					case '7': tesla = FieldStrength::Seven; break;
-					case 'u': tesla = FieldStrength::User; break;
-					default:
-						cout << "Unknown boundaries type " << optarg << endl;
 						return EXIT_FAILURE;
 						break;
 				} break;
@@ -239,20 +226,14 @@ int main(int argc, char **argv)
 	}
 
 	ArrayXd thresh(PoolInfo::nParameters(Pools::One)); thresh.setConstant(0.05);
-	ArrayXXd bounds = PoolInfo::Bounds(Pools::One, tesla, sequences.minTR());
-	if (tesla == FieldStrength::User) {
-		cout << "Enter T2 limits:" << endl;
-		cin >> bounds(2, 0) >> bounds(2, 1);
-		cout << "Bounds:" << endl << bounds.transpose() << endl;
-	}
-	if (f0fit == OffRes::FitSym) {
-		bounds(PoolInfo::nParameters(Pools::One) - 1, 0) = 0.;
-	}
 	ArrayXd weights(sequences.size()); weights.setOnes();
+	Array2d f0Bounds(-0.5/sequences.minTR(),0.5/sequences.minTR());
+	if (f0fit == OffRes::FitSym) {
+		f0Bounds(0) = 0.;
+	}
 	
 	if (verbose) {
 		cout << sequences;
-		cout << "Bounds:" << endl <<  bounds.transpose() << endl;
 	}
 	//**************************************************************************
 	// Set up results data
@@ -279,23 +260,35 @@ int main(int argc, char **argv)
 		clock_t loopStart = clock();
 
 		function<void (const size_t&)> processVox = [&] (const size_t &j) {
-			for (size_t i = 0; i < T1Vol.dims()[0]; i++) {
+			size_t start = 0, end = dims[0];
+			if (voxJ != 0) {
+				start = voxJ;
+				end = voxJ + 1;
+			}
+			for (size_t i = start; i < end; i++) {
 				if (!maskFile || (maskVol[{i,j,k}] && T1Vol[{i,j,k}] > 0.)) {
 					// -ve T1 is nonsensical, no point fitting
 					sliceCount++;
 					ArrayXcd signal = sequences.loadSignals(ssfpData, i, j, k);
-					ArrayXXd localBounds = bounds;
+					ArrayXXd bounds(PoolInfo::nParameters(Pools::One), 2);
+					bounds.setZero();
 					if (scale == Scale::None) {
-						localBounds(0, 0) = 0.;
-						localBounds(0, 1) = signal.abs().maxCoeff() * 25;
+						bounds(0, 0) = 0.;
+						bounds(0, 1) = signal.abs().maxCoeff() * 25;
+					} else {
+						bounds.row(0).setConstant(1.);
 					}
-					localBounds.row(1).setConstant(T1Vol[{i,j,k}]);
+					bounds.row(1).setConstant(T1Vol[{i,j,k}]);
+					bounds(2,0) = 0.001;
+					bounds(2,1) = T1Vol[{i,j,k}];
 					if (f0fit == OffRes::Map) {
-						localBounds.row(3).setConstant(f0Vol[{i,j,k}]);
+						bounds.row(3).setConstant(f0Vol[{i,j,k}]);
+					} else {
+						bounds.row(3) = f0Bounds;
 					}
 					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 					DESPOTFunctor func(sequences, Pools::One, signal, B1, fitComplex, false);
-					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, thresh,
+					RegionContraction<DESPOTFunctor> rc(func, bounds, weights, thresh,
 														samples, retain, contract, expand, (voxI > 0));
 					ArrayXd params(PoolInfo::nParameters(Pools::One)); params.setZero();
 					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
@@ -315,10 +308,11 @@ int main(int argc, char **argv)
 			}
 		};
 		if (voxI == 0)
-			threads.for_loop(processVox, T1Vol.dims()[1]);
+			threads.for_loop(processVox, dims[1]);
 		else {
 			processVox(voxI);
-			exit(0);
+			voxCount = 1;
+			break;
 		}
 		
 		if (verbose) printLoopTime(loopStart, sliceCount);
@@ -326,9 +320,11 @@ int main(int argc, char **argv)
 		if (interrupt_received)
 			break;
 	}
-    if (verbose) printElapsedTime(startTime);
-    printElapsedClock(startClock, voxCount);
-	
+	if (verbose) printElapsedTime(startTime);
+	printElapsedClock(startClock, voxCount);
+	if (voxI != 0)
+		return EXIT_SUCCESS;
+
 	outPrefix = outPrefix + "FM_";
 	Nifti::Header hdr = T1File.header();
 	hdr.setDim(4, 1);

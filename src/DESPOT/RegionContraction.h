@@ -129,8 +129,8 @@ class RegionContraction {
 			m_residuals.setZero();
 			
 			if (m_debug) {
-				cout << "Start Midpoint: " << midPoint().transpose() << endl;
-				cout << "Start Width:    " << width().transpose() << endl;
+				cout << endl;
+				cout << "Start Boundaries: " << endl << m_startBounds.transpose() << endl;
 				cout << "Weights:        " << m_weights.transpose() << endl;
 			}
 			
@@ -201,9 +201,9 @@ class RegionContraction {
 					cout << "Best sample:    " << retained.col(0).transpose() << endl;
 					cout << "Best residual:  " << retainedRes.col(0).transpose() << endl;
 					cout << "Best SoS:       " << retainedRes.col(0).square().sum() << endl;
-					cout << "Mid Sample:     " << midPoint().transpose() << endl;
-					cout << "Sample Width:   " << width().transpose() << endl;
-					cout << "Threshold:      " << (m_threshes * startWidth()).transpose() << endl;
+					cout << "Current bounds: " << endl << m_currentBounds.transpose() << endl;
+					cout << "Current width:  " << width().transpose() << endl;
+					cout << "Current thresh: " << (m_threshes * startWidth()).transpose() << endl;
 					cout << "Width < Thresh: " << (width() <= (m_threshes * startWidth())).transpose() << endl;
 					cout << "Converged:      " << (width() <= (m_threshes * startWidth())).all() << endl;
 				}
