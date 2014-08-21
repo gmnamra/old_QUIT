@@ -42,9 +42,9 @@ Options:\n\
 	--verbose, -v     : Print more information\n\
 	--mask, -m file   : Mask input with specified file\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
-	--f0, -f SYM     : Fit symmetric f0 map (default)\n\
-	         ASYM    : Fit asymmetric f0 map\n\
-	         file    : Use f0 Map file (in Hertz)\n\
+	--f0, -f SYM      : Fit symmetric f0 map (default)\n\
+	         ASYM     : Fit asymmetric f0 map\n\
+	         file     : Use f0 Map file (in Hertz)\n\
 	--B1, -b file     : B1 Map file (ratio)\n\
 	--start, -s n     : Only start processing at slice n.\n\
 	--stop, -p n      : Finish at slice n-1\n\
@@ -53,9 +53,10 @@ Options:\n\
 	--tesla, -t 3     : Boundaries suitable for 3T (default)\n\
 	            7     : Boundaries suitable for 7T \n\
 	            u     : User specified boundaries from stdin\n\
-	--sequences, -M s     : Use simple sequences (default)\n\
+	--threads, -T N   : Use N threads (default=hardware limit)\n\
+	--sequences, -M s : Use simple sequences (default)\n\
 	            f     : Use Finite Pulse Length correction\n\
-	--complex, -x    : Fit to complex data\n\
+	--complex, -x     : Fit to complex data\n\
 	--contract, -c n  : Read contraction settings from stdin (Will prompt)\n\
 	--resid, -r       : Write out per-flip angle residuals\n\
 	--no-prompt, -n   : Don't print prompts for input\n\
@@ -85,6 +86,7 @@ static struct option long_options[] = {
 	{"scale", required_argument, 0, 'S'},
 	{"tesla", required_argument, 0, 't'},
 	{"sequences", no_argument, 0, 'M'},
+	{"threads", required_argument, 0, 'T'},
 	{"complex", no_argument, 0, 'x'},
 	{"contract", no_argument, 0, 'c'},
 	{"resid", no_argument, 0, 'r'},
@@ -170,7 +172,7 @@ int main(int argc, char **argv)
 	MultiArray<float, 3> f0Vol, B1Vol;
 	
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:M:xcrn123i:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:T:M:xcrn123i:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
@@ -217,6 +219,9 @@ int main(int argc, char **argv)
 						return EXIT_FAILURE;
 						break;
 				} break;
+			case 'T':
+				threads.resize(atoi(optarg));
+				break;
 			case 't':
 				switch (*optarg) {
 					case '3': tesla = FieldStrength::Three; break;

@@ -43,7 +43,8 @@ Options:\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
 	           n      : NLLS (Levenberg-Marquardt)\n\
-	--its, -i N      : Max iterations for WLLS (default 4)\n"
+	--its, -i N      : Max iterations for WLLS (default 4)\n\
+	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
 enum class Algos { LLS, WLLS, NLLS };
@@ -61,6 +62,7 @@ static struct option long_options[] =
 	{"no-prompt", no_argument, 0, 'n'},
 	{"algo", required_argument, 0, 'a'},
 	{"its", required_argument, 0, 'i'},
+	{"threads", required_argument, 0, 'T'},
 	{0, 0, 0, 0}
 };
 
@@ -73,10 +75,11 @@ int main(int argc, char **argv)
 
 	Nifti::File maskFile, B0File, B1File;
 	MultiArray<double, 3> maskVol, B1Vol;
+	ThreadPool threads;
 	string procPath;
 
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:b:vna:i:e", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:o:b:vna:i:T:e", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;
@@ -110,6 +113,9 @@ int main(int argc, char **argv)
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
 			case 'e': elliptical = true; break;
+			case 'T':
+				threads.resize(atoi(optarg));
+				break;
 			case 0:
 				// Just a flag
 				break;
@@ -166,7 +172,6 @@ int main(int argc, char **argv)
 		startTime = printStartTime();
 	clock_t startClock = clock();
 	int voxCount = 0;
-	ThreadPool pool;
 	for (size_t k = 0; k < dims(2); k++) {
 		if (verbose)
 			cout << "Starting slice " << k << "..." << flush;
@@ -237,7 +242,7 @@ int main(int argc, char **argv)
 				}
 			}
 		};
-		pool.for_loop(process, dims(1));
+		threads.for_loop(process, dims(1));
 		if (verbose) printLoopTime(loopStart, sliceCount);
 		voxCount += sliceCount;
 	}
