@@ -224,17 +224,22 @@ int main(int argc, char **argv)
 							}
 						}
 					} else if (algo == Algos::NLLS) {
-						DESPOTFunctor f(ssfp, Pools::One, s.cast<complex<double>>(), B1, false, false);
-						NumericalDiff<DESPOTFunctor> nDiff(f);
-						LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
+						D2Functor f(T1, ssfp, Pools::One, data, B1, true, false);
+						NumericalDiff<D2Functor> nDiff(f);
+						LevenbergMarquardt<NumericalDiff<D2Functor>> lm(nDiff);
 						lm.parameters.maxfev = nIterations;
-						VectorXd p(4);
-						p << PD, T1, T2, offRes;
+						VectorXd p(3);
+						p << PD, T2, offRes;
+						//cout << "Running LM..." << endl;
+						//cout << "Start P: " << p.transpose() << endl;
 						lm.lmder1(p);
-						PD = p(0); T1 = p(1); T2 = p(2); offRes = p(3);
+						//cout << "End P: " << p.transpose() << endl;
+						//cout << "Finished LM" << endl;
+						PD = p(0); T2 = p(1); offRes = p(2);
+						//exit(EXIT_SUCCESS);
 					}
 					ArrayXcd theory = ssfp.signal(Pools::One, Vector4d(PD, T1, T2, offRes), B1);
-					SoS = (data - theory).abs2().sum();
+					SoS = (s - theory.abs()).abs2().sum();
 					T2Vol[{i,j,k}]  = static_cast<float>(T2);
 					PDVol[{i,j,k}]  = static_cast<float>(PD);
 					offResVol[{i,j,k}] = static_cast<float>(offRes);

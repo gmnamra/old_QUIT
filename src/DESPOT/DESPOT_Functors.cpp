@@ -38,3 +38,22 @@ int DESPOTFunctor::operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) c
 const bool DESPOTFunctor::constraint(const VectorXd &params) const {
 	return PoolInfo::ValidParameters(m_p, params);
 }
+//******************************************************************************
+// T1 Functor
+//******************************************************************************
+D2Functor::D2Functor(const double T1, SequenceBase &cs, const Pools np, const ArrayXcd &data, const double B1, const bool fitComplex, const bool debug) :
+	DESPOTFunctor(cs,np,data,B1,fitComplex,debug),
+	m_T1(T1)
+{}
+
+int D2Functor::operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
+	Array4d fullparams;
+	fullparams << params(0), m_T1, params(1), params(2);
+	return DESPOTFunctor::operator()(fullparams, diffs);
+}
+
+const bool D2Functor::constraint(const VectorXd &params) const {
+	Array4d fullparams;
+	fullparams << params(0), m_T1, params(1), params(2);
+	return PoolInfo::ValidParameters(m_p, fullparams);
+}

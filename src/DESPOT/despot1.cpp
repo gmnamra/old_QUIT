@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 						PD = p(0); T1 = p(1);
 					}
 					ArrayXd theory = spgrSequence.signal(Pools::One, Vector4d(PD, T1, 0., 0.), B1).abs();
-					SoS = (signal - theory).square().sum();
+					SoS = (signal.abs() - theory.abs()).square().sum();
 					T1Vol[{i,j,k}]  = static_cast<float>(T1);
 					PDVol[{i,j,k}]  = static_cast<float>(PD);
 					SoSVol[{i,j,k}] = static_cast<float>(SoS);

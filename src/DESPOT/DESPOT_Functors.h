@@ -82,4 +82,15 @@ class DESPOTFunctor : public Functor<double> {
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const override;
 };
 
+//******************************************************************************
+// T2 Only Functor
+//******************************************************************************
+class D2Functor : public DESPOTFunctor {
+	public:
+		double m_T1;
+		D2Functor(const double T1, SequenceBase &s, const Pools p, const ArrayXcd &d, const double B1, const bool fitComplex, const bool debug = false);
+		const long inputs() const override { return 3; }
+		const bool constraint(const VectorXd &params) const;
+		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const override;
+};
 #endif
