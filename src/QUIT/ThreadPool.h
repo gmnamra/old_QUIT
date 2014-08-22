@@ -13,6 +13,7 @@
 #ifndef QUIT_THREAD_POOL
 #define QUIT_THREAD_POOL
 
+#include <memory>
 #include <iostream>
 #include <thread>
 #include <functional>
@@ -22,9 +23,15 @@ namespace QUIT {
 
 class ThreadPool {
 	private:
+		static void Interrupt(int);
+		static ThreadPool *InterruptPool;
+
 		std::vector<std::thread> m_pool;
 		size_t m_size;
-		bool m_run;
+		bool m_continue, m_finished;
+
+		void registerInterrupt();
+		void deregisterInterrupt();
 
 	public:
 		ThreadPool(const size_t num_threads = std::thread::hardware_concurrency());
@@ -34,6 +41,11 @@ class ThreadPool {
 		void resize(const size_t num_threads);
 		void for_loop(const std::function<void(size_t)> f, const size_t start, const size_t stop, const size_t step);
 		void for_loop(const std::function<void(size_t)> f, const size_t stop);
+		void for_loop2(const std::function<void(const size_t, const size_t)> f,
+		               const size_t starti, const size_t stopi, const size_t stepi,
+		                const size_t startj, const size_t stopj, const size_t stepj);
+		void for_loop2(const std::function<void(const size_t, const size_t)> f, const size_t stopi, const size_t stopj);
+		bool finished();
 		void stop();
 };
 

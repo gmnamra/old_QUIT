@@ -97,18 +97,6 @@ static struct option long_options[] = {
 	{0, 0, 0, 0}
 };
 //******************************************************************************
-#pragma mark SIGTERM interrupt handler and Threads
-//******************************************************************************
-ThreadPool threads;
-bool interrupt_received = false;
-void int_handler(int); // Need the int to conform to handler definition but we don't use it
-void int_handler(int) {
-	cout << endl << "Stopping processing early." << endl;
-	threads.stop();
-	interrupt_received = true;
-}
-
-//******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
 Nifti::Header parseInput(Sequences &seq, vector<MultiArray<complex<float>, 4>> &signalVols);
@@ -170,7 +158,8 @@ int main(int argc, char **argv)
 	Nifti::File maskFile, f0File, B1File;
 	MultiArray<int8_t, 3> maskVol;
 	MultiArray<float, 3> f0Vol, B1Vol;
-	
+	ThreadPool threads;
+
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:T:M:xcrn123i:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
@@ -311,9 +300,6 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	if (stop_slice > hdr.dim(3))
 		stop_slice = hdr.dim(3);
-	size_t sliceSize = hdr.dims().head(2).prod();
-	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
-	
     time_t procStart = time(NULL);
 	char theTime[512];
 	strftime(theTime, 512, "%H:%M:%S", localtime(&procStart));
@@ -322,32 +308,31 @@ int main(int argc, char **argv)
 		if (verbose) cout << "Processing slice " << k << "..." << flush;
 		atomic<int> voxCount{0};
 		clock_t loopStart = clock();
-		function<void (const size_t&)> processVox = [&] (const size_t &j) {
-			for (size_t i = 0; i < hdr.dim(1); i++) {
-				if (!maskFile || maskVol[{i,j,k}]) {
-					voxCount++;
-					ArrayXcd signal = sequences.loadSignals(signalVols, i, j, k);
-					ArrayXXd localBounds = bounds;
-					if (f0fit == OffRes::Map) {
-						localBounds.row(PoolInfo::nParameters(pools) - 1).setConstant(f0Vol[{i,j,k}]);
-					}
-					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-					DESPOTFunctor func(sequences, pools, signal, B1, fitComplex, false);
-					RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
-														samples, retain, contract, expand, (voxI != 0));
-					ArrayXd params(PoolInfo::nParameters(pools));
-					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
-					paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
-					residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
-					SoSVol[{i,j,k}] = static_cast<float>(rc.SoS());
+
+		function<void (const size_t, const size_t)> processVox = [&] (const size_t i, const size_t j) {
+			if (!maskFile || maskVol[{i,j,k}]) {
+				voxCount++;
+				ArrayXcd signal = sequences.loadSignals(signalVols, i, j, k);
+				ArrayXXd localBounds = bounds;
+				if (f0fit == OffRes::Map) {
+					localBounds.row(PoolInfo::nParameters(pools) - 1).setConstant(f0Vol[{i,j,k}]);
 				}
+				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
+				DESPOTFunctor func(sequences, pools, signal, B1, fitComplex, false);
+				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
+													samples, retain, contract, expand, (voxI != 0));
+				ArrayXd params(PoolInfo::nParameters(pools));
+				rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
+				paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
+				residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
+				SoSVol[{i,j,k}] = static_cast<float>(rc.SoS());
 			}
 		};
 		if (voxI == 0)
-			threads.for_loop(processVox, hdr.dim(2));
+			threads.for_loop2(processVox, hdr.dim(1), hdr.dim(2));
 		else {
-			processVox(voxI);
-			exit(0);
+			processVox(voxI, voxJ);
+			return EXIT_SUCCESS;
 		}
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -356,7 +341,7 @@ int main(int argc, char **argv)
 				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
 			cout << "finished." << endl;
 		}
-		if (interrupt_received)
+		if (!threads.finished())
 			break;
 	}
 	time_t procEnd = time(NULL);
