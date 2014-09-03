@@ -84,29 +84,20 @@ static struct option long_options[] = {
 };
 
 //******************************************************************************
-#pragma mark SIGTERM interrupt handler and Threads
-//******************************************************************************
-ThreadPool threads;
-bool interrupt_received = false;
-void int_handler(int sig);
-void int_handler(int) {
-	cout << endl << "Stopping processing early." << endl;
-	threads.stop();
-	interrupt_received = true;
-}
-
-//******************************************************************************
 // Main
 //******************************************************************************
 int main(int argc, char **argv)
 {
 	try { // To fix uncaught exceptions on Mac
-	
+	cout << version << endl << credit_me << endl;
+	Eigen::initParallel();
 	Nifti::File maskFile, f0File, B1File;
 	MultiArray<int8_t, 3> maskVol;
 	MultiArray<float, 3> f0Vol, B1Vol;
 	string procPath;
-	
+	ThreadPool threads;
+	//ThreadPool::EnableDebug = true;
+
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, "hvnm:o:f:b:s:p:S:T:M:xcri:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
@@ -185,8 +176,6 @@ int main(int argc, char **argv)
 				break;
 		}
 	}
-	if (verbose) cout << version << endl << credit_me << endl;
-	Eigen::initParallel();
 	if ((argc - optind) < 2) {
 		cout << "Wrong number of arguments. Need at least a T1 map and 1 SSFP file." << endl;
 		return EXIT_FAILURE;
@@ -253,72 +242,65 @@ int main(int argc, char **argv)
 	if (verbose) startTime = printStartTime();
 	clock_t startClock = clock();
 	int voxCount = 0;
-	signal(SIGINT, int_handler);	// If we've got here there's actually allocated data to save
 	for (size_t k = start_slice; k < stop_slice; k++) {
 		if (verbose) cout << "Starting slice " << k << "..." << flush;
 		atomic<int> sliceCount{0};
 		clock_t loopStart = clock();
 
-		function<void (const size_t&)> processVox = [&] (const size_t &j) {
-			size_t start = 0, end = dims[0];
-			if (voxJ != 0) {
-				start = voxJ;
-				end = voxJ + 1;
-			}
-			for (size_t i = start; i < end; i++) {
-				if (!maskFile || (maskVol[{i,j,k}] && T1Vol[{i,j,k}] > 0.)) {
-					// -ve T1 is nonsensical, no point fitting
-					sliceCount++;
-					ArrayXcd signal = sequences.loadSignals(ssfpData, i, j, k);
-					ArrayXXd bounds(PoolInfo::nParameters(Pools::One), 2);
-					bounds.setZero();
-					if (scale == Scale::None) {
-						bounds(0, 0) = 0.;
-						bounds(0, 1) = signal.abs().maxCoeff() * 25;
-					} else {
-						bounds.row(0).setConstant(1.);
-					}
-					bounds.row(1).setConstant(T1Vol[{i,j,k}]);
-					bounds(2,0) = 0.001;
-					bounds(2,1) = T1Vol[{i,j,k}];
-					if (f0fit == OffRes::Map) {
-						bounds.row(3).setConstant(f0Vol[{i,j,k}]);
-					} else {
-						bounds.row(3) = f0Bounds;
-					}
-					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-					DESPOTFunctor func(sequences, Pools::One, signal, B1, fitComplex, false);
-					RegionContraction<DESPOTFunctor> rc(func, bounds, weights, thresh,
-														samples, retain, contract, expand, (voxI > 0));
-					ArrayXd params(PoolInfo::nParameters(Pools::One)); params.setZero();
-					rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
-					if (scale == Scale::None) {
-						// Skip T1
-						paramsVols[{i,j,k,0}] = params(0);
-						paramsVols[{i,j,k,1}] = params(2);
-						paramsVols[{i,j,k,2}] = params(3);
-					} else {
-						paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.tail(2).cast<float>(); // Skip PD & T1
-					}
-					SoSVol[{i,j,k}] = static_cast<float>(rc.SoS());
-					if (writeResiduals) {
-						residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
-					}
+		function<void (const size_t, const size_t)> processVox = [&] (const size_t i, const size_t j) {
+			const MultiArray<float, 3>::Index idx{i,j,k};
+			if (!maskFile || (maskVol[idx] && T1Vol[idx] > 0.)) {
+				// -ve T1 is nonsensical, no point fitting
+				sliceCount++;
+				ArrayXcd signal = sequences.loadSignals(ssfpData, i, j, k);
+				ArrayXXd bounds(PoolInfo::nParameters(Pools::One), 2);
+				bounds.setZero();
+				if (scale == Scale::None) {
+					bounds(0, 0) = 0.;
+					bounds(0, 1) = signal.abs().maxCoeff() * 25;
+				} else {
+					bounds.row(0).setConstant(1.);
+				}
+				bounds.row(1).setConstant(T1Vol[idx]);
+				bounds(2,0) = 0.001;
+				bounds(2,1) = T1Vol[idx];
+				if (f0fit == OffRes::Map) {
+					bounds.row(3).setConstant(f0Vol[idx]);
+				} else {
+					bounds.row(3) = f0Bounds;
+				}
+				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
+				DESPOTFunctor func(sequences, Pools::One, signal, B1, fitComplex, false);
+				RegionContraction<DESPOTFunctor> rc(func, bounds, weights, thresh,
+													samples, retain, contract, expand, (voxI > 0));
+				ArrayXd params(PoolInfo::nParameters(Pools::One)); params.setZero();
+				rc.optimise(params, time(NULL) + i); // Add the voxel number to the time to get a decent random seed
+				if (scale == Scale::None) {
+					// Skip T1
+					paramsVols[{i,j,k,0}] = params(0);
+					paramsVols[{i,j,k,1}] = params(2);
+					paramsVols[{i,j,k,2}] = params(3);
+				} else {
+					paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.tail(2).cast<float>(); // Skip PD & T1
+				}
+				SoSVol[{i,j,k}] = static_cast<float>(rc.SoS());
+				if (writeResiduals) {
+					residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
 				}
 			}
 		};
-		if (voxI == 0)
-			threads.for_loop(processVox, dims[1]);
-		else {
-			processVox(voxI);
+		if (voxI == 0) {
+			threads.for_loop2(processVox, dims[0], dims[1]);
+			if (threads.interrupted())
+				break;
+		} else {
+			processVox(voxI, voxJ);
 			voxCount = 1;
 			break;
 		}
 		
 		if (verbose) printLoopTime(loopStart, sliceCount);
 		voxCount += sliceCount;
-		if (interrupt_received)
-			break;
 	}
 	if (verbose) printElapsedTime(startTime);
 	printElapsedClock(startClock, voxCount);

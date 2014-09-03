@@ -145,16 +145,10 @@ Nifti::Header parseInput(Sequences &seq, vector<MultiArray<complex<float>, 4>> &
 //******************************************************************************
 // Main
 //******************************************************************************
-int main(int argc, char **argv)
-{
-	//**************************************************************************
-	#pragma mark Argument Processing
-	//**************************************************************************
+int main(int argc, char **argv) {
+	try { // To fix uncaught exceptions on Mac
 	cout << version << endl << credit_me << endl;
 	Eigen::initParallel();
-	
-	try { // To fix uncaught exceptions on Mac
-	
 	Nifti::File maskFile, f0File, B1File;
 	MultiArray<int8_t, 3> maskVol;
 	MultiArray<float, 3> f0Vol, B1Vol;
@@ -328,9 +322,11 @@ int main(int argc, char **argv)
 				SoSVol[{i,j,k}] = static_cast<float>(rc.SoS());
 			}
 		};
-		if (voxI == 0)
+		if (voxI == 0) {
 			threads.for_loop2(processVox, hdr.dim(1), hdr.dim(2));
-		else {
+			if (threads.interrupted())
+				break;
+		} else {
 			processVox(voxI, voxJ);
 			return EXIT_SUCCESS;
 		}

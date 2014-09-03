@@ -25,10 +25,13 @@ class ThreadPool {
 	private:
 		static void Interrupt(int);
 		static ThreadPool *InterruptPool;
+	public:
+		static bool EnableDebug;
 
+	private:
 		std::vector<std::thread> m_pool;
 		size_t m_size;
-		bool m_continue, m_finished;
+		bool m_finished, m_interrupted;
 
 		void registerInterrupt();
 		void deregisterInterrupt();
@@ -46,6 +49,7 @@ class ThreadPool {
 		                const size_t startj, const size_t stopj, const size_t stepj);
 		void for_loop2(const std::function<void(const size_t, const size_t)> f, const size_t stopi, const size_t stopj);
 		bool finished();
+		bool interrupted();
 		void stop();
 };
 
