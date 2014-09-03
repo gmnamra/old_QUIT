@@ -18,6 +18,7 @@
 #include <thread>
 #include <functional>
 #include <vector>
+#include <signal.h>
 
 namespace QUIT {
 

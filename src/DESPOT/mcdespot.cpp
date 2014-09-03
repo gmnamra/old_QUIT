@@ -13,7 +13,6 @@
 #include <iostream>
 #include <atomic>
 #include <getopt.h>
-#include <signal.h>
 #include <time.h>
 #include <fstream>
 #include <Eigen/Dense>
