@@ -164,13 +164,13 @@ int main(int argc, char **argv)
 				auto cs = (C1 + C2 + C3 + C4) / 4;
 				auto cp2d = I1 + d1.colwise()*lm;
 				ArrayXcf cp(d[0]); cp.real() = cp2d.col(0); cp.imag() = cp2d.col(1);
-				auto regLine = ((lm > 0) && (lm < 1) && (mu > 0) && (mu < 1));
-				auto regMag  = (cp.abs() < C1.abs()) && (cp.abs() < C2.abs()) &&
-				               (cp.abs() < C3.abs()) && (cp.abs() < C4.abs());
+				auto regLine = ((lm < 0.0) || (lm > 1.0) || (mu < 0.0) || (mu > 1.0));
+				auto regMag  = (cp.abs() > C1.abs()) && (cp.abs() > C2.abs()) &&
+				               (cp.abs() > C3.abs()) && (cp.abs() > C4.abs());
 				auto out = output.slice<1>({0,j,k,vol}, {-1,0,0,0}).asArray();
 				switch (save) {
-					case SaveMode::LineReg:    out = regLine.select(cp, cs); break;
-					case SaveMode::MagReg:     out = regMag.select(cp, cs); break;
+					case SaveMode::LineReg:    out = regLine.select(cs, cp); break;
+					case SaveMode::MagReg:     out = regMag.select(cs, cp); break;
 					case SaveMode::CrossPoint: out = cp; break;
 					case SaveMode::ComplexSum: out = cs; break;
 					case SaveMode::Lambda:     out = lm.cast<complex<float>>(); break;
