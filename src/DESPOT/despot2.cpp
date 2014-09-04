@@ -185,11 +185,13 @@ int main(int argc, char **argv)
 					B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 					T1 = T1Vol[{i,j,k}];
 					E1 = exp(-TR / T1);
-					ArrayXd localAngles(ssfp.sequence(0)->B1flip(B1));
-					auto data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
-					auto s = data.abs();
-					auto p = data.imag().binaryExpr(data.real(), ptr_fun<double,double,double>(atan2));
-					offRes = p.mean() / (TR * M_PI);
+					const ArrayXd localAngles(ssfp.sequence(0)->B1flip(B1));
+					const ArrayXcd data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
+					// Take the phase of the mean data instead of mean of the phase to avoid
+					// wrap problems.
+					const complex<double> mean_data = data.mean();
+					offRes = arg(mean_data);
+					const ArrayXd s = data.abs();
 					VectorXd Y = s / localAngles.sin();
 					MatrixXd X(Y.rows(), 2);
 					X.col(0) = s / localAngles.tan();
