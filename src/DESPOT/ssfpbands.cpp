@@ -47,7 +47,7 @@ Options:\n\
 enum class SaveMode { LineReg, MagReg, CrossPoint, ComplexSum, Lambda, Mu };
 static bool verbose = false;
 static size_t phase_dim = 3, flip_dim = 4;
-static string outname;
+static string prefix;
 static SaveMode save = SaveMode::LineReg;
 static struct option long_options[] =
 {
@@ -78,8 +78,8 @@ int main(int argc, char **argv)
 				maskFile.readVolumes(maskData.begin(), maskData.end(), 0, 1);
 				break;
 			case 'o':
-				outname = optarg;
-				cout << "Output prefix will be: " << outname << endl;
+				prefix = optarg;
+				cout << "Output prefix will be: " << prefix << endl;
 				break;
 			case 'f':
 				phase_dim = 4; flip_dim = 3; break;
@@ -120,8 +120,8 @@ int main(int argc, char **argv)
 	}
 	MultiArray<complex<float>, 4> input(inputFile.dims().head(4));
 	inputFile.readVolumes(input.begin(), input.end());
-	if (outname == "") {
-		outname = inputFile.basePath();
+	if (prefix == "") {
+		prefix = inputFile.basePath();
 	}
 	inputFile.close();
 
@@ -132,7 +132,9 @@ int main(int argc, char **argv)
 	nd[phase_dim] = 4;
 	nd[flip_dim] = nFlip;
 	MultiArray<complex<float>, 5> CData = input.reshape<5>(nd);
-	MultiArray<complex<float>, 4> output(d, nFlip);
+	MultiArray<float, 4> lm_out(d, nFlip), mu_out(d, nFlip), mabs_out(d, nFlip), leeway_out(d, nFlip);
+	MultiArray<complex<float>, 4> cs_out(d, nFlip), gs_out(d, nFlip), reg_out(d, nFlip);
+	MultiArray<int, 4> lreg_out(d, nFlip);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -142,43 +144,58 @@ int main(int argc, char **argv)
 		if (verbose) cout << "Processing volume " << vol << "..." << endl;
 		function<void (const size_t)> processVox = [&] (const size_t k) {
 			for (size_t j = 0; j < d[1]; j++) {
-				decltype(CData)::Index idx; idx << 0,j,k,0,0;
-				idx[flip_dim] = vol;
-				decltype(CData)::Index sz; sz << -1,0,0,0,0;
-				auto C1 = CData.slice<1>(idx, sz).asArray(); idx[phase_dim] = 1;
-				auto C2 = CData.slice<1>(idx, sz).asArray(); idx[phase_dim] = 2;
-				auto C3 = CData.slice<1>(idx, sz).asArray(); idx[phase_dim] = 3;
-				auto C4 = CData.slice<1>(idx, sz).asArray();
-				ArrayXXf I1(d[0], 2), I2(d[0], 2), I3(d[0], 2), I4(d[0], 2),
-				         d1(d[0], 2), d2(d[0], 2), n1(d[0], 2), n2(d[0], 2);
-				I1.col(0) = C1.real(); I1.col(1) = C1.imag();
-				I2.col(0) = C2.real(); I2.col(1) = C2.imag();
-				I3.col(0) = C3.real(); I3.col(1) = C3.imag();
-				I4.col(0) = C4.real(); I4.col(1) = C4.imag();
-				d1 = (I3 - I1);
-				d2 = (I4 - I2);
-				n1.col(0) = d1.col(1); n1.col(1) = -d1.col(0);
-				n2.col(0) = d2.col(1); n2.col(1) = -d2.col(0);
-				auto lm = (n2 * (I2 - I1)).rowwise().sum() / (n2 * d1).rowwise().sum();
-				auto mu = (n1 * (I1 - I2)).rowwise().sum() / (n1 * d2).rowwise().sum();
-				auto cs = (C1 + C2 + C3 + C4) / 4;
-				auto cp2d = I1 + d1.colwise()*lm;
-				ArrayXcf cp(d[0]); cp.real() = cp2d.col(0); cp.imag() = cp2d.col(1);
-				auto regLine = ((lm < 0.0) || (lm > 1.0) || (mu < 0.0) || (mu > 1.0));
-				auto regMag  = (cp.abs() > C1.abs()) && (cp.abs() > C2.abs()) &&
-				               (cp.abs() > C3.abs()) && (cp.abs() > C4.abs());
-				auto out = output.slice<1>({0,j,k,vol}, {-1,0,0,0}).asArray();
-				switch (save) {
-					case SaveMode::LineReg:    out = regLine.select(cs, cp); break;
-					case SaveMode::MagReg:     out = regMag.select(cs, cp); break;
-					case SaveMode::CrossPoint: out = cp; break;
-					case SaveMode::ComplexSum: out = cs; break;
-					case SaveMode::Lambda:     out = lm.cast<complex<float>>(); break;
-					case SaveMode::Mu:         out = mu.cast<complex<float>>(); break;
-				}
-				if (maskFile) {
-					auto m = maskData.slice<1>({0,j,k},{-1,0,0}).asArray();
-					out = m.select(out, 0);
+				for (size_t i = 0; i < d[0]; i++) {
+					MultiArray<complex<float>, 5>::Index idx;
+					idx << i,j,k,0,0;
+					idx[flip_dim] = vol;
+
+					complex<float> c_0   = CData[idx]; idx[phase_dim] = 1;
+					complex<float> c_90  = CData[idx]; idx[phase_dim] = 2;
+					complex<float> c_180 = CData[idx]; idx[phase_dim] = 3;
+					complex<float> c_270 = CData[idx];
+
+					Vector2f v_0{c_0.real(), c_0.imag()};
+					Vector2f v_90{c_90.real(), c_90.imag()};
+					Vector2f v_180{c_180.real(), c_180.imag()};
+					Vector2f v_270{c_270.real(), c_270.imag()};
+
+					Vector2f d_0 = v_180 - v_0;
+					Vector2f d_90 = v_270 - v_90;
+					Vector2f n_0(d_0[1], -d_0[0]);
+					Vector2f n_90(d_90[1], -d_90[0]);
+
+					complex<float> cs = (c_0 + c_90 + c_180 + c_270) / complex<float>(4.0,0.0);
+					cs_out[{i,j,k,vol}] = cs;
+
+					float lm_0 = ((v_90 - v_0).dot(n_90)) / (d_0.dot(n_90));
+					float lm_90 = ((v_0 - v_90).dot(n_0)) / (d_90.dot(n_0));
+
+					Vector2f gs_0 = (v_0 + lm_0 * d_0);
+					Vector2f gs_90 = (v_90 + lm_90 * d_90);
+
+					gs_out[{i,j,k,vol}] = {gs_0[0], gs_0[1]};
+					lm_out[{i,j,k,vol}] = lm_0;
+					mu_out[{i,j,k,vol}] = lm_90;
+
+					float max_abs = max(max(max(abs(c_0),abs(c_90)),abs(c_180)),abs(c_270));
+					bool mreg = gs_0.norm() > max_abs;
+					bool lreg = false;
+
+					float leeway = 1. - fabs(d_0.dot(d_90) / (d_0.norm() * d_90.norm()));
+
+
+					if (lm_0 < -leeway) { lreg = true; lm_0 = 0; }
+					if (lm_0 > (1. + leeway)) { lreg = true; lm_0 = 1; }
+					if (lm_90 < -leeway) { lreg = true; lm_90 = 0; }
+					if (lm_90 > (1. + leeway)) { lreg = true; lm_90 = 1; }
+					gs_0 = (v_0 + lm_0 * d_0);
+					gs_90 = (v_90 + lm_90 * d_90);
+
+					mabs_out[{i,j,k,vol}] = max_abs;
+					leeway_out[{i,j,k,vol}] = leeway;
+					lreg_out[{i,j,k,vol}] = lreg;
+
+					reg_out[{i,j,k,vol}] = lreg ? cs : gs_out[{i,j,k,vol}];
 				}
 			}
 		};
@@ -188,17 +205,38 @@ int main(int argc, char **argv)
 	inHdr.setDim(4, nFlip);
 	inHdr.setDatatype(Nifti::DataType::COMPLEX64);
 
-	switch (save) {
-		case SaveMode::LineReg:    outname += "_lreg" + OutExt(); break;
-		case SaveMode::MagReg:     outname += "_mreg" + OutExt(); break;
-		case SaveMode::CrossPoint: outname += "_cross" + OutExt(); break;
-		case SaveMode::ComplexSum: outname += "_sum" + OutExt(); break;
-		case SaveMode::Lambda:     outname += "_lambda" + OutExt(); inHdr.setDatatype(Nifti::DataType::FLOAT64); break;
-		case SaveMode::Mu:         outname += "_mu" + OutExt();     inHdr.setDatatype(Nifti::DataType::FLOAT64); break;
-	}
-	if (verbose) cout << "Writing output file: " << outname << endl;
+	string outname = prefix + "_lreg" + OutExt();
 	Nifti::File outFile(inHdr, outname);
-	outFile.writeVolumes(output.begin(), output.end());
+	outFile.writeVolumes(lreg_out.begin(), lreg_out.end());
+	outFile.close();
+	outname = prefix + "_lw" + OutExt();
+	outFile.open(outname, Nifti::Mode::Write);
+	outFile.writeVolumes(leeway_out.begin(), leeway_out.end());
+	outFile.close();
+	outname = prefix + "_mabs" + OutExt();
+	outFile.open(outname, Nifti::Mode::Write);
+	outFile.writeVolumes(mabs_out.begin(), mabs_out.end());
+	outFile.close();
+	outname = prefix + "_cs" + OutExt();
+	outFile.open(outname, Nifti::Mode::Write);
+	outFile.writeVolumes(cs_out.begin(), cs_out.end());
+	outFile.close();
+	outname = prefix + "_gs" + OutExt();
+	outFile.open(outname, Nifti::Mode::Write);
+	outFile.writeVolumes(gs_out.begin(), gs_out.end());
+	outFile.close();
+	outname = prefix + "_reg" + OutExt();
+	outFile.open(outname, Nifti::Mode::Write);
+	outFile.writeVolumes(reg_out.begin(), reg_out.end());
+	outFile.close();
+	inHdr.setDatatype(Nifti::DataType::FLOAT64);
+	outname = prefix + "_lm" + OutExt();
+	outFile.open(outname, Nifti::Mode::Write);
+	outFile.writeVolumes(lm_out.begin(), lm_out.end());
+	outFile.close();
+	outname = prefix + "_mu" + OutExt();
+	outFile.open(outname, Nifti::Mode::Write);
+	outFile.writeVolumes(mu_out.begin(), mu_out.end());
 	outFile.close();
 	if (verbose) cout << "Finished." << endl;
 	return EXIT_SUCCESS;
