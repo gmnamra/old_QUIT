@@ -41,32 +41,31 @@ vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, ArrayXd::Index N)
     return indices;
 }
 
+enum class RCStatus {
+	NotStarted = -1,
+	Converged, IterationLimit, ErrorInvalid, ErrorResidual
+};
+
+ostream& operator<<(ostream &os, const RCStatus &s) {
+	switch (s) {
+		case RCStatus::NotStarted: os << "Not Started"; break;
+		case RCStatus::Converged: os << "Converged"; break;
+		case RCStatus::IterationLimit: os << "Reached iteration limit"; break;
+		case RCStatus::ErrorInvalid: os << "Could not generate valid sample"; break;
+		case RCStatus::ErrorResidual: os << "Infinite residual found"; break;
+	}
+	return os;
+}
+
 template <typename Functor_t>
 class RegionContraction {
-	public:
-		enum class Status {
-			NotStarted = -1,
-			Converged, IterationLimit, ErrorInvalid, ErrorResidual
-		};
-		
-		friend ostream& operator<<(ostream &os, Status &s) {
-			switch (s) {
-				case Status::NotStarted: os << "Not Started"; break;
-				case Status::DidNotConverge: os << "Converged"; break;
-				case Status::IterationLimit: os << "Reached iteration limit"; break;
-				case Status::ErrorConstraints: os << "Could not generate valid sample"; break;
-				case Status::ErrorResidual: os << "Infinite residual found"; break;
-			}
-			return os;
-		}
-	
 	private:
 		Functor_t &m_f;
 		ArrayXXd m_startBounds, m_currentBounds;
 		ArrayXd m_weights, m_residuals, m_threshes;
 		size_t m_nS, m_nR, m_maxContractions, m_contractions;
 		double m_expand, m_SoS;
-		Status m_status;
+		RCStatus m_status;
 		bool m_debug;
 	
 	public:
@@ -78,7 +77,7 @@ class RegionContraction {
 				m_f(f), m_startBounds(startBounds), m_currentBounds(startBounds),
 				m_nS(nS), m_nR(nR), m_maxContractions(maxContractions),
 				m_threshes(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0),
-				m_status(Status::NotStarted), m_weights(weights), m_debug(debug)
+				m_status(RCStatus::NotStarted), m_weights(weights), m_debug(debug)
 		{
 			eigen_assert(f.inputs() == startBounds.rows());
 			eigen_assert(startBounds.cols() == 2);
@@ -108,7 +107,7 @@ class RegionContraction {
 		}
 		const ArrayXd  &residuals() const { return m_residuals; }
 		const size_t   contractions() const { return m_contractions; }
-		const Status   status() const { return m_status; }
+		RCStatus       status() const { return m_status; }
 		const ArrayXXd &currentBounds() const { return m_currentBounds; }
 		const double   SoS() const { return m_SoS; }
 		const ArrayXd  startWidth() const { return m_startBounds.col(1) - m_startBounds.col(0); }
@@ -137,7 +136,7 @@ class RegionContraction {
 			mt19937_64 twist(seed);
 			uniform_real_distribution<double> uniform(0., 1.);
 			
-			m_status = Status::IterationLimit;
+			m_status = RCStatus::IterationLimit;
 			for (m_contractions = 0; m_contractions < m_maxContractions; m_contractions++) {
 				size_t startSample = 0;
 				if (m_contractions > 0) {
@@ -165,7 +164,7 @@ class RegionContraction {
 								cout << "This warning will only be printed once." << endl;
 							}
 							params.setZero();
-							m_status = Status::ErrorInvalid;
+							m_status = RCStatus::ErrorInvalid;
 							return;
 						}
 					} while (!m_f.constraint(tempSample));
@@ -181,7 +180,7 @@ class RegionContraction {
 						}
 						params = retained.col(0);
 						m_residuals.setConstant(numeric_limits<double>::infinity());
-						m_status = Status::ErrorResidual;
+						m_status = RCStatus::ErrorResidual;
 						return;
 					}
 					samples.col(s) = tempSample;
@@ -209,7 +208,7 @@ class RegionContraction {
 				}
 				if (((width() <= (m_threshes * startWidth())).all()) ||
 				    (previousBest == retained.col(0)).all()) {
-					m_status = Status::Converged;
+					m_status = RCStatus::Converged;
 					m_contractions++; // Just to give an accurate contraction count.
 					break;
 				}
@@ -229,4 +228,5 @@ class RegionContraction {
 			}
 		}
 };
+
 #endif
