@@ -197,9 +197,9 @@ template<typename Tp, size_t rank>
 std::string MultiArray<Tp, rank>::print() const {
 	std::stringstream ss;
 	if (m_ptr) {
-		ss << "MultiArray @" << m_ptr->data() << "+" << m_offset << ", share count: " << m_ptr.use_count() << std::endl;
+		ss << "MultiArray " << m_ptr->data() << " Offset: " << m_offset << " Share count: " << m_ptr.use_count() << std::endl;
 		ss << "Dims:    " << m_dims.transpose() << std::endl;
-		ss << "Strides: " << m_strides.transpose();
+		ss << "Strides: " << m_strides.transpose() << std::endl;
 	} else {
 		ss << "Unitialised MultiArray.";
 	}

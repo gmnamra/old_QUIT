@@ -43,7 +43,7 @@ Options:\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
 	           n      : NLLS (Levenberg-Marquardt)\n\
-	--its, -i N      : Max iterations for WLLS (default 4)\n\
+	--its, -i N       : Max iterations for WLLS (default 4)\n\
 	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
