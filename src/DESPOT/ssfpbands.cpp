@@ -39,9 +39,15 @@ Options:\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--flip, -f        : Data order is flip-angle, then phase (default opposite).\n\
 	--phases, -p N    : Number of phase-cycling patterns used (default is 4).\n\
-	--threads, -T N   : Use N threads (default=hardware limit).\n"
+	--threads, -T N   : Use N threads (default=hardware limit).\n\
+	--save, -sR       : Save the robustly regularised GS\n\
+	          M       : Save the magnitude regularised GS\n\
+	          G       : Save the unregularised GS\n\
+	          C       : Save the CS\n"
 };
 
+enum class Save { RR, MR, GS, CS };
+static Save mode = Save::RR;
 static bool verbose = false;
 static size_t phase_dim = 3, flip_dim = 4, nPhases = 4;
 static string prefix;
@@ -53,6 +59,7 @@ static struct option long_options[] = {
 	{"flip", required_argument, 0, 'f'},
 	{"phases", required_argument, 0, 'p'},
 	{"threads", required_argument, 0, 'T'},
+	{"save", required_argument, 0, 's'},
 	{0, 0, 0, 0}
 };
 
@@ -102,6 +109,17 @@ int main(int argc, char **argv) {
 				if (nPhases < 4) {
 					cerr << "Must have a minimum of 4 phase-cycling patterns." << endl;
 					return EXIT_FAILURE;
+				}
+				break;
+			case 's':
+				switch(*optarg) {
+					case 'R': mode = Save::RR; break;
+					case 'M': mode = Save::MR; break;
+					case 'G': mode = Save::GS; break;
+					case 'C': mode = Save::CS; break;
+					default:
+						cerr << "Unknown desired save image: " << *optarg << endl;
+						return EXIT_FAILURE;
 				}
 				break;
 			case 'T':
@@ -154,7 +172,7 @@ int main(int argc, char **argv) {
 	split_start[phase_dim] = 2;
 	MultiArray<complex<float>, 5> bData = reshaped.slice<5>(split_start, reshape_dims);
 	// For results
-	MultiArray<complex<float>, 4> reg_out(d, nFlip);
+	MultiArray<complex<float>, 4> output(d, nFlip);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -167,7 +185,7 @@ int main(int argc, char **argv) {
 				idx << vi,vj,vk,0,0;
 				idx[flip_dim] = vol;
 
-				MatrixXf solutions(2, nCrossings); solutions.setZero();
+				MatrixXf sols(2, nCrossings); sols.setZero();
 				size_t si = 0;
 				for (size_t li = 0; li < nLines; li++) {
 					idx_t idx_i; idx_i << vi,vj,vk,0,0;
@@ -193,15 +211,28 @@ int main(int argc, char **argv) {
 
 						Vector2f cs = (a_i + a_j + b_i + b_j) / 4.0;
 						Vector2f gs = a_i + mu * d_i;
-						bool regularise = true;
+						bool rob_reg = true;
 						// Do the logic this way round so NaN does not propagate
 						if ((mu > -xi) && (mu < 1 + xi) && (nu > -xi) && (nu < 1 + xi))
-							regularise = false;
-						solutions.col(si++) = regularise ? cs : gs;
+							rob_reg = false;
+						bool mag_reg = true;
+						float gs_norm = gs.norm();
+						if ((gs_norm < a_i.norm()) &&
+						    (gs_norm < a_j.norm()) &&
+						    (gs_norm < b_i.norm()) &&
+						    (gs_norm < b_j.norm())) {
+						    mag_reg = false;
+						}
+						switch (mode) {
+							case Save::RR: sols.col(si++) = rob_reg ? cs : gs; break;
+							case Save::MR: sols.col(si++) = mag_reg ? cs : gs; break;
+							case Save::GS: sols.col(si++) = gs; break;
+							case Save::CS: sols.col(si++) = cs; break;
+						}
 					}
 				}
-				Vector2f mean_sol = solutions.rowwise().mean();
-				reg_out[{vi,vj,vk,vol}] = {mean_sol[0], mean_sol[1]};
+				Vector2f mean_sol = sols.rowwise().mean();
+				output[{vi,vj,vk,vol}] = {mean_sol[0], mean_sol[1]};
 			};
 			threads.for_loop2(processVox, d[0], d[1]);
 		}
@@ -210,9 +241,16 @@ int main(int argc, char **argv) {
 	inHdr.setDim(4, nFlip);
 	inHdr.setDatatype(Nifti::DataType::COMPLEX64);
 
-	string outname = prefix + "reg" + OutExt();
+	string outname = prefix;
+	switch (mode) {
+		case Save::RR: outname.append("reg" + OutExt()); break;
+		case Save::MR: outname.append("magreg" + OutExt()); break;
+		case Save::GS: outname.append("gs" + OutExt()); break;
+		case Save::CS: outname.append("cs" + OutExt()); break;
+	}
+	if (verbose) cout << "Output filename: " << outname << endl;
 	Nifti::File outFile(inHdr, outname);
-	outFile.writeVolumes(reg_out.begin(), reg_out.end());
+	outFile.writeVolumes(output.begin(), output.end());
 	outFile.close();
 	if (verbose) cout << "Finished." << endl;
 	return EXIT_SUCCESS;

@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 					// Take the phase of the mean data instead of mean of the phase to avoid
 					// wrap problems.
 					const complex<double> mean_data = data.mean();
-					offRes = arg(mean_data);
+					offRes = arg(mean_data) / (M_PI * TR);
 					const ArrayXd s = data.abs();
 					VectorXd Y = s / localAngles.sin();
 					MatrixXd X(Y.rows(), 2);
