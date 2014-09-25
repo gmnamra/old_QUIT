@@ -187,8 +187,7 @@ int main(int argc, char **argv)
 					E1 = exp(-TR / T1);
 					const ArrayXd localAngles(ssfp.sequence(0)->B1flip(B1));
 					const ArrayXcd data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
-					// Take the phase of the mean data instead of mean of the phase to avoid
-					// wrap problems.
+					// Use phase of mean instead of mean of phase to avoid wrap issues
 					const complex<double> mean_data = data.mean();
 					offRes = arg(mean_data) / (M_PI * TR);
 					const ArrayXd s = data.abs();

@@ -40,7 +40,7 @@ Options:\n\
 	--flip, -f        : Data order is flip-angle, then phase (default opposite).\n\
 	--phases, -p N    : Number of phase-cycling patterns used (default is 4).\n\
 	--threads, -T N   : Use N threads (default=hardware limit).\n\
-	--save, -sR       : Save the robustly regularised GS\n\
+	--save, -sR       : Save the robustly regularised GS (default)\n\
 	          M       : Save the magnitude regularised GS\n\
 	          G       : Save the unregularised GS\n\
 	          C       : Save the CS\n"
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
 	// Do the fitting
 	//**************************************************************************
 	clock_t startClock = clock();
-	for (size_t vol = 0; vol < nFlip; vol++) {
+	for (size_t vol = nFlip; vol-- > 0;) { // Reverse iterate over volumes
 		if (verbose) cout << "Processing volume " << vol << "..." << endl;
 		for (size_t vk = 0; vk < d[2]; vk++) {
 			function<void (const size_t, const size_t)> processVox = [&] (const size_t vi, const size_t vj) {
@@ -211,12 +211,25 @@ int main(int argc, char **argv) {
 
 						Vector2f cs = (a_i + a_j + b_i + b_j) / 4.0;
 						Vector2f gs = a_i + mu * d_i;
+
+						Vector2f rs = cs;
+						if (vol < (nFlip - 1)) { // Use the phase of the last flip-angle for regularisation
+							float phase = arg(output[{vi,vj,vk,nFlip-1}]);
+							Vector2f d_p{cos(phase),sin(phase)};
+							float lm_i = (a_i).dot(n_i) / d_p.dot(n_i);
+							float lm_j = (a_j).dot(n_j) / d_p.dot(n_j);
+							Vector2f p_i = lm_i * d_p;
+							Vector2f p_j = lm_j * d_p;
+							rs = (p_i + p_j) / 2.0;
+						}
+
 						bool rob_reg = true;
 						// Do the logic this way round so NaN does not propagate
 						if ((mu > -xi) && (mu < 1 + xi) && (nu > -xi) && (nu < 1 + xi))
 							rob_reg = false;
-						bool mag_reg = true;
+
 						float gs_norm = gs.norm();
+						bool mag_reg = true;
 						if ((gs_norm < a_i.norm()) &&
 						    (gs_norm < a_j.norm()) &&
 						    (gs_norm < b_i.norm()) &&
@@ -224,7 +237,7 @@ int main(int argc, char **argv) {
 						    mag_reg = false;
 						}
 						switch (mode) {
-							case Save::RR: sols.col(si++) = rob_reg ? cs : gs; break;
+							case Save::RR: sols.col(si++) = rob_reg ? rs : gs; break;
 							case Save::MR: sols.col(si++) = mag_reg ? cs : gs; break;
 							case Save::GS: sols.col(si++) = gs; break;
 							case Save::CS: sols.col(si++) = cs; break;
