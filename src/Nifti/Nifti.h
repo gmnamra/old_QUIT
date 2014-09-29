@@ -75,6 +75,7 @@ class File {
 		std::string headerPath() const;
 		
 		const Header &header() const;                           //!< Get the header information for this image.
+		void setHeader(const Header & h);                       //!< Overwrite the header. Only works on closed files.
 		size_t rank() const;                                    //!< Get the rank (number of dimensions) of the image.
 		size_t dim(const size_t d) const;                       //!< Get the size (voxel count) of a dimension. Valid dimensions are 1-7.
 		IndexArray dims() const;                                //!< Get all dimension sizes.

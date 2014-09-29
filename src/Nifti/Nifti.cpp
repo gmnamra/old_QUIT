@@ -370,6 +370,12 @@ string File::headerPath() const {
 }
 
 const Header &File::header() const { return m_header; }
+void File::setHeader(const Header &h) {
+	if (m_mode != Mode::Closed) {
+		throw(std::runtime_error("Cannot call setHeader on an open file."));
+	}
+	m_header = h;
+}
 Index File::rank() const { return m_header.rank(); }
 Index File::dim(const size_t d) const { return m_header.dim(d); }
 IndexArray File::dims() const { return m_header.fulldims(); }
