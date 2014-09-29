@@ -45,15 +45,73 @@ Options:\n\
 enum class Type { MagPhase, RealImag, Complex };
 static bool verbose = false, forceDType = false;
 static Type inputType = Type::MagPhase, outputType = Type::RealImag;
-static DataType outDType = DataType::COMPLEX64;
+static DataType precision = DataType::FLOAT32;
 static struct option long_options[] =
 {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"input", required_argument, 0, 'i'},
 	{"output", required_argument, 0, 'o'},
+	{"dtype", required_argument, 0, 'd'},
 	{0, 0, 0, 0}
 };
+
+template<typename T>
+void mag_to_cmp(Nifti::File &in1, Nifti::File &in2, size_t vol,
+                vector<T> &v1, vector<T> &v2,
+                vector<complex<T>> &c)
+{
+	if (verbose) cout << "Reading magnitude volume " << vol << endl;
+	in1.readVolumes(v1.begin(), v1.end(), vol, 1);
+	if (verbose) cout << "Reading phase volume " << vol << endl;
+	in2.readVolumes(v2.begin(), v2.end(), vol, 1);
+	for (size_t i = 0; i < v1.size(); i++) {
+		c[i] = polar(v1[i], v2[i]);
+	}
+}
+
+template<typename T>
+void re_im_to_cmp(Nifti::File &in1, Nifti::File &in2, size_t vol,
+                  vector<T> &v1, vector<T> &v2,
+                  vector<complex<T>> &c)
+{
+	if (verbose) cout << "Reading real volume " << vol << endl;
+	in1.readVolumes(v1.begin(), v1.end(), vol, 1);
+	if (verbose) cout << "Reading imaginary volume " << vol << endl;
+	in2.readVolumes(v2.begin(), v2.end(), vol, 1);
+	for (size_t i = 0; i < v1.size(); i++) {
+		c[i] = complex<T>(v1[i], v2[i]);
+	}
+}
+
+template<typename T>
+void cmp_to_mag(Nifti::File &out1, Nifti::File out2, size_t vol,
+                vector<T> &v1, vector<T> &v2,
+                vector<complex<T>> &c)
+{
+	for (size_t i = 0; i < v1.size(); i++) {
+		v1[i] = abs(c[i]); v2[i] = arg(c[i]);
+	}
+	if (verbose) cout << "Writing magnitude volume " << vol << endl;
+	out1.writeVolumes(v1.begin(), v1.end(), vol, 1);
+	if (verbose) cout << "Writing phase volume " << vol << endl;
+	out2.writeVolumes(v2.begin(), v2.end(), vol, 1);
+}
+
+template<typename T>
+void cmp_to_re_im(Nifti::File &out1, Nifti::File out2, size_t vol,
+                  vector<T> &v1, vector<T> &v2,
+                  vector<complex<T>> &c)
+{
+	for (size_t i = 0; i < v1.size(); i++) {
+		v1[i] = c[i].real(); v2[i] = c[i].imag();
+	}
+	if (verbose) cout << "Writing real volume " << vol << endl;
+	out1.writeVolumes(v1.begin(), v1.end(), vol, 1);
+	if (verbose) cout << "Writing imaginary volume " << vol << endl;
+	out2.writeVolumes(v2.begin(), v2.end(), vol, 1);
+}
+
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -74,7 +132,6 @@ int main(int argc, char **argv)
 					default:
 						cerr << "Unknown input type " << optarg << endl;
 						return EXIT_FAILURE;
-						break;
 				} break;
 			case 'o':
 				switch (*optarg) {
@@ -84,11 +141,20 @@ int main(int argc, char **argv)
 					default:
 						cerr << "Unknown output type " << optarg << endl;
 						return EXIT_FAILURE;
-						break;
+				} break;
+			case 'd':
+				switch (*optarg) {
+					case 'f': precision = DataType::FLOAT32; break;
+					case 'd': precision = DataType::FLOAT64; break;
+					case 'l': precision = DataType::FLOAT128; break;
+					default:
+						cerr << "Unknown precision type " << optarg << endl;
+						return EXIT_FAILURE;
 				} break;
 			case 'h':
 			case '?': // getopt will print an error message
-				return EXIT_FAILURE;
+				cout << usage << endl;
+				return EXIT_SUCCESS;
 		}
 	}
 
@@ -101,125 +167,117 @@ int main(int argc, char **argv)
 	switch (outputType) {
 		case Type::MagPhase: expected_number_of_arguments += 2; break;
 		case Type::RealImag: expected_number_of_arguments += 2; break;
-		case Type::Complex:  expected_number_of_arguments += 1; break;
+		case Type::Complex: expected_number_of_arguments += 1; break;
 	}
 	if (expected_number_of_arguments != (argc - optind)) {
 		cout << "Expected " << expected_number_of_arguments<<  " filenames, but " << (argc - optind) << " were given." << endl << usage << endl;
 		return EXIT_FAILURE;
 	}
 
-	File file1, file2;
+	File in1, in2;
 	if (verbose) cout << "Opening input file: " << argv[optind] << endl;
-	file1.open(argv[optind++], Mode::Read);
-	size_t nEl = file1.dims().prod();
-	vector<complex<long double>> complexData(nEl);
-
-	switch (inputType) {
-		case Type::MagPhase: {
-			if (verbose) cout << "Opening input file: " << argv[optind] << endl;
-			file2.open(argv[optind++], Mode::Read);
-			if (!file2.header().matchesSpace(file1.header())) {
-				cerr << "Magnitude and phase files are incompatible." << endl;
-				return EXIT_FAILURE;
-			}
-			vector<long double> magData(nEl), phaseData(nEl);
-			file1.readAll(magData.begin(), magData.end());
-			file2.readAll(phaseData.begin(), phaseData.end());
-			for (size_t i = 0; i < nEl; i++) {
-				complexData[i] = polar(magData[i], phaseData[i]);
-			}
-			file2.close();
-		} break;
-		case Type::RealImag: {
-			if (verbose) cout << "Opening input file: " << argv[optind] << endl;
-			file2.open(argv[optind++], Nifti::Mode::Read);
-			if (!file2.header().matchesSpace(file1.header())) {
-				cerr << "Real and imaginary files are incompatible." << endl;
-				return EXIT_FAILURE;
-			}
-			vector<long double> realData(nEl), imagData(nEl);
-			file1.readAll(realData.begin(), realData.end());
-			file2.readAll(imagData.begin(), imagData.end());
-			for (size_t i = 0; i < nEl; i++) {
-				complexData[i] = complex<long double>(realData[i], imagData[i]);
-			}
-			file2.close();
-		} break;
-		case Type::Complex : {
-			file1.readAll(complexData.begin(), complexData.end());
+	in1.open(argv[optind++], Mode::Read);
+	if (inputType != Type::Complex) {
+		if (verbose) cout << "Opening input file: " << argv[optind] << endl;
+		in2.open(argv[optind++], Mode::Read);
+		if (!in2.header().matchesSpace(in1.header())) {
+			cerr << "Input files are incompatible." << endl;
+			return EXIT_FAILURE;
 		}
 	}
 
-	file1.close();
-	Header outHdr = file1.header();
-	if (forceDType) {
-		outHdr.setDatatype(outDType);
+	Header outHdr = in1.header();
+	if (outputType == Type::Complex) {
+		switch (precision) {
+			case DataType::FLOAT32: outHdr.setDatatype(DataType::COMPLEX64); break;
+			case DataType::FLOAT64: outHdr.setDatatype(DataType::COMPLEX128); break;
+			case DataType::FLOAT128: outHdr.setDatatype(DataType::COMPLEX256); break;
+			default: throw(std::logic_error("Invalid precision type."));
+		}
 	} else {
-
+		outHdr.setDatatype(precision);
+	}
+	File out1, out2;
+	out1.setHeader(outHdr);
+	out1.open(argv[optind++], Nifti::Mode::Write);
+	if (outputType != Type::Complex) {
+		out2.setHeader(outHdr);
+		out2.open(argv[optind++], Nifti::Mode::Write);
 	}
 
-	switch (outputType) {
-		case Type::MagPhase: {
-			switch (outHdr.datatype()) {
-				case (Nifti::DataType::FLOAT32) : case (Nifti::DataType::COMPLEX64) :
-					outHdr.setDatatype(Nifti::DataType::FLOAT32);  break;
-				case (Nifti::DataType::FLOAT64) : case (Nifti::DataType::COMPLEX128) :
-					outHdr.setDatatype(Nifti::DataType::FLOAT64); break;
-				case (Nifti::DataType::FLOAT128) : case (Nifti::DataType::COMPLEX256) :
-					outHdr.setDatatype(Nifti::DataType::FLOAT128); break;
-				default: outHdr.setDatatype(Nifti::DataType::FLOAT64); break;
-			}
-			vector<long double> absData(nEl), argData(nEl);
-			for (size_t i = 0; i < nEl; i++) {
-				absData[i] = abs(complexData[i]);
-				argData[i] = arg(complexData[i]);
-			}
-			if (verbose) cout << "Writing magnitude file: " << argv[optind] << endl;
-			File out1(outHdr, argv[optind++]);
-			out1.writeAll(absData.begin(), absData.end());
-			out1.close();
-			if (verbose) cout << "Writing phase file: " << argv[optind] << endl;
-			File out2(outHdr, argv[optind++]);
-			out2.writeAll(argData.begin(), argData.end());
-			out2.close();
-		} break;
-		case Type::RealImag: {
-			switch (outHdr.datatype()) {
-				case (Nifti::DataType::FLOAT32) : case (Nifti::DataType::COMPLEX64) :
-					outHdr.setDatatype(Nifti::DataType::FLOAT32);  break;
-				case (Nifti::DataType::FLOAT64) : case (Nifti::DataType::COMPLEX128) :
-					outHdr.setDatatype(Nifti::DataType::FLOAT64); break;
-				case (Nifti::DataType::FLOAT128) : case (Nifti::DataType::COMPLEX256) :
-					outHdr.setDatatype(Nifti::DataType::FLOAT128); break;
-				default: outHdr.setDatatype(Nifti::DataType::FLOAT128); break;
-			}
-			vector<long double> realData(nEl), imagData(nEl);
-			for (size_t i = 0; i < nEl; i++) {
-				realData[i] = real(complexData[i]);
-				imagData[i] = imag(complexData[i]);
-			}
-			if (verbose) cout << "Writing real file: " << argv[optind] << endl;
-			File out1(outHdr, argv[optind++]);
-			out1.writeAll(realData.begin(), realData.end());
-			out1.close();
-			if (verbose) cout << "Writing imaginary file: " << argv[optind] << endl;
-			File out2(outHdr, argv[optind++]);
-			out2.writeAll(imagData.begin(), imagData.end());
-			out2.close();
+	// Allocate different types to save memory
+	vector<complex<float>> cmp_flt;
+	vector<complex<double>> cmp_dbl;
+	vector<complex<long double>> cmp_ldbl;
+	vector<float> flt1, flt2;
+	vector<double> dbl1, dbl2;
+	vector<long double> ldbl1, ldbl2;
 
-		} break;
-		case Type::Complex : {
-			switch (outHdr.datatype()) {
-				case (Nifti::DataType::FLOAT32) :    outHdr.setDatatype(Nifti::DataType::COMPLEX64);  break;
-				case (Nifti::DataType::FLOAT64) :    outHdr.setDatatype(Nifti::DataType::COMPLEX128); break;
-				case (Nifti::DataType::FLOAT128) :   outHdr.setDatatype(Nifti::DataType::COMPLEX256); break;
-				default: outHdr.setDatatype(Nifti::DataType::COMPLEX64); break;
-			}
-			if (verbose) cout << "Writing complex file: " << argv[optind] << endl;
-			File out(outHdr, argv[optind++]);
-			out.writeAll(complexData.begin(), complexData.end());
-			out.close();
-		} break;
+	size_t nEl = in1.matrix().prod();
+	switch (precision) {
+		case DataType::FLOAT32:  cmp_flt.resize(nEl);  flt1.resize(nEl);  flt2.resize(nEl); break;
+		case DataType::FLOAT64:  cmp_dbl.resize(nEl);  dbl1.resize(nEl);  dbl2.resize(nEl); break;
+		case DataType::FLOAT128: cmp_ldbl.resize(nEl); ldbl1.resize(nEl); ldbl2.resize(nEl); break;
+		default:
+			break; // We have checked that this can't happen earlier (famous last words)
+	}
+
+	for (size_t vol = 0; vol < in1.dim(4); vol++) {
+		if (verbose) cout << "Converting volume " << vol << "..." << endl;
+		switch (inputType) {
+			case Type::MagPhase: {
+				switch (precision) {
+					case DataType::FLOAT32:  mag_to_cmp<float>(in1, in2, vol, flt1, flt2, cmp_flt); break;
+					case DataType::FLOAT64:  mag_to_cmp<double>(in1, in2, vol, dbl1, dbl2, cmp_dbl); break;
+					case DataType::FLOAT128: mag_to_cmp<long double>(in1, in2, vol, ldbl1, ldbl2, cmp_ldbl); break;
+					default: break;
+				}
+			} break;
+			case Type::RealImag: {
+				switch (precision) {
+					case DataType::FLOAT32:  re_im_to_cmp<float>(in1, in2, vol, flt1, flt2, cmp_flt); break;
+					case DataType::FLOAT64:  re_im_to_cmp<double>(in1, in2, vol, dbl1, dbl2, cmp_dbl); break;
+					case DataType::FLOAT128: re_im_to_cmp<long double>(in1, in2, vol, ldbl1, ldbl2, cmp_ldbl); break;
+					default: break;
+				}
+			} break;
+			case Type::Complex : {
+				if (verbose) cout << "Reading complex volume " << vol << endl;
+				switch (precision) {
+					case DataType::FLOAT32: in1.readVolumes(cmp_flt.begin(), cmp_flt.end(), vol, 1); break;
+					case DataType::FLOAT64: in1.readVolumes(cmp_dbl.begin(), cmp_dbl.end(), vol, 1); break;
+					case DataType::FLOAT128: in1.readVolumes(cmp_ldbl.begin(), cmp_ldbl.end(), vol, 1); break;
+					default: break;
+				}
+			} break;
+		}
+		switch (outputType) {
+			case Type::MagPhase: {
+				switch (precision) {
+					case DataType::FLOAT32:  cmp_to_mag<float>(out1, out2, vol, flt1, flt2, cmp_flt); break;
+					case DataType::FLOAT64:  cmp_to_mag<double>(out1, out2, vol, dbl1, dbl2, cmp_dbl); break;
+					case DataType::FLOAT128: cmp_to_mag<long double>(out1, out2, vol, ldbl1, ldbl2, cmp_ldbl); break;
+					default: break;
+				}
+			} break;
+			case Type::RealImag: {
+				switch (precision) {
+					case DataType::FLOAT32:  cmp_to_re_im<float>(out1, out2, vol, flt1, flt2, cmp_flt); break;
+					case DataType::FLOAT64:  cmp_to_re_im<double>(out1, out2, vol, dbl1, dbl2, cmp_dbl); break;
+					case DataType::FLOAT128: cmp_to_re_im<long double>(out1, out2, vol, ldbl1, ldbl2, cmp_ldbl); break;
+					default: break;
+				}
+			} break;
+			case Type::Complex : {
+				if (verbose) cout << "Writing complex volume " << vol << endl;
+				switch (precision) {
+					case DataType::FLOAT32: out1.writeVolumes(cmp_flt.begin(), cmp_flt.end(), vol, 1); break;
+					case DataType::FLOAT64: out1.writeVolumes(cmp_dbl.begin(), cmp_dbl.end(), vol, 1); break;
+					case DataType::FLOAT128: out1.writeVolumes(cmp_ldbl.begin(), cmp_ldbl.end(), vol, 1); break;
+					default: break;
+				}
+			} break;
+		}
 	}
 	return EXIT_SUCCESS;
 }
