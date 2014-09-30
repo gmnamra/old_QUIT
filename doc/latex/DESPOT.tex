@@ -5,6 +5,7 @@
 \usepackage{graphicx}
 \usepackage[utf8]{inputenc}
 \usepackage{lmodern}
+\usepackage{siunitx}
 \usepackage{setspace}
 \usepackage{listings}
 \lstset{basicstyle=\ttfamily\footnotesize,breaklines=true}
@@ -22,17 +23,30 @@
 
 \chapter{Introduction}
 
-This is a manual for several programs written to process Driven Equilibrium Single-Pulse Observation of T1\&2 (DESPOT) images. They form part of QUIT, the QUantitative Imaging Tools. These programs can process various datasets to produce T1, T2, B1 and B0 maps, and can also apply more advanced multi-component processing techniques to produce Myelin Water Fraction (MWF) maps.
+This is a manual for several programs written to process Driven Equilibrium Single-Pulse Observation of $T_1$\&2 (DESPOT) images. They form part of QUIT, the QUantitative Imaging Tools. These programs can process various datasets to produce $T_1$, $T_2$, $B_1$ and $B_0$ maps, and can also apply more advanced multi-component processing techniques to produce Myelin Water Fraction (MWF) maps.
 
 The original science for several of these techniques, and in particular multi-component DESPOT, is the work of Sean Deoni. I have implemented and extended his original algorithms and introduced some new methods. I am grateful in particular to Sam Hurley for his input on multiple points. I would estimate that these programs are the result of over 500 hours of work, most of which went into the \texttt{mcdespot} program.
 
-\section{Methods & Academic Credit}\label{credit}
+\section{Methods and Academic Credit}\label{credit}
 
-I cannot write a general purpose methods section because most projects use subtly different acquisition protocols. However, you should include something along the lines of "images were processed using programs written in C++ using the Quantitative Imaging Tools~\cite{quitweb}".
+I cannot write a general purpose methods section because most projects use subtly different acquisition protocols. 
+There are multiple papers describing the various DESPOT methods. A non-exhaustive list of papers you should consider citing include: DESPO$T_1$~\cite{Deoni:2007}, DESPO$T_2$~\cite{Deoni:2009}, mcDESPOT~\cite{Deoni:2008c, Deoni:2012}.
 
-There are multiple papers describing the various DESPOT methods. A non-exhaustive list of papers you should consider citing include: DESPOT1~\cite{Deoni:2007}, DESPOT2~\cite{Deoni:2009a}, mcDESPOT~\cite{Deoni:2008c, Deoni:2012}.
+\chapter{Obtaining, compiling and installing}
 
-\printbibliography[heading=subbibliography]
+\section{Obtaining Code}
+
+Currently, please e-mail \texttt{tobias.wood@kcl.ac.uk}. I do intend to put it up on the web one day. You will receive a single archive file with the name \texttt{QUIT-date.tar.gz}, with the date of the release. This will be inserted into the header of the output files so that you can check in future which version was used to create them.
+
+\section{Compiling and Installing}
+
+Compilation requires a modern C++ compiler. \texttt{gcc-4.8.0} and \text{clang-3.5} have both been tested successfully. There is one external dependency, the Eigen matrix library (\texttt{http://eigen.tuxfamily.org}), however you do not need to install this yourself as it will be downloaded during the compilation of the tools. To compile, follow these steps.
+\begin{lstlisting}[language=sh]
+tar -xvzf QUIT-date.tar.gz
+cd QUIT
+make -j
+\end{lstlisting}
+To compile and install, simply unzip the \texttt{QUIT-date.tar.gz} file. This will create or overwrite a \texttt{QUIT} directory and extract all the source code into it.
 
 \chapter{Preprocessing}
 
@@ -42,24 +56,22 @@ In general, DESPOT requires a subset of the following data:
 \begin{enumerate} \itemsep1pt \parskip0pt \parsep0pt
   \item A Spoiled Gradient Recalled (SPGR) image at multiple flip-angles
   \item A balanced Steady-State Free Precession (bSSFP, FIESTA or true FISP) image at multiple flip-angles and at least 2 phase-cycling patterns.
-  \item A B1 (RF inhomogeneity) map.
+  \item A $B_1$ (RF inhomogeneity) map.
 \end{enumerate}
 
-To produce a T1 map, you require only the SPGR images. You must know the $TR$ and flip-angles used. To produce a T2 map, you require a T1 map (and so usually the SPGR data as well), and the SSFP data. For mcDESPOT you require both.
+To produce a $T_1$ map, you require only the SPGR images. You must know the $T_R$ and flip-angles used. To produce a $T_2$ map, you require a $T_1$ map (and so usually the SPGR data as well), and the SSFP data. For mcDESPOT you require both.
 
-A B1 map is recommended at all field strengths. There are now several different B1 mapping protocols, some available as product sequences.
+A $B_1$ map is recommended at all field strengths. There are now several different $B_1$ mapping protocols, some available as product sequences.
 
-\section{File Formats}
+\subsection{File Formats}
 
-All my programs use the NIFTI file format (\texttt{.nii}). They will read zipped files (\texttt{.nii.gz}). I do not provide help with conversion from whatever file format your scanner uses (likely DICOM), because there is no way I can keep track of the subtly different acquisition protocols that have been used.
-
-If you use the GE scanners at the IoP then it is likely that the two phase-cycling patterns for SSFP will be contained in the same file. It is preferred to keep them like that instead of splitting them into two separate files.
+All these programs use the NIFTI file format (\texttt{.nii}). They will read zipped files (\texttt{.nii.gz}). I do not provide help with conversion from the file format your scanner uses (likely DICOM), because there is no way I can keep track of the different acquisition protocols that have been used. However, it should be noted that it is preferable for multiple phase-cycling patterns for SSFP to be contained in the same file, instead of split between separate files.
 
 \section{Registration and Resampling}
 
-As with most MRI techniques, the effects of sample motion must be minimised before processing. This can be achieved by registering all the images together using either FSL, SPM, or your software package of choice. Because the contrast of the SPGR and SSFP images changes with the flip-angle, mutual information should be used as the registration cost function.
+As with most MRI techniques, the effects of sample motion must be minimised before processing. This can be achieved by registering all the images together using either FSL, SPM, or your software package of choice. Because the contrast of the SPGR and SSFP images changes with the flip-angle, mutual information should be used as the registration cost function, and it is currently recommended to daisy-chain the registrations (i.e. flip-angle 1 to flip-angle 2, flip-angle 2 to flip-angle 3, etc.). How best to perform the registration is an open question.
 
-The scans must also be resampled to the same matrix size, as often the B1 map will be acquired at lower resolution. As scanners (particularly the GE scanner) often zero-fill images before reconstruction, it is HIGHLY recommended that this resampling is to the original matrix size used for the SPGR and SSFP images. For current protocols this is usually around 128x128x96. Processing at a larger matrix size will not improve results but will seriously lengthen processing time.
+The scans must be resampled to the same matrix size.  Often the $B_1$ map will be acquired at lower resolution, and scanners may zero-fill images before reconstruction. It is highly recommended that this resampling is to the original matrix size used for the SPGR and SSFP images. Processing at a larger matrix size will not improve results but will considerably lengthen processing time.
 
 A template script (\texttt{template\_preprocess.sh}) that will carry out all these steps has been written by Anna Combes and should have been distributed with this manual. It assumes that all your converted NIFTIs are placed in one directory. It uses FSL to split the files into individual images for each flip-angle, register them together, merge them back for processing, and also creates a brain mask for you.
 
@@ -87,137 +99,123 @@ All of these programs will print a usage message if you run them with the \textt
 \begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
 	\item \texttt{-v} "Verbose" mode, prints extra information such as which slice is being processed.
 	\item \texttt{-m maskfile.nii.gz} Only process voxels which are non-zero in the specified file.
-	\item \texttt{-s M -p N} Start processing at slice M, stop at N. Only available in \texttt{despot2fm} and \texttt{mcdespot}.
+	\item \texttt{-s M -p N} Start processing at slice M, stop at N. Only available in \texttt{despo$T_2$fm} and \texttt{mcdespot}.
 	\item \texttt{-o prefix} Add a prefix to the start of all output filenames.
+	\item \texttt{-t N} Only use the specified number of threads.
 \end{itemize}
 
-With the exception of \texttt{afi} these programs also require sequence information such as the flip angles and TR used. The programs will prompt you to enter these when needed. See section \ref{scripting} for a guide on scripting the programs so you do not have to type this information in repeatedly.
+These programs also require sequence information such as the flip-angles and TR used. The programs will prompt you to enter these when needed. See section \ref{scripting} for a guide on scripting the programs so you do not have to type this information in repeatedly.
 
 Depending on your project and data you will only need some of the above programs. If you want to process absolutely everything the steps required are:
-
 \begin{enumerate}\itemsep1pt \parskip0pt \parsep0pt
-	\item Create a B1 map (use \texttt{despot1hifi} or \texttt{afi})
-	\item Create a T1 map (use \texttt{despot1})
-	\item Create a T2 map (use \texttt{despot2fm})
+	\item Create a $B_1$ map (use \texttt{despot1hifi} or \texttt{afi})
+	\item Create a $T_1$ map (use \texttt{despot1})
+	\item Create a $T_2$ map (use \texttt{despot2fm})
 	\item Create a Myelin Water Fraction (MWF) map (use \texttt{mcdespot})
 \end{enumerate}
+If you are only interested in mcDESPOT you can skip steps 1 and 2. The output of each program is prefixed by its name, e.g. the output from \texttt{despot1hifi} is three files called \texttt{HIFI\_T1.nii.gz}, \texttt{HIFI\_PD.nii.gz} and \texttt{HIFI\_$B_1$.nii.gz}. The output of the \texttt{mcdespot} program is prefixed by the number of components selected to model.
 
-If you are only interested in mcDESPOT you can skip steps 1 and 2.
-
-The output of each program is prefixed by its name, e.g. the output from \texttt{despot1hifi} is three files called \texttt{HIFI\_T1.nii.gz}, \texttt{HIFI\_PD.nii.gz} and \texttt{HIFI\_B1.nii.gz}. The output of the \texttt{mcdespot} program is prefixed by the number of components selected to model.
+All of these programs are multi-threaded so they can exploit the multiple CPU cores present in most modern machines. By default they will use all available CPU cores, so if you have an eight-core machine the processing time will decrease by roughly a factor of eight. The threads are spawned at default priority, so they should play nicely with other programs using the same machine. If you would prefer to reduce the number of threads use the \texttt{-t N} option. For \texttt{despot2fm} and \texttt{mcdespot} the use of a multi-core machine is highly recommended.
 
 \section{A Note on Units}
 
-All times, e.g. TR, TI and the output T1 and T2 maps, are measured in SECONDS by all the programs. They are NOT measured in milliseconds. Make sure you enter them correctly. If you want to convert the output to milliseconds then use \texttt{fslmaths} and multiply by 1000.
+All times, e.g. $T_R$, $T_I$ and the output $T_1$ and $T_2$ maps, are measured in SECONDS by all the programs. They are NOT measured in milliseconds. Make sure you enter them correctly. If you want to convert the output to milliseconds then use \texttt{fslmaths} and multiply by 1000.
 
-Off-resonance (f0) maps are produced in Hertz (Hz). B1 maps are fractions of the desired flip angle. Myelin Water Fraction and Cerebral-Spinal Fluid Fractions are fractions, obviously. Proton Density is in arbitrary units and will depend on your scanner's scaling factors.
+Off-resonance (f0) maps are produced in Hertz (Hz). $B_1$ maps are fractions of the desired flip-angle. Myelin Water Fraction and Cerebral-Spinal Fluid Fractions are fractions between 0 and 1, perhaps obviously. Proton Density is in arbitrary units and will depend on your scanner's scaling factors.
 
 \section{A Note for Agilent Scanners}
 
-I have automated steps in the processing for files coming from an Agilent scanner. If you have used my Agilent image conversion tools you will not have to enter flip angles, TRs, etc. by hand, they will automatically be read from the nifti header.
+I have automated steps in the processing for files coming from an Agilent scanner. If you have use the Agilent image conversion tools included in QUIT you will not have to enter flip-angles, TRs, etc. They will automatically be read from the \texttt{.nii} header.
 
-\section{B0 Maps}
+\section{$B_1$ Maps}
 
-No IoP studies that I am aware of have collected magnetic field (B0) inhomogeneity maps. I have only included this section to mention that a program to help with this, \texttt{phasemap}, exists for future use.
-
-\section{B1 Maps}
-
-The first step in any DESPOT analysis is to create a map of the RF field inhomogeneity which is usually shortened to a B1 map. We need this because B1 inhomogeneity changes the flip angles that the scanner applies to different voxels in our image, and DESPOT relies on accurate knowledge of those flip angles. The map is measured as the ratio of the actual flip angle applied to the desired flip angle.
-
-There are multiple B1 mapping techniques in the literature. I prefer to use a technique called Actual Flip angle Imaging (AFI), but most IoP data is acquired using Sean Deoni's DESPOT1-HIFI sequence.
+The first step in any DESPOT analysis is to create a map of the RF field inhomogeneity, or $B_1$ map. We need this because $B_1$ inhomogeneity changes the flip-angles that the scanner applies to different voxels in our image, and DESPOT relies on accurate knowledge of those flip-angles. The map is measured as the ratio of the actual flip-angle applied to the desired flip-angle. There are multiple $B_1$ mapping techniques in the literature. QUIT includes tools to process two: Actual flip-angle Imaging (AFI), and Sean Deoni's DESPOT1-HIFI sequence. If you have a different sequence available then the subsequent QUIT programs can use the map as input.
 
 \subsection{AFI}
 
-Processing an AFI sequence is simple. The sequence uses interleaved TRs to collect two volumes, and the actual flip angle in each voxel is then directly calculated from the ratio of those two volumes. It is hence very simple to run, just type \texttt{afi input\_file.nii.gz}.
+Processing an AFI sequence is simple. The sequence uses interleaved $T_R$s to collect two volumes, and the actual flip-angle in each voxel is then directly calculated from the ratio of those two volumes. It is hence very simple to run, just type \texttt{afi input\_file.nii.gz}.
 
 \subsection{DESPOT1-HIFI}
 
-When Sean Deoni first started work on the DESPOT techniques the B1 mapping literature was not as developed as today. He created his own technique which involves taking an extra IR-SPGR scan with the normal SPGR, and then optimising across both to find the best B1. To my knowledge no-one uses this method except for Sean, but all DESPOT studies within the IoP to date have used this method. The basic usage is:
+When Sean Deoni first started work on the DESPOT techniques the $B_1$ mapping literature was not as developed as today. He created his own technique which involves taking an extra IR-SPGR scan with the normal SPGR, and then optimising across both to find the best $B_1$. The basic usage is:
 
 \begin{lstlisting}[language=sh]
 despot1hifi spgrfile.nii.gz irspgrfile.nii.gz
 \end{lstlisting}
 
-The program will then ask you to enter the flip angles and TR used for the SPGR sequence, and the flip angles, TR, TI (inversion time) and number of acquired slices for the IR-SPGR sequence. It is extremely important to get this last piece of information right - you need the number of slices or "spatial locations" that the scanner was told to acquire, not the number it reconstructed.
+The program will then ask you to enter the flip-angles and TR used for the SPGR sequence, and the flip-angles, $T_R$, $T_I$ (inversion time) and number of acquired slices for the IR-SPGR sequence. It is extremely important to get this last piece of information right - you need the number of slices or "spatial locations" that the scanner was told to acquire, not the number it reconstructed.
 
-The reason for this is that the program must calculate the ``true'' TI time used by the scanner. The GE scanner segments an IR acquisition in a way that means the TI time shown by the console is not accurate. If your scan was NOT acquired on a 3T MR750 GE scanner then this calculation will be incorrect. The program also contain a calculation that is valid for a 1.5T GE scanner which you can select with the \texttt{-i} option. If you did not use either of these scanners, the same option will also let you specify a ``raw'' TI if you know how to calculate it yourself.
+The reason for this is that the program must calculate the ``true'' $T_I$ time used by the scanner. The GE scanner segments an IR acquisition in a way that means the $T_I$ time shown by the console is not accurate. If your scan was NOT acquired on a 3T MR750 GE scanner then this calculation will be incorrect. The program also contains a calculation that is valid for a 1.5T GE scanner which you can select with the \texttt{-i} option. If you did not use either of these scanners, the same option will also let you specify a ``raw'' $T_I$ if you know how to calculate it yourself.
 
-\texttt{despot1hifi} produces a B1 map, a T1 map and a Proton Density (PD) map. However I do not recommend using the T1 map it produces directly. This is because B1 map produced invariably contains a large amount of artifactual anatomy, which is not consistent with the B1 literature. It must be smoothed to remove the anatomy and the T1 map recalculated using the \texttt{despot1} program.
+\texttt{despot1hifi} produces a $B_1$ map, a $T_1$ map and a Proton Density (PD) map. However I do not recommend using the $T_1$ map it produces directly. This is because $B_1$ map produced invariably contains a large amount of artifactual anatomy, which is not consistent with the $B_1$ literature. It must be smoothed to remove the anatomy and the $T_1$ map recalculated using the \texttt{despot1} program.
 
 Sean's version of this program automatically included this smoothing and recalculation step using a fixed Gaussian kernel. I have separated this out, both so people can clearly see what the program does, and as \texttt{fslmaths} includes many smoothing options which are better than a plain Gaussian. My personal preference is for median filtering, for instance:
 
 \begin{lstlisting}[language=sh]
-fslmaths inputB1.nii.gz -kbox 7 -fmedian smoothedB1.nii.gz
+fslmaths HIFI_B1.nii.gz -kbox 7 -fmedian smoothedB1.nii.gz
 \end{lstlisting}
 
 \texttt{despot1hifi} is a fast program, it should complete in only a few seconds.
 
 \section{DESPOT1}
 
-Once you have a good B1 map you can proceed to analyse your SPGR data and produce a good T1 map. This is the simplest of the analysis programs to run. This example applies the B1 map and also a mask:
+Once you have a good $B_1$ map you can proceed to analyse your SPGR data and produce a good $T_1$ map. This is the simplest of the analysis programs to run. This example applies the $B_1$ map and also a mask:
 
 \begin{lstlisting}[language=sh]
 despot1 --B1 B1map.nii.gz -m mask.nii.gz spgrfile.nii.gz
 \end{lstlisting}
 
-The program will then you to enter the flip angles and TR, and then create two output files, a T1 map and PD map. The T1 map is in seconds. \texttt{despot1} is a fast program, it should complete in only a few seconds.
+The program will then you to enter the flip-angles and TR, and then create two output files, a $T_1$ map and PD map. The $T_1$ map is in seconds. If you have more than two flip-angles, the \texttt{-aw} option is recommended to reduce bias in the measurement~\cite{Pierpaoli:2008}. \texttt{despot1} is a fast program, it should complete in only a few seconds.
 
 \section{A note on Display Programs}
 
-\texttt{despot1} is an unconstrained fitting technique. This means that in areas of low SNR, i.e. everything outside the head, it will fit nonsense values including infinity. Most viewers then can't pick a suitable range of display values (what radiographers call the window), and just display black. The values are there, you just need to tell the viewer to pick a decent display range. In \texttt{fslview}, you can enter the minimum and maximum display values above the image next to the "wheels" in the interface. Note that the image will not display until you have entered a number in both boxes. For a T1 map, 0 and 3 should work.
+\texttt{despot1} is an unconstrained fitting technique. This means that in areas of low SNR, i.e. everything outside the head, it will fit nonsense values including infinity. Most viewers then can't pick a suitable range of display values (what radiographers call the window), and just display black. The values are there, you just need to tell the viewer to pick a decent display range. In \texttt{fslview}, you can enter the minimum and maximum display values above the image next to the "wheels" in the interface. Note that the image will not display anything until you have entered a number in both boxes. For a $T_1$ map, 0 and 3 should work.
 
-If you use a mask file then this issue should be avoided, or if you want you can use \texttt{fslmaths} to threshold the images (using \texttt{-thr} and \texttt{-uthr}) before display. I do not threshold inside the program because values of infinity inside the brain is a big clue that there's a bug in my program that I need to fix.
+You can avoid this issue by specifying a mask, or if you want you can use \texttt{fslmaths} to threshold the images (using \texttt{-thr} and \texttt{-uthr}) before display. I do not threshold inside the program because values of infinity inside the brain is a big clue that there's a bug that I need to fix.
 
 \section{DESPOT2}
 
-A T2 map can be created from the SSFP data and the T1 map produced from \texttt{despot1}. The classic DESPOT2 algorithm requires only the 180 degree phase-cycling scan, and is contained in \texttt{despot2}. Unfortunately it suffers banding artefacts caused by magnetic field (B0) inhomogeneity, and hence is practically useless at field strengths of 3T and above. We will hence not discuss it further.
+A $T_2$ map can be created from the SSFP data and the $T_1$ map produced from \texttt{despo$T_1$}. The classic DESPOT2 algorithm requires only the 180 degree phase-cycling scan, and is contained in \texttt{despot2}. Unfortunately it suffers banding artefacts caused by magnetic field ($B_0$) inhomogeneity, and hence is practically useless at field strengths of 3T and above. We will hence not discuss it further.
 
-To mitigate the banding artefacts, Sean invented DESPOT2 with Full Modelling, or DESPOT2-FM (continuing the audio theme from DESPOT1-HIFI). This technique relies on taking two scans with different phase-cycling patterns (Sean chose 180 and 0 degrees). A global fitting method (Stochastic Region Contraction) is then used to find the value of T2 simultaneously with the amount of off-resonance (f0).
-
-The program requires a T1 map. It can be run like this:
-
+To mitigate the banding artefacts, DESPOT2-FM (continuing the audio theme from DESPOT1-HIFI) uses two scans with different phase-cycling patterns. A global fitting method (Stochastic Region Contraction) is then used to find the value of $T_2$ simultaneously with the amount of off-resonance (f0). The program requires a $T_1$ map. It can be run like this:
 \begin{lstlisting}[language=sh]
-despot2fm --B1 B1map.nii.gz -m mask.nii.gz T1map.nii.gz ssfpfile1.nii.gz ssfpfile2.nii.gz
+despot2fm --B1 B1map.nii.gz -m mask.nii.gz D1_T1.nii.gz ssfpfile.nii.gz
 \end{lstlisting}
-
-and it will then produce a T2 and f0 map. The number of SSFP files you enter as input depends on how you have acquired your data, and how you wish to normalise the signals. I highly recommend a single file, organised as all the flip angles for the 180 degree phase-cycling followed all the flip angles for the 0 degree phase-cycling. The program will prompt you for the number of phase-cycling patterns in each file, the phase-cycling patterns, the flip-angles and the TR used.
+and it will then produce a $T_2$ and $f_0$ map. The number of SSFP files you enter as input depends on how you have acquired your data, and how you wish to normalise the signals. I highly recommend a single file, organised as all the flip-angles for the $180\si{\degree}$ phase-cycling followed all the flip-angles for the $0\si{\degree}$ phase-cycling. The program will prompt you for the number of phase-cycling patterns in each file, the phase-cycling patterns, the flip-angles and the $T_R$ used.
 
 To produce an accurate fit it is necessary to normalise the data on a per-voxel basis to the mean across flip-angles. If the phase-cycling patterns are contained in one file this will be done across phase-cycling patterns as well. This improves the results in the banding artefact regions. If you do not wish to use this normalisation step you can change the scaling mode with the \texttt{-s} option. The program will then attempt to fit a PD map as well.
 
-If your data did not come from a 3T scanner, then you will need to change the field strength as well with the \texttt{-t} option. This will be covered further when discussing \texttt{mcdespot}.
-
-\texttt{despot2fm} is a moderately slow program. It should take around 30 minutes to process a whole brain. If you do not mask the image it will be much, much slower as it will have to process all the non-brain voxels as well.
+\texttt{despot2fm} is a slow program. It will take hours to process a whole brain. If you do not mask the image it will be much, much slower as it will have to process all the non-brain voxels as well.
 
 \section{mcDESPOT}
 
-The \texttt{mcdespot} program is complicated, because mcDESPOT is a complicated technique. I have tried to make it as user friendly as possible. I particularly thank Anna Combes and Ruth O'Gorman for feedback and finding bugs. I suggest reading some of Sean's papers about the technique listed in section~\ref{credit} before you try processing the data. In its simplest terms the \texttt{mcdespot} technique tries to partition the signal measured in the scans into a signal coming from ``myelin water'', ``cell'' water and an optional component for CSF. These components have short, long, and very long T1s\&T2s respectively.
+The \texttt{mcdespot} program is complicated, because mcDESPOT is a complicated technique. I have tried to make it as user friendly as possible. I particularly thank Anna Combes and Ruth O'Gorman for feedback and finding bugs. I suggest reading some of Sean Deoni's papers about the technique listed in section~\ref{credit} before you try processing the data. In its simplest terms the \texttt{mcdespot} technique tries to partition the signal measured in the scans into a signal coming from ``myelin water'', ``cell'' water and an optional component for CSF. These components have short, long, and very long $T_1$s\&$T_2$s respectively.
 
-\texttt{mcdespot} can use any number and combination of SPGR and SSFP files as input. For output it will produce a different number of files depending on which particular model you decide to use. These will be the T1 and T2 of each component, the fraction of the PD (water) contained in them, the off-resonance and an extra parameter describing how long water stays in the myelin water component. To avoid long filenames, early on while writing \texttt{mcdespot} I decided to simply label the two (or three) components \texttt{a}, \texttt{b} and \texttt{c}. With hindsight I think this was a sensible decision, as there is some debate in the literature about what exactly should be contained in each component. Table~\ref{mcdespotfilenames} is provided to remind you what each one is. Filenames will be prefixed with \texttt{2C} when using the two component model and \texttt{3C} when using the three component model. The fraction of water contained in the intra-/extra-cellular water fraction (IEF) is not output because it is not a free parameter - if you want to see this fraction then subtract the MWF (and CSFF) from 1 using \texttt{fslmaths}, using your brain mask to represent 1.
+\texttt{mcdespot} can use any number and combination of SPGR and SSFP files as input. For output it will produce a different number of files depending on which particular model you decide to use. These will be the $T_1$ and $T_2$ of each component, the fraction of the PD (water) contained in them, the off-resonance and an extra parameter describing how long water stays in the myelin water component. To avoid long filenames, early on while writing \texttt{mcdespot} I decided to simply label the two (or three) components \texttt{a}, \texttt{b} and \texttt{c}. Table~\ref{mcdespotfilenames} is provided to remind you what each one is. Filenames will be prefixed with \texttt{2C} when using the two component model and \texttt{3C} when using the three component model. The fraction of water contained in the intra-/extra-cellular water fraction (IEF) is not output because it is not a free parameter - if you want to see this fraction then subtract the MWF (and CSFF) from 1 using \texttt{fslmaths}, using your brain mask to represent 1.
 
 \begin{table}\begin{center}
 \begin{tabular}{c c c}
 \hline
 Suffix	& Unit	& Description\\
 \hline
-\texttt{T1\_a}	& seconds & T1 of MWF \\
-\texttt{T2\_a}	& seconds & T2 of MWF \\
-\texttt{T1\_b}	& seconds & T1 of IEF \\
-\texttt{T2\_b}	& seconds & T2 of IEF \\
-\texttt{T1\_c}	& seconds & T1 of CSF (Only for 3C model) \\
-\texttt{T2\_c}	& seconds & T2 of CSF (Only for 3C model) \\
+\texttt{T1\_a}	& seconds & $T_1$ of MWF \\
+\texttt{T2\_a}	& seconds & $T_2$ of MWF \\
+\texttt{T1\_b}	& seconds & $T_1$ of IEF \\
+\texttt{T2\_b}	& seconds & $T_2$ of IEF \\
+\texttt{T1\_c}	& seconds & $T_1$ of CSF (Only for 3C model) \\
+\texttt{T2\_c}	& seconds & $T_2$ of CSF (Only for 3C model) \\
 \texttt{tau\_a}	& seconds & Myelin water residence time \\
 \texttt{f\_a}	& None (fraction) & MWF \\
 \texttt{f\_c}	& None (fraction) & CSF Fraction (Only for 3C model) \\
 \texttt{f0}		& Hertz   & Off-resonance \\
-\texttt{SoS}	& None    & Sum-of-Squares of Residual \\
+\texttt{SoS}	& None    & Sum-of-Squares Residual \\
 \hline
 \end{tabular}
 \caption{Filenames created by \texttt{mcdespot} and their meanings}
 \label{mcdespotfilenames}
 \end{center}\end{table}	
 
-There are a lot of input options for \texttt{mcdespot}. Mostly these are for my own testing purposes. Unlike the other programs, you do not specify the input files on the command line. Instead the program asks you what type of file you wish to open, then for a filename, and then for relative scan settings. A typical use of the program (with made up flip-angles and TRs) might look like this:
-
+There are a lot of input options for \texttt{mcdespot}. Unlike the other programs, you do not specify the input files on the command line. Instead the program asks you what type of file you wish to open, then for a filename, and then for the scan settings. A typical use of the program (with made up flip-angles and TRs) might look like this:
 \begin{lstlisting}[language=sh]
 $mcdespot -v -m mask.nii.gz -o test\_
 DESPOT Tools Beta 1 (Oct 14 2013)
@@ -228,25 +226,25 @@ Output prefix will be: test\_
 Specify next image type (SPGR/SSFP): SPGR
 Enter image path: spgr.nii.gz
 Opened: spgr.nii.gz
-Enter TR (seconds): 0.008
+Enter number of flip-angles: 8
 Enter 8 Flip-angles (degrees): 1 2 3 4 5 6 7 8
+Enter TR (seconds): 0.008
 Specify next image type (SPGR/SSFP, END to finish input): SSFP
 Enter image path: ssfp.nii.gz
 Opened: ssfp.nii.gz
-Enter number of phase-cycling patterns: 2
+Enter number of flip-angles: 8
+Enter 8 Flip-angles (degrees): 1 2 3 4 5 6 7 8
+Enter number of phase-cycles: 2
 Enter 1 phase-cycles (degrees): 180 0
 Enter TR (seconds): 0.005
-Enter 8 Flip-angles (degrees): 1 2 3 4 5 6 7 8
 Specify next image type (SPGR/SSFP, END to finish input): END
 \end{lstlisting}
+The program will then start processing. \texttt{mcdespot} is a slow program. It can take days to process a full dataset on a single core machine. The use of a mask is absolutely essential.
 
-The program will then start processing. \texttt{mcdespot} is a slow program. Originally it took days to process a full dataset. If you use the machines on the Neuro-Analysis Network, currently it will take 6 hours to process a brain. The use of a mask is absolutely essential.
-
-As with \texttt{despot2fm}, if you collected data on a non-3T magnet then you will have to use the \texttt{-t} option to use sensible fitting ranges for each parameter. Currently default ranges are only given for 3T and 7T data. If you use any other field strength then you need to use the \texttt{-t u} option. The program will then prompt you to enter a fitting range for each parameter in turn.
+If you collected data on a non-3T magnet then you will have to use the \texttt{-t} option to use sensible fitting ranges for each parameter. Currently default ranges are only given for 3T and 7T data. If you use any other field strength then you need to use the \texttt{-t u} option. The program will then prompt you to enter a fitting range for each parameter in turn.
 
 \section{Scripting}\label{scripting}
-
-Most people will want to write a script to process a complete dataset, so that the same processing can be applied to multiple subjects. The programs listed above are designed with scripting in mind, but you will need to know about Unix ``redirection'' in order to script the entry of flip angles, TRs and other scan settings. A comprehensive, but technical, guide can be found at \url{http://www.tldp.org/LDP/abs/html/io-redirection.html}.
+Most people will want to write a script to process a complete dataset, so that the same processing can be applied to multiple subjects. The programs listed above are designed with scripting in mind, but you will need to know about Unix ``redirection'' in order to script the entry of flip-angles, $T_R$ and other scan settings. A comprehensive, but technical, guide can be found at \url{http://www.tldp.org/LDP/abs/html/io-redirection.html}.
 
 To use this feature, you need to create a text file that contains exactly what you would type when the program prompts you, including returns/enters. A template file (\texttt{template\_mcd\_input.txt}) which corresponds to the above use of \texttt{mcdespot} should have been provided with this manual. To specify that the program should use this file for input instead of the keyboard you use a ``\texttt{<}'' character, like so:
 
@@ -257,5 +255,7 @@ $mcdespot -v -m mask.nii.gz -o test\_ <template\_mcd\_input.txt
 You can hence have one file containing your scan settings and use it with your entire dataset. This is how I usually run the programs. If you wish to be more advanced, then look up ``HEREDOC'' on-line. This allows you to use redirection within a script, but because it is complicated to use correctly I cannot provide help.
 
 If you do script the programs, the \texttt{-n} option suppresses the text prompts, which will make the output more intelligible.
+
+\printbibliography
 
 \end{document}
