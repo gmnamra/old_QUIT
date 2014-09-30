@@ -22,6 +22,11 @@ BUILD_DIR   := build
 SOURCE_DIR  := src
 INSTALL_DIR := ./bin
 
+$(BUILD_DIR) :
+	@mkdir -p $(BUILD_DIR)
+$(INSTALL_DIR) :
+	@mkdir -p $(INSTALL_DIR)
+
 CXXFLAGS := -std=c++11 $(STDLIB) $(THREADS) -m64 -Wfatal-errors $(MOREFLAGS)
 LDFLAGS  := -std=c++11 $(STDLIB) $(THREADS) -m64 -L$(BUILD_DIR)
 INCLUDE    := -I$(EIGEN_DIR) -Isrc -Isrc/Agilent
