@@ -20,8 +20,11 @@ File::~File()
 }
 
 File::File(const File &other) :
-	m_mode(other.m_mode), m_gz(other.m_gz),
-	m_swap(other.m_swap), m_header(other.m_header)
+	m_basepath(other.m_basepath),
+	m_header(other.m_header), m_extensions(other.m_extensions),
+	m_mode(other.m_mode), m_nii(other.m_nii),
+	m_gz(other.m_gz), m_nifti_version(other.m_nifti_version),
+	m_swap(other.m_swap)
 {
 	if (m_mode == Mode::Read) {
 		m_file.open(imagePath(), "rb", m_gz);
@@ -33,8 +36,11 @@ File::File(const File &other) :
 }
 
 File::File(File &&other) noexcept :
-	m_mode(other.m_mode), m_gz(other.m_gz),
-	m_swap(other.m_swap), m_header(other.m_header)
+	m_basepath(other.m_basepath),
+	m_header(other.m_header), m_extensions(other.m_extensions),
+	m_mode(other.m_mode), m_nii(other.m_nii),
+	m_gz(other.m_gz), m_nifti_version(other.m_nifti_version),
+	m_swap(other.m_swap)
 {
 	other.m_mode = Mode::Closed;
 }

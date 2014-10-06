@@ -85,7 +85,7 @@ void re_im_to_cmp(Nifti::File &in1, Nifti::File &in2, size_t vol,
 }
 
 template<typename T>
-void cmp_to_mag(Nifti::File &out1, Nifti::File out2, size_t vol,
+void cmp_to_mag(Nifti::File &out1, Nifti::File &out2, size_t vol,
                 vector<T> &v1, vector<T> &v2,
                 vector<complex<T>> &c)
 {
@@ -99,7 +99,7 @@ void cmp_to_mag(Nifti::File &out1, Nifti::File out2, size_t vol,
 }
 
 template<typename T>
-void cmp_to_re_im(Nifti::File &out1, Nifti::File out2, size_t vol,
+void cmp_to_re_im(Nifti::File &out1, Nifti::File &out2, size_t vol,
                   vector<T> &v1, vector<T> &v2,
                   vector<complex<T>> &c)
 {
@@ -198,9 +198,11 @@ int main(int argc, char **argv)
 		outHdr.setDatatype(precision);
 	}
 	File out1, out2;
+	if (verbose) cout << "Opening output file: " << argv[optind] << endl;
 	out1.setHeader(outHdr);
 	out1.open(argv[optind++], Nifti::Mode::Write);
 	if (outputType != Type::Complex) {
+		if (verbose) cout << "Opening output file: " << argv[optind] << endl;
 		out2.setHeader(outHdr);
 		out2.open(argv[optind++], Nifti::Mode::Write);
 	}
@@ -279,5 +281,10 @@ int main(int argc, char **argv)
 			} break;
 		}
 	}
+	out1.close();
+	if (outputType != Type::Complex) {
+		out2.close();
+	}
+
 	return EXIT_SUCCESS;
 }

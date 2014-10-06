@@ -78,8 +78,8 @@ time_t printElapsedTime(const time_t &startTime) {
 void printElapsedClock(const clock_t &startClock, const int voxCount) {
 	clock_t endClock = clock();
 	float totalMilliseconds = (endClock - startClock) * (1.e3 / CLOCKS_PER_SEC);
-	cout << "Total run time: " << totalMilliseconds << " ms" << endl;
-	cout << "Average voxel time: " << totalMilliseconds / voxCount << " ms" << endl;
+	cout << "Total CPU time: " << totalMilliseconds << " ms" << endl;
+	cout << "Average voxel CPU time: " << totalMilliseconds / voxCount << " ms" << endl;
 }
 
 void printLoopTime(const clock_t &loopStart, const int voxCount) {
