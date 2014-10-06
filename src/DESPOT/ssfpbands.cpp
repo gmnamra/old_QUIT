@@ -37,7 +37,7 @@ Options:\n\
 	--verbose, -v     : Print more information.\n\
 	--out, -o path    : Specify an output filename (default image base).\n\
 	--mask, -m file   : Mask input with specified file.\n\
-	--flip, -f        : Data order is flip-angle, then phase (default opposite).\n\
+	--flip, -F        : Data order is phase, then flip-angle (default opposite).\n\
 	--phases, -p N    : Number of phase-cycling patterns used (default is 4).\n\
 	--threads, -T N   : Use N threads (default=hardware limit).\n\
 	--save, -sR       : Save the robustly regularised GS (default)\n\
@@ -49,14 +49,14 @@ Options:\n\
 enum class Save { RR, MR, GS, CS };
 static Save mode = Save::RR;
 static bool verbose = false;
-static size_t phase_dim = 3, flip_dim = 4, nPhases = 4;
+static size_t phase_dim = 4, flip_dim = 3, nPhases = 4;
 static string prefix;
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"out", required_argument, 0, 'o'},
 	{"mask", required_argument, 0, 'm'},
-	{"flip", required_argument, 0, 'f'},
+	{"flip", required_argument, 0, 'F'},
 	{"phases", required_argument, 0, 'p'},
 	{"threads", required_argument, 0, 'T'},
 	{"save", required_argument, 0, 's'},
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
 	ThreadPool threads;
 
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvo:m:fs:p:T:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvo:m:Fs:p:T:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
@@ -98,8 +98,8 @@ int main(int argc, char **argv) {
 				prefix = optarg;
 				cout << "Output prefix will be: " << prefix << endl;
 				break;
-			case 'f':
-				phase_dim = 4; flip_dim = 3; break;
+			case 'F':
+				phase_dim = 3; flip_dim = 4; break;
 			case 'p':
 				nPhases = atoi(optarg);
 				if ((nPhases % 2) != 0) {
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
 	if (verbose) cout << "Prepping data..." << endl;
 	typedef typename MultiArray<complex<float>, 5>::Index idx_t;
 	idx_t reshape_dims; reshape_dims << d, 0, 0;
-	reshape_dims[phase_dim] = 4;
+	reshape_dims[phase_dim] = nPhases;
 	reshape_dims[flip_dim] = nFlip;
 	MultiArray<complex<float>, 5> reshaped = input.reshape<5>(reshape_dims);
 	idx_t split_start = idx_t::Zero();
@@ -181,66 +181,67 @@ int main(int argc, char **argv) {
 		if (verbose) cout << "Processing volume " << vol << "..." << endl;
 		for (size_t vk = 0; vk < d[2]; vk++) {
 			function<void (const size_t, const size_t)> processVox = [&] (const size_t vi, const size_t vj) {
-				MultiArray<complex<float>, 5>::Index idx;
-				idx << vi,vj,vk,0,0;
-				idx[flip_dim] = vol;
-
 				MatrixXf sols(2, nCrossings); sols.setZero();
-				size_t si = 0;
-				for (size_t li = 0; li < nLines; li++) {
-					idx_t idx_i; idx_i << vi,vj,vk,0,0;
-					idx_i[flip_dim] = vol;
-					idx_i[phase_dim] = li;
-					for (size_t lj = li + 1; lj < nLines; lj++) {
-						idx_t idx_j = idx_i;
-						idx_j[phase_dim] = lj;
+				if (!maskFile || (maskData[{vi,vj,vk}])) {
+					MultiArray<complex<float>, 5>::Index idx;
+					idx << vi,vj,vk,0,0;
+					idx[flip_dim] = vol;
+					size_t si = 0;
+					for (size_t li = 0; li < nLines; li++) {
+						idx_t idx_i; idx_i << vi,vj,vk,0,0;
+						idx_i[flip_dim] = vol;
+						idx_i[phase_dim] = li;
+						for (size_t lj = li + 1; lj < nLines; lj++) {
+							idx_t idx_j = idx_i;
+							idx_j[phase_dim] = lj;
 
-						Vector2f a_i{aData[idx_i].real(), aData[idx_i].imag()};
-						Vector2f a_j{aData[idx_j].real(), aData[idx_j].imag()};
-						Vector2f b_i{bData[idx_i].real(), bData[idx_i].imag()};
-						Vector2f b_j{bData[idx_j].real(), bData[idx_j].imag()};
+							Vector2f a_i{aData[idx_i].real(), aData[idx_i].imag()};
+							Vector2f a_j{aData[idx_j].real(), aData[idx_j].imag()};
+							Vector2f b_i{bData[idx_i].real(), bData[idx_i].imag()};
+							Vector2f b_j{bData[idx_j].real(), bData[idx_j].imag()};
 
-						Vector2f d_i = (b_i - a_i);
-						Vector2f d_j = (b_j - a_j);
-						Vector2f n_i{d_i[1], -d_i[0]};
-						Vector2f n_j{d_j[1], -d_j[0]};
+							Vector2f d_i = (b_i - a_i);
+							Vector2f d_j = (b_j - a_j);
+							Vector2f n_i{d_i[1], -d_i[0]};
+							Vector2f n_j{d_j[1], -d_j[0]};
 
-						float mu = (a_j - a_i).dot(n_j) / d_i.dot(n_j);
-						float nu = (a_i - a_j).dot(n_i) / d_j.dot(n_i);
-						float xi = 1.0 - pow(d_i.dot(d_j) / (d_i.norm() * d_j.norm()),2.0);
+							float mu = (a_j - a_i).dot(n_j) / d_i.dot(n_j);
+							float nu = (a_i - a_j).dot(n_i) / d_j.dot(n_i);
+							float xi = 1.0 - pow(d_i.dot(d_j) / (d_i.norm() * d_j.norm()),2.0);
 
-						Vector2f cs = (a_i + a_j + b_i + b_j) / 4.0;
-						Vector2f gs = a_i + mu * d_i;
+							Vector2f cs = (a_i + a_j + b_i + b_j) / 4.0;
+							Vector2f gs = a_i + mu * d_i;
 
-						Vector2f rs = cs;
-						if (vol < (nFlip - 1)) { // Use the phase of the last flip-angle for regularisation
-							float phase = arg(output[{vi,vj,vk,nFlip-1}]);
-							Vector2f d_p{cos(phase),sin(phase)};
-							float lm_i = (a_i).dot(n_i) / d_p.dot(n_i);
-							float lm_j = (a_j).dot(n_j) / d_p.dot(n_j);
-							Vector2f p_i = lm_i * d_p;
-							Vector2f p_j = lm_j * d_p;
-							rs = (p_i + p_j) / 2.0;
-						}
+							Vector2f rs = cs;
+							if (vol < (nFlip - 1)) { // Use the phase of the last flip-angle for regularisation
+								float phase = arg(output[{vi,vj,vk,nFlip-1}]);
+								Vector2f d_p{cos(phase),sin(phase)};
+								float lm_i = (a_i).dot(n_i) / d_p.dot(n_i);
+								float lm_j = (a_j).dot(n_j) / d_p.dot(n_j);
+								Vector2f p_i = lm_i * d_p;
+								Vector2f p_j = lm_j * d_p;
+								rs = (p_i + p_j) / 2.0;
+							}
 
-						bool rob_reg = true;
-						// Do the logic this way round so NaN does not propagate
-						if ((mu > -xi) && (mu < 1 + xi) && (nu > -xi) && (nu < 1 + xi))
-							rob_reg = false;
+							bool rob_reg = true;
+							// Do the logic this way round so NaN does not propagate
+							if ((mu > -xi) && (mu < 1 + xi) && (nu > -xi) && (nu < 1 + xi))
+								rob_reg = false;
 
-						float gs_norm = gs.norm();
-						bool mag_reg = true;
-						if ((gs_norm < a_i.norm()) &&
-						    (gs_norm < a_j.norm()) &&
-						    (gs_norm < b_i.norm()) &&
-						    (gs_norm < b_j.norm())) {
-						    mag_reg = false;
-						}
-						switch (mode) {
-							case Save::RR: sols.col(si++) = rob_reg ? rs : gs; break;
-							case Save::MR: sols.col(si++) = mag_reg ? cs : gs; break;
-							case Save::GS: sols.col(si++) = gs; break;
-							case Save::CS: sols.col(si++) = cs; break;
+							float gs_norm = gs.norm();
+							bool mag_reg = true;
+							if ((gs_norm < a_i.norm()) &&
+								(gs_norm < a_j.norm()) &&
+								(gs_norm < b_i.norm()) &&
+								(gs_norm < b_j.norm())) {
+								mag_reg = false;
+							}
+							switch (mode) {
+								case Save::RR: sols.col(si++) = rob_reg ? rs : gs; break;
+								case Save::MR: sols.col(si++) = mag_reg ? cs : gs; break;
+								case Save::GS: sols.col(si++) = gs; break;
+								case Save::CS: sols.col(si++) = cs; break;
+							}
 						}
 					}
 				}
