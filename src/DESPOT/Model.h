@@ -66,7 +66,9 @@ class Sequence : public SequenceBase {
 		Sequence(const ArrayXd &flip, const double TR);
 		ArrayXd B1flip(const double B1) const;
 
-		virtual size_t size() const override { return m_flip.rows(); };
+		virtual size_t size() const override { return angles() * phases(); };
+		virtual size_t angles() const { return m_flip.rows(); }
+		virtual size_t phases() const { return 1; };
 };
 
 
@@ -93,7 +95,7 @@ class SSFPSimple : public Sequence {
 		SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases);
 		SSFPSimple(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Pools p, const VectorXd &par, const double B1 = 1.) const override;
-		size_t size() const override;
+		size_t phases() const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SSFP"; } ;
 };
@@ -136,7 +138,7 @@ public:
 	ArrayXcd signal(const Pools p, const VectorXd &par, const double B1) const override;
 	
 	double minTR() const;
-	ArrayXcd loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k) const;
+	ArrayXcd loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k, bool needsFlip = false) const;
 	
 	void addSequence(const SequenceType &st, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 };

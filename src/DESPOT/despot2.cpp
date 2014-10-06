@@ -189,7 +189,8 @@ int main(int argc, char **argv)
 					const ArrayXcd data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
 					// Use phase of mean instead of mean of phase to avoid wrap issues
 					const complex<double> mean_data = data.mean();
-					offRes = arg(mean_data) / (M_PI * TR);
+					offRes = arg(-mean_data) / (M_PI * TR);
+
 					const ArrayXd s = data.abs();
 					VectorXd Y = s / localAngles.sin();
 					MatrixXd X(Y.rows(), 2);
@@ -239,8 +240,8 @@ int main(int argc, char **argv)
 						PD = p(0); T2 = p(1); offRes = p(2);
 						//exit(EXIT_SUCCESS);
 					}
-					ArrayXcd theory = ssfp.signal(Pools::One, Vector4d(PD, T1, T2, offRes), B1);
-					SoS = (s - theory.abs()).abs2().sum();
+					ArrayXd theory = ssfp.signal(Pools::One, Vector4d(PD, T1, T2, offRes), B1).abs();
+					SoS = (s - theory).abs2().sum() / ssfp.size();
 					T2Vol[{i,j,k}]  = static_cast<float>(T2);
 					PDVol[{i,j,k}]  = static_cast<float>(PD);
 					offResVol[{i,j,k}] = static_cast<float>(offRes);

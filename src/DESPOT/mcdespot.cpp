@@ -49,6 +49,7 @@ Options:\n\
 	--stop, -p n      : Finish at slice n-1\n\
 	--scale, -S 0     : Normalise signals to mean (default)\n\
 	            1     : Fit a scaling factor/proton density\n\
+	--flip, -F        : Data order is phase, then flip-angle (default opposite)\n\
 	--tesla, -t 3     : Boundaries suitable for 3T (default)\n\
 	            7     : Boundaries suitable for 7T \n\
 	            u     : User specified boundaries from stdin\n\
@@ -68,7 +69,7 @@ static auto tesla = FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, writeResiduals = false,
-           fitFinite = false, fitComplex = false,
+           fitFinite = false, fitComplex = false, flipData = false,
            samples = 5000, retain = 50, contract = 10,
            voxI = 0, voxJ = 0;
 static double expand = 0.;
@@ -83,6 +84,7 @@ static struct option long_options[] = {
 	{"start", required_argument, 0, 's'},
 	{"stop", required_argument, 0, 'p'},
 	{"scale", required_argument, 0, 'S'},
+	{"flip", required_argument, 0, 'F'},
 	{"tesla", required_argument, 0, 't'},
 	{"sequences", no_argument, 0, 'M'},
 	{"threads", required_argument, 0, 'T'},
@@ -201,6 +203,9 @@ int main(int argc, char **argv) {
 						return EXIT_FAILURE;
 						break;
 				} break;
+			case 'F':
+				flipData = true;
+				break;
 			case 'T':
 				threads.resize(atoi(optarg));
 				break;
@@ -305,7 +310,7 @@ int main(int argc, char **argv) {
 		function<void (const size_t, const size_t)> processVox = [&] (const size_t i, const size_t j) {
 			if (!maskFile || maskVol[{i,j,k}]) {
 				voxCount++;
-				ArrayXcd signal = sequences.loadSignals(signalVols, i, j, k);
+				ArrayXcd signal = sequences.loadSignals(signalVols, i, j, k, flipData);
 				ArrayXXd localBounds = bounds;
 				if (f0fit == OffRes::Map) {
 					localBounds.row(PoolInfo::nParameters(pools) - 1).setConstant(f0Vol[{i,j,k}]);

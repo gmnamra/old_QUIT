@@ -161,7 +161,7 @@ void SSFPSimple::write(ostream &os) const {
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
 
-size_t SSFPSimple::size() const { return m_flip.rows() * m_phases.rows(); }
+size_t SSFPSimple::phases() const { return m_phases.rows(); }
 
 ArrayXcd SSFPSimple::signal(const Pools np, const VectorXd &p, const double B1) const {
 	ArrayXcd s(size());
@@ -376,11 +376,17 @@ const bool PoolInfo::ValidParameters(const Pools p, const VectorXd &params) {
 	}
 }
 
-ArrayXcd Sequences::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k) const {
+ArrayXcd Sequences::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs,
+                                const size_t i, const size_t j, const size_t k,
+                                const bool flip) const {
 	ArrayXcd signal(size());
 	size_t start = 0;
 	for (size_t s = 0; s < m_sequences.size(); s++) {
 		ArrayXcd thisSig = sigs.at(s).slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
+		if (flip) {
+			ArrayXXcd flipped = Map<ArrayXXcd>(thisSig.data(), m_sequences.at(s)->phases(), m_sequences.at(s)->angles()).transpose();
+			thisSig = Map<ArrayXcd>(flipped.data(), thisSig.rows(), 1);
+		}
 		if (m_scaling == Scale::NormToMean)
 			thisSig /= thisSig.abs().mean();
 		signal.segment(start, thisSig.rows()) = thisSig;

@@ -46,6 +46,7 @@ Options:\n\
 	--stop, -p  N     : Stop processing at slice N\n\
 	--scale, -S 0     : Normalise signals to mean (default)\n\
 	            1     : Fit a scaling factor/proton density\n\
+	--flip, -F        : Data order is phase, then flip-angle (default opposite)\n\
 	--threads, -T N   : Use N threads (default=hardware limit)\n\
 	--sequences, -M s : Use simple sequences (default)\n\
 	            f     : Use finite pulse length correction\n\
@@ -58,7 +59,7 @@ static auto tesla = FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, writeResiduals = false,
-           fitFinite = false, fitComplex = false,
+           fitFinite = false, fitComplex = false, flipData = false,
            samples = 2000, retain = 20, contract = 10,
            voxI = 0, voxJ = 0;
 static double expand = 0.;
@@ -74,6 +75,7 @@ static struct option long_options[] = {
 	{"start", required_argument, 0, 's'},
 	{"stop", required_argument, 0, 'p'},
 	{"scale", required_argument, 0, 'S'},
+	{"flip", required_argument, 0, 'F'},
 	{"threads", required_argument, 0, 'T'},
 	{"sequences", no_argument, 0, 'M'},
 	{"complex", no_argument, 0, 'x'},
@@ -98,7 +100,7 @@ int main(int argc, char **argv)
 	//ThreadPool::EnableDebug = true;
 
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvnm:o:f:b:s:p:S:T:M:xcri:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvnm:o:f:b:s:p:S:FT:M:xcri:j:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
@@ -142,6 +144,9 @@ int main(int argc, char **argv)
 						return EXIT_FAILURE;
 						break;
 				} break;
+			case 'F':
+				flipData = true;
+				break;
 			case 'T':
 				threads.resize(atoi(optarg));
 				break;
@@ -251,7 +256,7 @@ int main(int argc, char **argv)
 			if (!maskFile || (maskVol[idx] && T1Vol[idx] > 0.)) {
 				// -ve T1 is nonsensical, no point fitting
 				sliceCount++;
-				ArrayXcd signal = sequences.loadSignals(ssfpData, i, j, k);
+				ArrayXcd signal = sequences.loadSignals(ssfpData, i, j, k, flipData);
 				ArrayXXd bounds(PoolInfo::nParameters(Pools::One), 2);
 				bounds.setZero();
 				if (scale == Scale::None) {
