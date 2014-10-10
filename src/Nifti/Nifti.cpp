@@ -26,6 +26,7 @@ File::File(const File &other) :
 	m_gz(other.m_gz), m_nifti_version(other.m_nifti_version),
 	m_swap(other.m_swap)
 {
+	cout << __PRETTY_FUNCTION__ << endl;
 	if (m_mode == Mode::Read) {
 		m_file.open(imagePath(), "rb", m_gz);
 		m_file.seek(other.m_file.tell(), SEEK_SET);
@@ -36,6 +37,7 @@ File::File(const File &other) :
 }
 
 File::File(File &&other) noexcept :
+	m_file(std::move(other.m_file)),
 	m_basepath(other.m_basepath),
 	m_header(other.m_header), m_extensions(other.m_extensions),
 	m_mode(other.m_mode), m_nii(other.m_nii),
@@ -53,8 +55,8 @@ File::File(const Header &hdr, const string &filename,
 	open(filename, Mode::Write);
 }
 
-File::File(const string &filename) : File() {
-	open(filename, Mode::Read);
+File::File(const string &filename, const Mode m) : File() {
+	open(filename, m);
 }
 
 #pragma mark Open/Header Routines
@@ -88,6 +90,7 @@ void File::open(const string &path, const Mode &mode) {
 		m_file.close();
 	} else if (m_nii) {
 		// We are opening a .nii, keep the file open
+		m_mode = mode;
 	} else {
 		// We are opening a .hdr/.img pair, close the header and open the image
 		bool result;
@@ -99,11 +102,11 @@ void File::open(const string &path, const Mode &mode) {
 		if (!result) {
 			throw(std::runtime_error("Could not open image file: " + imagePath()));
 		}
+		// Only set the mode here when we have successfully opened the file and
+		// not thrown any errors. Throwing an error triggers the destructor and
+		// we don't want to be in the wrong state there.
+		m_mode = mode;
 	}
-	// Only set the mode here when we have successfully opened the file and
-	// not thrown any errors. Throwing an error triggers the destructor and
-	// we don't want to be in the wrong state there.
-	m_mode = mode;
 }
 
 File::operator bool() const {
@@ -407,7 +410,10 @@ void File::seekToVoxel(const IndexArray &inTarget) {
 	size_t current = m_file.tell();
 	if ((index - current != 0) && !m_file.seek(index - current, SEEK_CUR)) {
 		stringstream ss; ss << target.transpose();
-		throw(std::runtime_error("Failed to seek to target voxel: " + ss.str() + ", index: " + to_string(index) + " in file: " + imagePath()));
+		throw(std::runtime_error("Failed to seek to target voxel: " + ss.str() +
+		                         ", index: " + to_string(index) +
+		                         ", current: " + to_string(current) +
+		                         " in file: " + imagePath()));
 	}
 }
 
@@ -447,6 +453,14 @@ void File::writeBytes(const std::vector<char> &buffer) {
 			throw(std::runtime_error("Wrote wrong number of bytes from file: " + imagePath()));
 		}
 	}
+}
+
+/**
+ * @brief File::dataSize
+ * @return The size in bytes of the data portion (voxels) of the file
+ */
+size_t File::dataSize() const {
+	return dims().prod() * m_header.typeInfo().size;
 }
 
 } // End namespace Nifti

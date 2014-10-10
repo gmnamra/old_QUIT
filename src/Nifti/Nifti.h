@@ -46,10 +46,6 @@ class File {
 		void writeExtensions();            //!< Attempts to write extensions
 		int totalExtensionSize();          //!< Counts the total number of bytes for all extensions.
 
-		void seekToVoxel(const IndexArray &target);
-		void readBytes(std::vector<char> &data);
-		void writeBytes(const std::vector<char> &data);
-
 		template<typename FromTp, typename ToTp> class Scale; //!< Templated class to scale and cast between types. Definitions in Nifti-inl.h
 		template<typename Iter> void readWriteVoxels(const IndexArray &start, const IndexArray &size, Iter &begin, Iter &end); //!< Core IO routine. Can read/write to any storage that supports iterators/pointers
 
@@ -59,7 +55,8 @@ class File {
 		File();                                  //!< Default constructor. Initialises an empty header, size 1 in all dimensions.
 		File(const File &other);                 //!< Copy constructor. Copies all elements, and if the original is open then also opens new file handles.
 		File(File &&other) noexcept;             //!< Move constructor. Copies all elements, including the file handles, and marks the original as Closed.
-		File(const std::string &filename);       //!< Opens a new File for reading.
+		File(const std::string &filename,
+		     const Nifti::Mode m = Nifti::Mode::Read);       //!< Opens a new File (default for reading).
 		File(const Header &hdr,
 		     const std::string &filename,
 		     const std::list<Extension> &exts = {},
@@ -87,6 +84,12 @@ class File {
 		template<typename IterTp> void writeVoxels(IterTp begin, IterTp end, const Eigen::Ref<IndexArray> &start, const Eigen::Ref<IndexArray> &size);
 		template<typename IterTp> void writeVolumes(IterTp begin, IterTp end, const size_t first = 0, const size_t nvol = 0);
 		template<typename IterTp> void writeAll(IterTp begin, IterTp end);
+
+		void seekToVoxel(const IndexArray &target);
+		void readBytes(std::vector<char> &data);
+		void writeBytes(const std::vector<char> &data);
+		size_t dataSize() const;
+
 		void addExtension(const int code, const std::vector<char> &data);
 		void addExtension(const Extension &e);
 		const std::list<Extension> &extensions() const;
