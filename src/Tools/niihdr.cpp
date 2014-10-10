@@ -1,5 +1,5 @@
 //
-//  nifti_hdr.cpp
+//  niihdr.cpp
 //  NiftiImage
 //
 //  Created by Tobias Wood on 08/07/2013.
@@ -17,7 +17,7 @@ using namespace std;
 
 const string usage = "niihdr - A utility for getting information from Nifti headers.\n\
 \n\
-Usage: nifti_hdr [options] file1 [other files]\n\
+Usage: niihdr [options] file1 [other files]\n\
 By default the abbreviated header will be printed for each file.\n\
 Abbreviated, full and compare modes are mutually exclusive.\n\
 \n\
