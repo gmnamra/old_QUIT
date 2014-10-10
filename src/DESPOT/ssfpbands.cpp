@@ -223,21 +223,30 @@ int main(int argc, char **argv) {
 								rs = (p_i + p_j) / 2.0;
 							}
 
-							bool rob_reg = true;
+							bool line_reg = true;
 							// Do the logic this way round so NaN does not propagate
 							if ((mu > -xi) && (mu < 1 + xi) && (nu > -xi) && (nu < 1 + xi))
-								rob_reg = false;
+								line_reg = false;
 
-							float gs_norm = gs.norm();
+							float norm = gs.norm();
+							if (mode == Save::RR)
+								norm = rs.norm();
 							bool mag_reg = true;
-							if ((gs_norm < a_i.norm()) &&
-								(gs_norm < a_j.norm()) &&
-								(gs_norm < b_i.norm()) &&
-								(gs_norm < b_j.norm())) {
+							if ((norm < a_i.norm()) ||
+								(norm < a_j.norm()) ||
+								(norm < b_i.norm()) ||
+								(norm < b_j.norm())) {
 								mag_reg = false;
 							}
+
 							switch (mode) {
-								case Save::RR: sols.col(si++) = rob_reg ? rs : gs; break;
+								case Save::RR:
+									if (line_reg) {
+										sols.col(si++) = mag_reg ? cs : rs; break;
+									} else {
+										sols.col(si++) = gs;
+									}
+									break;
 								case Save::MR: sols.col(si++) = mag_reg ? cs : gs; break;
 								case Save::GS: sols.col(si++) = gs; break;
 								case Save::CS: sols.col(si++) = cs; break;
