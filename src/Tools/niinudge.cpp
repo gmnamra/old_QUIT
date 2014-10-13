@@ -31,9 +31,8 @@ this are:\n\
 X Y Z - Make sure you encase this format in quotes (\" \")!\n\
 \n\
 Options:\n\
+	--out, -o prefix       : Add a prefix to the output filenames\n\
 	--nudge, -n \"X Y Z\"  : Nudge the image (X Y Z added to current offset)\n\
-	--origin, -o \"X Y Z\" : Set the offset to -(X,Y,Z) so that the origin\n\
-	                         (0,0,0) will appear at this position\n\
 	--offset, -f \"X Y Z\" : Set the offset to (X,Y,Z)\n\
 	--cog, -c              : Make the Center of Gravity lie at the origin\n\
 	--verbose, -v          : Print out what the program is doing\n\
@@ -42,7 +41,7 @@ Options:\n\
 
 static const struct option long_opts[] = {
 	{"nudge",  required_argument, 0, 'n'},
-	{"origin", required_argument, 0, 'o'},
+	{"out", required_argument, 0, 'o'},
 	{"offset", required_argument, 0, 'f'},
 	{"cog",    no_argument, 0, 'c'},
 	{"verbose", no_argument, 0, 'v'},
@@ -50,7 +49,7 @@ static const struct option long_opts[] = {
 	{0, 0, 0, 0}
 };
 static const char *short_opts = "n:o:f:cvh";
-
+static string prefix;
 static int verbose = false;
 
 Vector3f parse_vector(char *str);
@@ -94,6 +93,7 @@ int main(int argc, char **argv) {
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
 		switch (c) {
+		case 'o': prefix = optarg; break;
 		case 'v': verbose = true; break;
 		case '?': // getopt will print an error message
 		case 'h':
@@ -135,17 +135,6 @@ int main(int argc, char **argv) {
 				f.setHeader(h);
 			}
 			break;
-		case 'o':
-			nudge = parse_vector(optarg);
-			for (Nifti::File &f : files) {
-				if (verbose) cout << "Aligning origin to: " << nudge.transpose() << " in file: " << f.imagePath() << endl;
-				Nifti::Header h = f.header();
-				Affine3f xfm = h.transform();
-				xfm.translation() = -nudge;
-				h.setTransform(xfm);
-				f.setHeader(h);
-			}
-			break;
 		case 'f':
 			nudge = parse_vector(optarg);
 			for (Nifti::File &f : files) {
@@ -178,8 +167,9 @@ int main(int argc, char **argv) {
 	auto f = files.begin();
 	auto d = data.begin();
 	for (; f != files.end(); f++, d++) {
-		if (verbose) cout << "Writing file: " << f->imagePath() << endl;
-		f->open(f->imagePath(), Nifti::Mode::Write);
+		string outpath = prefix + f->imagePath();
+		if (verbose) cout << "Writing file: " << outpath << endl;
+		f->open(outpath, Nifti::Mode::Write);
 		f->writeBytes(*d);
 		f->close();
 	}
