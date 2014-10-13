@@ -34,7 +34,9 @@ Options:\n\
 	--out, -o prefix       : Add a prefix to the output filenames\n\
 	--nudge, -n \"X Y Z\"  : Nudge the image (X Y Z added to current offset)\n\
 	--offset, -f \"X Y Z\" : Set the offset to (X,Y,Z)\n\
-	--cog, -c              : Make the Center of Gravity lie at the origin\n\
+	--cog, -c              : Move the Center of Gravity to the origin of the\n\
+	                         first image, and move subsequent images by the\n\
+	                         same amount\n\
 	--verbose, -v          : Print out what the program is doing\n\
 	-h, --help:   Print this message and quit.\n\
 ";
@@ -146,17 +148,17 @@ int main(int argc, char **argv) {
 				f.setHeader(h);
 			}
 			break;
-		case 'c':
+		case 'c': {
+			if (verbose) cout << "Aligning origin to CoG in file: " << files.front().imagePath() << endl;
+			Affine3f CoG; CoG = Translation3f(-calc_cog(files.front()));
 			for (Nifti::File &f : files) {
-				if (verbose) cout << "Aligning origin to CoG in file: " << f.imagePath() << endl;
 				Nifti::Header h = f.header();
-				Vector3f CoG = calc_cog(f);
 				Affine3f xfm = h.transform();
-				xfm = Translation3f(-CoG) * xfm;
+				xfm = CoG * xfm;
 				h.setTransform(xfm);
 				f.setHeader(h);
 			}
-			break;
+		} break;
 		case '?': // getopt will print an error message
 		case 'h':
 			break;
