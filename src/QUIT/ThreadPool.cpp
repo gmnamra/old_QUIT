@@ -81,7 +81,7 @@ void ThreadPool::for_loop2(const function<void(const size_t, const size_t)> f,
 		cout << __PRETTY_FUNCTION__ << " started" << endl;
 		cout << "Function: " << &f << endl;
 		cout << "starti " << starti << " stopi " << stopi << " stepi " << stepi << endl;
-		cout << "starti " << startj << " stopi " << stopj << " stepi " << stepj << endl;
+		cout << "startj " << startj << " stopj " << stopj << " stepj " << stepj << endl;
 	}
 
 	function<void(const size_t, const size_t)> worker = [&](const size_t wi_start, const size_t wj_start) {
