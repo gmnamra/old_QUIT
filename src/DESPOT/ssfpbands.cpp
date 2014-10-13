@@ -43,10 +43,11 @@ Options:\n\
 	--save, -sR       : Save the robustly regularised GS (default)\n\
 	          M       : Save the magnitude regularised GS\n\
 	          G       : Save the unregularised GS\n\
-	          C       : Save the CS\n"
+	          C       : Save the CS\n\
+	          S       : Save the Second Pass solution\n"
 };
 
-enum class Save { RR, MR, GS, CS };
+enum class Save { RR, MR, GS, CS, RS, SP };
 static Save mode = Save::RR;
 static bool verbose = false;
 static size_t phase_dim = 4, flip_dim = 3, nPhases = 4;
@@ -117,6 +118,8 @@ int main(int argc, char **argv) {
 					case 'M': mode = Save::MR; break;
 					case 'G': mode = Save::GS; break;
 					case 'C': mode = Save::CS; break;
+					case 'r': mode = Save::RS; break;
+					case 'S': mode = Save::SP; break;
 					default:
 						cerr << "Unknown desired save image: " << *optarg << endl;
 						return EXIT_FAILURE;
@@ -172,7 +175,7 @@ int main(int argc, char **argv) {
 	split_start[phase_dim] = 2;
 	MultiArray<complex<float>, 5> bData = reshaped.slice<5>(split_start, reshape_dims);
 	// For results
-	MultiArray<complex<float>, 4> output(d, nFlip);
+	MultiArray<complex<float>, 4> output(d, nFlip), second_pass(d, nFlip);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -183,9 +186,6 @@ int main(int argc, char **argv) {
 			function<void (const size_t, const size_t)> processVox = [&] (const size_t vi, const size_t vj) {
 				MatrixXf sols(2, nCrossings); sols.setZero();
 				if (!maskFile || (maskData[{vi,vj,vk}])) {
-					MultiArray<complex<float>, 5>::Index idx;
-					idx << vi,vj,vk,0,0;
-					idx[flip_dim] = vol;
 					size_t si = 0;
 					for (size_t li = 0; li < nLines; li++) {
 						idx_t idx_i; idx_i << vi,vj,vk,0,0;
@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
 							Vector2f cs = (a_i + a_j + b_i + b_j) / 4.0;
 							Vector2f gs = a_i + mu * d_i;
 
-							Vector2f rs = cs;
+							Vector2f rs;
 							if (vol < (nFlip - 1)) { // Use the phase of the last flip-angle for regularisation
 								float phase = arg(output[{vi,vj,vk,nFlip-1}]);
 								Vector2f d_p{cos(phase),sin(phase)};
@@ -221,6 +221,8 @@ int main(int argc, char **argv) {
 								Vector2f p_i = lm_i * d_p;
 								Vector2f p_j = lm_j * d_p;
 								rs = (p_i + p_j) / 2.0;
+							} else {
+								rs = cs;
 							}
 
 							bool line_reg = true;
@@ -242,15 +244,18 @@ int main(int argc, char **argv) {
 							switch (mode) {
 								case Save::RR:
 									if (line_reg) {
-										sols.col(si++) = mag_reg ? cs : rs; break;
+										sols.col(si) = mag_reg ? cs : rs; break;
 									} else {
-										sols.col(si++) = gs;
+										sols.col(si) = gs;
 									}
 									break;
-								case Save::MR: sols.col(si++) = mag_reg ? cs : gs; break;
-								case Save::GS: sols.col(si++) = gs; break;
-								case Save::CS: sols.col(si++) = cs; break;
+								case Save::SP:
+								case Save::MR: sols.col(si) = mag_reg ? cs : gs; break;
+								case Save::GS: sols.col(si) = gs; break;
+								case Save::RS: sols.col(si) = rs; break;
+								case Save::CS: sols.col(si) = cs; break;
 							}
+							si++;
 						}
 					}
 				}
@@ -258,6 +263,44 @@ int main(int argc, char **argv) {
 				output[{vi,vj,vk,vol}] = {mean_sol[0], mean_sol[1]};
 			};
 			threads.for_loop2(processVox, d[0], d[1]);
+		}
+
+		if (mode == Save::SP) {
+			for (size_t vk = 1; vk < d[2] - 1; vk++) {
+			//size_t vk = 27;
+				function<void (const size_t, const size_t)> processVox = [&] (const size_t vi, const size_t vj) {
+					complex<float> sp(0.,0.);
+					if (!maskFile || (maskData[{vi,vj,vk}])) {
+						for (size_t li = 0; li < nLines; li++) {
+							float num = 0, den = 0;
+							for (int k = -1; k < 2; k++) {
+								for (int j = -1; j < 2; j++) {
+									for (int i = -1; i < 2; i++) {
+										idx_t idx; idx << vi + i,vj + j,vk + k,0,0;
+										idx[flip_dim] = vol;
+										idx[phase_dim] = li;
+										complex<float> a_i = aData[idx];
+										complex<float> b_i = bData[idx];
+										complex<float> s_i = output[{vi+i,vj+j,vk+k,vol}];
+										num += real(conj(b_i - s_i)*(a_i - b_i) + conj(a_i - b_i)*(b_i - s_i));
+										den += real(conj(a_i - b_i)*(a_i - b_i));
+									}
+								}
+							}
+							float w = -num / (2. * den);
+							if (isfinite(w)) {
+								idx_t sidx; sidx << vi,vj,vk,0,0;
+								sidx[flip_dim] = vol;
+								sidx[phase_dim] = li;
+								complex<float> s = (aData[sidx]*w + (1.f-w)*bData[sidx]);
+								sp += (s / static_cast<float>(nLines));
+							}
+						}
+					}
+					second_pass[{vi,vj,vk,vol}] = sp;
+				};
+				threads.for_loop2(processVox, 1, d[0] - 1, 1, 1, d[1] - 1, 1);
+			}
 		}
 	}
 	printElapsedClock(startClock, d.prod());
@@ -270,10 +313,16 @@ int main(int argc, char **argv) {
 		case Save::MR: outname.append("magreg" + OutExt()); break;
 		case Save::GS: outname.append("gs" + OutExt()); break;
 		case Save::CS: outname.append("cs" + OutExt()); break;
+		case Save::RS: outname.append("rs" + OutExt()); break;
+		case Save::SP: outname.append("sp" + OutExt()); break;
 	}
 	if (verbose) cout << "Output filename: " << outname << endl;
 	Nifti::File outFile(inHdr, outname);
-	outFile.writeVolumes(output.begin(), output.end());
+	if (mode == Save::SP) {
+		outFile.writeVolumes(second_pass.begin(), second_pass.end());
+	} else {
+		outFile.writeVolumes(output.begin(), output.end());
+	}
 	outFile.close();
 	if (verbose) cout << "Finished." << endl;
 	return EXIT_SUCCESS;
