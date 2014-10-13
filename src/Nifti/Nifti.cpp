@@ -26,7 +26,6 @@ File::File(const File &other) :
 	m_gz(other.m_gz), m_nifti_version(other.m_nifti_version),
 	m_swap(other.m_swap)
 {
-	cout << __PRETTY_FUNCTION__ << endl;
 	if (m_mode == Mode::Read) {
 		m_file.open(imagePath(), "rb", m_gz);
 		m_file.seek(other.m_file.tell(), SEEK_SET);
