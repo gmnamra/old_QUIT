@@ -35,8 +35,7 @@ Options:\n\
 	--nudge, -n \"X Y Z\"  : Nudge the image (X Y Z added to current offset)\n\
 	--offset, -f \"X Y Z\" : Set the offset to (X,Y,Z)\n\
 	--cog, -c              : Move the Center of Gravity to the origin of the\n\
-	                         first image, and move subsequent images by the\n\
-	                         same amount\n\
+	                         first image, and make subsequent images match\n\
 	--verbose, -v          : Print out what the program is doing\n\
 	-h, --help:   Print this message and quit.\n\
 ";
@@ -150,11 +149,14 @@ int main(int argc, char **argv) {
 			break;
 		case 'c': {
 			if (verbose) cout << "Aligning origin to CoG in file: " << files.front().imagePath() << endl;
-			Affine3f CoG; CoG = Translation3f(-calc_cog(files.front()));
+			Vector3f CoG = calc_cog(files.front());
+			Affine3f xfm1 = files.front().header().transform();
+			xfm1 = Translation3f(-CoG) * xfm1;
+			Vector3f offset = xfm1.translation();
 			for (Nifti::File &f : files) {
 				Nifti::Header h = f.header();
 				Affine3f xfm = h.transform();
-				xfm = CoG * xfm;
+				xfm.translation() = offset;
 				h.setTransform(xfm);
 				f.setHeader(h);
 			}
