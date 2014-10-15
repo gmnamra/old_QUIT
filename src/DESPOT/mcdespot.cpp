@@ -74,7 +74,7 @@ static int verbose = false, prompt = true, writeResiduals = false,
            voxI = 0, voxJ = 0;
 static double expand = 0.;
 static string outPrefix;
-static struct option long_options[] = {
+static const struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"mask", required_argument, 0, 'm'},
@@ -97,6 +97,8 @@ static struct option long_options[] = {
 	{"3", no_argument, 0, '3'},
 	{0, 0, 0, 0}
 };
+static const char* short_options = "hvm:o:f:b:s:p:S:t:FT:M:xcrn123i:j:";
+
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
@@ -156,7 +158,7 @@ int main(int argc, char **argv) {
 	ThreadPool threads;
 
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:f:b:s:p:S:t:T:M:xcrn123i:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, short_options, long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
