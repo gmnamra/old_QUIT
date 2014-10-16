@@ -207,6 +207,9 @@ int main(int argc, char **argv)
 		} else {
 			sequences.addSequence(SequenceType::SSFP, prompt, pp);
 		}
+		if (sequences.sequence(sequences.count() - 1)->size() != inFile.dim(4)) {
+			throw(std::runtime_error("Number of volumes in file " + inFile.imagePath() + " does not match input."));
+		}
 		if (verbose) cout << "Reading data." << endl;
 		ssfpData.at(p).resize(inFile.dims().head(4));
 		inFile.readVolumes(ssfpData.at(p).begin(), ssfpData.at(p).end());
