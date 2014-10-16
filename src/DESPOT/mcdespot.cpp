@@ -309,8 +309,8 @@ int main(int argc, char **argv) {
 		atomic<int> voxCount{0};
 		clock_t loopStart = clock();
 
-		function<void (const size_t, const size_t, mt19937_64 &)>
-		processVox = [&] (const size_t i, const size_t j, mt19937_64 &rng) {
+		function<void (const size_t, const size_t)>
+		processVox = [&] (const size_t i, const size_t j) {
 			if (!maskFile || maskVol[{i,j,k}]) {
 				voxCount++;
 				ArrayXcd signal = sequences.loadSignals(signalVols, i, j, k, flipData);
@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
 				}
 				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 				DESPOTFunctor func(sequences, pools, signal, B1, fitComplex, false);
-				RegionContraction<DESPOTFunctor> rc(func, rng, localBounds, weights, threshes,
+				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
 													samples, retain, contract, expand, (voxI != 0));
 				ArrayXd params(PoolInfo::nParameters(pools));
 				rc.optimise(params); // Add the voxel number to the time to get a decent random seed
@@ -330,12 +330,11 @@ int main(int argc, char **argv) {
 			}
 		};
 		if (voxI == 0) {
-			threads.for_rng2(processVox, hdr.dim(1), hdr.dim(2));
+			threads.for_loop2(processVox, hdr.dim(1), hdr.dim(2));
 			if (threads.interrupted())
 				break;
 		} else {
-			mt19937_64 rng;
-			processVox(voxI, voxJ, rng);
+			processVox(voxI, voxJ);
 			return EXIT_SUCCESS;
 		}
 		if (verbose) {

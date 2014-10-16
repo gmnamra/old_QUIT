@@ -61,7 +61,12 @@ template <typename Functor_t>
 class RegionContraction {
 	private:
 		Functor_t &m_f;
-		mt19937_64 &m_rng;
+		static size_t NewSeed() {
+			static size_t count = 0;
+			return count++;
+		}
+
+		mt19937_64 m_rng;
 		ArrayXXd m_startBounds, m_currentBounds;
 		ArrayXd m_weights, m_residuals, m_threshes;
 		size_t m_nS, m_nR, m_maxContractions, m_contractions;
@@ -71,11 +76,11 @@ class RegionContraction {
 	
 	public:
 	
-		RegionContraction(Functor_t &f, mt19937_64 &rng,
+		RegionContraction(Functor_t &f,
 						  const Ref<ArrayXXd> &startBounds, const ArrayXd &weights, const ArrayXd &thresh,
 						  const int nS = 5000, const int nR = 50, const int maxContractions = 10,
 						  const double expand = 0., const bool debug = false) :
-				m_f(f), m_rng(rng), m_startBounds(startBounds), m_currentBounds(startBounds),
+				m_f(f), m_rng(NewSeed()), m_startBounds(startBounds), m_currentBounds(startBounds),
 				m_nS(nS), m_nR(nR), m_maxContractions(maxContractions),
 				m_threshes(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0),
 				m_status(RCStatus::NotStarted), m_weights(weights), m_debug(debug)

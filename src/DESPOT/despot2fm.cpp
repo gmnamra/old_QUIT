@@ -254,8 +254,8 @@ int main(int argc, char **argv)
 		atomic<int> sliceCount{0};
 		clock_t loopStart = clock();
 
-		function<void (const size_t, const size_t, mt19937_64 &)>
-		processVox = [&] (const size_t i, const size_t j, mt19937_64 &rng) {
+		function<void (const size_t, const size_t)>
+		processVox = [&] (const size_t i, const size_t j) {
 			const MultiArray<float, 3>::Index idx{i,j,k};
 			if (!maskFile || (maskVol[idx] && T1Vol[idx] > 0.)) {
 				// -ve T1 is nonsensical, no point fitting
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
 				}
 				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 				DESPOTFunctor func(sequences, Pools::One, signal, B1, fitComplex, false);
-				RegionContraction<DESPOTFunctor> rc(func, rng, bounds, weights, thresh,
+				RegionContraction<DESPOTFunctor> rc(func, bounds, weights, thresh,
 													samples, retain, contract, expand, (voxI > 0));
 				ArrayXd params(PoolInfo::nParameters(Pools::One)); params.setZero();
 				rc.optimise(params); // Add the voxel number to the time to get a decent random seed
@@ -298,12 +298,11 @@ int main(int argc, char **argv)
 			}
 		};
 		if (voxI == 0) {
-			threads.for_rng2(processVox, dims[0], dims[1]);
+			threads.for_loop2(processVox, dims[0], dims[1]);
 			if (threads.interrupted())
 				break;
 		} else {
-			mt19937_64 rng(0);
-			processVox(voxI, voxJ, rng);
+			processVox(voxI, voxJ);
 			voxCount = 1;
 			break;
 		}

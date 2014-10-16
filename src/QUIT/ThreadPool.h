@@ -53,11 +53,6 @@ class ThreadPool {
 		               const size_t starti, const size_t stopi, const size_t stepi,
 		               const size_t startj, const size_t stopj, const size_t stepj);
 		void for_loop2(worker_func2 f, const size_t stopi, const size_t stopj);
-		typedef std::function<void(const size_t, const size_t, std::mt19937_64 &)> rng_worker_func2;
-		void for_rng2(const rng_worker_func2 f,
-		              const size_t starti, const size_t stopi, const size_t stepi,
-		              const size_t startj, const size_t stopj, const size_t stepj);
-		void for_rng2(const rng_worker_func2 f, const size_t stopi, const size_t stopj);
 		bool finished();
 		bool interrupted();
 		void stop();
