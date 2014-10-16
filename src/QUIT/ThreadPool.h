@@ -18,6 +18,7 @@
 #include <thread>
 #include <functional>
 #include <vector>
+#include <random>
 #include <signal.h>
 
 namespace QUIT {
@@ -43,12 +44,20 @@ class ThreadPool {
 		ThreadPool(ThreadPool &&) = delete;
 		
 		void resize(const size_t num_threads);
-		void for_loop(const std::function<void(size_t)> f, const size_t start, const size_t stop, const size_t step);
-		void for_loop(const std::function<void(size_t)> f, const size_t stop);
-		void for_loop2(const std::function<void(const size_t, const size_t)> f,
+
+		typedef std::function<void(const size_t)> worker_func;
+		void for_loop(const worker_func f, const size_t start, const size_t stop, const size_t step);
+		void for_loop(const worker_func f, const size_t stop);
+		typedef std::function<void(const size_t, const size_t)> worker_func2;
+		void for_loop2(const worker_func2 f,
 		               const size_t starti, const size_t stopi, const size_t stepi,
-		                const size_t startj, const size_t stopj, const size_t stepj);
-		void for_loop2(const std::function<void(const size_t, const size_t)> f, const size_t stopi, const size_t stopj);
+		               const size_t startj, const size_t stopj, const size_t stepj);
+		void for_loop2(worker_func2 f, const size_t stopi, const size_t stopj);
+		typedef std::function<void(const size_t, const size_t, std::mt19937_64 &)> rng_worker_func2;
+		void for_rng2(const rng_worker_func2 f,
+		              const size_t starti, const size_t stopi, const size_t stepi,
+		              const size_t startj, const size_t stopj, const size_t stepj);
+		void for_rng2(const rng_worker_func2 f, const size_t stopi, const size_t stopj);
 		bool finished();
 		bool interrupted();
 		void stop();

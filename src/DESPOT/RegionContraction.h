@@ -61,6 +61,7 @@ template <typename Functor_t>
 class RegionContraction {
 	private:
 		Functor_t &m_f;
+		mt19937_64 &m_rng;
 		ArrayXXd m_startBounds, m_currentBounds;
 		ArrayXd m_weights, m_residuals, m_threshes;
 		size_t m_nS, m_nR, m_maxContractions, m_contractions;
@@ -70,11 +71,11 @@ class RegionContraction {
 	
 	public:
 	
-		RegionContraction(Functor_t &f, const Ref<ArrayXXd> &startBounds,
-						  const ArrayXd &weights, const ArrayXd &thresh,
+		RegionContraction(Functor_t &f, mt19937_64 &rng,
+						  const Ref<ArrayXXd> &startBounds, const ArrayXd &weights, const ArrayXd &thresh,
 						  const int nS = 5000, const int nR = 50, const int maxContractions = 10,
 						  const double expand = 0., const bool debug = false) :
-				m_f(f), m_startBounds(startBounds), m_currentBounds(startBounds),
+				m_f(f), m_rng(rng), m_startBounds(startBounds), m_currentBounds(startBounds),
 				m_nS(nS), m_nR(nR), m_maxContractions(maxContractions),
 				m_threshes(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0),
 				m_status(RCStatus::NotStarted), m_weights(weights), m_debug(debug)
@@ -114,7 +115,7 @@ class RegionContraction {
 		const ArrayXd  width() const { return m_currentBounds.col(1) - m_currentBounds.col(0); }
 		const ArrayXd  midPoint() const { return (m_currentBounds.rowwise().sum() / 2.); }
 		
-		void optimise(Ref<ArrayXd> params, const size_t seed = 0) {
+		void optimise(Ref<ArrayXd> params) {
 			static atomic<bool> finiteWarning(false);
 			static atomic<bool> constraintWarning(false);
 			eigen_assert(m_f.inputs() == params.size());
@@ -133,9 +134,7 @@ class RegionContraction {
 				cout << "Weights:        " << m_weights.transpose() << endl;
 			}
 			
-			mt19937_64 twist(seed);
 			uniform_real_distribution<double> uniform(0., 1.);
-			
 			m_status = RCStatus::IterationLimit;
 			for (m_contractions = 0; m_contractions < m_maxContractions; m_contractions++) {
 				size_t startSample = 0;
@@ -152,7 +151,7 @@ class RegionContraction {
 					size_t nTries = 0;
 					do {
 						for (int p = 0; p < nP; p++)
-							tempSample(p) = uniform(twist);
+							tempSample(p) = uniform(m_rng);
 						tempSample *= width();
 						tempSample += m_currentBounds.col(0);
 						nTries++;

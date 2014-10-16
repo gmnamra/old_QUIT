@@ -41,7 +41,7 @@ void ThreadPool::resize(const size_t num_threads) {
 	if (EnableDebug) cout << __PRETTY_FUNCTION__ << " finished" << endl;
 }
 
-void ThreadPool::for_loop(const function<void(size_t)> f,
+void ThreadPool::for_loop(const worker_func f,
                           const size_t start, const size_t stop, const size_t step) {
 	if (EnableDebug) cout << __PRETTY_FUNCTION__ << " started" << endl;
 	size_t thread_step = m_size * step;
@@ -67,13 +67,13 @@ void ThreadPool::for_loop(const function<void(size_t)> f,
 	if (EnableDebug) cout << __PRETTY_FUNCTION__ << " finished" << endl;
 }
 
-void ThreadPool::for_loop(const function<void(size_t)> f, const size_t stop) {
+void ThreadPool::for_loop(const worker_func f, const size_t stop) {
 	if (EnableDebug) cout << __PRETTY_FUNCTION__ << " started" << endl;
 	for_loop(f, 0, stop, 1);
 	if (EnableDebug) cout << __PRETTY_FUNCTION__ << " finished" << endl;
 }
 
-void ThreadPool::for_loop2(const function<void(const size_t, const size_t)> f,
+void ThreadPool::for_loop2(const worker_func2 f,
                            const size_t starti, const size_t stopi, const size_t stepi,
                            const size_t startj, const size_t stopj, const size_t stepj) {
 	size_t stepj_per_thread = m_size * stepj;
@@ -118,10 +118,63 @@ void ThreadPool::for_loop2(const function<void(const size_t, const size_t)> f,
 	if (EnableDebug) cout << __PRETTY_FUNCTION__ << " finished" << endl;
 }
 
-void ThreadPool::for_loop2(const function<void(const size_t, const size_t)> f, const size_t stopi, const size_t stopj) {
+void ThreadPool::for_rng2(const rng_worker_func2 f,
+                          const size_t starti, const size_t stopi, const size_t stepi,
+                          const size_t startj, const size_t stopj, const size_t stepj) {
+	size_t stepj_per_thread = m_size * stepj;
+	if (EnableDebug) {
+		cout << __PRETTY_FUNCTION__ << " started" << endl;
+		cout << "Function: " << &f << endl;
+		cout << "starti " << starti << " stopi " << stopi << " stepi " << stepi << endl;
+		cout << "startj " << startj << " stopj " << stopj << " stepj " << stepj << endl;
+	}
+
+	function<void(const size_t, const size_t)> worker = [&](const size_t wi_start, const size_t wj_start) {
+		mt19937_64 rng(hash<thread::id>()(this_thread::get_id()));
+		size_t j = wj_start;
+		while (!m_interrupted && (j < stopj)) {
+			size_t i = wi_start;
+			while (!m_interrupted && (i < stopi)) {
+				f(i, j, rng);
+				i += stepi;
+			}
+			j += stepj_per_thread;
+		}
+	};
+
+	m_finished = false;
+	m_interrupted = false;
+	registerInterrupt();
+	for (size_t startj_thread = startj; startj_thread < startj + stepj_per_thread; startj_thread += stepj) {
+		m_pool.emplace_back(worker, starti, startj_thread);
+		if (EnableDebug) {
+			cout << "Started worker thread " << &(m_pool.back()) << " with starti: " << starti << " startj: " << startj_thread << endl;
+		}
+	}
+	for (auto &t: m_pool) {
+		t.join();
+		if (EnableDebug) {
+			cout << "Joined by thread " << &t << endl;
+		}
+	}
+	deregisterInterrupt();
+	// Delete worker threads
+	m_pool.resize(0);
+	m_finished = true;
+	if (EnableDebug) cout << __PRETTY_FUNCTION__ << " finished" << endl;
+}
+
+void ThreadPool::for_loop2(const worker_func2 f, const size_t stopi, const size_t stopj) {
 	if (EnableDebug) cout << __PRETTY_FUNCTION__ << " started" << endl;
 	if (EnableDebug) cout << "Function: " << &f << endl << "stopi " << stopi << " stopj " << stopj << endl;
 	for_loop2(f, 0, stopi, 1, 0, stopj, 1);
+	if (EnableDebug) cout << __PRETTY_FUNCTION__ << " finished" << endl;
+}
+
+void ThreadPool::for_rng2(const rng_worker_func2 f, const size_t stopi, const size_t stopj) {
+	if (EnableDebug) cout << __PRETTY_FUNCTION__ << " started" << endl;
+	if (EnableDebug) cout << "Function: " << &f << endl << "stopi " << stopi << " stopj " << stopj << endl;
+	for_rng2(f, 0, stopi, 1, 0, stopj, 1);
 	if (EnableDebug) cout << __PRETTY_FUNCTION__ << " finished" << endl;
 }
 
