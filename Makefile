@@ -27,8 +27,8 @@ $(BUILD_DIR) :
 $(INSTALL_DIR) :
 	@mkdir -p $(INSTALL_DIR)
 
-CXXFLAGS := -std=c++11 $(STDLIB) $(THREADS) -m64 -Wfatal-errors $(MOREFLAGS)
-LDFLAGS  := -std=c++11 $(STDLIB) $(THREADS) -m64 -L$(BUILD_DIR)
+CXXFLAGS := -std=c++11 $(STDLIB) $(THREADS) -march=native -Wfatal-errors $(MOREFLAGS)
+LDFLAGS  := -std=c++11 $(STDLIB) $(THREADS) -march=native -L$(BUILD_DIR)
 INCLUDE    := -I$(EIGEN_DIR) -Isrc -Isrc/Agilent
 
 #Rules for libNifti
@@ -107,7 +107,7 @@ $(addprefix $(BUILD_DIR)/, $(MISC)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(MISC_DIR)/
 TARGETS := $(TOOLS) $(PYTOOLS) $(DESPOT) $(MISC)
 LIB_TGT := libNifti.a libAgilent.a libQUIT.a
 
-all     : CXXFLAGS += -O3 -msse3 -mssse3 -msse4.1 -msse4.2
+all     : CXXFLAGS += -O3
 all     : $(LIB_TGT) $(TARGETS)
 
 debug   : CXXFLAGS += -g
