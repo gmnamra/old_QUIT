@@ -17,6 +17,7 @@
 #include <random>
 #include <iostream>
 #include <atomic>
+#include <mutex>
 
 #include <Eigen/Dense>
 
@@ -75,7 +76,6 @@ class RegionContraction {
 		bool m_debug;
 	
 	public:
-	
 		RegionContraction(Functor_t &f,
 						  const Ref<ArrayXXd> &startBounds, const ArrayXd &weights, const ArrayXd &thresh,
 						  const int nS = 5000, const int nR = 50, const int maxContractions = 10,
@@ -90,8 +90,6 @@ class RegionContraction {
 			eigen_assert(weights.rows() == f.values());
 			eigen_assert(thresh.rows() == f.inputs());
 			eigen_assert((thresh >= 0.).all() && (thresh <= 1.).all());
-			eigen_assert((startBounds == startBounds).all()); // Check for nonsense bounds
-			eigen_assert((startBounds < numeric_limits<double>::infinity()).all());
 		}
 		
 		const ArrayXXd &startBounds() const { return m_startBounds; }
@@ -123,6 +121,9 @@ class RegionContraction {
 		void optimise(Ref<ArrayXd> params) {
 			static atomic<bool> finiteWarning(false);
 			static atomic<bool> constraintWarning(false);
+			static atomic<bool> boundsWarning(false);
+			mutex warn_mtx;
+
 			eigen_assert(m_f.inputs() == params.size());
 			int nP = static_cast<int>(params.size());
 			ArrayXXd samples(m_f.inputs(), m_nS);
@@ -133,6 +134,21 @@ class RegionContraction {
 			m_currentBounds = m_startBounds;
 			m_residuals.setZero();
 			
+			if ((m_startBounds != m_startBounds).any() || (m_startBounds >= numeric_limits<double>::infinity()).any()) {
+				warn_mtx.lock();
+				if (!boundsWarning) {
+					boundsWarning = true;
+					cerr << "Warning: Starting boundaries do not make sense." << endl;
+					cerr << "Bounds were: " << m_startBounds.transpose() << endl;
+					cerr << "This warning will only be printed once." << endl;
+				}
+				warn_mtx.unlock();
+				params.setZero();
+				m_status = RCStatus::ErrorInvalid;
+
+				return;
+			}
+
 			if (m_debug) {
 				cout << endl;
 				cout << "Start Boundaries: " << endl << m_startBounds.transpose() << endl;
@@ -161,12 +177,14 @@ class RegionContraction {
 						tempSample += m_currentBounds.col(0);
 						nTries++;
 						if (nTries > 100) {
+							warn_mtx.lock();
 							if (!constraintWarning) {
 								constraintWarning = true;
-								cout << "Warning: Cannot fulfill sample constraints after " << to_string(nTries) << " attempts, giving up." << endl;
-								cout << "Last attempt was: " << tempSample.transpose() << endl;
-								cout << "This warning will only be printed once." << endl;
+								cerr << "Warning: Cannot fulfill sample constraints after " << to_string(nTries) << " attempts, giving up." << endl;
+								cerr << "Last attempt was: " << tempSample.transpose() << endl;
+								cerr << "This warning will only be printed once." << endl;
 							}
+							warn_mtx.unlock();
 							params.setZero();
 							m_status = RCStatus::ErrorInvalid;
 							return;
@@ -175,6 +193,7 @@ class RegionContraction {
 					
 					m_f(tempSample, residuals.col(s));
 					if (!isfinite(residuals.col(s).square().sum())) {
+						warn_mtx.lock();
 						if (!finiteWarning) {
 							finiteWarning = true;
 							cout << "Warning: Non-finite residual found!" << endl
@@ -182,6 +201,7 @@ class RegionContraction {
 							cout << "Parameters were " << tempSample.transpose() << endl;
 							m_f.m_debug = true;
 						}
+						warn_mtx.unlock();
 						params = retained.col(0);
 						m_residuals.setConstant(numeric_limits<double>::infinity());
 						m_status = RCStatus::ErrorResidual;
