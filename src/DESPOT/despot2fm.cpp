@@ -61,7 +61,7 @@ static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, writeResiduals = false,
            fitFinite = false, fitComplex = false, flipData = false,
            samples = 2000, retain = 20, contract = 10,
-           voxI = 0, voxJ = 0;
+           voxI = 0, voxJ = 0, seed = -1;
 static double expand = 0.;
 static string outPrefix;
 static struct option long_options[] = {
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 	//ThreadPool::EnableDebug = true;
 
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvnm:o:f:b:s:p:S:FT:M:xcri:j:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvnm:o:f:b:s:p:S:FT:M:xcri:j:d:", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
@@ -149,6 +149,9 @@ int main(int argc, char **argv)
 				break;
 			case 'T':
 				threads.resize(atoi(optarg));
+				break;
+			case 'd':
+				seed = atoi(optarg);
 				break;
 			case 'M':
 				switch (*optarg) {
@@ -280,7 +283,7 @@ int main(int argc, char **argv)
 				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 				DESPOTFunctor func(sequences, Pools::One, signal, B1, fitComplex, false);
 				RegionContraction<DESPOTFunctor> rc(func, bounds, weights, thresh,
-													samples, retain, contract, expand, (voxI > 0));
+													samples, retain, contract, expand, (voxI > 0), seed);
 				ArrayXd params(PoolInfo::nParameters(Pools::One)); params.setZero();
 				rc.optimise(params); // Add the voxel number to the time to get a decent random seed
 				if (scale == Scale::None) {

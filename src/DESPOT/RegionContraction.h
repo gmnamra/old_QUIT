@@ -79,8 +79,8 @@ class RegionContraction {
 		RegionContraction(Functor_t &f,
 						  const Ref<ArrayXXd> &startBounds, const ArrayXd &weights, const ArrayXd &thresh,
 						  const int nS = 5000, const int nR = 50, const int maxContractions = 10,
-						  const double expand = 0., const bool debug = false) :
-				m_f(f), m_rng(NewSeed()), m_startBounds(startBounds), m_currentBounds(startBounds),
+						  const double expand = 0., const bool debug = false, const int seed = -1) :
+				m_f(f), m_startBounds(startBounds), m_currentBounds(startBounds),
 				m_nS(nS), m_nR(nR), m_maxContractions(maxContractions),
 				m_threshes(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0),
 				m_status(RCStatus::NotStarted), m_weights(weights), m_debug(debug)
@@ -90,6 +90,12 @@ class RegionContraction {
 			eigen_assert(weights.rows() == f.values());
 			eigen_assert(thresh.rows() == f.inputs());
 			eigen_assert((thresh >= 0.).all() && (thresh <= 1.).all());
+
+			if (seed < 0) {
+				m_rng = mt19937_64(NewSeed());
+			} else {
+				m_rng = mt19937_64(seed);
+			}
 		}
 		
 		const ArrayXXd &startBounds() const { return m_startBounds; }
