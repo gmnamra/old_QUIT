@@ -262,7 +262,6 @@ int main(int argc, char **argv)
 			const MultiArray<float, 3>::Index idx{i,j,k};
 			if (!maskFile || (maskVol[idx] && T1Vol[idx] > 0.)) {
 				// -ve T1 is nonsensical, no point fitting
-				sliceCount++;
 				ArrayXcd signal = sequences.loadSignals(ssfpData, i, j, k, flipData);
 				ArrayXXd bounds(PoolInfo::nParameters(Pools::One), 2);
 				bounds.setZero();
@@ -297,6 +296,9 @@ int main(int argc, char **argv)
 				SoSVol[{i,j,k}] = static_cast<float>(rc.SoS());
 				if (writeResiduals) {
 					residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
+				}
+				if ((rc.status() == RCStatus::Converged) || (rc.status() == RCStatus::IterationLimit)) {
+					sliceCount++;
 				}
 			}
 		};

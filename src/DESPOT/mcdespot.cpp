@@ -312,7 +312,6 @@ int main(int argc, char **argv) {
 		function<void (const size_t, const size_t)>
 		processVox = [&] (const size_t i, const size_t j) {
 			if (!maskFile || maskVol[{i,j,k}]) {
-				voxCount++;
 				ArrayXcd signal = sequences.loadSignals(signalVols, i, j, k, flipData);
 				ArrayXXd localBounds = bounds;
 				if (f0fit == OffRes::Map) {
@@ -327,6 +326,9 @@ int main(int argc, char **argv) {
 				paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
 				residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
 				SoSVol[{i,j,k}] = static_cast<float>(rc.SoS());
+				if ((rc.status() == RCStatus::Converged) || (rc.status() == RCStatus::IterationLimit)) {
+					voxCount++;
+				}
 			}
 		};
 		if (voxI == 0) {
