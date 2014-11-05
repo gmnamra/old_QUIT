@@ -25,6 +25,8 @@ Options:\n\
 	-a, --abbrev : Print the abbreviated header (default).\n\
 	-f, --full   : Print the entire header.\n\
 	-h, --help   : Print this message and quit.\n\
+	--rank       : Print the rank (number of dimensions).\n\
+	--dims       : Print the image dimensions.\n\
 	--voxdims    : Print the voxel dimensions.\n\
 	--tr         : Print the TR.\n\
 	--xform      : Print the highest priority transform.\n\
@@ -32,11 +34,15 @@ Options:\n\
 
 
 static int printAbbrev = false, printFull = false,
-           printVoxdims = false, printTR = false, printXform = false;
+           printRank = false, printDims = false, printVoxdims = false,
+           printTR = false, printXform = false;
+
 static struct option long_options[] = {
 	{"abbrev",  no_argument, 0, 'a'},
 	{"full",    no_argument, 0, 'f'},
 	{"help",    no_argument, 0, 'h'},
+	{"rank",    no_argument, &printRank, 1},
+	{"dims",    no_argument, &printDims, 1},
 	{"voxdims", no_argument, &printVoxdims, 1},
 	{"tr",      no_argument, &printTR, 1},
 	{"xform",   no_argument, &printXform, 1},
@@ -87,6 +93,8 @@ int main(int argc, char **argv) {
 			cout << hdr << endl;
 			cout << "Number of extensions: " << im.extensions().size() << endl;
 		}
+		if (printRank) { cout << hdr.rank() << endl; }
+		if (printDims) { cout << hdr.dims().transpose() << endl; }
 		if (printVoxdims) {
 			if (hdr.rank() > 3) {
 				cout << hdr.voxDims().head(3).transpose() << endl;
