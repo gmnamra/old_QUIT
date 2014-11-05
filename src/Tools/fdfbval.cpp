@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
 	} break;
 	case Mode::DTK: {
 		cout << "Writing diffusion data to: " << outprefix+".gm" << endl;
-		ofstream ofile(outprefix+".txt");
+		ofstream ofile(outprefix+".gm");
 
 		for (size_t i = 0; i < outval.size(); i++) {
 			ofile << outro[i] << ", " << outpe[i] << ", " << outsl[i] << ", " << outval[i] << endl;
