@@ -15,20 +15,51 @@
 
 using namespace std;
 using namespace QUIT;
-using namespace Nifti;
+
+const string usage = "\
+fdfbval - A utility for extracting diffusion vectors and values from procpar.\n\
+\n\
+Usage: fdfbval [options] input_file\n\
+The input file can be a procpar file or nifti with procpar stored in the\n\
+header.\n\
+\n\
+Options:\n\
+	--fsl, -f  : Output in a format for FSL (two files, default)\n\
+	--dtk, -d  : Output in a format for dti_recon from TrackVis (one file)\n\
+	--help, -h : Print this message and quit.\n";
+
+static struct option long_options[] =
+{
+	{"fsl", optional_argument, 0, 'f'},
+	{"dtk", optional_argument, 0, 'd'},
+	{"help", optional_argument, 0, 'h'},
+	{0, 0, 0, 0}
+};
+
+enum class Mode { FSL, DTK };
+static Mode outMode = Mode::FSL;
 
 int main(int argc, char **argv) {
-
-	if (argc != 2) {
+	int indexptr = 0, c;
+	while ((c = getopt_long(argc, argv, "dfh", long_options, &indexptr)) != -1) {
+		switch (c) {
+			case 'd': outMode = Mode::DTK; break;
+			case 'f': outMode = Mode::FSL; break;
+			case 'h':
+			case '?': // getopt will print an error message
+				return EXIT_FAILURE;
+		}
+	}
+	if ((argc - optind) != 1) {
 		cout << "Exactly one input file (procpar or nifti) required." << endl;
 		return EXIT_FAILURE;
 	}
 
-	string iname(argv[1]), outprefix;
+	string iname(argv[optind]), outprefix;
 	cout << "Reading diffusion directions from: " << iname << endl;
 	Agilent::ProcPar pp;
 	try {
-		File f(iname);
+		Nifti::File f(iname);
 		ReadPP(f, pp);
 		outprefix = f.basePath();
 	} catch (runtime_error &e) {
@@ -55,17 +86,31 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	cout << "Writing diffusion values to:     " << outprefix+".bval" << endl;
-	cout << "Writing diffusion directions to: " << outprefix+".bvec" << endl;
-	ofstream ovals(outprefix + ".bval");
-	ofstream ovecs(outprefix + ".bvec");
+	switch (outMode) {
+	case Mode::FSL: {
+		cout << "Writing diffusion values to:     " << outprefix+".bval" << endl;
+		cout << "Writing diffusion directions to: " << outprefix+".bvec" << endl;
+		ofstream ovals(outprefix + ".bval");
+		ofstream ovecs(outprefix + ".bvec");
 
-	ovals << outval.transpose() << endl;
-	ovecs << outro.transpose() << endl;
-	ovecs << outpe.transpose() << endl;
-	ovecs << outsl.transpose() << endl;
+		ovals << outval.transpose() << endl;
+		ovecs << outro.transpose() << endl;
+		ovecs << outpe.transpose() << endl;
+		ovecs << outsl.transpose() << endl;
 
-	ovals.close();
-	ovecs.close();
+		ovals.close();
+		ovecs.close();
+	} break;
+	case Mode::DTK: {
+		cout << "Writing diffusion data to: " << outprefix+".gm" << endl;
+		ofstream ofile(outprefix+".txt");
+
+		for (size_t i = 0; i < outval.size(); i++) {
+			ofile << outro[i] << ", " << outpe[i] << ", " << outsl[i] << ", " << outval[i] << endl;
+		}
+
+		ofile.close();
+	} break;
+	}
 	cout << "Finished." << endl;
 }
