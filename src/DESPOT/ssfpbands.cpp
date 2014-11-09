@@ -40,7 +40,6 @@ Options:\n\
 	--flip, -F        : Data order is phase, then flip-angle (default opposite).\n\
 	--phases, -p N    : Number of phase-cycling patterns used (default is 4).\n\
 	--threads, -T N   : Use N threads (default=hardware limit).\n\
-	--fixge, -G       : Fix alternate slice, opposing phase issue on GE.\n\
 	--save, -sR       : Save the robustly regularised GS (default)\n\
 	          M       : Save the magnitude regularised GS\n\
 	          G       : Save the unregularised GS\n\
@@ -50,10 +49,10 @@ Options:\n\
 
 enum class Save { RR, MR, GS, CS, RS, SP };
 static Save mode = Save::RR;
-static bool verbose = false, fixge = false;
+static bool verbose = false;
 static size_t phase_dim = 4, flip_dim = 3, nPhases = 4;
 static string prefix;
-static struct option long_options[] = {
+const struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"out", required_argument, 0, 'o'},
@@ -62,10 +61,9 @@ static struct option long_options[] = {
 	{"phases", required_argument, 0, 'p'},
 	{"threads", required_argument, 0, 'T'},
 	{"save", required_argument, 0, 's'},
-	{"fixge", no_argument, 0, 'G'},
 	{0, 0, 0, 0}
 };
-
+const char *short_options = "hvo:m:Fs:p:T:";
 // From Knuth, surprised this isn't in STL
 unsigned long long choose(unsigned long long n, unsigned long long k) {
 	if (k > n)
@@ -88,7 +86,7 @@ int main(int argc, char **argv) {
 	ThreadPool threads;
 
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvo:m:Fs:p:T:G", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, short_options, long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'm':
@@ -129,9 +127,6 @@ int main(int argc, char **argv) {
 				break;
 			case 'T':
 				threads.resize(atoi(optarg));
-				break;
-			case 'G':
-				fixge = true;
 				break;
 			case 'h':
 			case '?': // getopt will print an error message
@@ -265,9 +260,6 @@ int main(int argc, char **argv) {
 					}
 				}
 				Vector2f mean_sol = sols.rowwise().mean();
-				if (fixge && ((vk % 2) == 1))
-					mean_sol = -mean_sol;
-
 				output[{vi,vj,vk,vol}] = {mean_sol[0], mean_sol[1]};
 			};
 			threads.for_loop2(processVox, d[0], d[1]);

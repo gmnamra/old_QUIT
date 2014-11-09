@@ -18,6 +18,7 @@
 #include "QUIT/MultiArray.h"
 using namespace std;
 using namespace Nifti;
+using namespace QUIT;
 
 //******************************************************************************
 // Arguments / Usage
@@ -44,55 +45,73 @@ Options:\n\
 	             c       : Output a complex image\n\
 	--dtype, -d f     : Force output datatype to float\n\
 	            d     : Force output datatype to double\n\
-	            l     : Force output datatype to long double\n"
+	            l     : Force output datatype to long double\n\
+	--fixge, -f       : Fix alternate slice, opposing phase issue on GE.\n"
 };
 
 enum class Type { MagPhase, RealImag, Complex };
-static bool verbose = false, forceDType = false;
+static bool verbose = false, forceDType = false, fixge = false;
 static Type inputType = Type::MagPhase;
 static string outputImages{"ri"};
 static DataType precision = DataType::FLOAT32;
-static struct option long_options[] =
+const struct option long_options[] =
 {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"input", required_argument, 0, 'i'},
 	{"output", required_argument, 0, 'o'},
 	{"dtype", required_argument, 0, 'd'},
+	{"fixge", no_argument, 0, 'f'},
 	{0, 0, 0, 0}
 };
-
+const char* short_options = "hvi:o:d:f";
 template<typename T>
 void mag_to_cmp(Nifti::File &in1, Nifti::File &in2, size_t vol,
-                vector<T> &v1, vector<T> &v2,
-                vector<complex<T>> &c)
+                MultiArray<T, 3> &v1, MultiArray<T, 3> &v2,
+                MultiArray<complex<T>, 3> &c)
 {
 	if (verbose) cout << "Reading magnitude volume " << vol << endl;
 	in1.readVolumes(v1.begin(), v1.end(), vol, 1);
 	if (verbose) cout << "Reading phase volume " << vol << endl;
 	in2.readVolumes(v2.begin(), v2.end(), vol, 1);
-	for (size_t i = 0; i < v1.size(); i++) {
-		c[i] = polar(v1[i], v2[i]);
+	typename MultiArray<T, 3>::Index d = v1.dims();
+	for (size_t k = 0; k < d[2]; k++) {
+		for (size_t j = 0; j < d[1]; j++) {
+			for (size_t i = 0; i < d[0]; i++) {
+				if (fixge && ((k % 2) == 1))
+					c[{i,j,k}] = -polar(v1[{i,j,k}], v2[{i,j,k}]);
+				else
+					c[{i,j,k}] = polar(v1[{i,j,k}], v2[{i,j,k}]);
+			}
+		}
 	}
 }
 
 template<typename T>
 void re_im_to_cmp(Nifti::File &in1, Nifti::File &in2, size_t vol,
-                  vector<T> &v1, vector<T> &v2,
-                  vector<complex<T>> &c)
+                  MultiArray<T, 3> &v1, MultiArray<T, 3> &v2,
+                  MultiArray<complex<T>, 3> &c)
 {
 	if (verbose) cout << "Reading real volume " << vol << endl;
 	in1.readVolumes(v1.begin(), v1.end(), vol, 1);
 	if (verbose) cout << "Reading imaginary volume " << vol << endl;
 	in2.readVolumes(v2.begin(), v2.end(), vol, 1);
-	for (size_t i = 0; i < v1.size(); i++) {
-		c[i] = complex<T>(v1[i], v2[i]);
+	typename MultiArray<T, 3>::Index d = v1.dims();
+	for (size_t k = 0; k < d[2]; k++) {
+		for (size_t j = 0; j < d[1]; j++) {
+			for (size_t i = 0; i < d[0]; i++) {
+				if (fixge && ((k % 2) == 1))
+					c[{i,j,k}] = -complex<T>(v1[{i,j,k}], v2[{i,j,k}]);
+				else
+					c[{i,j,k}] = complex<T>(v1[{i,j,k}], v2[{i,j,k}]);
+			}
+		}
 	}
 }
 
 template<typename T>
 void write_mag_vol(Nifti::File &out, size_t vol,
-                   vector<complex<T>> &c, vector<T> &s)
+                   MultiArray<complex<T>, 3> &c, MultiArray<T, 3> &s)
 {
 	if (verbose) cout << "Writing magnitude volume..." << endl;
 	for (size_t i = 0; i < s.size(); i++) { s[i] = abs(c[i]); }
@@ -101,7 +120,7 @@ void write_mag_vol(Nifti::File &out, size_t vol,
 
 template<typename T>
 void write_ph_vol(Nifti::File &out, size_t vol,
-                  vector<complex<T>> &c, vector<T> &s)
+                  MultiArray<complex<T>, 3> &c, MultiArray<T, 3> &s)
 {
 	if (verbose) cout << "Writing phase volume..." << endl;
 	for (size_t i = 0; i < s.size(); i++) { s[i] = arg(c[i]); }
@@ -110,7 +129,7 @@ void write_ph_vol(Nifti::File &out, size_t vol,
 
 template<typename T>
 void write_real_vol(Nifti::File &out, size_t vol,
-                    vector<complex<T>> &c, vector<T> &s)
+                    MultiArray<complex<T>, 3> &c, MultiArray<T, 3> &s)
 {
 	if (verbose) cout << "Writing real volume..." << endl;
 	for (size_t i = 0; i < s.size(); i++) { s[i] = real(c[i]); }
@@ -119,7 +138,7 @@ void write_real_vol(Nifti::File &out, size_t vol,
 
 template<typename T>
 void write_imag_vol(Nifti::File &out, size_t vol,
-                    vector<complex<T>> &c, vector<T> &s)
+                    MultiArray<complex<T>, 3> &c, MultiArray<T, 3> &s)
 {
 	if (verbose) cout << "Writing imaginary volume..." << endl;
 	for (size_t i = 0; i < s.size(); i++) { s[i] = imag(c[i]); }
@@ -135,7 +154,7 @@ int main(int argc, char **argv)
 	// Argument Processing
 	//**************************************************************************
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvi:o:d:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, short_options, long_options, &indexptr)) != -1) {
 		switch (c) {
 		case 'v': verbose = true; break;
 		case 'i':
@@ -157,6 +176,7 @@ int main(int argc, char **argv)
 					cerr << "Unknown precision type " << optarg << endl;
 					return EXIT_FAILURE;
 			} break;
+		case 'f': fixge = true; break;
 		case 'h':
 		case '?': // getopt will print an error message
 			cout << usage << endl;
@@ -214,18 +234,18 @@ int main(int argc, char **argv)
 	}
 
 	// Allocate different types to save memory
-	vector<complex<float>> cmp_flt;
-	vector<complex<double>> cmp_dbl;
-	vector<complex<long double>> cmp_ldbl;
-	vector<float> flt1, flt2;
-	vector<double> dbl1, dbl2;
-	vector<long double> ldbl1, ldbl2;
+	MultiArray<complex<float>, 3> cmp_flt;
+	MultiArray<complex<double>, 3> cmp_dbl;
+	MultiArray<complex<long double>, 3> cmp_ldbl;
+	MultiArray<float, 3> flt1, flt2;
+	MultiArray<double, 3> dbl1, dbl2;
+	MultiArray<long double, 3> ldbl1, ldbl2;
 
-	size_t nEl = in1.matrix().prod();
+	const auto d = in1.matrix();
 	switch (precision) {
-		case DataType::FLOAT32:  cmp_flt.resize(nEl);  flt1.resize(nEl);  flt2.resize(nEl); break;
-		case DataType::FLOAT64:  cmp_dbl.resize(nEl);  dbl1.resize(nEl);  dbl2.resize(nEl); break;
-		case DataType::FLOAT128: cmp_ldbl.resize(nEl); ldbl1.resize(nEl); ldbl2.resize(nEl); break;
+		case DataType::FLOAT32:  cmp_flt.resize(d);  flt1.resize(d);  flt2.resize(d); break;
+		case DataType::FLOAT64:  cmp_dbl.resize(d);  dbl1.resize(d);  dbl2.resize(d); break;
+		case DataType::FLOAT128: cmp_ldbl.resize(d); ldbl1.resize(d); ldbl2.resize(d); break;
 		default:
 			break; // We have checked that this can't happen earlier (famous last words)
 	}
