@@ -233,6 +233,11 @@ int main(int argc, char **argv)
 	
 	if (verbose) {
 		cout << sequences;
+		if (flipData) {
+			cout << "Data order is phase, then flip-angle." << endl;
+		} else {
+			cout << "Data order is flip-angle, then phase." << endl;
+		}
 	}
 	//**************************************************************************
 	// Set up results data
