@@ -20,8 +20,9 @@ using namespace std;
 
 const string usage = "calctfm - A utility for calculating transforms that I needed.\n\
 \n\
-Usage: calctfm [options] X Y Z\n\
+Usage: calctfm [options] [--] X Y Z\n\
 Calculates a transform to align the CoG to center and rotate it the right way.\n\
+WARNING - If your CoG has negative values make sure you put -- before it.\n\
 \n\
 Options:\n\
 	--tfm, -t : Output an Insight Transform file for ANTs\n\
@@ -65,7 +66,7 @@ int main(int argc, char **argv) {
 	Vector3f CoG{x, y, z};
 	Vector3f tgt{0, 1, 0};
 
-	float angle = acos(CoG.dot(tgt) / (CoG.norm() * tgt.norm()));
+	float angle = (M_PI / 2.) - atan2(y, x);
 	Affine3f transform;
 	transform = Translation3f(-CoG) * AngleAxisf(angle, Vector3f::UnitZ());
 
