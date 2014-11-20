@@ -73,11 +73,11 @@ int main(int argc, char **argv) {
 	Vector3f CoG{x, y, z};
 	float angle = atan2(y, x);
 	if (quad) {
-		if ((angle >= 0) && (angle < M_PI / 2)) {
+		if ((angle > 0) && (angle <= (M_PI / 2.))) {
 			cout << "UR" << endl;
-		} else if ((angle >= M_PI / 2) && (angle < M_PI)) {
+		} else if ((angle > (M_PI / 2.)) && (angle <= M_PI)) {
 			cout << "UL" << endl;
-		} else if ((angle >= M_PI) && (angle < 3. * M_PI / 2.)) {
+		} else if ((angle > -M_PI) && (angle <= -(M_PI / 2.))) {
 			cout << "LL" << endl;
 		} else {
 			cout << "LR" << endl;
