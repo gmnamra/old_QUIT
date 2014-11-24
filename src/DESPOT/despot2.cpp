@@ -38,6 +38,7 @@ Options:\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
 	--B1 file         : B1 Map file.\n\
 	--elliptical, -e  : Input is band-free elliptical data.\n\
+	--negres, -r      : Negate data before calculating off-res.\n\
 	--verbose, -v     : Print slice processing times.\n\
 	--no-prompt, -n   : Suppress input prompts.\n\
 	--algo, -a l      : LLS algorithm (default)\n\
@@ -48,7 +49,7 @@ Options:\n\
 };
 
 enum class Algos { LLS, WLLS, NLLS };
-static int verbose = false, prompt = true, elliptical = false;
+static int verbose = false, prompt = true, elliptical = false, neg_res = false;
 static size_t nIterations = 4;
 static Algos algo;
 static string outPrefix;
@@ -56,6 +57,7 @@ static struct option long_options[] =
 {
 	{"B1", required_argument, 0, '1'},
 	{"elliptical", no_argument, 0, 'e'},
+	{"negres", no_argument, 0, 'r'},
 	{"help", no_argument, 0, 'h'},
 	{"mask", required_argument, 0, 'm'},
 	{"verbose", no_argument, 0, 'v'},
@@ -79,7 +81,7 @@ int main(int argc, char **argv)
 	string procPath;
 
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:b:vna:i:T:e", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, "hm:o:b:vna:i:T:er", long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;
@@ -113,6 +115,7 @@ int main(int argc, char **argv)
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
 			case 'e': elliptical = true; break;
+			case 'r': neg_res = true; break;
 			case 'T':
 				threads.resize(atoi(optarg));
 				break;
@@ -189,7 +192,10 @@ int main(int argc, char **argv)
 					const ArrayXcd data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
 					// Use phase of mean instead of mean of phase to avoid wrap issues
 					const complex<double> mean_data = data.mean();
-					offRes = arg(-mean_data) / (M_PI * TR);
+					if (neg_res)
+						offRes = arg(-mean_data) / (M_PI * TR);
+					else
+						offRes = arg(mean_data) / (M_PI * TR);
 
 					const ArrayXd s = data.abs();
 					VectorXd Y = s / localAngles.sin();
