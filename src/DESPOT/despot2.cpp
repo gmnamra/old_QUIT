@@ -37,27 +37,30 @@ Options:\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
 	--B1 file         : B1 Map file.\n\
-	--elliptical, -e  : Input is band-free elliptical data.\n\
-	--negres, -r      : Negate data before calculating off-res.\n\
 	--verbose, -v     : Print slice processing times.\n\
 	--no-prompt, -n   : Suppress input prompts.\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
 	           n      : NLLS (Levenberg-Marquardt)\n\
 	--its, -i N       : Max iterations for WLLS (default 4)\n\
-	--threads, -T N   : Use N threads (default=hardware limit)\n"
+	--threads, -T N   : Use N threads (default=hardware limit)\n\
+	--elliptical, -e  : Input is band-free elliptical data.\n\
+	Only apply for elliptical data:\n\
+	--negflip         : Flip-angles are in negative sense.\n\
+	--meanf0          : Output average f0 value.\n"
 };
 
 enum class Algos { LLS, WLLS, NLLS };
-static int verbose = false, prompt = true, elliptical = false, neg_res = false;
+static int verbose = false, prompt = true, elliptical = false, negflip = false, meanf0 = false;
 static size_t nIterations = 4;
 static Algos algo;
 static string outPrefix;
-static struct option long_options[] =
+static struct option long_opts[] =
 {
 	{"B1", required_argument, 0, '1'},
 	{"elliptical", no_argument, 0, 'e'},
-	{"negres", no_argument, 0, 'r'},
+	{"negflip", no_argument, &negflip, true},
+	{"meanf0", no_argument, &meanf0, true},
 	{"help", no_argument, 0, 'h'},
 	{"mask", required_argument, 0, 'm'},
 	{"verbose", no_argument, 0, 'v'},
@@ -67,6 +70,7 @@ static struct option long_options[] =
 	{"threads", required_argument, 0, 'T'},
 	{0, 0, 0, 0}
 };
+static const char *short_opts = "hm:o:b:vna:i:T:e";
 
 //******************************************************************************
 // Main
@@ -81,20 +85,20 @@ int main(int argc, char **argv)
 	string procPath;
 
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hm:o:b:vna:i:T:er", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
 		switch (c) {
 			case 'o':
 				outPrefix = optarg;
 				if (verbose) cout << "Output prefix will be: " << outPrefix << endl;
 				break;
 			case 'm':
-				cout << "Reading mask file " << optarg << endl;
+				if (verbose) cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
 				maskVol.resize(maskFile.matrix());
 				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
 			case 'b':
-				cout << "Reading B1 file: " << optarg << endl;
+				if (verbose) cout << "Reading B1 file: " << optarg << endl;
 				B1File.open(optarg, Nifti::Mode::Read);
 				B1Vol.resize(B1File.matrix());
 				B1File.readVolumes(B1Vol.begin(), B1Vol.end(), 0, 1);
@@ -115,7 +119,6 @@ int main(int argc, char **argv)
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
 			case 'e': elliptical = true; break;
-			case 'r': neg_res = true; break;
 			case 'T':
 				threads.resize(atoi(optarg));
 				break;
@@ -169,7 +172,14 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	const auto dims = SSFPFile.matrix();
 	double TR = ssfp.sequence(0)->m_TR;
-	MultiArray<float, 3> T2Vol(dims), PDVol(dims), offResVol(dims), SoSVol(dims);
+	MultiArray<float, 3> T2Vol(dims), PDVol(dims), SoSVol(dims);
+	size_t nf0 = 0;
+	if ((elliptical) && (meanf0)) {
+		nf0 = 1;
+	} else if (elliptical) {
+		nf0 = ssfp.size();
+	}
+	MultiArray<float, 4> offResVols(dims, nf0);
 	time_t startTime;
 	if (verbose)
 		startTime = printStartTime();
@@ -189,14 +199,7 @@ int main(int argc, char **argv)
 					T1 = T1Vol[{i,j,k}];
 					E1 = exp(-TR / T1);
 					const ArrayXd localAngles(ssfp.sequence(0)->B1flip(B1));
-					const ArrayXcd data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
-					// Use phase of mean instead of mean of phase to avoid wrap issues
-					const complex<double> mean_data = data.mean();
-					if (neg_res)
-						offRes = arg(-mean_data) / (M_PI * TR);
-					else
-						offRes = arg(mean_data) / (M_PI * TR);
-
+					ArrayXcd data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
 					const ArrayXd s = data.abs();
 					VectorXd Y = s / localAngles.sin();
 					MatrixXd X(Y.rows(), 2);
@@ -250,8 +253,18 @@ int main(int argc, char **argv)
 					SoS = (s - theory).abs2().sum() / ssfp.size();
 					T2Vol[{i,j,k}]  = static_cast<float>(T2);
 					PDVol[{i,j,k}]  = static_cast<float>(PD);
-					offResVol[{i,j,k}] = static_cast<float>(offRes);
 					SoSVol[{i,j,k}] = static_cast<float>(SoS);
+
+					if (elliptical) {
+						if (negflip)
+							data = -data;
+						if (meanf0) {
+							// Use phase of mean instead of mean of phase to avoid wrap issues
+							offResVols[{i,j,k,0}] = static_cast<float>(arg(data.mean()) / (M_PI * TR));
+						} else {
+							offResVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = (data.imag().binaryExpr(data.real(), ptr_fun<double,double,double>(atan2))).cast<float>() / (M_PI * TR);
+						}
+					}
 				}
 			}
 		};
@@ -261,9 +274,9 @@ int main(int argc, char **argv)
 	}
 	if (verbose) {
 		printElapsedTime(startTime);
+		printElapsedClock(startClock, voxCount);
 		cout << "Writing results." << endl;
 	}
-	printElapsedClock(startClock, voxCount);
 	Nifti::Header outHdr = SSFPFile.header();
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
@@ -281,11 +294,14 @@ int main(int argc, char **argv)
 	outFile.open(outPrefix + "D2_SoS" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(SoSVol.begin(), SoSVol.end());
 	outFile.close();
-	outHdr.intent_name = "Off-resonance (Hz)";
-	outFile.open(outPrefix + "D2_f0" + OutExt(), Nifti::Mode::Write);
-	outFile.writeVolumes(offResVol.begin(), offResVol.end());
-	outFile.close();
-
+	if (elliptical) {
+		outHdr.setDim(4, nf0);
+		outHdr.intent_name = "Off-resonance (Hz)";
+		outFile.setHeader(outHdr);
+		outFile.open(outPrefix + "D2_f0" + OutExt(), Nifti::Mode::Write);
+		outFile.writeVolumes(offResVols.begin(), offResVols.end(), 0, nf0);
+		outFile.close();
+	}
 	if (verbose) cout << "All done." << endl;
 	} catch (exception &e) {
 		cerr << e.what() << endl;
