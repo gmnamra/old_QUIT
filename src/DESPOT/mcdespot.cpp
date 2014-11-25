@@ -127,9 +127,9 @@ Nifti::Header parseInput(Sequences &seq, vector<MultiArray<complex<float>, 4>> &
 		} else if ((type == "SPGR" && fitFinite)) {
 			seq.addSequence(SequenceType::SPGR_Finite, prompt, pp);
 		} else if ((type == "SSFP" && !fitFinite)) {
-			seq.addSequence(SequenceType::SSFP, inFile.dim(4), pp);
+			seq.addSequence(SequenceType::SSFP, prompt, pp);
 		} else if ((type == "SSFP" && fitFinite)) {
-			seq.addSequence(SequenceType::SSFP_Finite, inFile.dim(4), pp);
+			seq.addSequence(SequenceType::SSFP_Finite, prompt, pp);
 		}
 		if (seq.sequence(seq.count() - 1)->size() != inFile.dim(4)) {
 			throw(std::runtime_error("Number of volumes in file " + inFile.imagePath() + " does not match input."));
