@@ -34,15 +34,16 @@ const string usage {
 \n\
 Options:\n\
 	--help, -h        : Print this message.\n\
+	--verbose, -v     : Print slice processing times.\n\
+	--no-prompt, -n   : Suppress input prompts.\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
 	--B1 file         : B1 Map file.\n\
-	--verbose, -v     : Print slice processing times.\n\
-	--no-prompt, -n   : Suppress input prompts.\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
 	           n      : NLLS (Levenberg-Marquardt)\n\
 	--its, -i N       : Max iterations for WLLS (default 4)\n\
+	--resids, -r      : Write out per flip-angle residuals\n\
 	--threads, -T N   : Use N threads (default=hardware limit)\n\
 	--elliptical, -e  : Input is band-free elliptical data.\n\
 	Only apply for elliptical data:\n\
@@ -51,7 +52,7 @@ Options:\n\
 };
 
 enum class Algos { LLS, WLLS, NLLS };
-static int verbose = false, prompt = true, elliptical = false, negflip = false, meanf0 = false;
+static int verbose = false, prompt = true, elliptical = false, negflip = false, meanf0 = false, all_residuals = false;
 static size_t nIterations = 4;
 static Algos algo;
 static string outPrefix;
@@ -68,9 +69,10 @@ static struct option long_opts[] =
 	{"algo", required_argument, 0, 'a'},
 	{"its", required_argument, 0, 'i'},
 	{"threads", required_argument, 0, 'T'},
+	{"resids", no_argument, 0, 'r'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "hm:o:b:vna:i:T:e";
+static const char *short_opts = "hm:o:b:vna:i:T:er";
 
 //******************************************************************************
 // Main
@@ -119,6 +121,7 @@ int main(int argc, char **argv)
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
 			case 'e': elliptical = true; break;
+			case 'r': all_residuals = true; break;
 			case 'T':
 				threads.resize(atoi(optarg));
 				break;
@@ -172,7 +175,11 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	const auto dims = SSFPFile.matrix();
 	double TR = ssfp.sequence(0)->m_TR;
-	MultiArray<float, 3> T2Vol(dims), PDVol(dims), SoSVol(dims);
+	MultiArray<float, 3> T2Vol(dims), PDVol(dims), ResVol(dims);
+	MultiArray<float, 4> ResidsVols;
+	if (all_residuals) {
+		ResidsVols = MultiArray<float, 4>(dims, ssfp.size());
+	}
 	size_t nf0 = 0;
 	if ((elliptical) && (meanf0)) {
 		nf0 = 1;
@@ -250,10 +257,13 @@ int main(int argc, char **argv)
 						//exit(EXIT_SUCCESS);
 					}
 					ArrayXd theory = ssfp.signal(Pools::One, Vector4d(PD, T1, T2, offRes), B1).abs();
-					SoS = (s - theory).abs2().sum() / ssfp.size();
+					ArrayXd resids = (s - theory);
+					if (all_residuals) {
+						ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = resids.cast<float>();
+					}
 					T2Vol[{i,j,k}]  = static_cast<float>(T2);
 					PDVol[{i,j,k}]  = static_cast<float>(PD);
-					SoSVol[{i,j,k}] = static_cast<float>(SoS);
+					ResVol[{i,j,k}] = static_cast<float>(sqrt(resids.square().sum() / resids.rows()) / PD);
 
 					if (elliptical) {
 						if (negflip)
@@ -277,23 +287,34 @@ int main(int argc, char **argv)
 		printElapsedClock(startClock, voxCount);
 		cout << "Writing results." << endl;
 	}
+	outPrefix = outPrefix + "D2_";
 	Nifti::Header outHdr = SSFPFile.header();
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
 	outHdr.setDatatype(Nifti::DataType::FLOAT32);
 	outHdr.intent = Nifti::Intent::Estimate;
 	outHdr.intent_name = "T2 (s)";
-	Nifti::File outFile(outHdr, outPrefix + "D2_T2" + OutExt());
+	Nifti::File outFile(outHdr, outPrefix + "T2" + OutExt());
 	outFile.writeVolumes(T2Vol.begin(), T2Vol.end());
 	outFile.close();
 	outHdr.intent_name = "PD (au)";
-	outFile.open(outPrefix + "D2_PD" + OutExt(), Nifti::Mode::Write);
+	outFile.setHeader(outHdr);
+	outFile.open(outPrefix + "PD" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(PDVol.begin(), PDVol.end());
 	outFile.close();
 	outHdr.intent_name = "Sum of Squared Residuals";
-	outFile.open(outPrefix + "D2_SoS" + OutExt(), Nifti::Mode::Write);
-	outFile.writeVolumes(SoSVol.begin(), SoSVol.end());
+	outFile.setHeader(outHdr);
+	outFile.open(outPrefix + "residual" + OutExt(), Nifti::Mode::Write);
+	outFile.writeVolumes(ResVol.begin(), ResVol.end());
 	outFile.close();
+	if (all_residuals) {
+		outHdr.intent_name = "Residuals";
+		outHdr.setDim(4, ssfp.size());
+		outFile.setHeader(outHdr);
+		outFile.open(outPrefix + "residuals" + OutExt(), Nifti::Mode::Write);
+		outFile.writeVolumes(ResidsVols.begin(), ResidsVols.end(), 0, ssfp.size());
+		outFile.close();
+	}
 	if (elliptical) {
 		outHdr.setDim(4, nf0);
 		outHdr.intent_name = "Off-resonance (Hz)";

@@ -39,8 +39,10 @@ All times (TR) are in SECONDS. All angles are in degrees.\n\
 Options:\n\
 	--help, -h        : Print this message\n\
 	--verbose, -v     : Print more information\n\
+	--no-prompt, -n   : Don't print prompts for input\n\
 	--mask, -m file   : Mask input with specified file\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
+	--1, --2, --3     : Use 1, 2 or 3 component sequences (default 3)\n\
 	--f0, -f SYM      : Fit symmetric f0 map (default)\n\
 	         ASYM     : Fit asymmetric f0 map\n\
 	         file     : Use f0 Map file (in Hertz)\n\
@@ -53,14 +55,12 @@ Options:\n\
 	--tesla, -t 3     : Boundaries suitable for 3T (default)\n\
 	            7     : Boundaries suitable for 7T \n\
 	            u     : User specified boundaries from stdin\n\
-	--threads, -T N   : Use N threads (default=hardware limit)\n\
 	--sequences, -M s : Use simple sequences (default)\n\
 	            f     : Use Finite Pulse Length correction\n\
 	--complex, -x     : Fit to complex data\n\
 	--contract, -c n  : Read contraction settings from stdin (Will prompt)\n\
-	--resid, -r       : Write out per-flip angle residuals\n\
-	--no-prompt, -n   : Don't print prompts for input\n\
-	--1, --2, --3     : Use 1, 2 or 3 component sequences (default 3)\n"
+	--resids, -r      : Write out per flip-angle residuals\n\
+	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
 static auto pools = Pools::Three;
@@ -68,7 +68,7 @@ static auto scale = Scale::NormToMean;
 static auto tesla = FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
-static int verbose = false, prompt = true, writeResiduals = false,
+static int verbose = false, prompt = true, all_residuals = false,
            fitFinite = false, fitComplex = false, flipData = false,
            samples = 5000, retain = 50, contract = 10,
            voxI = 0, voxJ = 0;
@@ -87,10 +87,10 @@ static const struct option long_options[] = {
 	{"flip", required_argument, 0, 'F'},
 	{"tesla", required_argument, 0, 't'},
 	{"sequences", no_argument, 0, 'M'},
-	{"threads", required_argument, 0, 'T'},
 	{"complex", no_argument, 0, 'x'},
 	{"contract", no_argument, 0, 'c'},
-	{"resid", no_argument, 0, 'r'},
+	{"resids", no_argument, 0, 'r'},
+	{"threads", required_argument, 0, 'T'},
 	{"no-prompt", no_argument, 0, 'n'},
 	{"1", no_argument, 0, '1'},
 	{"2", no_argument, 0, '2'},
@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
 				cout << "Enter fraction to expand region by: " << flush; cin >> expand;
 				{ string dummy; getline(cin, dummy); } // Eat newlines
 				break;
-			case 'r': writeResiduals = true; break;
+			case 'r': all_residuals = true; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
 			case 'h':
@@ -269,8 +269,8 @@ int main(int argc, char **argv) {
 	#pragma mark Allocate memory and set up boundaries.
 	//**************************************************************************
 	MultiArray<float, 4> paramsVols(hdr.matrix(), PoolInfo::nParameters(pools));
-	MultiArray<float, 4> residualVols(hdr.matrix(), sequences.size());;
-	MultiArray<float, 3> SoSVol(hdr.matrix());
+	MultiArray<float, 4> ResidsVols(hdr.matrix(), sequences.size());;
+	MultiArray<float, 3> ResVol(hdr.matrix());
 	
 	ArrayXd threshes(PoolInfo::nParameters(pools)); threshes.setConstant(0.05);
 	ArrayXXd bounds = PoolInfo::Bounds(pools, tesla, sequences.minTR());
@@ -324,8 +324,8 @@ int main(int argc, char **argv) {
 				ArrayXd params(PoolInfo::nParameters(pools));
 				rc.optimise(params); // Add the voxel number to the time to get a decent random seed
 				paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
-				residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
-				SoSVol[{i,j,k}] = static_cast<float>(rc.SoS());
+				ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
+				ResVol[{i,j,k}] = static_cast<float>(rc.SoS());
 				if ((rc.status() == RCStatus::Converged) || (rc.status() == RCStatus::IterationLimit)) {
 					voxCount++;
 				}
@@ -366,15 +366,15 @@ int main(int argc, char **argv) {
 		file.writeVolumes(param.begin(), param.end());
 		file.close();
 	}
-	hdr.intent_name = "Sum of Squared Residuals";
-	Nifti::File SoS(hdr, outPrefix + "SoS" + OutExt());
-	SoS.writeVolumes(SoSVol.begin(), SoSVol.end());
+	hdr.intent_name = "Fractional Residual";
+	Nifti::File SoS(hdr, outPrefix + "residual" + OutExt());
+	SoS.writeVolumes(ResVol.begin(), ResVol.end());
 	SoS.close();
-	if (writeResiduals) {
+	if (all_residuals) {
 		hdr.setDim(4, static_cast<int>(sequences.size()));
-		hdr.intent_name = "Residual";
+		hdr.intent_name = "Residuals";
 		Nifti::File res(hdr, outPrefix + "residuals" + OutExt());
-		res.writeVolumes(residualVols.begin(), residualVols.end());
+		res.writeVolumes(ResidsVols.begin(), ResidsVols.end());
 		res.close();
 	}
 	cout << "Finished writing data." << endl;

@@ -47,18 +47,19 @@ Options:\n\
 	--scale, -S 0     : Normalise signals to mean (default)\n\
 	            1     : Fit a scaling factor/proton density\n\
 	--flip, -F        : Data order is phase, then flip-angle (default opposite)\n\
-	--threads, -T N   : Use N threads (default=hardware limit)\n\
 	--sequences, -M s : Use simple sequences (default)\n\
 	            f     : Use finite pulse length correction\n\
 	--complex, -x     : Fit to complex data\n\
-	--contract, -c n  : Read contraction settings from stdin (Will prompt)\n"
+	--contract, -c n  : Read contraction settings from stdin (Will prompt)\n\
+	--resids, -r      : Write out per flip-angle residuals\n\
+	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
 static auto scale = Scale::NormToMean;
 static auto tesla = FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
-static int verbose = false, prompt = true, writeResiduals = false,
+static int verbose = false, prompt = true, all_residuals = false,
            fitFinite = false, fitComplex = false, flipData = false,
            samples = 2000, retain = 20, contract = 10,
            voxI = 0, voxJ = 0, seed = -1;
@@ -80,7 +81,7 @@ static struct option long_options[] = {
 	{"sequences", no_argument, 0, 'M'},
 	{"complex", no_argument, 0, 'x'},
 	{"contract", no_argument, 0, 'c'},
-	{"resid", no_argument, 0, 'r'},
+	{"resids", no_argument, 0, 'r'},
 	{0, 0, 0, 0}
 };
 
@@ -172,7 +173,7 @@ int main(int argc, char **argv)
 				cout << "Enter number of samples to retain: " << flush; cin >> retain;
 				cout << "Enter fraction to expand region by: " << flush; cin >> expand;
 				break;
-			case 'r': writeResiduals = true; break;
+			case 'r': all_residuals = true; break;
 			case 'i': voxI = atoi(optarg); break;
 			case 'j': voxJ = atoi(optarg); break;
 			case '?': // getopt will print an error message
@@ -246,8 +247,8 @@ int main(int argc, char **argv)
 	if (scale == Scale::None)
 		nParams = 3;
 	MultiArray<float, 4> paramsVols(dims, nParams);
-	MultiArray<float, 4> residualVols(dims, sequences.size());
-	MultiArray<float, 3> SoSVol(dims);
+	MultiArray<float, 4> ResidsVols(dims, sequences.size());
+	MultiArray<float, 3> ResVol(dims);
 	//**************************************************************************
 	// Do the fitting
 	//**************************************************************************
@@ -290,17 +291,19 @@ int main(int argc, char **argv)
 													samples, retain, contract, expand, (voxI > 0), seed);
 				ArrayXd params(PoolInfo::nParameters(Pools::One)); params.setZero();
 				rc.optimise(params); // Add the voxel number to the time to get a decent random seed
+				double res = sqrt(rc.SoS() / sequences.size());
 				if (scale == Scale::None) {
 					// Skip T1
 					paramsVols[{i,j,k,0}] = params(0);
 					paramsVols[{i,j,k,1}] = params(2);
 					paramsVols[{i,j,k,2}] = params(3);
+					res /= params(0); // Divide residual by PD to make it a fraction
 				} else {
 					paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.tail(2).cast<float>(); // Skip PD & T1
 				}
-				SoSVol[{i,j,k}] = static_cast<float>(rc.SoS());
-				if (writeResiduals) {
-					residualVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
+				ResVol[{i,j,k}] = static_cast<float>(res);
+				if (all_residuals) {
+					ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
 				}
 				if ((rc.status() == RCStatus::Converged) || (rc.status() == RCStatus::IterationLimit)) {
 					sliceCount++;
@@ -361,12 +364,12 @@ int main(int argc, char **argv)
 	}
 	hdr.intent_name = "Sum of Squared Residuals";
 	Nifti::File SoS(hdr, outPrefix + "SoS" + OutExt());
-	SoS.writeVolumes(SoSVol.begin(), SoSVol.end());
+	SoS.writeVolumes(ResVol.begin(), ResVol.end());
 	SoS.close();
-	if (writeResiduals) {
+	if (all_residuals) {
 		hdr.setDim(4, static_cast<int>(sequences.size()));
 		Nifti::File res(hdr, outPrefix + "residuals" + OutExt());
-		res.writeVolumes(residualVols.begin(), residualVols.end());
+		res.writeVolumes(ResidsVols.begin(), ResidsVols.end());
 		res.close();
 	}
 	

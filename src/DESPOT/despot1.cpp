@@ -36,18 +36,20 @@ const string usage {
 Options:\n\
 	--help, -h        : Print this message\n\
 	--verbose, -v     : Print more information\n\
+	--no-prompt, -n   : Suppress input prompts\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
 	--mask, -m file   : Mask input with specified file\n\
 	--B1, -b file     : B1 Map file (ratio)\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
 	           n      : NLLS (Levenberg-Marquardt)\n\
-	--its, -i N      : Max iterations for WLLS (default 4)\n\
+	--its, -i N       : Max iterations for WLLS (default 4)\n\
+	--resids, -r      : Write out per flip-angle residuals\n\
 	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
 enum class Algos { LLS, WLLS, NLLS };
-static bool verbose = false;
+static bool verbose = false, prompt = true, all_residuals = false;
 static size_t nIterations = 4;
 static string outPrefix;
 static Algos algo;
@@ -55,14 +57,17 @@ static struct option long_options[] =
 {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
+	{"no-prompt", no_argument, 0, 'n'},
 	{"out", required_argument, 0, 'o'},
 	{"mask", required_argument, 0, 'm'},
 	{"B1", required_argument, 0, 'b'},
 	{"algo", required_argument, 0, 'a'},
 	{"its", required_argument, 0, 'i'},
 	{"threads", required_argument, 0, 'T'},
+	{"resids", no_argument, 0, 'r'},
 	{0, 0, 0, 0}
 };
+static const char *short_opts = "hvnm:o:b:a:i:T:r";
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -76,9 +81,10 @@ int main(int argc, char **argv) {
 	ThreadPool threads;
 
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvm:o:b:a:i:T:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, short_opts, long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
+			case 'n': prompt = false; break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
@@ -111,6 +117,7 @@ int main(int argc, char **argv) {
 			case 'T':
 				threads.resize(atoi(optarg));
 				break;
+			case 'r': all_residuals = true; break;
 			case 'h':
 			case '?': // getopt will print an error message
 				return EXIT_FAILURE;
@@ -128,7 +135,7 @@ int main(int argc, char **argv) {
 	spgrFile.open(argv[optind], Nifti::Mode::Read);
 	checkHeaders(spgrFile.header(), {maskFile, B1File});
 	Agilent::ProcPar pp; ReadPP(spgrFile, pp);
-	SPGRSimple spgrSequence(true, pp);
+	SPGRSimple spgrSequence(prompt, pp);
 	if (verbose) {
 		cout << spgrSequence;
 		cout << "Ouput prefix will be: " << outPrefix << endl;
@@ -145,7 +152,11 @@ int main(int argc, char **argv) {
 	// Do the fitting
 	//**************************************************************************
 	const auto dims = spgrFile.matrix();
-	MultiArray<float, 3> T1Vol(dims), PDVol(dims), SoSVol(dims);
+	MultiArray<float, 3> T1Vol(dims), PDVol(dims), ResVol(dims);
+	MultiArray<float, 4> ResidsVols;
+	if (all_residuals) {
+		ResidsVols = MultiArray<float, 4>(dims, spgrSequence.size());
+	}
 	for (size_t k = 0; k < spgrFile.dim(3); k++) {
 		clock_t loopStart;
 		if (verbose) cout << "Starting slice " << k << "..." << flush;
@@ -157,7 +168,7 @@ int main(int argc, char **argv) {
 				voxCount++;
 				double B1 = B1File ? B1Vol[idx] : 1.;
 				ArrayXd localAngles(spgrSequence.B1flip(B1));
-				double T1, PD, SoS;
+				double T1, PD;
 				ArrayXd signal = spgrVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().abs().cast<double>();
 				VectorXd Y = signal / localAngles.sin();
 				MatrixXd X(Y.rows(), 2);
@@ -185,10 +196,13 @@ int main(int argc, char **argv) {
 					PD = p(0); T1 = p(1);
 				}
 				ArrayXd theory = spgrSequence.signal(Pools::One, Vector4d(PD, T1, 0., 0.), B1).abs();
-				SoS = (signal.abs() - theory.abs()).square().sum();
+				ArrayXd resids = (signal - theory);
+				if (all_residuals) {
+					ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = resids.cast<float>();
+				}
 				T1Vol[idx]  = static_cast<float>(T1);
 				PDVol[idx]  = static_cast<float>(PD);
-				SoSVol[idx] = static_cast<float>(SoS);
+				ResVol[idx] = static_cast<float>(sqrt(resids.square().sum() / resids.rows()) / PD);
 			}
 		};
 			
@@ -205,24 +219,34 @@ int main(int argc, char **argv) {
 
 	if (verbose)
 		cout << "Writing results." << endl;
+	outPrefix = outPrefix + "D1_";
 	Nifti::Header outHdr = spgrFile.header();
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
 	outHdr.setDatatype(Nifti::DataType::FLOAT32);
 	outHdr.intent = Nifti::Intent::Estimate;
 	outHdr.intent_name = "T1 (seconds)";
-	Nifti::File outFile(outHdr, outPrefix + "D1_T1" + OutExt());
+	Nifti::File outFile(outHdr, outPrefix + "T1" + OutExt());
 	outFile.writeVolumes(T1Vol.begin(), T1Vol.end());
 	outFile.close();
 	outHdr.intent_name = "PD (au)";
-	outFile.open(outPrefix + "D1_PD" + OutExt(), Nifti::Mode::Write);
+	outFile.setHeader(outHdr);
+	outFile.open(outPrefix + "PD" + OutExt(), Nifti::Mode::Write);
 	outFile.writeVolumes(PDVol.begin(), PDVol.end());
 	outFile.close();
-	outHdr.intent_name = "Sum of Squared Residuals";
-	outFile.open(outPrefix + "D1_SoS" + OutExt(), Nifti::Mode::Write);
-	outFile.writeVolumes(SoSVol.begin(), SoSVol.end());
+	outHdr.intent_name = "Fractional Residual";
+	outFile.setHeader(outHdr);
+	outFile.open(outPrefix + "residual" + OutExt(), Nifti::Mode::Write);
+	outFile.writeVolumes(ResVol.begin(), ResVol.end());
 	outFile.close();
-
+	if (all_residuals) {
+		outHdr.intent_name = "Residuals";
+		outHdr.setDim(4, spgrSequence.size());
+		outFile.setHeader(outHdr);
+		outFile.open(outPrefix + "residuals" + OutExt(), Nifti::Mode::Write);
+		outFile.writeVolumes(ResidsVols.begin(), ResidsVols.end(), 0, spgrSequence.size());
+		outFile.close();
+	}
 	cout << "All done." << endl;
 	} catch (exception &e) {
 		cerr << e.what() << endl;
