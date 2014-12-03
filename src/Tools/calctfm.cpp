@@ -29,19 +29,20 @@ Options:\n\
 	--tfm, -t  : Output an Insight Transform file for ANTs\n\
 	--mat, -m  : Output a .mat file FSL (default)\n\
 	--quad, -q : Write the quadrant to stdout\n\
-";
+	--corax -c : Data has been rotated to match human coronal definition\n";
 
 static struct option long_opts[] =
 {
 	{"tfm", no_argument, 0, 't'},
 	{"mat", no_argument, 0, 'm'},
 	{"quad", no_argument, 0, 'q'},
+	{"corax", no_argument, 0, 'c'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "tmqhv";
+static const char *short_opts = "tmqhvc";
 enum class Format { FSL, ANTs };
 Format output = Format::FSL;
-bool verbose = false, quad = false;
+bool verbose = false, quad = false, corax = false;
 
 int main(int argc, char **argv) {
 	int indexptr = 0, c;
@@ -51,6 +52,7 @@ int main(int argc, char **argv) {
 		case 'm': output = Format::FSL; break;
 		case 'q': quad = true; break;
 		case 'v': verbose = true; break;
+		case 'c': corax = true; break;
 		case '?': // getopt will print an error message
 		case 'h':
 			cout << usage << endl;
@@ -71,7 +73,12 @@ int main(int argc, char **argv) {
 	string filename(argv[optind++]);
 
 	Vector3f CoG{x, y, z};
-	float angle = atan2(y, x);
+	float angle;
+	if (corax) {
+		angle = atan2(z, x);
+	} else {
+		angle = atan2(y, x);
+	}
 	if (quad) {
 		if ((angle > 0) && (angle <= (M_PI / 2.))) {
 			cout << "UR" << endl;

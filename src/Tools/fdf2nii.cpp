@@ -19,7 +19,7 @@
 using namespace std;
 using namespace Eigen;
 
-static bool zip = false, procpar = false, verbose = false;
+static bool zip = false, procpar = false, verbose = false, corax = false;
 static int echoMode = -1;
 static double scale = 1.;
 static string outPrefix;
@@ -31,8 +31,10 @@ static struct option long_options[] =
 	{"echo", required_argument, 0, 'e'},
 	{"procpar", no_argument, 0, 'p'},
 	{"verbose", no_argument, 0, 'v'},
+	{"corax", no_argument, 0, 'c'},
 	{0, 0, 0, 0}
 };
+static const char *short_options = "s:o:ze:pvc";
 
 const string usage {
 "fdf2nii - A utility to convert Agilent fdf files to nifti.\n\
@@ -51,12 +53,13 @@ Options:\n\
 				-3            Average echoes\n\
 				If an echo is chosen beyond the maximum nothing is written.\n\
  -p, --procpar: Embed procpar in the nifti header.\n\
- -v, --verbose: Print out extra info (e.g. after each volume is written).\n"
+ -v, --verbose: Print out extra info (e.g. after each volume is written).\n\
+ -c, --corax:   Rotate image orientation so coronal and axial match humans.\n"
 };
 
 int main(int argc, char **argv) {
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "s:o:ze:pv", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, short_options, long_options, &indexptr)) != -1) {
 		switch (c) {
 			case 0: break; // It was an option that just sets a flag.
 			case 's': scale = atof(optarg); break;
@@ -70,6 +73,7 @@ int main(int argc, char **argv) {
 				break;
 			case 'p': procpar = true; break;
 			case 'v': verbose = true; break;
+			case 'c': corax = true; break;
 			default: cout << "Unknown option " << optarg << endl;
 		}
 	}
@@ -108,7 +112,9 @@ int main(int argc, char **argv) {
 			auto outVoxDims = (input.voxdims() * scale).cast<float>();
 			Affine3d scaleXForm; scaleXForm = Scaling(scale, scale, scale);
 			Affine3d outTransform = (scaleXForm * input.transform());
-			
+			if (corax) {
+				outTransform = AngleAxisd(M_PI, Vector3d::UnitZ()) * AngleAxisd(M_PI / 2., Vector3d::UnitX()) * outTransform;
+			}
 			try {
 				Nifti::Header outHdr(input.dims(), outVoxDims.cast<float>(), Nifti::DataType::FLOAT32);
 				outHdr.setTransform(outTransform.cast<float>());
@@ -163,7 +169,5 @@ int main(int argc, char **argv) {
 		if (verbose)
 			cout << "Finished writing file " << outPath << endl;
 	}
-	if (verbose)
-		cout << "Finished." << endl;
     return EXIT_SUCCESS;
 }

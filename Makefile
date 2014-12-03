@@ -78,7 +78,7 @@ $(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp $(NIFTI_HDR) $(QU
 $(addprefix $(BUILD_DIR)/, $(TOOLS)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(TOOL_DIR)/%.o libNifti.a libAgilent.a libQUIT.a
 	@mkdir -p $(dir $@)
 	$(CXX) $< -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
-$(addprefix $(BUILD_DIR)/, $(PYTOOLS)) : $(BUILD_DIR)
+$(addprefix $(BUILD_DIR)/, $(PYTOOLS)) : $(BUILD_DIR} | $(TOOL_DIR)/$@
 	cp $(patsubst $(BUILD_DIR)/%, $(SOURCE_DIR)/$(TOOL_DIR)/%, $@) $(BUILD_DIR)/
 
 #Rules for DESPOT

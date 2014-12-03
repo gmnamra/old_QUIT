@@ -67,16 +67,19 @@ class App:
 		options.grid(row = 2, column = 0)
 		self.spm_scale = Tk.IntVar()
 		self.spm_scale.set(1)
-		Tk.Checkbutton(options, text = "Scale for SPM", variable = self.spm_scale).grid(row = 0, column = 2, sticky = Tk.W)
+		Tk.Checkbutton(options, text = "Scale for SPM", variable = self.spm_scale).grid(row = 0, column = 0, sticky = Tk.W)
+		self.corax = Tk.IntVar()
+		self.corax.set(0)
+		Tk.Checkbutton(options, text = "Human Coronal/Axial", variable = self.corax).grid(row = 0, column = 1, sticky = Tk.W)
 		self.embed_procpar = Tk.IntVar()
 		self.embed_procpar.set(1)
-		Tk.Checkbutton(options, text = "Embed procpar", variable = self.embed_procpar).grid(row = 0, column = 3, sticky = Tk.W)
+		Tk.Checkbutton(options, text = "Embed procpar", variable = self.embed_procpar).grid(row = 0, column = 2, sticky = Tk.W)
 		self.gz = Tk.IntVar()
 		self.gz.set(0)
-		Tk.Checkbutton(options, text = "Compress", variable = self.gz).grid(row = 0, column = 4, sticky = Tk.W)
+		Tk.Checkbutton(options, text = "Compress", variable = self.gz).grid(row = 0, column = 3, sticky = Tk.W)
 		self.ignore_scout = Tk.IntVar()
 		self.ignore_scout.set(1)
-		Tk.Checkbutton(options, text = "Ignore scouts", variable = self.ignore_scout).grid(row = 0, column = 5, sticky = Tk.W)
+		Tk.Checkbutton(options, text = "Ignore scouts", variable = self.ignore_scout).grid(row = 0, column = 4, sticky = Tk.W)
 		self.echo_mode = Tk.IntVar()
 		self.echo_mode.set(-1)
 		Tk.Label(options, text = "Multi-echo:").grid(row = 1, column = 0, sticky = Tk.E)
@@ -113,6 +116,9 @@ class App:
 		if self.spm_scale.get():
 			command = command + '-s 10.0 '
 		
+		if self.corax.get():
+			command = command + '-c '
+
 		if self.embed_procpar.get():
 			command = command + '-p '
 		
@@ -183,7 +189,7 @@ class App:
 				else:
 					tkMessageBox.showwarning("No scans", "No scans to convert were found in directory: " + subj)
 					self.status_bar.set("No scans to convert were found directory: " + subj + "\n")
-		self.status_bar.set("Finished.\n")
+		self.status_bar.set("Finished all conversions.\n")
 		self.master.config(cursor = "")
 
 root = Tk.Tk()
