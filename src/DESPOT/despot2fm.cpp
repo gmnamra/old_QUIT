@@ -363,7 +363,7 @@ int main(int argc, char **argv)
 		out.close();
 	}
 	hdr.intent_name = "Sum of Squared Residuals";
-	Nifti::File SoS(hdr, outPrefix + "SoS" + OutExt());
+	Nifti::File SoS(hdr, outPrefix + "residual" + OutExt());
 	SoS.writeVolumes(ResVol.begin(), ResVol.end());
 	SoS.close();
 	if (all_residuals) {
