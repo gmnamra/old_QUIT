@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <string>
 #include <getopt.h>
 
@@ -31,6 +32,7 @@ this are:\n\
 X Y Z - Make sure you encase this format in quotes (\" \")!\n\
 \n\
 Options:\n\
+	--tfm, -t              : Output an Insight Transform file for ANTs\n\
 	--out, -o prefix       : Add a prefix to the output filenames\n\
 	--nudge, -n \"X Y Z\"  : Nudge the image (X Y Z added to current offset)\n\
 	--offset, -f \"X Y Z\" : Set the offset to (X,Y,Z)\n\
@@ -41,6 +43,7 @@ Options:\n\
 ";
 
 static const struct option long_opts[] = {
+	{"tfm", no_argument, 0, 't'},
 	{"nudge",  required_argument, 0, 'n'},
 	{"out", required_argument, 0, 'o'},
 	{"offset", required_argument, 0, 'f'},
@@ -49,9 +52,9 @@ static const struct option long_opts[] = {
 	{"help",   no_argument, 0, 'h'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "n:o:f:cvh";
+static const char *short_opts = "tn:o:f:cvh";
 static string prefix;
-static int verbose = false;
+static int verbose = false, output_transform = false;
 
 Vector3f parse_vector(char *str);
 Vector3f parse_vector(char *str) {
@@ -89,11 +92,28 @@ Vector3f calc_cog(Nifti::File &f) {
 	return cog;
 }
 
+void write_transform(const Affine3f &tfm, const string path);
+void write_transform(const Affine3f &tfm, const string path){
+	ofstream file(path);
+
+	IOFormat fmt(StreamPrecision, DontAlignCols);
+	file << "#Insight Transform File V1.0" << endl;
+	file << "# Transform 0" << endl;
+	file << "Transform: MatrixOffsetTransformBase_double_3_3" << endl;
+	file << "Parameters: " << tfm.matrix().block<1,3>(0,0).format(fmt)
+	     << " " << tfm.matrix().block<1,3>(1,0).format(fmt)
+	     << " " << tfm.matrix().block<1,3>(2,0).format(fmt)
+	     << " " << tfm.translation().matrix().transpose().format(fmt) << endl;
+	file << "FixedParameters: 0 0 0" << endl;
+	file.close();
+}
+
 int main(int argc, char **argv) {
 	// Make a first pass to permute the options and get filenames at the end
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
 		switch (c) {
+		case 't': output_transform = true; break;
 		case 'o': prefix = optarg; break;
 		case 'v': verbose = true; break;
 		case '?': // getopt will print an error message
@@ -150,15 +170,20 @@ int main(int argc, char **argv) {
 		case 'c': {
 			if (verbose) cout << "Aligning origin to CoG in file: " << files.front().imagePath() << endl;
 			Vector3f CoG = calc_cog(files.front());
-			Affine3f xfm1 = files.front().header().transform();
-			xfm1 = Translation3f(-CoG) * xfm1;
-			Vector3f offset = xfm1.translation();
-			for (Nifti::File &f : files) {
-				Nifti::Header h = f.header();
-				Affine3f xfm = h.transform();
-				xfm.translation() = offset;
-				h.setTransform(xfm);
-				f.setHeader(h);
+			if (output_transform) {
+				Affine3f tfm(Translation3f(-CoG));
+				write_transform(tfm, files.front().basePath()+".tfm");
+			} else {
+				Affine3f xfm1 = files.front().header().transform();
+				xfm1 = Translation3f(-CoG) * xfm1;
+				Vector3f offset = xfm1.translation();
+				for (Nifti::File &f : files) {
+					Nifti::Header h = f.header();
+					Affine3f xfm = h.transform();
+					xfm.translation() = offset;
+					h.setTransform(xfm);
+					f.setHeader(h);
+				}
 			}
 		} break;
 		case '?': // getopt will print an error message
