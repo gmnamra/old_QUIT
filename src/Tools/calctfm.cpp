@@ -32,7 +32,8 @@ Options:\n\
 	--mat, -m   : Output a .mat file FSL (default)\n\
 	--comp, -p  : Write the \"compass point\" to stdout\n\
 	--corax, -c : Data has been rotated to match human coronal definition\n\
-	--orig, -o \"X Y Z\" : Specify a different origin for angle calculation\n";
+	--orig, -o \"X Y Z\" : Specify a different origin for angle calculation\n\
+	--in, -i    : Bottom of skull faces in towards origin (default opposite)\n";
 
 static struct option long_opts[] =
 {
@@ -41,13 +42,14 @@ static struct option long_opts[] =
 	{"comp", no_argument, 0, 'p'},
 	{"corax", no_argument, 0, 'c'},
 	{"orig", required_argument, 0, 'o'},
+	{"in", no_argument, 0, 'i'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "tmphvco:";
+static const char *short_opts = "tmphvco:i";
 enum class Format { FSL, ANTs };
 Format output = Format::FSL;
 Vector3f origin = Vector3f::Zero();
-bool verbose = false, compass = false, corax = false;
+bool verbose = false, compass = false, corax = false, inwards = false;
 
 int main(int argc, char **argv) {
 	int indexptr = 0, c;
@@ -59,6 +61,7 @@ int main(int argc, char **argv) {
 		case 'v': verbose = true; break;
 		case 'c': corax = true; break;
 		case 'o': origin = QUIT::parse_vector(optarg); break;
+		case 'i': inwards = true; break;
 		case '?': // getopt will print an error message
 		case 'h':
 			cout << usage << endl;
@@ -91,8 +94,13 @@ int main(int argc, char **argv) {
 		static const array<string, 8> compass_points{"W","SW","S","SE","E","NE","N","NW"};
 		cout << compass_points[octant] << endl;
 	}
-	// Now calculate the angle that will move CoG to (0, -1) because top of brain faces outward
-	angle =  (3. * M_PI / 2.) - angle;
+	// Now we want to rotate the head so that the line to the CoG becomes parallel to (0, 1)
+	// or (0, -1) depending on whether the heads were scanned with bottom of skull towards center
+	// or not
+	if (inwards)
+		angle = (M_PI / 2.) - angle;
+	else
+		angle =  (3. * M_PI / 2.) - angle;
 	Affine3f transform;
 	transform = Translation3f(-CoG) * AngleAxisf(-angle, Vector3f::UnitZ());
 	IOFormat fmt(StreamPrecision, DontAlignCols);
