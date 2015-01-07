@@ -16,6 +16,8 @@
 
 #include <getopt.h>
 
+#include "QUIT/Util.h"
+
 using namespace Eigen;
 using namespace std;
 
@@ -26,23 +28,26 @@ Calculates a transform to align the CoG to center and rotate it the right way.\n
 WARNING - If your CoG has negative values make sure you put -- before it.\n\
 \n\
 Options:\n\
-	--tfm, -t  : Output an Insight Transform file for ANTs\n\
-	--mat, -m  : Output a .mat file FSL (default)\n\
-	--quad, -q : Write the quadrant to stdout\n\
-	--corax -c : Data has been rotated to match human coronal definition\n";
+	--tfm, -t   : Output an Insight Transform file for ANTs\n\
+	--mat, -m   : Output a .mat file FSL (default)\n\
+	--comp, -p  : Write the \"compass point\" to stdout\n\
+	--corax, -c : Data has been rotated to match human coronal definition\n\
+	--orig, -o \"X Y Z\" : Specify a different origin for angle calculation\n";
 
 static struct option long_opts[] =
 {
 	{"tfm", no_argument, 0, 't'},
 	{"mat", no_argument, 0, 'm'},
-	{"quad", no_argument, 0, 'q'},
+	{"comp", no_argument, 0, 'p'},
 	{"corax", no_argument, 0, 'c'},
+	{"orig", required_argument, 0, 'o'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "tmqhvc";
+static const char *short_opts = "tmphvco:";
 enum class Format { FSL, ANTs };
 Format output = Format::FSL;
-bool verbose = false, quad = false, corax = false;
+Vector3f origin = Vector3f::Zero();
+bool verbose = false, compass = false, corax = false;
 
 int main(int argc, char **argv) {
 	int indexptr = 0, c;
@@ -50,9 +55,10 @@ int main(int argc, char **argv) {
 		switch (c) {
 		case 't': output = Format::ANTs; break;
 		case 'm': output = Format::FSL; break;
-		case 'q': quad = true; break;
+		case 'p': compass = true; break;
 		case 'v': verbose = true; break;
 		case 'c': corax = true; break;
+		case 'o': origin = QUIT::parse_vector(optarg); break;
 		case '?': // getopt will print an error message
 		case 'h':
 			cout << usage << endl;
@@ -63,7 +69,7 @@ int main(int argc, char **argv) {
 	}
 
 	if ((argc - optind) != 4) {
-		cerr << "Must have 4 arguments (X, Y, Z, filename)" << endl;
+		cerr << "Must have 4 arguments (X, Y, Z, filename)" << endl << usage << endl;
 		return EXIT_FAILURE;
 	}
 
@@ -75,20 +81,15 @@ int main(int argc, char **argv) {
 	Vector3f CoG{x, y, z};
 	float angle;
 	if (corax) {
-		angle = atan2(z, x);
+		angle = atan2(z - origin(2), x - origin(0));
 	} else {
-		angle = atan2(y, x);
+		angle = atan2(y - origin(1), x - origin(0));
 	}
-	if (quad) {
-		if ((angle > 0) && (angle <= (M_PI / 2.))) {
-			cout << "UR" << endl;
-		} else if ((angle > (M_PI / 2.)) && (angle <= M_PI)) {
-			cout << "UL" << endl;
-		} else if ((angle > -M_PI) && (angle <= -(M_PI / 2.))) {
-			cout << "LL" << endl;
-		} else {
-			cout << "LR" << endl;
-		}
+
+	if (compass) {
+		int octant = fmod(4 * angle / M_PI + 4.5, 8);
+		static const array<string, 8> compass_points{"W","SW","S","SE","E","NE","N","NW"};
+		cout << compass_points[octant] << endl;
 	}
 	// Now calculate the angle that will move CoG to (0, -1) because top of brain faces outward
 	angle =  (3. * M_PI / 2.) - angle;

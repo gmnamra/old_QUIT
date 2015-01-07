@@ -18,6 +18,7 @@
 #include <Eigen/Core>
 #include "Nifti/Nifti.h"
 #include "QUIT/MultiArray.h"
+#include "QUIT/Util.h"
 
 using namespace std;
 using namespace Eigen;
@@ -55,14 +56,6 @@ static const struct option long_opts[] = {
 static const char *short_opts = "tn:o:f:cvh";
 static string prefix;
 static int verbose = false, output_transform = false;
-
-Vector3f parse_vector(char *str);
-Vector3f parse_vector(char *str) {
-	istringstream is(str);
-	Vector3f vec;
-	is >> vec[0] >> vec[1] >> vec[2];
-	return vec;
-}
 
 Vector3f calc_cog(Nifti::File &f);
 Vector3f calc_cog(Nifti::File &f) {

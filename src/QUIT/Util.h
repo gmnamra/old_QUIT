@@ -20,6 +20,8 @@
 #include <functional>
 #include <time.h>
 
+#include <Eigen/Dense>
+
 #include "Agilent/procpar.h"
 #include "Nifti/Nifti.h"
 #include "Nifti/ExtensionCodes.h"
@@ -33,6 +35,7 @@ time_t printElapsedTime(const time_t &start);
 void printElapsedClock(const clock_t &clockStart, const int voxCount);
 void printLoopTime(const clock_t &loopStart, const int voxCount);
 void checkHeaders(const Nifti::Header &n1, std::vector<Nifti::File> n_other); //!< Throws an exception if the passed in Nifti files do not share same matrix size and transform
+Eigen::Vector3f parse_vector(char *str);
 
 template<typename T>
 T randNorm(double sigma)
