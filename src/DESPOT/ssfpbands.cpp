@@ -40,16 +40,17 @@ Options:\n\
 	--flip, -F        : Data order is phase, then flip-angle (default opposite).\n\
 	--phases, -p N    : Number of phase-cycling patterns used (default is 4).\n\
 	--threads, -T N   : Use N threads (default=hardware limit).\n\
-	--save, -sR       : Save the robustly regularised GS (default)\n\
+	--save, -sL       : Save the line regularised GS (default)\n\
 	          M       : Save the magnitude regularised GS\n\
 	          G       : Save the unregularised GS\n\
 	          C       : Save the CS\n\
-	          S       : Save the Second Pass solution\n"
+	          P       : Save the PS\n\
+	--secondpass, -2  : Perform a 2nd pass as per Xiang and Hoff\n"
 };
 
-enum class Save { RR, MR, GS, CS, RS, SP };
-static Save mode = Save::RR;
-static bool verbose = false;
+enum class Save { LR, MR, GS, CS, PS };
+static Save mode = Save::LR;
+static bool verbose = false, pass2 = false, pass22d = false;
 static size_t phase_dim = 4, flip_dim = 3, nPhases = 4;
 static string prefix;
 const struct option long_options[] = {
@@ -61,9 +62,10 @@ const struct option long_options[] = {
 	{"phases", required_argument, 0, 'p'},
 	{"threads", required_argument, 0, 'T'},
 	{"save", required_argument, 0, 's'},
+	{"secondpass", optional_argument, 0, '2'},
 	{0, 0, 0, 0}
 };
-const char *short_options = "hvo:m:Fs:p:T:";
+const char *short_options = "hvo:m:Fs:p:T:2::";
 // From Knuth, surprised this isn't in STL
 unsigned long long choose(unsigned long long n, unsigned long long k) {
 	if (k > n)
@@ -114,17 +116,17 @@ int main(int argc, char **argv) {
 				break;
 			case 's':
 				switch(*optarg) {
-					case 'R': mode = Save::RR; break;
+					case 'L': mode = Save::LR; break;
 					case 'M': mode = Save::MR; break;
 					case 'G': mode = Save::GS; break;
 					case 'C': mode = Save::CS; break;
-					case 'r': mode = Save::RS; break;
-					case 'S': mode = Save::SP; break;
+					case 'P': mode = Save::PS; break;
 					default:
 						cerr << "Unknown desired save image: " << *optarg << endl;
 						return EXIT_FAILURE;
 				}
 				break;
+			case '2': pass2 = true; if (optarg) pass22d = true; break;
 			case 'T':
 				threads.resize(atoi(optarg));
 				break;
@@ -133,6 +135,7 @@ int main(int argc, char **argv) {
 				return EXIT_FAILURE;
 		}
 	}
+	if (pass22d) cout << "2D second pass selected." << endl;
 	if (verbose) cout << version << endl << credit_me << endl;
 	if ((argc - optind) != 1) {
 		cout << "Incorrect number of arguments." << endl << usage << endl;
@@ -212,7 +215,7 @@ int main(int argc, char **argv) {
 							Vector2f cs = (a_i + a_j + b_i + b_j) / 4.0;
 							Vector2f gs = a_i + mu * d_i;
 
-							Vector2f rs;
+							Vector2f ps;
 							if (vol < (nFlip - 1)) { // Use the phase of the last flip-angle for regularisation
 								float phase = arg(output[{vi,vj,vk,nFlip-1}]);
 								Vector2f d_p{cos(phase),sin(phase)};
@@ -220,9 +223,9 @@ int main(int argc, char **argv) {
 								float lm_j = (a_j).dot(n_j) / d_p.dot(n_j);
 								Vector2f p_i = lm_i * d_p;
 								Vector2f p_j = lm_j * d_p;
-								rs = (p_i + p_j) / 2.0;
+								ps = (p_i + p_j) / 2.0;
 							} else {
-								rs = cs;
+								ps = cs;
 							}
 
 							bool line_reg = true;
@@ -231,28 +234,18 @@ int main(int argc, char **argv) {
 								line_reg = false;
 
 							float norm = gs.norm();
-							if (mode == Save::RR)
-								norm = rs.norm();
+							float maxnorm = max(max(max(a_i.norm(), a_j.norm()), b_i.norm()), b_j.norm());
+
 							bool mag_reg = true;
-							if ((norm < a_i.norm()) ||
-								(norm < a_j.norm()) ||
-								(norm < b_i.norm()) ||
-								(norm < b_j.norm())) {
+							if (gs.norm() < maxnorm) {
 								mag_reg = false;
 							}
 
 							switch (mode) {
-								case Save::RR:
-									if (line_reg) {
-										sols.col(si) = mag_reg ? cs : rs; break;
-									} else {
-										sols.col(si) = gs;
-									}
-									break;
-								case Save::SP:
-								case Save::MR: sols.col(si) = mag_reg ? cs : gs; break;
+								case Save::LR: sols.col(si) = line_reg ? ps : gs; break;
+								case Save::MR: sols.col(si) = mag_reg ? ps : gs; break;
 								case Save::GS: sols.col(si) = gs; break;
-								case Save::RS: sols.col(si) = rs; break;
+								case Save::PS: sols.col(si) = ps; break;
 								case Save::CS: sols.col(si) = cs; break;
 							}
 							si++;
@@ -265,17 +258,17 @@ int main(int argc, char **argv) {
 			threads.for_loop2(processVox, d[0], d[1]);
 		}
 
-		if (mode == Save::SP) {
-			for (size_t vk = 1; vk < d[2] - 1; vk++) {
+		if (pass2) {
+			for (size_t vk = 0; vk < d[2]; vk++) {
 			//size_t vk = 27;
 				function<void (const size_t, const size_t)> processVox = [&] (const size_t vi, const size_t vj) {
 					complex<float> sp(0.,0.);
 					if (!maskFile || (maskData[{vi,vj,vk}])) {
 						for (size_t li = 0; li < nLines; li++) {
 							float num = 0, den = 0;
-							for (int k = -1; k < 2; k++) {
-								for (int j = -1; j < 2; j++) {
-									for (int i = -1; i < 2; i++) {
+							for (int k = ((!pass22d && (vk > 0)) ? -1 : 0); k < ((!pass22d && (vk < d[2] - 1)) ? 2 : 1); k++) {
+								for (int j = (vj > 0 ? -1 : 0); j < (vj < d[1] - 1 ? 2 : 1); j++) {
+									for (int i = (vi > 0 ? -1 : 0); i < (vi < d[0] - 1 ? 2 : 1); i++) {
 										idx_t idx; idx << vi + i,vj + j,vk + k,0,0;
 										idx[flip_dim] = vol;
 										idx[phase_dim] = li;
@@ -299,26 +292,27 @@ int main(int argc, char **argv) {
 					}
 					second_pass[{vi,vj,vk,vol}] = sp;
 				};
-				threads.for_loop2(processVox, 1, d[0] - 1, 1, 1, d[1] - 1, 1);
+				threads.for_loop2(processVox, 0, d[0], 1, 0, d[1], 1);
 			}
 		}
 	}
-	printElapsedClock(startClock, d.prod());
+	if (verbose) printElapsedClock(startClock, d.prod());
 	inHdr.setDim(4, nFlip);
 	inHdr.setDatatype(Nifti::DataType::COMPLEX64);
 
 	string outname = prefix;
 	switch (mode) {
-		case Save::RR: outname.append("reg" + OutExt()); break;
-		case Save::MR: outname.append("magreg" + OutExt()); break;
-		case Save::GS: outname.append("gs" + OutExt()); break;
-		case Save::CS: outname.append("cs" + OutExt()); break;
-		case Save::RS: outname.append("rs" + OutExt()); break;
-		case Save::SP: outname.append("sp" + OutExt()); break;
+		case Save::LR: outname.append("lreg"); break;
+		case Save::MR: outname.append("mreg"); break;
+		case Save::GS: outname.append("gs"); break;
+		case Save::CS: outname.append("cs"); break;
+		case Save::PS: outname.append("ps"); break;
 	}
+	if (pass2) outname.append("_2p");
+	outname.append(OutExt());
 	if (verbose) cout << "Output filename: " << outname << endl;
 	Nifti::File outFile(inHdr, outname);
-	if (mode == Save::SP) {
+	if (pass2 == true) {
 		outFile.writeVolumes(second_pass.begin(), second_pass.end());
 	} else {
 		outFile.writeVolumes(output.begin(), output.end());
