@@ -319,7 +319,7 @@ int main(int argc, char **argv)
 		outHdr.setDim(4, nf0);
 		outHdr.intent_name = "Off-resonance (Hz)";
 		outFile.setHeader(outHdr);
-		outFile.open(outPrefix + "D2_f0" + OutExt(), Nifti::Mode::Write);
+		outFile.open(outPrefix + "f0" + OutExt(), Nifti::Mode::Write);
 		outFile.writeVolumes(offResVols.begin(), offResVols.end(), 0, nf0);
 		outFile.close();
 	}
