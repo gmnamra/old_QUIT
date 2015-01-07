@@ -67,24 +67,29 @@ int main(int argc, char **argv) {
 	for (auto &p : paths) {
 		ProcPar pp;
 		try {
-			if (p.substr(p.size() - 7) == "procpar") {
-				ifstream pp_file(p);
-				pp_file >> pp;
-				if (!pp_file.eof()) {
-					throw(runtime_error("Failed to read contents of file: " + p));
-				}
-				pps.push_back(pp);
-			} else {
+			if ((p.find(".nii") != string::npos) || (p.find(".hdr") != string::npos)) {
 				File nii(p);
 				const list<Extension> &exts = nii.extensions();
+				bool found = false;
 				for (auto &e : exts) {
 					if (e.code() == NIFTI_ECODE_COMMENT) {
 						string s(e.data().begin(), e.data().end());
 						stringstream ss(s);
 						ss >> pp;
 						pps.push_back(pp);
+						found = true;
 					}
 				}
+				if (!found) {
+					throw(runtime_error("Could not find procpar in header of file: " + p));
+				}
+			} else {
+				ifstream pp_file(p);
+				pp_file >> pp;
+				if (!pp_file.eof()) {
+					throw(runtime_error("Failed to read contents of file: " + p));
+				}
+				pps.push_back(pp);
 			}
 		} catch (exception &e) {
 			cerr << e.what() << endl;
