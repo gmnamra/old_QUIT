@@ -361,8 +361,9 @@ Header::operator nifti_1_header() const {
 		nhdr.scl_inter = scaling_inter;
 	}
 
-	strncpy(nhdr.descrip, description.c_str(), 80);
-	strncpy(nhdr.aux_file, aux_file.c_str(), 24);
+	// Ensure last byte is null terminated and correct length
+	strncpy(nhdr.descrip, description.substr(0, 79).c_str(), 80);
+	strncpy(nhdr.aux_file, aux_file.substr(0, 23).c_str(), 24);
 
 	strcpy(nhdr.magic,m_magic.c_str());
 
@@ -370,7 +371,7 @@ Header::operator nifti_1_header() const {
 	nhdr.intent_p1   = intent_p1;
 	nhdr.intent_p2   = intent_p2;
 	nhdr.intent_p3   = intent_p3;
-	strncpy(nhdr.intent_name, intent_name.c_str(), 16);
+	strncpy(nhdr.intent_name, intent_name.substr(0, 15).c_str(), 16);
 
 	// Check that m_voxoffset is sensible
 	/*if (m_nii)
@@ -452,8 +453,8 @@ Header::operator nifti_2_header() const {
 		nhdr.scl_inter = scaling_inter;
 	}
 
-	strncpy(nhdr.descrip, description.c_str(), 80);
-	strncpy(nhdr.aux_file, aux_file.c_str(), 24);
+	strncpy(nhdr.descrip, description.substr(0, 79).c_str(), 80);
+	strncpy(nhdr.aux_file, aux_file.substr(0, 23).c_str(), 24);
 
 	strcpy(nhdr.magic,m_magic.c_str());
 
@@ -461,7 +462,7 @@ Header::operator nifti_2_header() const {
 	nhdr.intent_p1   = intent_p1;
 	nhdr.intent_p2   = intent_p2;
 	nhdr.intent_p3   = intent_p3;
-	strncpy(nhdr.intent_name, intent_name.c_str(), 16);
+	strncpy(nhdr.intent_name, intent_name.substr(0, 15).c_str(), 16);
 
 	// Check that m_voxoffset is sensible
 	/*if (m_nii)
