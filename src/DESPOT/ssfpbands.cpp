@@ -224,8 +224,6 @@ int main(int argc, char **argv) {
 								Vector2f p_i = lm_i * d_p;
 								Vector2f p_j = lm_j * d_p;
 								ps = (p_i + p_j) / 2.0;
-							} else {
-								ps = cs;
 							}
 
 							bool line_reg = true;
@@ -233,14 +231,14 @@ int main(int argc, char **argv) {
 							if ((mu > -xi) && (mu < 1 + xi) && (nu > -xi) && (nu < 1 + xi))
 								line_reg = false;
 
-							float norm = gs.norm();
-							float maxnorm = max(max(max(a_i.norm(), a_j.norm()), b_i.norm()), b_j.norm());
-
 							bool mag_reg = true;
+							float maxnorm = max(max(max(a_i.norm(), a_j.norm()), b_i.norm()), b_j.norm());
 							if (gs.norm() < maxnorm) {
 								mag_reg = false;
 							}
-
+							if (ps.norm() > maxnorm) {
+								ps = cs;
+							}
 							switch (mode) {
 								case Save::LR: sols.col(si) = line_reg ? ps : gs; break;
 								case Save::MR: sols.col(si) = mag_reg ? ps : gs; break;
