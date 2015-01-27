@@ -137,8 +137,6 @@ int main(int argc, char **argv) {
 		cout << "Incorrect number of arguments." << endl << usage << endl;
 		return EXIT_FAILURE;
 	}
-	cout << "Clamp: " << clamp_lo << " " << clamp_hi << endl;
-	cout << "Thresh: " << thresh << endl;
 	//**************************************************************************
 	#pragma mark Gather SPGR data
 	//**************************************************************************
@@ -150,6 +148,8 @@ int main(int argc, char **argv) {
 	if (verbose) {
 		cout << spgrSequence;
 		cout << "Ouput prefix will be: " << outPrefix << endl;
+		cout << "Clamp: " << clamp_lo << " " << clamp_hi << endl;
+		cout << "Thresh: " << thresh << endl;
 	}
 	if (spgrSequence.size() != spgrFile.header().dim(4)) {
 		throw(std::runtime_error("Specified number of flip-angles does not match number of volumes in file: " + spgrFile.imagePath()));
