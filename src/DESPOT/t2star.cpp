@@ -193,6 +193,10 @@ int main(int argc, char **argv) {
 					PD = 0.;
 					T2star = 0.;
 				}*/
+				if (PD < thresh) {
+					PD = 0.;
+					T2star = 0.;
+				}
 				T2star = clamp(T2star, clamp_lo, clamp_hi);
 				ArrayXd theory = PD * (-X.col(0).array() / T2star).exp();
 				ArrayXd resids = (signal - theory);
