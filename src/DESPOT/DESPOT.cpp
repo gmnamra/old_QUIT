@@ -20,11 +20,15 @@
 
 double clamp(double value, double low, double high)
 {
-	if (value < low)
+	if (value > low) {
+		if (value < high) {
+			return value;
+		} else {
+			return high;
+		}
+	} else {
 		return low;
-	if (value > high)
-		return high;
-	return value;
+	}
 }
 
 //******************************************************************************

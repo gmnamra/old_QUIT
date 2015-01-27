@@ -39,6 +39,8 @@ Options:\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--out, -o path    : Add a prefix to the output filenames.\n\
 	--B1 file         : B1 Map file.\n\
+	--thresh, -t n    : Threshold maps at PD < n\n\
+	--clamp, -c n     : Clamp T1 between 0 and n\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
 	           n      : NLLS (Levenberg-Marquardt)\n\
@@ -54,6 +56,8 @@ Options:\n\
 enum class Algos { LLS, WLLS, NLLS };
 static int verbose = false, prompt = true, elliptical = false, negflip = false, meanf0 = false, all_residuals = false;
 static size_t nIterations = 4;
+static double thresh = -numeric_limits<double>::infinity();
+static double clamp_lo = -numeric_limits<double>::infinity(), clamp_hi = numeric_limits<double>::infinity();
 static Algos algo;
 static string outPrefix;
 static struct option long_opts[] =
@@ -66,13 +70,15 @@ static struct option long_opts[] =
 	{"mask", required_argument, 0, 'm'},
 	{"verbose", no_argument, 0, 'v'},
 	{"no-prompt", no_argument, 0, 'n'},
+	{"thresh", required_argument, 0, 't'},
+	{"clamp", required_argument, 0, 'c'},
 	{"algo", required_argument, 0, 'a'},
 	{"its", required_argument, 0, 'i'},
 	{"threads", required_argument, 0, 'T'},
 	{"resids", no_argument, 0, 'r'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "hm:o:b:vna:i:T:er";
+static const char *short_opts = "hm:o:b:t:c:vna:i:T:er";
 
 //******************************************************************************
 // Main
@@ -104,6 +110,11 @@ int main(int argc, char **argv)
 				B1File.open(optarg, Nifti::Mode::Read);
 				B1Vol.resize(B1File.matrix());
 				B1File.readVolumes(B1Vol.begin(), B1Vol.end(), 0, 1);
+				break;
+			case 't': thresh = atof(optarg); break;
+			case 'c':
+				clamp_lo = 0;
+				clamp_hi = atof(optarg);
 				break;
 			case 'a':
 				switch (*optarg) {
@@ -256,6 +267,13 @@ int main(int argc, char **argv)
 						PD = p(0); T2 = p(1); offRes = p(2);
 						//exit(EXIT_SUCCESS);
 					}
+					if (PD < thresh) {
+						PD = 0.;
+						T1 = 0.;
+						T2 = 0.;
+						offRes = 0.;
+					}
+					T2 = clamp(T2, clamp_lo, clamp_hi);
 					ArrayXd theory = ssfp.signal(Pools::One, Vector4d(PD, T1, T2, offRes), B1).abs();
 					ArrayXd resids = (s - theory);
 					if (all_residuals) {

@@ -40,6 +40,8 @@ Options:\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
 	--mask, -m file   : Mask input with specified file\n\
 	--B1, -b file     : B1 Map file (ratio)\n\
+	--thresh, -t n    : Threshold maps at PD < n\n\
+	--clamp, -c n     : Clamp T1 between 0 and n\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
 	           n      : NLLS (Levenberg-Marquardt)\n\
@@ -52,6 +54,8 @@ enum class Algos { LLS, WLLS, NLLS };
 static bool verbose = false, prompt = true, all_residuals = false;
 static size_t nIterations = 4;
 static string outPrefix;
+static double thresh = -numeric_limits<double>::infinity();
+static double clamp_lo = -numeric_limits<double>::infinity(), clamp_hi = numeric_limits<double>::infinity();
 static Algos algo;
 static struct option long_options[] =
 {
@@ -61,13 +65,15 @@ static struct option long_options[] =
 	{"out", required_argument, 0, 'o'},
 	{"mask", required_argument, 0, 'm'},
 	{"B1", required_argument, 0, 'b'},
+	{"thresh", required_argument, 0, 't'},
+	{"clamp", required_argument, 0, 'c'},
 	{"algo", required_argument, 0, 'a'},
 	{"its", required_argument, 0, 'i'},
 	{"threads", required_argument, 0, 'T'},
 	{"resids", no_argument, 0, 'r'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "hvnm:o:b:a:i:T:r";
+static const char *short_opts = "hvnm:o:b:t:c:a:i:T:r";
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -79,7 +85,6 @@ int main(int argc, char **argv) {
 	MultiArray<float, 3> B1Vol;
 	MultiArray<int8_t, 3> maskVol;
 	ThreadPool threads;
-
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, short_opts, long_options, &indexptr)) != -1) {
 		switch (c) {
@@ -100,6 +105,11 @@ int main(int argc, char **argv) {
 				B1File.open(optarg, Nifti::Mode::Read);
 				B1Vol.resize(B1File.matrix());
 				B1File.readVolumes(B1Vol.begin(), B1Vol.end());
+				break;
+			case 't': thresh = atof(optarg); break;
+			case 'c':
+				clamp_lo = 0;
+				clamp_hi = atof(optarg);
 				break;
 			case 'a':
 				switch (*optarg) {
@@ -127,7 +137,8 @@ int main(int argc, char **argv) {
 		cout << "Incorrect number of arguments." << endl << usage << endl;
 		return EXIT_FAILURE;
 	}
-	
+	cout << "Clamp: " << clamp_lo << " " << clamp_hi << endl;
+	cout << "Thresh: " << thresh << endl;
 	//**************************************************************************
 	#pragma mark Gather SPGR data
 	//**************************************************************************
@@ -195,6 +206,11 @@ int main(int argc, char **argv) {
 					lm.lmder1(p);
 					PD = p(0); T1 = p(1);
 				}
+				if (PD < thresh) {
+					PD = 0.;
+					T1 = 0.;
+				}
+				T1 = clamp(T1, clamp_lo, clamp_hi);
 				ArrayXd theory = spgrSequence.signal(Pools::One, Vector4d(PD, T1, 0., 0.), B1).abs();
 				ArrayXd resids = (signal - theory);
 				if (all_residuals) {
