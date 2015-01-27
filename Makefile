@@ -82,7 +82,7 @@ $(addprefix $(BUILD_DIR)/, $(PYTOOLS)) : $(BUILD_DIR} | $(TOOL_DIR)/$@
 	cp $(patsubst $(BUILD_DIR)/%, $(SOURCE_DIR)/$(TOOL_DIR)/%, $@) $(BUILD_DIR)/
 
 #Rules for DESPOT
-DESPOT      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands phasemap
+DESPOT      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands phasemap t2star
 DESPOT_DIR  := DESPOT
 DESPOT_SRC  := DESPOT DESPOT_Functors Model
 DESPOT_HDR  := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, RegionContraction.h DESPOT_Functors.h DESPOT.h Model.h)
