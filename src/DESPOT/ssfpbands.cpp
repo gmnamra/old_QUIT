@@ -39,6 +39,7 @@ Options:\n\
 	--mask, -m file   : Mask input with specified file.\n\
 	--flip, -F        : Data order is phase, then flip-angle (default opposite).\n\
 	--phases, -p N    : Number of phase-cycling patterns used (default is 4).\n\
+	--alternate, -a   : Opposing phase-cycles alternate (default is two blocks).\n\
 	--threads, -T N   : Use N threads (default=hardware limit).\n\
 	--save, -sL       : Save the line regularised GS (default)\n\
 	          M       : Save the magnitude regularised GS\n\
@@ -50,7 +51,7 @@ Options:\n\
 
 enum class Save { LR, MR, GS, CS, PS };
 static Save mode = Save::LR;
-static bool verbose = false, pass2 = false, pass22d = false;
+static bool verbose = false, pass2 = false, pass22d = false, alternate = false;
 static size_t phase_dim = 4, flip_dim = 3, nPhases = 4;
 static string prefix;
 const struct option long_options[] = {
@@ -60,12 +61,13 @@ const struct option long_options[] = {
 	{"mask", required_argument, 0, 'm'},
 	{"flip", required_argument, 0, 'F'},
 	{"phases", required_argument, 0, 'p'},
+	{"alternate", no_argument, 0, 'a'},
 	{"threads", required_argument, 0, 'T'},
 	{"save", required_argument, 0, 's'},
 	{"secondpass", optional_argument, 0, '2'},
 	{0, 0, 0, 0}
 };
-const char *short_options = "hvo:m:Fs:p:T:2::";
+const char *short_options = "hvo:m:Fs:p:aT:2::";
 // From Knuth, surprised this isn't in STL
 unsigned long long choose(unsigned long long n, unsigned long long k) {
 	if (k > n)
@@ -114,6 +116,7 @@ int main(int argc, char **argv) {
 					return EXIT_FAILURE;
 				}
 				break;
+			case 'a': alternate = true; break;
 			case 's':
 				switch(*optarg) {
 					case 'L': mode = Save::LR; break;
@@ -174,9 +177,15 @@ int main(int argc, char **argv) {
 	MultiArray<complex<float>, 5> reshaped = input.reshape<5>(reshape_dims);
 	idx_t split_start = idx_t::Zero();
 	reshape_dims[phase_dim] = 2;
-	MultiArray<complex<float>, 5> aData = reshaped.slice<5>(split_start, reshape_dims);
-	split_start[phase_dim] = 2;
-	MultiArray<complex<float>, 5> bData = reshaped.slice<5>(split_start, reshape_dims);
+	idx_t split_strides = idx_t::Ones();
+	if (alternate)
+		split_strides[phase_dim] = 2;
+	MultiArray<complex<float>, 5> aData = reshaped.slice<5>(split_start, reshape_dims, split_strides);
+	if (alternate)
+		split_start[phase_dim] = 1;
+	else
+		split_start[phase_dim] = nPhases / 2;
+	MultiArray<complex<float>, 5> bData = reshaped.slice<5>(split_start, reshape_dims, split_strides);
 	// For results
 	MultiArray<complex<float>, 4> output(d, nFlip), second_pass(d, nFlip);
 	//**************************************************************************

@@ -135,7 +135,7 @@ MultiArray<Tp, newRank> MultiArray<Tp, rank>::reshape(const typename MultiArray<
 
 template<typename Tp, size_t rank>
 template<size_t newRank>
-MultiArray<Tp, newRank> MultiArray<Tp, rank>::slice(const Index &start, const Index &inSize) const {
+MultiArray<Tp, newRank> MultiArray<Tp, rank>::slice(const Index &start, const Index &inSize, const Index &inStrides) const {
 	typename MultiArray<Tp, newRank>::Index newDims, newStrides;
 
 	// Replace any "ALL" dimensions with actual size
@@ -147,9 +147,9 @@ MultiArray<Tp, newRank> MultiArray<Tp, rank>::slice(const Index &start, const In
 			size[i] = inSize[i];
 		}
 	}
-	if (((start + size) > m_dims).any()) {
+	if (((start + ((size - 1) * inStrides)) > m_dims).any()) {
 		std::stringstream mesg; mesg << "Requested rank " << std::to_string(newRank) << " slice (start: " << start.transpose()
-			<< ", size: " << size.transpose() << ") exceeds array dimensions: " << m_dims.transpose();
+			<< ", size: " << size.transpose() << ") exceeds array dimensions: " << m_dims.transpose() << " with strides: " << inStrides.transpose();
 		throw(std::out_of_range(mesg.str()));
 	}
 	// Check that we have the correct number of 0 dimensions
@@ -165,7 +165,7 @@ MultiArray<Tp, newRank> MultiArray<Tp, rank>::slice(const Index &start, const In
 	while(from_dim < rank) {
 		if (size[from_dim] > 0) {
 			newDims[to_dim] = m_dims[from_dim];
-			newStrides[to_dim] = m_strides[from_dim];
+			newStrides[to_dim] = m_strides[from_dim] * inStrides[from_dim];
 			to_dim++;
 		}
 		from_dim++;

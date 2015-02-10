@@ -89,7 +89,7 @@ class MultiArray {
 		MultiArray<Tp, rank> pack() const; //!< If the multi-array is not packed, create a new one and copy data to it.
 		void resize(const Index &newDims);
 		template<size_t newRank> MultiArray<Tp, newRank> reshape(const typename MultiArray<Tp, newRank>::Index &newDims);
-		template<size_t newRank> MultiArray<Tp, newRank> slice(const Index &start, const Index &size) const;
+		template<size_t newRank> MultiArray<Tp, newRank> slice(const Index &start, const Index &size, const Index &strides = Index::Ones()) const;
 		MapTp asArray() const;
 
 		// STL-like interface
