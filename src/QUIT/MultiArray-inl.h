@@ -147,9 +147,15 @@ MultiArray<Tp, newRank> MultiArray<Tp, rank>::slice(const Index &start, const In
 			size[i] = inSize[i];
 		}
 	}
-	if (((start + ((size - 1) * inStrides)) > m_dims).any()) {
-		std::stringstream mesg; mesg << "Requested rank " << std::to_string(newRank) << " slice (start: " << start.transpose()
-			<< ", size: " << size.transpose() << ") exceeds array dimensions: " << m_dims.transpose() << " with strides: " << inStrides.transpose();
+	if (((size > 0) && ((start + (size * inStrides - 1)) > m_dims)).any()) {
+		std::stringstream mesg;
+		mesg << "slice<" << newRank << "> with: " << std::endl
+		     << "start:   " << start.transpose() << std::endl
+		     << "size:    " << size.transpose() << std::endl
+		     << "strides: " << inStrides.transpose() << std::endl
+		     << "is invalid from this array: " << std::endl
+		     << *this << std::endl
+		     << "because : " << ((start + ((size - 1) * inStrides))) << " > " << m_dims.transpose() << std::endl;
 		throw(std::out_of_range(mesg.str()));
 	}
 	// Check that we have the correct number of 0 dimensions
