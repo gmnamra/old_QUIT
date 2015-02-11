@@ -147,7 +147,7 @@ MultiArray<Tp, newRank> MultiArray<Tp, rank>::slice(const Index &start, const In
 			size[i] = inSize[i];
 		}
 	}
-	if (((size > 0) && ((start + (size * inStrides - 1)) > m_dims)).any()) {
+	if (((size > 0) && ((start + (size - 1) * inStrides) > m_dims)).any()) {
 		std::stringstream mesg;
 		mesg << "slice<" << newRank << "> with: " << std::endl
 		     << "start:   " << start.transpose() << std::endl
