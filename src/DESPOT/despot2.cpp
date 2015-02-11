@@ -208,97 +208,96 @@ int main(int argc, char **argv)
 			cout << "Starting slice " << k << "..." << flush;
 		clock_t loopStart = clock();
 		atomic<int> sliceCount{0};
-		function<void (const int&)> process = [&] (const int &j) {
-			for (size_t i = 0; i < dims(0); i++) {
-				if (!maskFile || (maskVol[{i,j,k}])) {
-					sliceCount++;
-					double B1, T1, T2, E1, E2, PD, offRes, SoS;
-					B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-					T1 = T1Vol[{i,j,k}];
-					E1 = exp(-TR / T1);
-					const ArrayXd localAngles(ssfp.sequence(0)->B1flip(B1));
-					ArrayXcd data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
-					const ArrayXd s = data.abs();
-					VectorXd Y = s / localAngles.sin();
-					MatrixXd X(Y.rows(), 2);
-					X.col(0) = s / localAngles.tan();
-					X.col(1).setOnes();
-					VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
-					if (elliptical) {
-						T2 = 2. * TR / log((b[0]*E1 - 1.) / (b[0] - E1));
-						E2 = exp(-TR / T2);
-						PD = b[1] * (1. - E1*E2*E2) / (sqrt(E2) * (1. - E1));
-					} else {
-						T2 = TR / log((b[0]*E1 - 1.)/(b[0] - E1));
-						E2 = exp(-TR / T2);
-						PD = b[1] * (1. - E1*E2) / (1. - E1);
-					}
-					if (algo == Algos::WLLS) {
-						VectorXd W(ssfp.size());
-						for (size_t n = 0; n < nIterations; n++) {
-							if (elliptical) {
-								W = ((1. - E1*E2) * localAngles.sin() / (1. - E1*E2*E2 - (E1 - E2*E2)*localAngles.cos())).square();
-							} else {
-								W = ((1. - E1*E2) * localAngles.sin() / (1. - E1*E2 - (E1 - E2)*localAngles.cos())).square();
-							}
-							b = (X.transpose() * W.asDiagonal() * X).partialPivLu().solve(X.transpose() * W.asDiagonal() * Y);
-							if (elliptical) {
-								T2 = 2. * TR / log((b[0]*E1 - 1.) / (b[0] - E1));
-								E2 = exp(-TR / T2);
-								PD = b[1] * (1. - E1*E2*E2) / (sqrt(E2) * (1. - E1));
-							} else {
-								T2 = TR / log((b[0]*E1 - 1.)/(b[0] - E1));
-								E2 = exp(-TR / T2);
-								PD = b[1] * (1. - E1*E2) / (1. - E1);
-							}
-						}
-					} else if (algo == Algos::NLLS) {
-						D2Functor f(T1, ssfp, Pools::One, data, B1, true, false);
-						NumericalDiff<D2Functor> nDiff(f);
-						LevenbergMarquardt<NumericalDiff<D2Functor>> lm(nDiff);
-						lm.parameters.maxfev = nIterations;
-						VectorXd p(3);
-						p << PD, T2, offRes;
-						//cout << "Running LM..." << endl;
-						//cout << "Start P: " << p.transpose() << endl;
-						lm.lmder1(p);
-						//cout << "End P: " << p.transpose() << endl;
-						//cout << "Finished LM" << endl;
-						PD = p(0); T2 = p(1); offRes = p(2);
-						//exit(EXIT_SUCCESS);
-					}
-					if (PD < thresh) {
-						PD = 0.;
-						T1 = 0.;
-						T2 = 0.;
-						offRes = 0.;
-					}
-					T2 = clamp(T2, clamp_lo, clamp_hi);
-					ArrayXd theory = ssfp.signal(Pools::One, Vector4d(PD, T1, T2, offRes), B1).abs();
-					ArrayXd resids = (s - theory);
-					if (all_residuals) {
-						ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = resids.cast<float>();
-					}
-					T2Vol[{i,j,k}]  = static_cast<float>(T2);
-					PDVol[{i,j,k}]  = static_cast<float>(PD);
-					ResVol[{i,j,k}] = static_cast<float>(sqrt(resids.square().sum() / resids.rows()) / PD);
-
-					if (elliptical) {
-						if (negflip)
-							data = -data;
-						if (meanf0) {
-							// Use phase of mean instead of mean of phase to avoid wrap issues
-							offResVols[{i,j,k,0}] = static_cast<float>(arg(data.mean()) / (M_PI * TR));
+		function<void (const int&, const int&)> process = [&] (const int &j, const int &i) {
+			if (!maskFile || (maskVol[{i,j,k}])) {
+				sliceCount++;
+				double B1, T1, T2, E1, E2, PD, offRes, SoS = 0;
+				B1 = B1File ? B1Vol[{i,j,k}] : 1.;
+				T1 = T1Vol[{i,j,k}];
+				E1 = exp(-TR / T1);
+				const ArrayXd localAngles(ssfp.sequence(0)->B1flip(B1));
+				ArrayXcd data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
+				const ArrayXd s = data.abs();
+				VectorXd Y = s / localAngles.sin();
+				MatrixXd X(Y.rows(), 2);
+				X.col(0) = s / localAngles.tan();
+				X.col(1).setOnes();
+				VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
+				if (elliptical) {
+					T2 = 2. * TR / log((b[0]*E1 - 1.) / (b[0] - E1));
+					E2 = exp(-TR / T2);
+					PD = b[1] * (1. - E1*E2*E2) / (sqrt(E2) * (1. - E1));
+				} else {
+					T2 = TR / log((b[0]*E1 - 1.)/(b[0] - E1));
+					E2 = exp(-TR / T2);
+					PD = b[1] * (1. - E1*E2) / (1. - E1);
+				}
+				if (algo == Algos::WLLS) {
+					VectorXd W(ssfp.size());
+					for (size_t n = 0; n < nIterations; n++) {
+						if (elliptical) {
+							W = ((1. - E1*E2) * localAngles.sin() / (1. - E1*E2*E2 - (E1 - E2*E2)*localAngles.cos())).square();
 						} else {
-							offResVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = (data.imag().binaryExpr(data.real(), ptr_fun<double,double,double>(atan2))).cast<float>() / (M_PI * TR);
+							W = ((1. - E1*E2) * localAngles.sin() / (1. - E1*E2 - (E1 - E2)*localAngles.cos())).square();
 						}
+						b = (X.transpose() * W.asDiagonal() * X).partialPivLu().solve(X.transpose() * W.asDiagonal() * Y);
+						if (elliptical) {
+							T2 = 2. * TR / log((b[0]*E1 - 1.) / (b[0] - E1));
+							E2 = exp(-TR / T2);
+							PD = b[1] * (1. - E1*E2*E2) / (sqrt(E2) * (1. - E1));
+						} else {
+							T2 = TR / log((b[0]*E1 - 1.)/(b[0] - E1));
+							E2 = exp(-TR / T2);
+							PD = b[1] * (1. - E1*E2) / (1. - E1);
+						}
+					}
+				} else if (algo == Algos::NLLS) {
+					D2Functor f(T1, ssfp, Pools::One, data, B1, false, false);
+					NumericalDiff<D2Functor> nDiff(f);
+					LevenbergMarquardt<NumericalDiff<D2Functor>> lm(nDiff);
+					lm.parameters.maxfev = nIterations;
+					VectorXd p(3);
+					p << PD, T2, offRes;
+					//cout << "Running LM..." << endl;
+					//cout << "Start P: " << p.transpose() << endl;
+					lm.lmder1(p);
+					//cout << "End P: " << p.transpose() << endl;
+					//cout << "Finished LM" << endl;
+					PD = p(0); T2 = p(1); offRes = p(2);
+				}
+				if (PD < thresh) {
+					PD = 0.;
+					T1 = 0.;
+					T2 = 0.;
+					offRes = 0.;
+				}
+				T2 = clamp(T2, clamp_lo, clamp_hi);
+				ArrayXd theory = ssfp.signal(Pools::One, Vector4d(PD, T1, T2, offRes), B1).abs();
+				ArrayXd resids = (s - theory);
+				if (all_residuals) {
+					ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = resids.cast<float>();
+				}
+				T2Vol[{i,j,k}]  = static_cast<float>(T2);
+				PDVol[{i,j,k}]  = static_cast<float>(PD);
+				ResVol[{i,j,k}] = static_cast<float>(sqrt(resids.square().sum() / resids.rows()) / PD);
+
+				if (elliptical) {
+					if (negflip)
+						data = -data;
+					if (meanf0) {
+						// Use phase of mean instead of mean of phase to avoid wrap issues
+						offResVols[{i,j,k,0}] = static_cast<float>(arg(data.mean()) / (M_PI * TR));
+					} else {
+						offResVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = (data.imag().binaryExpr(data.real(), ptr_fun<double,double,double>(atan2))).cast<float>() / (M_PI * TR);
 					}
 				}
 			}
 		};
-		threads.for_loop(process, dims(1));
+		threads.for_loop2(process, dims(1), dims(0));
 		if (verbose) printLoopTime(loopStart, sliceCount);
 		voxCount += sliceCount;
+		if (!threads.finished())
+			break;
 	}
 	if (verbose) {
 		printElapsedTime(startTime);
