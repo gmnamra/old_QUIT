@@ -46,12 +46,15 @@ int main(int argc, char **argv) {
 			case 'd': outMode = Mode::DTK; break;
 			case 'f': outMode = Mode::FSL; break;
 			case 'h':
+				cout << usage << endl;
+				return EXIT_SUCCESS;
+				break;
 			case '?': // getopt will print an error message
 				return EXIT_FAILURE;
 		}
 	}
 	if ((argc - optind) != 1) {
-		cout << "Exactly one input file (procpar or nifti) required." << endl;
+		cout << "Exactly one input file (procpar or nifti) required." << endl << usage << endl;
 		return EXIT_FAILURE;
 	}
 
