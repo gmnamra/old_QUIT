@@ -346,7 +346,7 @@ int main(int argc, char **argv) {
 				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
 			cout << "finished." << endl;
 		}
-		if (!threads.finished())
+		if (threads.interrupted())
 			break;
 	}
 	time_t procEnd = time(NULL);

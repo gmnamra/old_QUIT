@@ -130,6 +130,7 @@ int main(int argc, char **argv) {
 			case 'r': all_residuals = true; break;
 			case 'h':
 			case '?': // getopt will print an error message
+				cout << usage << endl;
 				return EXIT_FAILURE;
 		}
 	}
@@ -232,7 +233,7 @@ int main(int argc, char **argv) {
 			cout << "finished." << endl;
 		}
 
-		if (!threads.finished())
+		if (threads.interrupted())
 			break;
 	}
 

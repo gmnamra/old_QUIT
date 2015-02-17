@@ -263,6 +263,8 @@ int main(int argc, char **argv) {
 				output[{vi,vj,vk,vol}] = {mean_sol[0], mean_sol[1]};
 			};
 			threads.for_loop2(processVox, d[0], d[1]);
+			if (threads.interrupted())
+				break;
 		}
 
 		if (pass2) {
@@ -300,6 +302,8 @@ int main(int argc, char **argv) {
 					second_pass[{vi,vj,vk,vol}] = sp;
 				};
 				threads.for_loop2(processVox, 0, d[0], 1, 0, d[1], 1);
+				if (threads.interrupted())
+					break;
 			}
 		}
 	}

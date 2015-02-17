@@ -322,6 +322,9 @@ int main(int argc, char **argv)
 		
 		if (verbose) printLoopTime(loopStart, sliceCount);
 		voxCount += sliceCount;
+
+		if (threads.interrupted())
+			break;
 	}
 	if (verbose) printElapsedTime(startTime);
 	printElapsedClock(startClock, voxCount);

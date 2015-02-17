@@ -296,7 +296,7 @@ int main(int argc, char **argv)
 		threads.for_loop2(process, dims(1), dims(0));
 		if (verbose) printLoopTime(loopStart, sliceCount);
 		voxCount += sliceCount;
-		if (!threads.finished())
+		if (threads.interrupted())
 			break;
 	}
 	if (verbose) {
