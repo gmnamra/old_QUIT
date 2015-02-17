@@ -56,7 +56,7 @@ MagVector One_SSFP(const ArrayXd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1, cdbl
 MagVector One_SSFP_Finite(const ArrayXd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl TE, cdbl ph,
                           cdbl PD, cdbl T1, cdbl T2, cdbl f0);
 MagVector One_SSFP_Ellipse(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1, cdbl T2, cdbl f0);
-MagVector MP_RAGE(const ArrayXd &TI, cdbl T1, cdbl TD, cdbl TR, const int N, cdbl alpha);
+MagVector MP_RAGE(cdbl flip, cdbl TR, const int N, const ArrayXd &TI, cdbl TD, cdbl PD, cdbl T1);
 
 MagVector Two_SPGR(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1_a, cdbl T1_b, cdbl tau_a, cdbl f_a);
 MagVector Two_SSFP(const ArrayXd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1_a, cdbl T2_a, cdbl T1_b, cdbl T2_b, cdbl tau_a, cdbl f_a, cdbl f0);

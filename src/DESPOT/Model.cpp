@@ -155,7 +155,7 @@ MPRAGE::MPRAGE(const bool prompt, const Agilent::ProcPar &pp) : Sequence() {
 
 ArrayXcd MPRAGE::signal(const Pools p, const VectorXd &par, const double B1) const {
 	switch (p) {
-		case (Pools::One) : return SigComplex(par[0] * MP_RAGE(m_TI, par[1], m_TD, m_TR, m_N, m_flip[0] * B1)); break;
+		case (Pools::One) : return SigComplex(MP_RAGE(m_flip[0] * B1, m_TR, m_N, m_TI, m_TD, par[0], par[1])); break;
 		case (Pools::Two) : throw(logic_error("Two component MP-RAGE not implemented.")); break;
 		case (Pools::Three) : throw(logic_error("Three component MP-RAGE not implemented.")); break;
 	}

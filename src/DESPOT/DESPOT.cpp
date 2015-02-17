@@ -191,10 +191,10 @@ MagVector One_SSFP_Ellipse(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1, cdbl 
     return result;
 }
 
-MagVector MP_RAGE(const ArrayXd &TI, const double T1, const double TD,
-                  const double TR, const int N, const double alpha) {
-	const double M0 = 1.;
-	const double T1s = 1. / (1./T1 - log(cos(alpha))/TR);
+MagVector MP_RAGE(cdbl flip, cdbl TR, const int N, const ArrayXd &TI, cdbl TD,
+                  cdbl PD, cdbl T1) {
+	const double M0 = PD;
+	const double T1s = 1. / (1./T1 - log(cos(flip))/TR);
 	const double M0s = M0 * (1. - exp(-TR/T1)) / (1 - exp(-TR/T1s));
 
 	const double A1 = M0s*(1 - exp(-(N*TR)/T1s));
@@ -209,7 +209,7 @@ MagVector MP_RAGE(const ArrayXd &TI, const double T1, const double TD,
 	const ArrayXd M1 = A / (1. - B);
 
 	MagVector M(3, TI.size()); M.setZero();
-	M.row(0) = M1 * sin(alpha);
+	M.row(0) = M1 * sin(flip);
 	return M;
 }
 
