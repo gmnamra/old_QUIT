@@ -77,8 +77,8 @@ class SPGRSimple : public Sequence {
 		SPGRSimple(const ArrayXd &flip, const double TR);
 		SPGRSimple(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Pools p, const VectorXd &par, const double B1 = 1.) const override;
-		void write(ostream& os) const override;
-		string name() const override { return "SPGR"; } ;
+		void write(ostream &os) const override;
+		string name() const override { return "SPGR"; };
 };
 class SPGRFinite : public SPGRSimple {
 	public:
@@ -86,8 +86,20 @@ class SPGRFinite : public SPGRSimple {
 		SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE);
 		SPGRFinite(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(const Pools p, const VectorXd &par, const double B1 = 1.) const override;
-		void write(ostream& os) const override;
-		string name() const override { return "SPGR_Finite"; } ;
+		void write(ostream &os) const override;
+		string name() const override { return "SPGR_Finite"; };
+};
+class MPRAGE : public Sequence {
+	public:
+		ArrayXd m_TI;
+		double m_TD;
+		int m_N;
+		MPRAGE(const ArrayXd &TI, const double TD, const double TR, const int N, const double flip);
+		MPRAGE(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		size_t size() const override { return m_TI.size(); };
+		ArrayXcd signal(const Pools p, const VectorXd &par, const double B1 = 1.) const override;
+		void write(ostream &os) const override;
+		string name() const override { return "MPRAGE"; };
 };
 class SSFPSimple : public Sequence {
 	public:
@@ -141,6 +153,7 @@ public:
 	ArrayXcd loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k, bool needsFlip = false) const;
 	
 	void addSequence(const SequenceType &st, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+	void addSequence(const shared_ptr<Sequence> &seq);
 };
 
 #endif

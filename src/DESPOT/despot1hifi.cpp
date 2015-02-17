@@ -17,9 +17,13 @@
 #include <iostream>
 #include <atomic>
 #include "Eigen/Dense"
+#include "unsupported/Eigen/NonLinearOptimization"
+#include "unsupported/Eigen/NumericalDiff"
 
 #include "Nifti/Nifti.h"
 #include "DESPOT.h"
+#include "Model.h"
+#include "DESPOT_Functors.h"
 #include "QUIT/QUIT.h"
 
 using namespace std;
@@ -27,117 +31,46 @@ using namespace Eigen;
 using namespace QUIT;
 
 //******************************************************************************
-#pragma mark HIFI Calculation functions
-//******************************************************************************
-double HIFIResidual(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
-				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
-				const double irTR, const double eff,
-                double &M0, double &T1, double &B1);
-double HIFIResidual(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
-				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
-				const double irTR, const double eff,
-                double &M0, double &T1, double &B1) {
-	ArrayXd st = SPGR(flipAngles, spgrTR, B1, M0, T1);
-	ArrayXd it = IRSPGR(TI, irTR, B1, irFlipAngle, eff, M0, T1);
-	double res = (spgrVals - st).square().sum() +
-	              (irVals - it).square().sum();
-	return res;
-}
-
-double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
-				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
-				const double irTR, const double eff,
-                double &M0, double &T1, double &B1);
-double calcHIFI(const ArrayXd &flipAngles, const ArrayXd &spgrVals, const double spgrTR,
-				const ArrayXd &TI, const ArrayXd &irVals, const double irFlipAngle,
-				const double irTR, const double eff,
-                double &M0, double &T1, double &B1) {
-	// Golden Section Search to find B1
-	// From www.mae.wvu.edu/~smirnov/nr/c10-1.pdf
-	double R = 0.61803399; // Golden ratio - 1
-	double C = 1 - R;
-	double precision = 0.001;
-    
-	// Set up initial bracket using some guesses
-	double B1_0 = 0.3; double B1_3 = 1.8; double B1_1, B1_2;
-	
-	B1 = B1_0;
-	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	double res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
-	B1 = B1_3;
-	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	double res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
-	if (res1 < res2) {
-		B1_1 = B1_0 + 0.2;
-		B1_2 = B1_1 + C * (B1_3 - B1_1);
-	} else {
-		B1_2 = B1_3 - 0.2;
-		B1_1 = B1_2 - C * (B1_2 - B1_0);
-	}
-	
-	B1 = B1_1;
-	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
-	B1 = B1_2;
-	classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-	res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
-	while ( fabs(B1_3 - B1_0) > precision * (fabs(B1_1) + fabs(B1_2))) {
-		if (res2 < res1) {
-			B1_0 = B1_1; B1_1 = B1_2;
-			B1_2 = R * B1_1 + C * B1_3;
-			res1 = res2;
-			B1 = B1_2;
-			classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-			res2 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
-		} else {
-			B1_3 = B1_2; B1_2 = B1_1;
-			B1_1 = R * B1_2 + C * B1_0;
-			res2 = res1;
-			B1 = B1_1;
-			classicDESPOT1(flipAngles, spgrVals, spgrTR, B1, M0, T1);
-			res1 = HIFIResidual(flipAngles, spgrVals, spgrTR, TI, irVals, irFlipAngle, irTR, eff, M0, T1, B1);
-		}
-	}
-	// Best value for B1
-	if (res1 < res2) {
-		B1 = B1_1;
-		return res1;
-	} else {
-		B1 = B1_2;
-		return res2;
-	}
-	std::cout << "Finished Golden Ratio Search" << std::endl<< std::endl<< std::endl<< std::endl;
-}
-
-//******************************************************************************
 // Arguments / Usage
 //******************************************************************************
 const string usage {
-"Usage is: despot-hifi [options] spgr_input ir-spgr_input\n\
+"Usage is: despot1hifi [options] spgr_input ir-spgr_input\n\
 \
 Options:\n\
-	-m, --mask file  : Mask input with specified file.\n\
-	--out, -o path    : Add a prefix to the output filenames.\n\
-	-v, --verbose    : Print out more messages.\n\
-	-i, --inv 0-3    : Specify the scanner Inversion mode:\n\
-	                   0 = Use raw segment TR from input\n\
-	                   1 = 1.5T scanner, readout pulses div 2 + 2\n\
-	                   2 (Default) = 3T, scale TI by 0.9, readout pulses div 2 + 2\n\
-	                   3 = 3T, scale TI by 0.84, readout pulses + 2)\n\
-"
+	--help, -h        : Print this message\n\
+	--verbose, -v     : Print more information\n\
+	--no-prompt, -n   : Suppress input prompts\n\
+	--out, -o path    : Add a prefix to the output filenames\n\
+	--mask, -m file   : Mask input with specified file\n\
+	--thresh, -t n    : Threshold maps at PD < n\n\
+	--clamp, -c n     : Clamp T1 between 0 and n\n\
+	--start, -s N     : Start processing from slice N\n\
+	--stop, -p  N     : Stop processing at slice N\n\
+	--its, -i N       : Max iterations for NLLS (default 4)\n\
+	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
-static int verbose = false, inversionMode = 2, NPE2 = 0;
+static bool verbose = false, prompt = true;
+static size_t nIterations = 4;
 static string outPrefix;
-static double inversionEfficiency = 0.;
-static struct option long_options[] =
-{
+static double thresh = -numeric_limits<double>::infinity();
+static double clamp_lo = -numeric_limits<double>::infinity(), clamp_hi = numeric_limits<double>::infinity();
+static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
+static const struct option long_opts[] = {
+	{"help", no_argument, 0, 'h'},
+	{"verbose", no_argument, 0, 'v'},
+	{"no-prompt", no_argument, 0, 'n'},
 	{"mask", required_argument, 0, 'm'},
 	{"out", required_argument, 0, 'o'},
-	{"verbose", no_argument, 0, 'v'},
-	{"inv", required_argument, 0, 'i'},
+	{"thresh", required_argument, 0, 't'},
+	{"clamp", required_argument, 0, 'c'},
+	{"start", required_argument, 0, 's'},
+	{"stop", required_argument, 0, 'p'},
+	{"its", required_argument, 0, 'i'},
+	{"threads", required_argument, 0, 'T'},
 	{0, 0, 0, 0}
 };
+static const char *short_opts = "hvnm:o:t:c:s:p:i:T:";
 
 //******************************************************************************
 // Main
@@ -146,32 +79,43 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	cout << version << endl << credit_shared << endl;
+	cout << version << endl << "Improved formulas thanks to Michael Thrippleton." << endl;
+	Eigen::initParallel();
 	Nifti::File maskFile, spgrFile, irFile;
-	vector<double> maskData;
-	
+	MultiArray<int8_t, 3> maskVol;
+	ThreadPool threads;
+
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "i:m:o:vp:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
 		switch (c) {
-			case 'i':
-				inversionMode = atoi(optarg);
-				if ((inversionMode < 0) || (inversionMode > 3)) {
-					cout << "Bad inversion mode (" << inversionMode << "). Must be 0-3" << endl;
-					return EXIT_FAILURE;
-				}
-				break;
+			case 'v': verbose = true; break;
+			case 'n': prompt = false; break;
 			case 'm':
 				cout << "Opening mask file: " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
-				maskData.resize(maskFile.matrix().prod());
-				maskFile.readVolumes(maskData.begin(), maskData.end(), 0, 1);
+				maskVol.resize(maskFile.matrix());
+				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
 			case 'o':
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
-			case 'v': verbose = true; break;
+			case 't': thresh = atof(optarg); break;
+			case 'c':
+				clamp_lo = 0;
+				clamp_hi = atof(optarg);
+				break;
+			case 's': start_slice = atoi(optarg); break;
+			case 'p': stop_slice = atoi(optarg); break;
+			case 'i':
+				nIterations = atoi(optarg);
+				break;
+			case 'T':
+				threads.resize(atoi(optarg));
+				break;
+			case 'h':
 			case '?': // getopt will print an error message
+				cout << usage << endl;
 				return EXIT_FAILURE;
 		}
 	}
@@ -180,143 +124,88 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 	
-	//**************************************************************************
-	#pragma mark Gather SPGR data
-	//**************************************************************************
 	cout << "Opening SPGR file: " << argv[optind] << endl;
-	spgrFile.open(argv[optind], Nifti::Mode::Read);
-	checkHeaders(spgrFile.header(),{maskFile});
-	size_t nSPGR = spgrFile.dim(4);
-	ArrayXd spgrAngles(nSPGR);
-	double spgrTR;
+	spgrFile.open(argv[optind], Nifti::Mode::Read);	
+	Agilent::ProcPar pp; ReadPP(spgrFile, pp);
+	shared_ptr<Sequence> spgrSequence = make_shared<SPGRSimple>(prompt, pp);
 	
-	Agilent::ProcPar pp;
-	if (ReadPP(spgrFile, pp)) {
-		spgrTR = pp.realValue("tr");
-		for (size_t i = 0; i < nSPGR; i++) spgrAngles[i] = pp.realValue("flip1", i);
-	} else {
-		cout << "Enter SPGR TR (seconds):"; cin >> spgrTR;
-		cout << "Enter " << nSPGR << " Flip Angles (degrees):";
-		for (size_t i = 0; i < nSPGR; i++) cin >> spgrAngles[i];
-	}
-	spgrAngles *= M_PI / 180.;
-	
-	//**************************************************************************
-	#pragma mark Gather IR-SPGR data
-	//**************************************************************************	
 	cout << "Opening IR-SPGR file: " << argv[++optind] << endl;
 	irFile.open(argv[optind], Nifti::Mode::Read);
-	if (!irFile.header().matchesSpace(spgrFile.header())) {
-		cerr << "Header of " << spgrFile.imagePath() << " does not match " << irFile.imagePath() << endl;
-		return EXIT_FAILURE;
-	}
-	size_t nIR = irFile.dim(4);
-	ArrayXd irTI(nIR);
-	double irAngle, irTR;
-	
-	if (ReadPP(irFile, pp)) {
-		irAngle = pp.realValue("flip1") * M_PI / 180.;
-		for (size_t i = 0; i < nIR; i++) irTI[i] = pp.realValue("ti", i);
-		irTR = pp.realValue("trseg") - irTI[0];
-	} else {
-		cout << "Enter IR-SPGR Flip Angle (degrees):"; cin >> irAngle; irAngle *= M_PI / 180.;
-		if (inversionMode > 0) {
-			cout << "Enter IR-SPGR TR (seconds):"; cin >> irTR;
-			cout << "Enter original number of slices (PE2):"; cin >> NPE2;
-			double TIScale = 0.;
-			switch (inversionMode) {
-				case 1:
-					TIScale = 1.0;
-					NPE2 = (NPE2 / 2) + 2; // 2 segments, 2 extra slices
-					inversionEfficiency = 0.97;
-					break;
-				case 2:
-					TIScale = 0.9; // From Sean's code, no idea why GE does this
-					NPE2 = (NPE2 / 2) + 2; // 2 segments, with 2 extra slices per segment
-					inversionEfficiency = 0.97;
-					break;
-				case 3:
-					TIScale = 0.84; // From Sean's code, no idea why GE does this
-					NPE2 = NPE2 + 2; // 1 segment, 2 extra slices
-					inversionEfficiency = 0.97;
-					break;
-			}
-			irTR = irTR * NPE2;
-			cout << "Enter " << nIR << " IR-SPGR TI times (seconds):";
-			for (size_t i = 0; i < nIR; i++) {
-				cin >> irTI[i];
-				irTI[i] *= TIScale;
-			}
-		} else {
-			cout << "Enter " << nIR << " IR-SPGR TI times (seconds):";
-			for (size_t i = 0; i < nIR; i++) cin >> irTI[i];
-			fprintf(stdout, "Enter first scan Segment TR (seconds):"); cin >> irTR;
-			irTR -= irTI[0]; // Subtract off TI to get 
-		}
-	}
+	shared_ptr<MPRAGE> mprage = make_shared<MPRAGE>(prompt);
+
+	Sequences combined(Scale::None);
+	combined.addSequence(spgrSequence);
+	combined.addSequence(mprage);
+
+	checkHeaders(spgrFile.header(),{irFile, maskFile});
 	if (verbose) {
-		cout << "Found " << nIR << " SPGR-IR images with flip angle " << irAngle * 180. / M_PI << " degrees." << endl;
-		cout << "Segment TR is " << irTR << " seconds." << endl;
-		cout << "Inversion time(s) are ";
-		for (size_t i = 0; i < nIR; i++) cout << irTI[i] << " ";
-		cout << "seconds." << endl;
+		cout << combined << endl;
 	}
-	//**************************************************************************
-	// Allocate memory for slices
-	//**************************************************************************	
-	size_t voxelsPerSlice = spgrFile.dims().head(2).prod();
-	size_t voxelsPerVolume = spgrFile.matrix().prod();
-	
-	cout << "Reading image data..." << flush;
-	vector<double> SPGR(voxelsPerVolume * nSPGR), IR(voxelsPerVolume * nIR);
-	spgrFile.readVolumes(SPGR.begin(), SPGR.end(), 0, nSPGR);
-	irFile.readVolumes(IR.begin(), IR.end(), 0, nIR);
+
+	if (verbose) cout << "Reading image data..." << flush;
+	const auto dims = spgrFile.matrix();
+	MultiArray<float, 4> SPGR_Vols(dims, spgrFile.dim(4));
+	MultiArray<float, 4> IR_Vols(dims, irFile.dim(4));
+	spgrFile.readVolumes(SPGR_Vols.begin(), SPGR_Vols.end());
+	irFile.readVolumes(IR_Vols.begin(), IR_Vols.end());
 	spgrFile.close();
 	irFile.close();
-	cout << "done." << endl;
-	//**************************************************************************
-	// Create results data storage
-	//**************************************************************************
-	#define NR 4
-	vector<vector<double>> resultsData(NR);
-	for (auto &r : resultsData)
-		r.resize(voxelsPerVolume);
-	const string names[NR] = { "HIFI_M0", "HIFI_T1", "HIFI_B1", "HIFI_residual" };
-	
-	//**************************************************************************
-	// Do the fitting
-	//**************************************************************************
-	ThreadPool pool;
-	for (size_t slice = 0; slice < spgrFile.dim(3); slice++)
-	{
+	MultiArray<float, 3> PD_Vol(dims), T1_Vol(dims), B1_Vol(dims), res_Vol(dims);
+	if (stop_slice > dims[2])
+		stop_slice = dims[2];
+
+	for (size_t k = start_slice; k < stop_slice; k++) {
 		clock_t loopStart;
 		// Read in data
-		if (verbose)
-			cout << "Starting slice " << slice << "..." << flush;
+		if (verbose) cout << "Starting slice " << k << "..." << flush;
 		loopStart = clock();
 		atomic<int> voxCount{0};
-		size_t sliceOffset = slice * voxelsPerSlice;
-		
-		function<void (const size_t&)> processVox = [&] (const size_t &vox) {
-			double T1 = 0., M0 = 0., B1 = 1., res = 0.; // Assume B1 field is uniform for classic DESPOT
-			if (!maskFile || (maskData[sliceOffset + vox] > 0.)) {
+		function<void (const size_t&, const size_t&)> processVox = [&] (const size_t &j, const size_t &i) {
+			double T1 = 0., PD = 0., B1 = 1., res = 0.; // Assume B1 field is uniform for classic DESPOT
+			const MultiArray<float, 3>::Index idx{i,j,k};
+			if (!maskFile || (maskVol[idx] > 0.)) {
 				voxCount++;
-				ArrayXd spgrs(nSPGR), irs(nIR);
-				int vol = 0;
-				for (size_t img = 0; img < nSPGR; img++)
-						spgrs[vol++] = SPGR[img * voxelsPerVolume + sliceOffset + vox];
-				for (size_t img = 0; img < nIR; img++)
-						irs[img] = IR[img * voxelsPerVolume + sliceOffset + vox];
-				res = calcHIFI(spgrAngles, spgrs, spgrTR,
-				               irTI, irs, irAngle, irTR, inversionEfficiency,
-							   M0, T1, B1);
+				ArrayXd spgrSig = SPGR_Vols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().abs().cast<double>();
+
+				// Get a first guess with DESPOT1
+				VectorXd Y = spgrSig / spgrSequence->B1flip(1.0).sin();
+				MatrixXd X(Y.rows(), 2);
+				X.col(0) = spgrSig / spgrSequence->B1flip(1.0).tan();
+				X.col(1).setOnes();
+				VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
+				T1 = -spgrSequence->m_TR / log(b[0]);
+				PD = b[1] / (1. - b[0]);
+
+				ArrayXd irSig = IR_Vols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().abs().cast<double>();
+				ArrayXd combinedSig(combined.size());
+				combinedSig.head(spgrSig.size()) = spgrSig;
+				combinedSig.tail(irSig.size()) = irSig;
+
+				// Now add in IR-SPGR data and do a Lev-Mar fit
+				HIFIFunctor f(combined, combinedSig, false);
+				NumericalDiff<HIFIFunctor> nDiff(f);
+				LevenbergMarquardt<NumericalDiff<HIFIFunctor>> lm(nDiff);
+				lm.parameters.maxfev = nIterations;
+				VectorXd p(3);
+				p << PD, T1, B1; // Don't need T2 of f0 for this (yet)
+				lm.lmder1(p);
+				PD = p(0); T1 = p(1); B1 = p(2);
+				if (PD < thresh) {
+					PD = 0.;
+					T1 = 0.;
+					B1 = 0.;
+				}
+				T1 = clamp(T1, clamp_lo, clamp_hi);
+				ArrayXd theory = combined.signal(Pools::One, Vector2d(PD, T1), B1).abs();
+				ArrayXd resids = (combinedSig - theory);
+				res = resids.square().sum();
 			}
-			resultsData[0][sliceOffset + vox] = M0;
-			resultsData[1][sliceOffset + vox] = T1;
-			resultsData[2][sliceOffset + vox] = B1;
-			resultsData[3][sliceOffset + vox] = res;
+			PD_Vol[idx] = PD;
+			T1_Vol[idx] = T1;
+			B1_Vol[idx] = B1;
+			res_Vol[idx] = res;
 		};
-		pool.for_loop(processVox, voxelsPerSlice);
+		threads.for_loop2(processVox, dims(1), dims(0));
 		
 		if (verbose) {
 			clock_t loopEnd = clock();
@@ -325,25 +214,40 @@ int main(int argc, char **argv) {
 				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
 			cout << "finished." << endl;
 		}
+
+		if (threads.interrupted())
+			break;
+
 	}
 	
 	//**************************************************************************
 	#pragma mark Write out data
 	//**************************************************************************
 	Nifti::Header outHdr = spgrFile.header();
+	outPrefix = outPrefix + "HIFI_";
 	outHdr.description = version;
 	outHdr.setDim(4, 1);
 	outHdr.setDatatype(Nifti::DataType::FLOAT32);
 	outHdr.intent = Nifti::Intent::Estimate;
-	for (int r = 0; r < NR; r++) {
-		string outName = outPrefix + names[r] + "" + OutExt();
-		outHdr.intent_name = names[r];
-		if (verbose)
-			cout << "Writing result header: " << outName << endl;
-		Nifti::File outFile(outHdr, outName);
-		outFile.writeVolumes(resultsData[r].begin(), resultsData[r].end(), 0, 1);
-		outFile.close();
-	}
-	cout << "All done." << endl;
+	outHdr.intent_name = "T1 (seconds)";
+	Nifti::File outFile(outHdr, outPrefix + "T1" + OutExt());
+	outFile.writeVolumes(T1_Vol.begin(), T1_Vol.end());
+	outFile.close();
+	outHdr.intent_name = "PD (au)";
+	outFile.setHeader(outHdr);
+	outFile.open(outPrefix + "PD" + OutExt(), Nifti::Mode::Write);
+	outFile.writeVolumes(PD_Vol.begin(), PD_Vol.end());
+	outFile.close();
+	outHdr.intent_name = "B1 Field Ratio";
+	outFile.setHeader(outHdr);
+	outFile.open(outPrefix + "B1" + OutExt(), Nifti::Mode::Write);
+	outFile.writeVolumes(B1_Vol.begin(), B1_Vol.end());
+	outFile.close();
+	outHdr.intent_name = "Fractional Residual";
+	outFile.setHeader(outHdr);
+	outFile.open(outPrefix + "residual" + OutExt(), Nifti::Mode::Write);
+	outFile.writeVolumes(res_Vol.begin(), res_Vol.end());
+	outFile.close();
+	if (verbose) cout << "Finished." << endl;
 	return EXIT_SUCCESS;
 }

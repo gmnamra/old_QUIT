@@ -117,6 +117,28 @@ ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
 	return irspgr;
 }
 
+MagVector MP_RAGE(const ArrayXd &TI, const double T1, const double TD,
+                  const double TR, const int N, const double alpha) {
+	const double M0 = 1.;
+	const double T1s = 1. / (1./T1 - log(cos(alpha))/TR);
+	const double M0s = M0 * (1. - exp(-TR/T1)) / (1 - exp(-TR/T1s));
+
+	const double A1 = M0s*(1 - exp(-(N*TR)/T1s));
+	const double A2 = M0*(1 - exp(-TD/T1));
+	const ArrayXd A3 = M0*(1 - exp(-TI/T1));
+	const double B1 = exp(-(N*TR)/T1s);
+	const double B2 = exp(-TD/T1);
+	const ArrayXd B3 = -exp(-TI/T1);
+
+	const ArrayXd A = A3 + A2*B3 + A1*B2*B3;
+	const ArrayXd B = B1*B2*B3;
+	const ArrayXd M1 = A / (1. - B);
+
+	MagVector M(3, TI.size()); M.setZero();
+	M.row(0) = M1 * sin(alpha);
+	return M;
+}
+
 //******************************************************************************
 #pragma mark Magnetisation Evolution Matrices, helper functions etc.
 //******************************************************************************

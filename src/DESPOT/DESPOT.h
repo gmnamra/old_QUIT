@@ -41,8 +41,7 @@ double classicDESPOT2(const ArrayXd &flipAngles, const ArrayXd &ssfpVals,
 ArrayXd SPGR(const ArrayXd &flip, const double &TR, const double &B1, const double &M0, const double &T1);
 ArrayXd IRSPGR(const ArrayXd &TI, const double &TR, const double &B1,
                const double &flip, const double &eff,
-			   const double &M0, const double &T1);
-
+               const double &M0, const double &T1);
 //******************************************************************************
 #pragma Magnetisation Evolution Matrices, helper functions etc.
 //******************************************************************************
@@ -74,6 +73,7 @@ MagVector One_SSFP(const ArrayXd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1, cdbl
 MagVector One_SSFP_Finite(const ArrayXd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl TE, cdbl ph,
                           cdbl PD, cdbl T1, cdbl T2, cdbl f0);
 MagVector One_SSFP_Ellipse(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1, cdbl T2, cdbl f0);
+MagVector MP_RAGE(const ArrayXd &TI, cdbl T1, cdbl TD, cdbl TR, const int N, cdbl alpha);
 //******************************************************************************
 // Parameters are { T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0 }
 //******************************************************************************

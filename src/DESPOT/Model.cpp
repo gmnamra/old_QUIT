@@ -124,6 +124,49 @@ ArrayXcd SPGRFinite::signal(const Pools np, const VectorXd &p, const double B1) 
 	}
 }
 
+MPRAGE::MPRAGE(const ArrayXd &TI, const double TD, const double TR, const int N, const double flip) :
+	Sequence(), m_TI(TI), m_TD(TD), m_N(N) {
+	m_TR = TR;
+	m_flip.resize(1); m_flip[0] = flip;
+}
+
+MPRAGE::MPRAGE(const bool prompt, const Agilent::ProcPar &pp) : Sequence() {
+	if (pp) {
+		throw(runtime_error("MPRAGE Procpar reader not implemented."));
+	} else {
+		if (prompt) cout << "Enter read-out flip-angle (degrees): " << flush;
+		ArrayXd inFlip(1);
+		QUIT::Read<ArrayXd>::FromLine(cin, inFlip);
+		m_flip = inFlip * M_PI / 180.;
+		if (prompt) cout << "Enter read-out TR (seconds): " << flush;
+		QUIT::Read<double>::FromLine(cin, m_TR);
+		if (prompt) cout << "Enter segment size: " << flush;
+		QUIT::Read<int>::FromLine(cin, m_N);
+		size_t nTI;
+		if (prompt) cout << "Enter number of inversion times: " << flush;
+		QUIT::Read<size_t>::FromLine(cin, nTI);
+		m_TI.resize(nTI);
+		if (prompt) cout << "Enter " << m_TI.size() << " inversion times (seconds): " << flush;
+		QUIT::Read<ArrayXd>::FromLine(cin, m_TI);
+		if (prompt) cout << "Enter delay time (seconds): " << flush;
+		QUIT::Read<double>::FromLine(cin, m_TD);
+	}
+}
+
+ArrayXcd MPRAGE::signal(const Pools p, const VectorXd &par, const double B1) const {
+	switch (p) {
+		case (Pools::One) : return SigComplex(par[0] * MP_RAGE(m_TI, par[1], m_TD, m_TR, m_N, m_flip[0] * B1)); break;
+		case (Pools::Two) : throw(logic_error("Two component MP-RAGE not implemented.")); break;
+		case (Pools::Three) : throw(logic_error("Three component MP-RAGE not implemented.")); break;
+	}
+}
+
+void MPRAGE::write(ostream &os) const {
+	os << "MP-RAGE" << endl;
+	os << "TR: " << m_TR << "\tN: " << m_N << "\tAlpha: " << m_flip[0] * 180 / M_PI << "\tTD: " << m_TD << endl;
+	os << "TI: " << m_TI.transpose() << endl;
+	os << "TS: " << (m_TI + m_N*m_TR + m_TD).transpose() << endl;
+}
 
 SSFPSimple::SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases) :
 	Sequence(flip, TR), m_phases(phases)
@@ -404,4 +447,8 @@ void Sequences::addSequence(const SequenceType &st, const bool prompt, const Agi
 		case SequenceType::SSFP_Finite:  m_sequences.push_back(make_shared<SSFPFinite>(prompt, pp)); break;
 		case SequenceType::SSFP_Ellipse: m_sequences.push_back(make_shared<SSFPEllipse>(prompt, pp)); break;
 	}
+}
+
+void Sequences::addSequence(const shared_ptr<Sequence> &seq) {
+	m_sequences.push_back(seq);
 }

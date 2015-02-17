@@ -93,4 +93,18 @@ class D2Functor : public DESPOTFunctor {
 		const bool constraint(const VectorXd &params) const;
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const override;
 };
+
+// HIFI Functor - includes optimising B1
+class HIFIFunctor : public Functor<double> {
+	protected:
+		const SequenceBase &m_sequence;
+		const ArrayXd m_data;
+		const bool m_debug;
+
+	public:
+		HIFIFunctor(SequenceBase &s, const ArrayXd &d, const bool debug = false);
+		const bool constraint(const VectorXd &params) const;
+		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const override;
+};
+
 #endif
