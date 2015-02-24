@@ -14,8 +14,6 @@
 #include <iostream>
 #include <atomic>
 #include <Eigen/Dense>
-#include "unsupported/Eigen/NonLinearOptimization"
-#include "unsupported/Eigen/NumericalDiff"
 
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
@@ -255,7 +253,7 @@ int main(int argc, char **argv)
 					D2Functor f(T1, ssfp, Pools::One, data, B1, false, false);
 					NumericalDiff<D2Functor> nDiff(f);
 					LevenbergMarquardt<NumericalDiff<D2Functor>> lm(nDiff);
-					lm.parameters.maxfev = nIterations;
+					lm.setMaxfev(nIterations);
 					VectorXd p(3);
 					p << PD, T2, offRes;
 					//cout << "Running LM..." << endl;

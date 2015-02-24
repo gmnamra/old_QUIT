@@ -20,8 +20,6 @@
 #include "QUIT/QUIT.h"
 #include "Model.h"
 #include "DESPOT_Functors.h"
-#include "unsupported/Eigen/NonLinearOptimization"
-#include "unsupported/Eigen/NumericalDiff"
 
 using namespace std;
 using namespace Eigen;
@@ -201,7 +199,7 @@ int main(int argc, char **argv) {
 					DESPOTFunctor f(spgrSequence, Pools::One, signal.cast<complex<double>>(), B1, false, false);
 					NumericalDiff<DESPOTFunctor> nDiff(f);
 					LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
-					lm.parameters.maxfev = nIterations;
+					lm.setMaxfev(nIterations);
 					VectorXd p(4);
 					p << PD, T1, 0., 0.; // Don't need T2 of f0 for this (yet)
 					lm.lmder1(p);

@@ -21,6 +21,7 @@
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
 #include "RegionContraction.h"
+#include "TrustRegion.h"
 
 using namespace std;
 using namespace Eigen;

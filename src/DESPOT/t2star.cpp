@@ -20,24 +20,22 @@
 #include "QUIT/QUIT.h"
 #include "DESPOT.h"
 #include "DESPOT_Functors.h"
-#include "unsupported/Eigen/NonLinearOptimization"
-#include "unsupported/Eigen/NumericalDiff"
 
 using namespace std;
 using namespace Eigen;
 using namespace QUIT;
 
-class T2starFunctor : public Functor<double> {
+class T2starFunctor : public DenseFunctor<double> {
 	protected:
 		const ArrayXd &m_echotimes;
 		const ArrayXd &m_data;
 	public:
-		const long inputs() const override { return 2; }
-		const long values() const override { return m_data.rows(); }
+		const long inputs() const { return 2; }
+		const long values() const { return m_data.rows(); }
 
 		T2starFunctor(const ArrayXd &echos, const ArrayXd &data) : m_echotimes(echos), m_data(data) {};
 
-		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const override {
+		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			double T2star = params[0];
 			double PD = params[1];
 			diffs = m_data - PD * (-m_echotimes / T2star).exp();

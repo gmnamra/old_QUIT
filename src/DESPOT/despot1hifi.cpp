@@ -17,8 +17,6 @@
 #include <iostream>
 #include <atomic>
 #include "Eigen/Dense"
-#include "unsupported/Eigen/NonLinearOptimization"
-#include "unsupported/Eigen/NumericalDiff"
 
 #include "Nifti/Nifti.h"
 #include "DESPOT.h"
@@ -185,7 +183,7 @@ int main(int argc, char **argv) {
 				HIFIFunctor f(combined, combinedSig, false);
 				NumericalDiff<HIFIFunctor> nDiff(f);
 				LevenbergMarquardt<NumericalDiff<HIFIFunctor>> lm(nDiff);
-				lm.parameters.maxfev = nIterations;
+				lm.setMaxfev(nIterations);
 				VectorXd p(3);
 				p << PD, T1, B1; // Don't need T2 of f0 for this (yet)
 				lm.lmder1(p);

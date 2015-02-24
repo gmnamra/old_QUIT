@@ -60,7 +60,7 @@ const bool D2Functor::constraint(const VectorXd &params) const {
 
 // HIFI Functor
 HIFIFunctor::HIFIFunctor(SequenceBase &cs, const ArrayXd &data, const bool debug) :
-	Functor<double>(3, cs.size()),
+	DenseFunctor<double>(3, cs.size()),
 	m_sequence(cs), m_data(data), m_debug(debug) {
 	assert(static_cast<size_t>(m_data.rows()) == values());
 }
