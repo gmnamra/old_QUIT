@@ -17,7 +17,7 @@
 #include <Eigen/Dense>
 #include <Nifti/Nifti.h>
 #include "QUIT/QUIT.h"
-#include "Model.h"
+#include "Sequence.h"
 
 using namespace std;
 using namespace Eigen;

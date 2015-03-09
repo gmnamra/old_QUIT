@@ -25,8 +25,7 @@
 #include "unsupported/Eigen/NumericalDiff"
 
 #include "Nifti/Nifti.h"
-#include "DESPOT.h"
-#include "Model.h"
+#include "Sequence.h"
 
 using namespace std;
 using namespace Eigen;

@@ -19,8 +19,7 @@
 #include "Eigen/Dense"
 
 #include "Nifti/Nifti.h"
-#include "DESPOT.h"
-#include "Model.h"
+#include "Sequence.h"
 #include "DESPOT_Functors.h"
 #include "QUIT/QUIT.h"
 

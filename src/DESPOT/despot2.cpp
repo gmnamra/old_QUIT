@@ -17,7 +17,6 @@
 
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
-#include "DESPOT.h"
 #include "DESPOT_Functors.h"
 
 using namespace std;

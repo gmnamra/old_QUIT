@@ -10,7 +10,7 @@
  *
  */
 
-#include "Model.h"
+#include "Sequence.h"
 
 const string to_string(const Pools& c) {
 	switch (c) {

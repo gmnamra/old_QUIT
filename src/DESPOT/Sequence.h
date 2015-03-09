@@ -1,5 +1,5 @@
 /*
- *  Model.h
+ *  Sequence.h
  *
  *  Created by Tobias Wood on 14/11/2012.
  *  Copyright (c) 2013 Tobias Wood.
@@ -20,7 +20,7 @@
 #include <Eigen/Dense>
 
 #include "QUIT/QUIT.h"
-#include "DESPOT.h"
+#include "SignalEquations.h"
 
 using namespace std;
 using namespace Eigen;

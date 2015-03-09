@@ -12,7 +12,7 @@
  *
  */
 
-#include "DESPOT.h"
+#include "SignalEquations.h"
 
 // There's a bug in matrix log that leads to duplicate symbol definitions if
 // this is included in the header file
