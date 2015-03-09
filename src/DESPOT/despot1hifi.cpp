@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
 	irFile.open(argv[optind], Nifti::Mode::Read);
 	shared_ptr<MPRAGE> mprage = make_shared<MPRAGE>(prompt);
 
-	Sequences combined(Scale::None);
+	SequenceGroup combined(Scale::None);
 	combined.addSequence(spgrSequence);
 	combined.addSequence(mprage);
 

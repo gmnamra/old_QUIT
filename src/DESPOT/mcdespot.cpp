@@ -102,8 +102,8 @@ static const char* short_options = "hvm:o:f:b:s:p:S:t:FT:M:xcrn123i:j:";
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-Nifti::Header parseInput(Sequences &seq, vector<MultiArray<complex<float>, 4>> &signalVols);
-Nifti::Header parseInput(Sequences &seq, vector<MultiArray<complex<float>, 4>> &signalVols)
+Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4>> &signalVols);
+Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4>> &signalVols)
 {
 	Nifti::Header hdr;
 	string type, path;
@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	Sequences sequences(scale);
+	SequenceGroup sequences(scale);
 	// Build a Functor here so we can query number of parameters etc.
 	cout << "Using " << to_string(pools) << " component sequences." << endl;
 	vector<MultiArray<complex<float>, 4>> signalVols;

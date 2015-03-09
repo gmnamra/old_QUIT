@@ -290,36 +290,36 @@ ArrayXcd SSFPEllipse::signal(const Pools np, const VectorXd &p, const double B1)
 //******************************************************************************
 #pragma mark Sequences Class
 //******************************************************************************
-Sequences::Sequences(const Scale s) :
+SequenceGroup::SequenceGroup(const Scale s) :
 	SequenceBase(), m_scaling(s)
 {}
 
-void Sequences::write(ostream &os) const {
+void SequenceGroup::write(ostream &os) const {
 	os << "Combined Sequence Count: " << m_sequences.size() << "\tCombined size: " << size() << endl;
 	for (auto& s : m_sequences)
 		os << *s;
 }
 
-size_t Sequences::count() const {
+size_t SequenceGroup::count() const {
 	return m_sequences.size();
 }
 
-shared_ptr<Sequence> Sequences::sequence(const size_t i) const {
+shared_ptr<Sequence> SequenceGroup::sequence(const size_t i) const {
 	return m_sequences.at(i);
 }
 
-vector<shared_ptr<Sequence>> &Sequences::sequences() {
+vector<shared_ptr<Sequence>> &SequenceGroup::sequences() {
 	return m_sequences;
 }
 
-size_t Sequences::size() const {
+size_t SequenceGroup::size() const {
 	size_t sz = 0;
 	for (auto& sig : m_sequences)
 		sz += sig->size();
 	return sz;
 }
 
-ArrayXcd Sequences::signal(const Pools np, const VectorXd &p, const double B1) const {
+ArrayXcd SequenceGroup::signal(const Pools np, const VectorXd &p, const double B1) const {
 	ArrayXcd result(size());
 	size_t start = 0;
 	for (auto &sig : m_sequences) {
@@ -334,7 +334,7 @@ ArrayXcd Sequences::signal(const Pools np, const VectorXd &p, const double B1) c
 	return result;
 }
 
-double Sequences::minTR() const {
+double SequenceGroup::minTR() const {
 	double minTR = numeric_limits<double>::max();
 	for (auto &s : m_sequences) {
 		if (s->m_TR < minTR)
@@ -419,7 +419,7 @@ const bool PoolInfo::ValidParameters(const Pools p, const VectorXd &params) {
 	}
 }
 
-ArrayXcd Sequences::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs,
+ArrayXcd SequenceGroup::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs,
                                 const size_t i, const size_t j, const size_t k,
                                 const bool flip) const {
 	ArrayXcd signal(size());
@@ -438,6 +438,6 @@ ArrayXcd Sequences::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sig
 	return signal;
 }
 
-void Sequences::addSequence(const shared_ptr<Sequence> &seq) {
+void SequenceGroup::addSequence(const shared_ptr<Sequence> &seq) {
 	m_sequences.push_back(seq);
 }

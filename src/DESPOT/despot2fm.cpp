@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	size_t nFiles = argc - optind;
 	vector<MultiArray<complex<float>, 4>> ssfpData(nFiles);
-	Sequences sequences(scale);
+	SequenceGroup sequences(scale);
 	VectorXd inFlip;
 	for (size_t p = 0; p < nFiles; p++) {
 		if (verbose) cout << "Reading SSFP header from " << argv[optind] << endl;

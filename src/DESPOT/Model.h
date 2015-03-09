@@ -130,14 +130,14 @@ class SSFPEllipse : public Sequence {
 
 enum class OffRes { Fit, FitSym, Map }; // Put this here so mcdespot and despot2fm can access it
 
-class Sequences : public SequenceBase {
+class SequenceGroup : public SequenceBase {
 private:
 	Pools m_nC;
 	Scale m_scaling;
 	vector<shared_ptr<Sequence>> m_sequences;
 
 public:
-	Sequences(const Scale s);
+	SequenceGroup(const Scale s);
 	void write(ostream &os) const override;
 	string name() const override { return "Sequences"; } ;
 

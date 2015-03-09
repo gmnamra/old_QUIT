@@ -69,8 +69,8 @@ static struct option long_options[] = {
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-void parseInput(Sequences &cs, vector<string> &names);
-void parseInput(Sequences &cs, vector<string> &names) {
+void parseInput(SequenceGroup &cs, vector<string> &names);
+void parseInput(SequenceGroup &cs, vector<string> &names) {
 	string input;
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
 	while (getline(cin, input) && (input != "END") && (input != "")) {
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	#pragma mark  Set up sequences
 	//**************************************************************************
-	Sequences sequences(Scale::None);
+	SequenceGroup sequences(Scale::None);
 	vector<string> filenames;
 	parseInput(sequences, filenames);
 	cout << sequences << endl;
