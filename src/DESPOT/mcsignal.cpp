@@ -71,27 +71,26 @@ static struct option long_options[] = {
 //******************************************************************************
 void parseInput(Sequences &cs, vector<string> &names);
 void parseInput(Sequences &cs, vector<string> &names) {
-	string type;
+	string input;
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
-	while (getline(cin, type) && (type != "END") && (type != "")) {
-		if (type != "SPGR" && type != "SSFP") {
-			throw(std::runtime_error("Unknown signal type: " + type));
+	while (getline(cin, input) && (input != "END") && (input != "")) {
+		if (input == "SPGR") {
+			cs.addSequence(make_shared<SPGRSimple>(prompt));
+		} else if (input == "SPGRFinite") {
+			cs.addSequence(make_shared<SPGRFinite>(prompt));
+		} else if (input == "SSFP") {
+			cs.addSequence(make_shared<SSFPSimple>(prompt));
+		} else if (input == "SSFPFinite") {
+			cs.addSequence(make_shared<SSFPFinite>(prompt));
+		} else if (input == "SSFPEllipse") {
+			cs.addSequence(make_shared<SSFPEllipse>(prompt));
+		} else {
+			throw(std::runtime_error("Unknown signal type: " + input));
 		}
-		if (prompt) cout << "Enter output filename: " << flush;
-		string filename;
-		getline(cin, filename);
-		names.push_back(filename);
-		if ((type == "SPGR") && !finitesequences) {
-			cs.addSequence(SequenceType::SPGR, prompt);
-		} else if ((type == "SPGR" && finitesequences)) {
-			cs.addSequence(SequenceType::SPGR_Finite, prompt);
-		} else if ((type == "SSFP" && !finitesequences)) {
-			cs.addSequence(SequenceType::SSFP, prompt);
-		} else if ((type == "SSFP" && finitesequences)) {
-			cs.addSequence(SequenceType::SSFP_Finite, prompt);
-		}
+		if (prompt) cout << "Enter output filename: " << flush; getline(cin, input);
+		names.push_back(input);
+		getline(cin, input); // Just to eat the newline
 		// Print message ready for next loop
-		string temp; getline(cin, temp); // Just to eat the newline
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
 }

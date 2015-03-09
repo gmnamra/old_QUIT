@@ -166,9 +166,9 @@ int main(int argc, char **argv)
 	Agilent::ProcPar pp; ReadPP(SSFPFile, pp);
 	if (verbose) cout << "Reading sequence parameters." << endl;
 	if (elliptical) {
-		ssfp.addSequence(SequenceType::SSFP_Ellipse, prompt, pp);
+		ssfp.addSequence(make_shared<SSFPEllipse>(prompt, pp));
 	} else {
-		ssfp.addSequence(SequenceType::SSFP, prompt, pp);
+		ssfp.addSequence(make_shared<SSFPSimple>(prompt, pp));
 	}
 	if (ssfp.size() != SSFPFile.header().dim(4)) {
 		throw(std::runtime_error("The specified number of flip-angles and phase-cycles does not match the input file: " + SSFPFile.imagePath()));

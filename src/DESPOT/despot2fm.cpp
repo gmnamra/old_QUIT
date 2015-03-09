@@ -207,9 +207,9 @@ int main(int argc, char **argv)
 		checkHeaders(inFile.header(), {T1File});
 		Agilent::ProcPar pp; ReadPP(inFile, pp);
 		if (fitFinite) {
-			sequences.addSequence(SequenceType::SSFP_Finite, prompt, pp);
+			sequences.addSequence(make_shared<SSFPFinite>(prompt, pp));
 		} else {
-			sequences.addSequence(SequenceType::SSFP, prompt, pp);
+			sequences.addSequence(make_shared<SSFPSimple>(prompt, pp));
 		}
 		if (sequences.sequence(sequences.count() - 1)->size() != inFile.dim(4)) {
 			throw(std::runtime_error("Number of volumes in file " + inFile.imagePath() + " does not match input."));

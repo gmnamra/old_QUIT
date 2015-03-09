@@ -128,7 +128,6 @@ class SSFPEllipse : public Sequence {
 		string name() const override { return "SSFP_Ellipse"; };
 };
 
-enum class SequenceType { SPGR, SPGR_Finite, SSFP, SSFP_Finite, SSFP_Ellipse };
 enum class OffRes { Fit, FitSym, Map }; // Put this here so mcdespot and despot2fm can access it
 
 class Sequences : public SequenceBase {
@@ -152,7 +151,7 @@ public:
 	double minTR() const;
 	ArrayXcd loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k, bool needsFlip = false) const;
 	
-	void addSequence(const SequenceType &st, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+	//void addSequence(const SequenceType &st, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
 	void addSequence(const shared_ptr<Sequence> &seq);
 };
 

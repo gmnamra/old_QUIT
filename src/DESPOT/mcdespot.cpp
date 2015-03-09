@@ -123,13 +123,13 @@ Nifti::Header parseInput(Sequences &seq, vector<MultiArray<complex<float>, 4>> &
 		if (verbose) cout << "Opened: " << inFile.imagePath() << endl;
 		Agilent::ProcPar pp; ReadPP(inFile, pp);
 		if ((type == "SPGR") && !fitFinite) {
-			seq.addSequence(SequenceType::SPGR, prompt, pp);
+			seq.addSequence(make_shared<SPGRSimple>(prompt, pp));
 		} else if ((type == "SPGR" && fitFinite)) {
-			seq.addSequence(SequenceType::SPGR_Finite, prompt, pp);
+			seq.addSequence(make_shared<SPGRFinite>(prompt, pp));
 		} else if ((type == "SSFP" && !fitFinite)) {
-			seq.addSequence(SequenceType::SSFP, prompt, pp);
+			seq.addSequence(make_shared<SSFPSimple>(prompt, pp));
 		} else if ((type == "SSFP" && fitFinite)) {
-			seq.addSequence(SequenceType::SSFP_Finite, prompt, pp);
+			seq.addSequence(make_shared<SSFPFinite>(prompt, pp));
 		}
 		if (seq.sequence(seq.count() - 1)->size() != inFile.dim(4)) {
 			throw(std::runtime_error("Number of volumes in file " + inFile.imagePath() + " does not match input."));

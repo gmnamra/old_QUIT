@@ -438,17 +438,6 @@ ArrayXcd Sequences::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sig
 	return signal;
 }
 
-
-void Sequences::addSequence(const SequenceType &st, const bool prompt, const Agilent::ProcPar &pp) {
-	switch (st) {
-		case SequenceType::SPGR:         m_sequences.push_back(make_shared<SPGRSimple>(prompt, pp)); break;
-		case SequenceType::SPGR_Finite:  m_sequences.push_back(make_shared<SPGRFinite>(prompt, pp)); break;
-		case SequenceType::SSFP:         m_sequences.push_back(make_shared<SSFPSimple>(prompt, pp)); break;
-		case SequenceType::SSFP_Finite:  m_sequences.push_back(make_shared<SSFPFinite>(prompt, pp)); break;
-		case SequenceType::SSFP_Ellipse: m_sequences.push_back(make_shared<SSFPEllipse>(prompt, pp)); break;
-	}
-}
-
 void Sequences::addSequence(const shared_ptr<Sequence> &seq) {
 	m_sequences.push_back(seq);
 }
