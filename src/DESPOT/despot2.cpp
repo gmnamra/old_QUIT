@@ -14,10 +14,12 @@
 #include <iostream>
 #include <atomic>
 #include <Eigen/Dense>
+#include <unsupported/Eigen/LevenbergMarquardt>
+#include <unsupported/Eigen/NumericalDiff>
 
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
-#include "DESPOT_Functors.h"
+#include "Sequence.h"
 
 using namespace std;
 using namespace Eigen;
@@ -76,6 +78,46 @@ static struct option long_opts[] =
 	{0, 0, 0, 0}
 };
 static const char *short_opts = "hm:o:b:t:c:vna:i:T:er";
+
+//******************************************************************************
+// T2 Only Functor
+//******************************************************************************
+class D2Functor : public DenseFunctor<double> {
+	public:
+		SequenceBase &m_sequence;
+		ArrayXcd m_data;
+		const double m_T1, m_B1;
+		const bool m_complex, m_debug;
+
+		D2Functor(const double T1, SequenceBase &s, const ArrayXcd &d, const double B1, const bool fitComplex, const bool debug = false) :
+			DenseFunctor<double>(3, s.size()),
+			m_sequence(s), m_data(d), m_complex(fitComplex), m_debug(debug),
+			m_T1(T1), m_B1(B1)
+		{
+			assert(static_cast<size_t>(m_data.rows()) == values());
+		}
+
+		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
+			eigen_assert(diffs.size() == values());
+
+			Array4d fullparams;
+			fullparams << params(0), m_T1, params(1), params(2);
+			ArrayXcd s = m_sequence.signal(Pools::One, fullparams, m_B1);
+			if (m_complex) {
+				diffs = (s - m_data).abs();
+			} else {
+				diffs = s.abs() - m_data.abs();
+			}
+			if (m_debug) {
+				cout << endl << __PRETTY_FUNCTION__ << endl;
+				cout << "p:     " << params.transpose() << endl;
+				cout << "s:     " << s.transpose() << endl;
+				cout << "data:  " << m_data.transpose() << endl;
+				cout << "diffs: " << diffs.transpose() << endl;
+			}
+			return 0;
+		}
+};
 
 //******************************************************************************
 // Main
@@ -249,7 +291,7 @@ int main(int argc, char **argv)
 						}
 					}
 				} else if (algo == Algos::NLLS) {
-					D2Functor f(T1, ssfp, Pools::One, data, B1, false, false);
+					D2Functor f(T1, ssfp, data, B1, false, false);
 					NumericalDiff<D2Functor> nDiff(f);
 					LevenbergMarquardt<NumericalDiff<D2Functor>> lm(nDiff);
 					lm.setMaxfev(nIterations);

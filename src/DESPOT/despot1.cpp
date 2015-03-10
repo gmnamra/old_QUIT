@@ -15,11 +15,12 @@
 #include <iostream>
 #include <atomic>
 #include <Eigen/Dense>
+#include <unsupported/Eigen/LevenbergMarquardt>
+#include <unsupported/Eigen/NumericalDiff>
 
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
 #include "Sequence.h"
-#include "DESPOT_Functors.h"
 
 using namespace std;
 using namespace Eigen;
@@ -72,6 +73,40 @@ static struct option long_options[] =
 	{0, 0, 0, 0}
 };
 static const char *short_opts = "hvnm:o:b:t:c:a:i:T:r";
+
+// T1 only Functor
+class T1Functor : public DenseFunctor<double> {
+	protected:
+		const SequenceBase &m_sequence;
+		const ArrayXd m_data;
+		const bool m_debug;
+		const double m_B1;
+
+	public:
+		T1Functor(SequenceBase &cs, const ArrayXd &data,
+		          const double B1, const bool debug) :
+			DenseFunctor<double>(2, cs.size()),
+			m_sequence(cs), m_data(data),
+			m_B1(B1), m_debug(debug)
+		{
+			assert(static_cast<size_t>(m_data.rows()) == values());
+		}
+
+		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
+			eigen_assert(diffs.size() == values());
+			ArrayXcd s = m_sequence.signal(Pools::One, params, m_B1);
+			diffs = s.abs() - m_data;
+			if (m_debug) {
+				cout << endl << __PRETTY_FUNCTION__ << endl;
+				cout << "p:     " << params.transpose() << endl;
+				cout << "s:     " << s.transpose() << endl;
+				cout << "data:  " << m_data.transpose() << endl;
+				cout << "diffs: " << diffs.transpose() << endl;
+			}
+			return 0;
+		}
+};
+
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -196,9 +231,9 @@ int main(int argc, char **argv) {
 						PD = b[1] / (1. - b[0]);
 					}
 				} else if (algo == Algos::NLLS) {
-					DESPOTFunctor f(spgrSequence, Pools::One, signal.cast<complex<double>>(), B1, false, false);
-					NumericalDiff<DESPOTFunctor> nDiff(f);
-					LevenbergMarquardt<NumericalDiff<DESPOTFunctor>> lm(nDiff);
+					T1Functor f(spgrSequence, signal, B1, false);
+					NumericalDiff<T1Functor> nDiff(f);
+					LevenbergMarquardt<NumericalDiff<T1Functor>> lm(nDiff);
 					lm.setMaxfev(nIterations);
 					VectorXd p(4);
 					p << PD, T1, 0., 0.; // Don't need T2 of f0 for this (yet)

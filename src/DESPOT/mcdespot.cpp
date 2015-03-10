@@ -16,10 +16,12 @@
 #include <time.h>
 #include <fstream>
 #include <Eigen/Dense>
+#include <unsupported/Eigen/LevenbergMarquardt>
+#include <unsupported/Eigen/NumericalDiff>
 
 #include "Nifti/Nifti.h"
-#include "DESPOT_Functors.h"
 #include "QUIT/QUIT.h"
+#include "Sequence.h"
 #include "RegionContraction.h"
 
 using namespace std;
@@ -145,6 +147,47 @@ Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4
 	}
 	return hdr;
 }
+
+class MCDFunctor : public DenseFunctor<double> {
+	public:
+		const SequenceBase &m_sequence;
+		const ArrayXcd &m_data;
+		const Pools m_p;
+		const bool m_complex, m_debug;
+		const double m_B1;
+
+		MCDFunctor(SequenceBase &s, const Pools p, const ArrayXcd &d,
+		           const double B1, const bool fitComplex, const bool debug = false) :
+			DenseFunctor<double>(PoolInfo::nParameters(p), s.size()),
+			m_sequence(s), m_p(p), m_data(d),
+			m_B1(B1), m_complex(fitComplex), m_debug(debug)
+		{
+			assert(static_cast<size_t>(m_data.rows()) == values());
+		}
+
+		const bool constraint(const VectorXd &params) const {
+			return PoolInfo::ValidParameters(m_p, params);
+		}
+
+		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
+			eigen_assert(diffs.size() == values());
+			ArrayXcd s = m_sequence.signal(m_p, params, m_B1);
+			if (m_complex) {
+				diffs = (s - m_data).abs();
+			} else {
+				diffs = s.abs() - m_data.abs();
+			}
+			if (m_debug) {
+				cout << endl << __PRETTY_FUNCTION__ << endl;
+				cout << "p:     " << params.transpose() << endl;
+				cout << "s:     " << s.transpose() << endl;
+				cout << "data:  " << m_data.transpose() << endl;
+				cout << "diffs: " << diffs.transpose() << endl;
+			}
+			return 0;
+		}
+};
+
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -318,8 +361,8 @@ int main(int argc, char **argv) {
 					localBounds.row(PoolInfo::nParameters(pools) - 1).setConstant(f0Vol[{i,j,k}]);
 				}
 				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-				DESPOTFunctor func(sequences, pools, signal, B1, fitComplex, false);
-				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
+				MCDFunctor func(sequences, pools, signal, B1, fitComplex, false);
+				RegionContraction<MCDFunctor> rc(func, localBounds, weights, threshes,
 													samples, retain, contract, expand, (voxI != 0));
 				ArrayXd params(PoolInfo::nParameters(pools));
 				rc.optimise(params); // Add the voxel number to the time to get a decent random seed

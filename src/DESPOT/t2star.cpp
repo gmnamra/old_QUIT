@@ -15,32 +15,16 @@
 #include <iostream>
 #include <atomic>
 #include <Eigen/Dense>
+#include <unsupported/Eigen/LevenbergMarquardt>
+#include <unsupported/Eigen/NumericalDiff>
 
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
-#include "DESPOT_Functors.h"
+#include "SignalEquations.h"
 
 using namespace std;
 using namespace Eigen;
 using namespace QUIT;
-
-class T2starFunctor : public DenseFunctor<double> {
-	protected:
-		const ArrayXd &m_echotimes;
-		const ArrayXd &m_data;
-	public:
-		const long inputs() const { return 2; }
-		const long values() const { return m_data.rows(); }
-
-		T2starFunctor(const ArrayXd &echos, const ArrayXd &data) : m_echotimes(echos), m_data(data) {};
-
-		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
-			double T2star = params[0];
-			double PD = params[1];
-			diffs = m_data - PD * (-m_echotimes / T2star).exp();
-			return 0;
-		};
-};
 
 //******************************************************************************
 // Arguments / Usage
@@ -177,19 +161,6 @@ int main(int argc, char **argv) {
 				VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
 				T2star = -1 / b[0];
 				PD = exp(b[1]);
-
-				/*T2starFunctor f(X.col(0).array(), signal);
-				NumericalDiff<T2starFunctor> nDiff(f);
-				LevenbergMarquardt<NumericalDiff<T2starFunctor>> lm(nDiff);
-				lm.parameters.maxfev = 20;
-				VectorXd p(2);
-				p << T2star, PD;
-				lm.lmder1(p);
-				T2star = p(0); PD = p(1);
-				if (PD < thresh) {
-					PD = 0.;
-					T2star = 0.;
-				}*/
 				if (PD < thresh) {
 					PD = 0.;
 					T2star = 0.;
