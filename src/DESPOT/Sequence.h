@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef DESPOT_Model
-#define DESPOT_Model
+#ifndef DESPOT_SEQUENCE
+#define DESPOT_SEQUENCE
 
 #include <string>
 #include <iostream>

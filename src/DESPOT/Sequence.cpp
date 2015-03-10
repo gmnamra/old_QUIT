@@ -1,5 +1,5 @@
 /*
- *  Sequences.cpp
+ *  Sequence.cpp
  *
  *  Created by Tobias Wood on 14/11/2012.
  *  Copyright (c) 2013 Tobias Wood.
