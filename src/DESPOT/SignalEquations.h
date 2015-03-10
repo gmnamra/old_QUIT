@@ -1,5 +1,5 @@
 /*
- *  DESPOT.h
+ *  SignalEquations.h
  *
  *  Created by Tobias Wood on 17/10/2011.
  *  Copyright (c) 2011-2013 Tobias Wood.
@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef DESPOT_DESPOT
-#define DESPOT_DESPOT
+#ifndef DESPOT_SIGEQU
+#define DESPOT_SIGEQU
 
 #include <iostream>
 #include <exception>
@@ -68,5 +68,6 @@ MagVector Three_SPGR(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1_a, cdbl T1_b
 MagVector Three_SSFP(const ArrayXd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1_a, cdbl T2_a, cdbl T1_b, cdbl T2_b, cdbl T1_c, cdbl T2_c, cdbl tau_a, cdbl f_a, cdbl f_c, cdbl f0);
 MagVector Three_SSFP_Finite(const ArrayXd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl TE, cdbl ph,
                             cdbl PD, cdbl T1_a, cdbl T2_a, cdbl T1_b, cdbl T2_b, cdbl T1_c, cdbl T2_c,
-							cdbl tau_a, cdbl f_a, cdbl f_c, cdbl f0);
+                            cdbl tau_a, cdbl f_a, cdbl f_c, cdbl f0);
+
 #endif
