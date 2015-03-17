@@ -88,11 +88,12 @@ class D2Functor : public DenseFunctor<double> {
 		ArrayXcd m_data;
 		const double m_T1, m_B1;
 		const bool m_complex, m_debug;
+		const shared_ptr<SCD> m_model = make_shared<SCD>();
 
 		D2Functor(const double T1, SequenceBase &s, const ArrayXcd &d, const double B1, const bool fitComplex, const bool debug = false) :
 			DenseFunctor<double>(3, s.size()),
 			m_sequence(s), m_data(d), m_complex(fitComplex), m_debug(debug),
-			m_T1(T1), m_B1(B1)
+			m_T1(T1), m_B1(B1), m_model()
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}
@@ -102,7 +103,7 @@ class D2Functor : public DenseFunctor<double> {
 
 			Array4d fullparams;
 			fullparams << params(0), m_T1, params(1), params(2);
-			ArrayXcd s = m_sequence.signal(Pools::One, fullparams, m_B1);
+			ArrayXcd s = m_sequence.signal(m_model, fullparams, m_B1);
 			if (m_complex) {
 				diffs = (s - m_data).abs();
 			} else {
@@ -130,6 +131,7 @@ int main(int argc, char **argv)
 	MultiArray<double, 3> maskVol, B1Vol;
 	ThreadPool threads;
 	string procPath;
+	shared_ptr<SCD> model;
 
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
@@ -311,7 +313,7 @@ int main(int argc, char **argv)
 					offRes = 0.;
 				}
 				T2 = clamp(T2, clamp_lo, clamp_hi);
-				ArrayXd theory = ssfp.signal(Pools::One, Vector4d(PD, T1, T2, offRes), B1).abs();
+				ArrayXd theory = ssfp.signal(model, Vector4d(PD, T1, T2, offRes), B1).abs();
 				ArrayXd resids = (s - theory);
 				if (all_residuals) {
 					ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = resids.cast<float>();

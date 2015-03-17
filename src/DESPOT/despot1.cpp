@@ -81,20 +81,21 @@ class T1Functor : public DenseFunctor<double> {
 		const ArrayXd m_data;
 		const bool m_debug;
 		const double m_B1;
+		const shared_ptr<SCD> m_model;
 
 	public:
 		T1Functor(SequenceBase &cs, const ArrayXd &data,
 		          const double B1, const bool debug) :
 			DenseFunctor<double>(2, cs.size()),
 			m_sequence(cs), m_data(data),
-			m_B1(B1), m_debug(debug)
+			m_B1(B1), m_debug(debug), m_model()
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}
 
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
-			ArrayXcd s = m_sequence.signal(Pools::One, params, m_B1);
+			ArrayXcd s = m_sequence.signal(m_model, params, m_B1);
 			diffs = s.abs() - m_data;
 			if (m_debug) {
 				cout << endl << __PRETTY_FUNCTION__ << endl;
@@ -118,6 +119,8 @@ int main(int argc, char **argv) {
 	MultiArray<float, 3> B1Vol;
 	MultiArray<int8_t, 3> maskVol;
 	ThreadPool threads;
+	shared_ptr<SCD> model = make_shared<SCD>();
+
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, short_opts, long_options, &indexptr)) != -1) {
 		switch (c) {
@@ -245,7 +248,7 @@ int main(int argc, char **argv) {
 					T1 = 0.;
 				}
 				T1 = clamp(T1, clamp_lo, clamp_hi);
-				ArrayXd theory = spgrSequence.signal(Pools::One, Vector4d(PD, T1, 0., 0.), B1).abs();
+				ArrayXd theory = spgrSequence.signal(model, Vector4d(PD, T1, 0., 0.), B1).abs();
 				ArrayXd resids = (signal - theory);
 				if (all_residuals) {
 					ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = resids.cast<float>();

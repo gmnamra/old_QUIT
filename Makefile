@@ -84,8 +84,8 @@ $(addprefix $(BUILD_DIR)/, $(PYTOOLS)) : $(BUILD_DIR} | $(TOOL_DIR)/$@
 #Rules for DESPOT
 DESPOT      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands phasemap t2star
 DESPOT_DIR  := DESPOT
-DESPOT_SRC  := SignalEquations Sequence
-DESPOT_HDR  := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, SignalEquations.h Sequence.h RegionContraction.h)
+DESPOT_SRC  := SignalEquations Models Sequence
+DESPOT_HDR  := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, SignalEquations.h Models.h Sequence.h RegionContraction.h)
 DESPOT_OBJ  := $(patsubst %, $(BUILD_DIR)/$(DESPOT_DIR)/%.o, $(DESPOT_SRC))
 $(BUILD_DIR)/$(DESPOT_DIR)/%.o : $(SOURCE_DIR)/$(DESPOT_DIR)/%.cpp $(DESPOT_HDR) $(QUIT_HDR) $(NIFTI_HDR) | EIGEN
 	@mkdir -p $(dir $@)

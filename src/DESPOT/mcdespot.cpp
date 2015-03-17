@@ -21,6 +21,7 @@
 
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
+#include "Models.h"
 #include "Sequence.h"
 #include "RegionContraction.h"
 
@@ -65,7 +66,7 @@ Options:\n\
 	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
-static auto pools = Pools::Three;
+static shared_ptr<Model> model = make_shared<MCD3>();
 static auto scale = Scale::NormToMean;
 static auto tesla = FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
@@ -152,26 +153,26 @@ class MCDFunctor : public DenseFunctor<double> {
 	public:
 		const SequenceBase &m_sequence;
 		const ArrayXcd &m_data;
-		const Pools m_p;
 		const bool m_complex, m_debug;
 		const double m_B1;
+		const shared_ptr<Model> m_model;
 
-		MCDFunctor(SequenceBase &s, const Pools p, const ArrayXcd &d,
+		MCDFunctor(SequenceBase &s, const ArrayXcd &d, shared_ptr<Model> m,
 		           const double B1, const bool fitComplex, const bool debug = false) :
-			DenseFunctor<double>(PoolInfo::nParameters(p), s.size()),
-			m_sequence(s), m_p(p), m_data(d),
+			DenseFunctor<double>(m->nParameters(), s.size()),
+			m_sequence(s), m_data(d), m_model(m),
 			m_B1(B1), m_complex(fitComplex), m_debug(debug)
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}
 
 		const bool constraint(const VectorXd &params) const {
-			return PoolInfo::ValidParameters(m_p, params);
+			return m_model->ValidParameters(params);
 		}
 
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
-			ArrayXcd s = m_sequence.signal(m_p, params, m_B1);
+			ArrayXcd s = m_sequence.signal(m_model, params, m_B1);
 			if (m_complex) {
 				diffs = (s - m_data).abs();
 			} else {
@@ -205,9 +206,9 @@ int main(int argc, char **argv) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
-			case '1': pools = Pools::One; break;
-			case '2': pools = Pools::Two; break;
-			case '3': pools = Pools::Three; break;
+			case '1': model = make_shared<SCD>(); break;
+			case '2': model = make_shared<MCD2>(); break;
+			case '3': model = make_shared<MCD3>(); break;
 			case 'm':
 				cout << "Reading mask file " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
@@ -304,36 +305,36 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	SequenceGroup sequences(scale);
 	// Build a Functor here so we can query number of parameters etc.
-	cout << "Using " << to_string(pools) << " component sequences." << endl;
+	if (verbose) cout << "Using " << model->Name() << " model." << endl;
 	vector<MultiArray<complex<float>, 4>> signalVols;
 	Nifti::Header hdr = parseInput(sequences, signalVols);
 	checkHeaders(hdr, {maskFile, f0File, B1File});
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
 	//**************************************************************************
-	MultiArray<float, 4> paramsVols(hdr.matrix(), PoolInfo::nParameters(pools));
+	MultiArray<float, 4> paramsVols(hdr.matrix(), model->nParameters());
 	MultiArray<float, 4> ResidsVols(hdr.matrix(), sequences.size());;
 	MultiArray<float, 3> ResVol(hdr.matrix());
 	
-	ArrayXd threshes(PoolInfo::nParameters(pools)); threshes.setConstant(0.05);
-	ArrayXXd bounds = PoolInfo::Bounds(pools, tesla, sequences.minTR());
+	ArrayXd threshes(model->nParameters()); threshes.setConstant(0.05);
+	ArrayXXd bounds = model->Bounds(tesla, sequences.minTR());
 	if (tesla == FieldStrength::User) {
 		if (prompt) cout << "Enter parameter pairs (low then high)" << endl;
-		for (size_t i = 0; i < PoolInfo::nParameters(pools) - 1; i++) {
-			if (prompt) cout << PoolInfo::Names(pools)[i] << ": " << flush;
+		for (size_t i = 0; i < model->nParameters() - 1; i++) {
+			if (prompt) cout << model->Names()[i] << ": " << flush;
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 	}
 	if (f0fit == OffRes::FitSym) {
-		bounds(PoolInfo::nParameters(pools) - 1, 0) = 0.;
+		bounds(model->nParameters() - 1, 0) = 0.;
 	}
 	ArrayXd weights(sequences.size()); weights.setOnes();
 	if (verbose) {
 		cout << sequences;
 		cout << "Bounds:" << endl <<  bounds.transpose() << endl;
 		ofstream boundsFile(outPrefix + "bounds.txt");
-		for (size_t p = 0; p < PoolInfo::nParameters(pools); p++) {
-			boundsFile << PoolInfo::Names(pools)[p] << "\t" << bounds.row(p) << endl;
+		for (size_t p = 0; p < model->nParameters(); p++) {
+			boundsFile << model->Names()[p] << "\t" << bounds.row(p) << endl;
 		}
 		boundsFile.close();
 	}
@@ -358,13 +359,13 @@ int main(int argc, char **argv) {
 				ArrayXcd signal = sequences.loadSignals(signalVols, i, j, k, flipData);
 				ArrayXXd localBounds = bounds;
 				if (f0fit == OffRes::Map) {
-					localBounds.row(PoolInfo::nParameters(pools) - 1).setConstant(f0Vol[{i,j,k}]);
+					localBounds.row(model->nParameters() - 1).setConstant(f0Vol[{i,j,k}]);
 				}
 				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-				MCDFunctor func(sequences, pools, signal, B1, fitComplex, false);
+				MCDFunctor func(sequences, signal, model, B1, fitComplex, false);
 				RegionContraction<MCDFunctor> rc(func, localBounds, weights, threshes,
 													samples, retain, contract, expand, (voxI != 0));
-				ArrayXd params(PoolInfo::nParameters(pools));
+				ArrayXd params(model->nParameters());
 				rc.optimise(params); // Add the voxel number to the time to get a decent random seed
 				paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
 				ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = rc.residuals().cast<float>();
@@ -397,14 +398,14 @@ int main(int argc, char **argv) {
 	cout << "Finished processing at " << theTime << ". Run-time was " 
 		 << difftime(procEnd, procStart) << " s." << endl;
 	// Residuals can only be written here if we want them to go in a 4D gzipped file
-	outPrefix = outPrefix + to_string(pools) + "C_";
+	outPrefix = outPrefix + model->Name() + "_";
 	hdr.setDim(4, 1);
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
-	for (size_t p = 1; p < PoolInfo::nParameters(pools); p++) { // Skip PD for now
-		hdr.intent_name = PoolInfo::Names(pools).at(p);
-		Nifti::File file(hdr, outPrefix + PoolInfo::Names(pools).at(p) + "" + OutExt());
+	for (size_t p = 1; p < model->nParameters(); p++) { // Skip PD for now
+		hdr.intent_name = model->Names().at(p);
+		Nifti::File file(hdr, outPrefix + model->Names().at(p) + "" + OutExt());
 		auto param = paramsVols.slice<3>({0,0,0,p},{-1,-1,-1,0});
 		file.writeVolumes(param.begin(), param.end());
 		file.close();

@@ -76,18 +76,19 @@ class HIFIFunctor : public DenseFunctor<double> {
 		const SequenceBase &m_sequence;
 		const ArrayXd m_data;
 		const bool m_debug;
+		const shared_ptr<SCD> m_model;
 
 	public:
 		HIFIFunctor(SequenceBase &cs, const ArrayXd &data, const bool debug) :
 			DenseFunctor<double>(3, cs.size()),
-			m_sequence(cs), m_data(data), m_debug(debug)
+			m_sequence(cs), m_data(data), m_debug(debug), m_model()
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}
 
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
-			ArrayXcd s = m_sequence.signal(Pools::One, params.head(2), params(2));
+			ArrayXcd s = m_sequence.signal(m_model, params.head(2), params(2));
 			diffs = s.abs() - m_data;
 			if (m_debug) {
 				cout << endl << __PRETTY_FUNCTION__ << endl;
@@ -112,6 +113,7 @@ int main(int argc, char **argv) {
 	Nifti::File maskFile, spgrFile, irFile;
 	MultiArray<int8_t, 3> maskVol;
 	ThreadPool threads;
+	shared_ptr<SCD> model = make_shared<SCD>();
 
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
@@ -224,7 +226,7 @@ int main(int argc, char **argv) {
 					B1 = 0.;
 				}
 				T1 = clamp(T1, clamp_lo, clamp_hi);
-				ArrayXd theory = combined.signal(Pools::One, Vector2d(PD, T1), B1).abs();
+				ArrayXd theory = combined.signal(model, Vector2d(PD, T1), B1).abs();
 				ArrayXd resids = (combinedSig - theory);
 				res = resids.square().sum();
 			}

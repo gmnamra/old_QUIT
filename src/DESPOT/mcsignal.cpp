@@ -17,6 +17,7 @@
 #include <Eigen/Dense>
 #include <Nifti/Nifti.h>
 #include "QUIT/QUIT.h"
+#include "Models.h"
 #include "Sequence.h"
 
 using namespace std;
@@ -47,7 +48,7 @@ Options:\n\
 	            f     : Use Finite Pulse Length correction.\n"
 };
 
-static auto components = Pools::Three;
+static shared_ptr<Model> model = make_shared<SCD>();
 static bool verbose = false, prompt = true, finitesequences = false;
 static string outPrefix = "";
 static double sigma = 0.;
@@ -132,9 +133,9 @@ int main(int argc, char **argv)
 				B1Vol.resize(B1File.matrix());
 				B1File.readVolumes(B1Vol.begin(), B1Vol.end(), 0, 1);
 				break;
-			case '1': components = Pools::One; break;
-			case '2': components = Pools::Two; break;
-			case '3': components = Pools::Three; break;
+			case '1': model = make_shared<SCD>(); break;
+			case '2': model = make_shared<MCD2>(); break;
+			case '3': model = make_shared<MCD3>(); break;
 			case 'M':
 				switch (*optarg) {
 					case 's': finitesequences = false; if (prompt) cout << "Simple sequences selected." << endl; break;
@@ -168,19 +169,19 @@ int main(int argc, char **argv)
 	#pragma mark Read in parameter files
 	//**************************************************************************
 	// Build a Functor here so we can query number of parameters etc.
-	cout << "Using " << to_string(components) << " component sequences." << endl;
+	cout << "Using " << model->Name() << " model." << endl;
 	MultiArray<float, 4> paramsVols;
 	Nifti::Header templateHdr;
 	if (prompt) cout << "Loading parameters." << endl;
-	for (size_t i = 0; i < PoolInfo::nParameters(Pools::One); i++) {
-		if (prompt) cout << "Enter path to " << PoolInfo::Names(Pools::One)[i] << " file: " << flush;
+	for (size_t i = 0; i < model->nParameters(); i++) {
+		if (prompt) cout << "Enter path to " << model->Names()[i] << " file: " << flush;
 		string filename; cin >> filename;
 		cout << "Opening " << filename << endl;
 		Nifti::File input(filename);
 
 		if (i == 0) {
 			templateHdr = input.header();
-			paramsVols = MultiArray<float, 4>(input.matrix(), PoolInfo::nParameters(Pools::One));
+			paramsVols = MultiArray<float, 4>(input.matrix(), model->nParameters());
 		} else {
 			if (!input.header().matchesSpace(templateHdr)) {
 				cout << "Mismatched input volumes" << endl;
@@ -204,7 +205,7 @@ int main(int argc, char **argv)
 					ArrayXd params = paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
 					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 					for (size_t s = 0; s < sequences.count(); s++) {
-						ArrayXcd signal = sequences.sequences()[s]->signal(components, params, B1);
+						ArrayXcd signal = sequences.sequences()[s]->signal(model, params, B1);
 						ArrayXcd noise(sequences.size());
 						noise.real() = (ArrayXd::Ones(sequences.size()) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
 						noise.imag() = (ArrayXd::Ones(sequences.size()) * sigma).unaryExpr(function<double(double)>(randNorm<double>));

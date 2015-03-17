@@ -20,6 +20,7 @@
 
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
+#include "Models.h"
 #include "Sequence.h"
 #include "RegionContraction.h"
 
@@ -92,6 +93,7 @@ static struct option long_options[] = {
 class FMFunctor : public DenseFunctor<double> {
 	public:
 		SequenceBase &m_sequence;
+		shared_ptr<SCD> m_model = make_shared<SCD>();
 		ArrayXcd m_data;
 		const double m_T1, m_B1;
 		const bool m_complex, m_debug;
@@ -107,7 +109,7 @@ class FMFunctor : public DenseFunctor<double> {
 		const bool constraint(const VectorXd &params) const {
 			Array4d fullparams;
 			fullparams << params(0), m_T1, params(1), params(2);
-			return PoolInfo::ValidParameters(Pools::One, fullparams);
+			return m_model->ValidParameters(fullparams);
 		}
 
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
@@ -115,7 +117,7 @@ class FMFunctor : public DenseFunctor<double> {
 
 			Array4d fullparams;
 			fullparams << params(0), m_T1, params(1), params(2);
-			ArrayXcd s = m_sequence.signal(Pools::One, fullparams, m_B1);
+			ArrayXcd s = m_sequence.signal(m_model, fullparams, m_B1);
 			if (m_complex) {
 				diffs = (s - m_data).abs();
 			} else {
@@ -380,30 +382,31 @@ int main(int argc, char **argv)
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
+	shared_ptr<SCD> model;
 	if (scale == Scale::None) {
-		hdr.intent_name = PoolInfo::Names(Pools::One).at(0);
-		Nifti::File out(hdr, outPrefix + PoolInfo::Names(Pools::One).at(0) + OutExt());
+		hdr.intent_name = model->Names().at(0);
+		Nifti::File out(hdr, outPrefix + model->Names().at(0) + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		hdr.intent_name = PoolInfo::Names(Pools::One).at(2);
-		out.open(outPrefix + PoolInfo::Names(Pools::One).at(2) + OutExt(), Nifti::Mode::Write);
+		hdr.intent_name = model->Names().at(2);
+		out.open(outPrefix + model->Names().at(2) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		hdr.intent_name = PoolInfo::Names(Pools::One).at(3);
-		out.open(outPrefix + PoolInfo::Names(Pools::One).at(3) + OutExt(), Nifti::Mode::Write);
+		hdr.intent_name = model->Names().at(3);
+		out.open(outPrefix + model->Names().at(3) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,2},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
 	} else {
-		hdr.intent_name = PoolInfo::Names(Pools::One).at(2);
-		Nifti::File out(hdr, outPrefix + PoolInfo::Names(Pools::One).at(2) + OutExt());
+		hdr.intent_name = model->Names().at(2);
+		Nifti::File out(hdr, outPrefix + model->Names().at(2) + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		hdr.intent_name = PoolInfo::Names(Pools::One).at(3);
-		out.open(outPrefix + PoolInfo::Names(Pools::One).at(3) + OutExt(), Nifti::Mode::Write);
+		hdr.intent_name = model->Names().at(3);
+		out.open(outPrefix + model->Names().at(3) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
