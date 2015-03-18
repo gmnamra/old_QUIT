@@ -40,7 +40,8 @@ Main Options:\n\
 	                C    : Set the datatype to 64 bit complex\n\
 	                NNN  : Set the datatype to the given valid Nifti datatype\n\
 	--xform, -x FILE : Copy header transform from another Nifti\n\
-	--dims, -d N     : Set number of dimensions (max 7, default 3)\n\
+	--rank, -r N     : Set number of dimensions (max 5, default 3)\n\
+	--dims, -d \"N N N\"    : Set the dimensions (default 16 16 16)\n\
 	--voxdims, -v \"X X X\" : Set the voxel dimensions (default 1mm iso)\n\
 	--tr,  -t X             : Set the TR (default 1s)\n\
 File Content Options:\n\
@@ -67,6 +68,7 @@ static struct option long_opts[] = {
 	{"help",    no_argument,       0, 'h'},
 	{"precision", required_argument, 0, 'p'},
 	{"xform",   required_argument, 0, 'x'},
+	{"rank",    required_argument, 0, 'r'},
 	{"dims",    required_argument, 0, 'd'},
 	{"voxdims", required_argument, 0, 'v'},
 	{"tr",      required_argument, 0, 't'},
@@ -80,7 +82,7 @@ static struct option long_opts[] = {
 	{"gauss",   required_argument, 0, 'G'},
 	{0, 0, 0, 0}
 };
-static const char* short_opts = "p:d:t:x:bzv:l:g:s:U:G:h";
+static const char* short_opts = "p:r:d:t:x:bzv:l:g:s:U:G:h";
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -89,8 +91,9 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	size_t expected_extra_args = 4;
-
+	size_t expected_extra_args = 1;
+	typedef MultiArray<float, 5>::Index ind_t;
+	ind_t dims; dims.setOnes();
 	ArrayXf voxdims(5); voxdims.setOnes();
 
 	int indexptr = 0, c;
@@ -107,19 +110,26 @@ int main(int argc, char **argv)
 				Nifti::File other(optarg);
 				xform = other.header().transform();
 			} break;
-			case 'd':
+			case 'r':
 				ndims = atoi(optarg);
 				if ((ndims < 2) || (ndims > 5)) {
 					cerr << "Invalid number of dimensions. Must be 2-5." << endl;
 					return EXIT_FAILURE;
 				}
 				break;
-			case 'b': isBlank = true; break;
+			case 'd': {
+				string vals(optarg);
+				stringstream valstream(vals);
+				Array<unsigned long, Dynamic, 1> test(ndims);
+				QUIT::Read<Array<unsigned long, Dynamic, 1>>::FromLine(valstream, test);
+				dims.head(ndims) = test;
+			} break;
 			case 'v': {
 				string vals(optarg);
 				stringstream valstream(vals);
 				QUIT::Read<ArrayXf>::FromLine(valstream, voxdims.head(3));
 			} break;
+			case 'b': isBlank = true; break;
 			case 't': voxdims[3] = atof(optarg); break;
 			case 'l': fillTypes.at(atoi(optarg)) = FillType::Slab; expected_extra_args += 3; break;
 			case 'g': fillTypes.at(atoi(optarg)) = FillType::Gradient; expected_extra_args += 2; break;
@@ -137,9 +147,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 	string fName(argv[optind++]);
-	typedef MultiArray<float, 5>::Index ind_t;
-	ind_t dims; dims.setOnes();
-	for (size_t i = 0; i < ndims; i++) { dims[i] = atoi(argv[optind++]); }
+
 	Nifti::Header hdr(dims, voxdims, dType);
 	hdr.setTransform(xform);
 	Nifti::File file(hdr, fName);
