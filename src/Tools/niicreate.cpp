@@ -18,13 +18,14 @@
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
 using namespace std;
+using namespace Eigen;
 using namespace QUIT;
 
 //******************************************************************************
 // Arguments / Usage
 //******************************************************************************
 const string usage {
-"Usage is: niicreate [options] filename dims voxdims [extra arguments]\n\
+"Usage is: niicreate filename dims voxdims [options]\n\
 \n\
 This is a tool to create Nifti files, either blank headers with orientation\n\
 information, e.g. for registration, or files filled with simple patterns of\n\
@@ -34,11 +35,12 @@ else.\n\
 \n\
 Main Options:\n\
 	--help, -h       : Print this message\n\
-	--dtype, -t F    : Set the datatype to 64 bit float (default)\n\
+	--dtype, -t F    : Set the datatype to 32 bit float (default)\n\
 	            I    : Set the datatype to 16 bit int\n\
-	            C    : Set the datatype to 128 bit complex\n\
+	            C    : Set the datatype to 64 bit complex\n\
 	            NNN  : Set the datatype to the given valid Nifti datatype\n\
 	--xform, -x FILE : Copy header transform from another Nifti\n\
+	--dims, -d N     : Set number of dimensions (max 7, default 3)\n\
 File Content Options:\n\
 	--blank, -b     : Create the header information only\n\
 	--value, -v D   : Fill dimension D with constant value v (val)\n\
@@ -58,20 +60,21 @@ static vector<uniform_real_distribution<float>> uniforms(4);
 static vector<normal_distribution<float>> gauss(4);
 static Nifti::DataType dType = Nifti::DataType::FLOAT64;
 static Eigen::Affine3f xform = Eigen::Affine3f::Identity();
-static struct option long_options[] = {
-	{"help", no_argument, 0, 'h'},
-	{"dtype", required_argument, 0, 't'},
-	{"xform", required_argument, 0, 'x'},
-	{"blank", no_argument, 0, 'b'},
-	{"zero", no_argument, 0, 'z'},
-	{"value", required_argument, 0, 'v'},
-	{"slab", required_argument, 0, 'l'},
-	{"grad", required_argument, 0, 'g'},
-	{"step", required_argument, 0, 's'},
+static struct option long_opts[] = {
+	{"help",    no_argument,       0, 'h'},
+	{"dtype",   required_argument, 0, 't'},
+	{"xform",   required_argument, 0, 'x'},
+	{"blank",   no_argument,       0, 'b'},
+	{"zero",    no_argument,       0, 'z'},
+	{"value",   required_argument, 0, 'v'},
+	{"slab",    required_argument, 0, 'l'},
+	{"grad",    required_argument, 0, 'g'},
+	{"step",    required_argument, 0, 's'},
 	{"uniform", required_argument, 0,'U'},
-	{"gauss", required_argument, 0, 'G'},
+	{"gauss",   required_argument, 0, 'G'},
 	{0, 0, 0, 0}
 };
+static const char* short_opts = "d:t:x:bzv:l:g:s:U:G:h";
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -82,7 +85,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	size_t expected_extra_args = 9;
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "d:t:x:bzv:l:g:s:U:G:h", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
 		switch (c) {
 			case 't':
 				switch (*optarg) {
@@ -112,7 +115,6 @@ int main(int argc, char **argv)
 		cout << usage << endl;
 		return EXIT_FAILURE;
 	}
-
 	string fName(argv[optind++]);
 	fName += OutExt();
 	MultiArray<float, 4>::Index dims;
