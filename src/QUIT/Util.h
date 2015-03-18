@@ -64,7 +64,7 @@ template<typename T> class Read {
 
 template<typename T> class Read<Eigen::Array<T, Eigen::Dynamic, 1>> {
 	public:
-	static void FromLine(std::istream & in, Eigen::Array<T, Eigen::Dynamic, 1> &vals) {
+	static void FromLine(std::istream & in, Eigen::Ref<Eigen::Array<T, Eigen::Dynamic, 1>> vals) {
 		std::string line;
 		if (!std::getline(in, line)) {
 			throw(std::runtime_error("Failed to read input."));

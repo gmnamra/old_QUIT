@@ -35,12 +35,14 @@ else.\n\
 \n\
 Main Options:\n\
 	--help, -h       : Print this message\n\
-	--dtype, -t F    : Set the datatype to 32 bit float (default)\n\
-	            I    : Set the datatype to 16 bit int\n\
-	            C    : Set the datatype to 64 bit complex\n\
-	            NNN  : Set the datatype to the given valid Nifti datatype\n\
+	--precision, -p F    : Set the datatype to 32 bit float (default)\n\
+	                I    : Set the datatype to 16 bit int\n\
+	                C    : Set the datatype to 64 bit complex\n\
+	                NNN  : Set the datatype to the given valid Nifti datatype\n\
 	--xform, -x FILE : Copy header transform from another Nifti\n\
 	--dims, -d N     : Set number of dimensions (max 7, default 3)\n\
+	--voxdims, -v \"X X X\" : Set the voxel dimensions (default 1mm iso)\n\
+	--tr,  -t X             : Set the TR (default 1s)\n\
 File Content Options:\n\
 	--blank, -b     : Create the header information only\n\
 	--value, -v D   : Fill dimension D with constant value v (val)\n\
@@ -53,6 +55,7 @@ File Content Options:\n\
 
 enum class FillType { Zero, Value, Slab, Gradient, Steps, Uniform, Gaussian };
 static bool verbose = false, isBlank = false;
+static int ndims = 3;
 static vector<FillType> fillTypes(4, FillType::Zero);
 static Eigen::Array4f startVal = Eigen::Array4f::Zero(), deltaVal = Eigen::Array4f::Zero();
 static Eigen::Array4i stepLength = Eigen::Array4i::Ones();
@@ -62,11 +65,14 @@ static Nifti::DataType dType = Nifti::DataType::FLOAT64;
 static Eigen::Affine3f xform = Eigen::Affine3f::Identity();
 static struct option long_opts[] = {
 	{"help",    no_argument,       0, 'h'},
-	{"dtype",   required_argument, 0, 't'},
+	{"precision", required_argument, 0, 'p'},
 	{"xform",   required_argument, 0, 'x'},
+	{"dims",    required_argument, 0, 'd'},
+	{"voxdims", required_argument, 0, 'v'},
+	{"tr",      required_argument, 0, 't'},
 	{"blank",   no_argument,       0, 'b'},
 	{"zero",    no_argument,       0, 'z'},
-	{"value",   required_argument, 0, 'v'},
+	/*{"value",   required_argument, 0, 'v'},*/
 	{"slab",    required_argument, 0, 'l'},
 	{"grad",    required_argument, 0, 'g'},
 	{"step",    required_argument, 0, 's'},
@@ -74,7 +80,7 @@ static struct option long_opts[] = {
 	{"gauss",   required_argument, 0, 'G'},
 	{0, 0, 0, 0}
 };
-static const char* short_opts = "d:t:x:bzv:l:g:s:U:G:h";
+static const char* short_opts = "p:d:t:x:bzv:l:g:s:U:G:h";
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -83,11 +89,14 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	size_t expected_extra_args = 9;
+	size_t expected_extra_args = 4;
+
+	ArrayXf voxdims(5); voxdims.setOnes();
+
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
 		switch (c) {
-			case 't':
+			case 'p':
 				switch (*optarg) {
 					case 'F': dType = Nifti::DataType::FLOAT32; break;
 					case 'I': dType = Nifti::DataType::INT16; break;
@@ -98,8 +107,20 @@ int main(int argc, char **argv)
 				Nifti::File other(optarg);
 				xform = other.header().transform();
 			} break;
+			case 'd':
+				ndims = atoi(optarg);
+				if ((ndims < 2) || (ndims > 5)) {
+					cerr << "Invalid number of dimensions. Must be 2-5." << endl;
+					return EXIT_FAILURE;
+				}
+				break;
 			case 'b': isBlank = true; break;
-			case 'v': fillTypes.at(atoi(optarg)) = FillType::Value; expected_extra_args += 1; break;
+			case 'v': {
+				string vals(optarg);
+				stringstream valstream(vals);
+				QUIT::Read<ArrayXf>::FromLine(valstream, voxdims.head(3));
+			} break;
+			case 't': voxdims[3] = atof(optarg); break;
 			case 'l': fillTypes.at(atoi(optarg)) = FillType::Slab; expected_extra_args += 3; break;
 			case 'g': fillTypes.at(atoi(optarg)) = FillType::Gradient; expected_extra_args += 2; break;
 			case 's': fillTypes.at(atoi(optarg)) = FillType::Steps; expected_extra_args += 3; break;
@@ -116,19 +137,18 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 	string fName(argv[optind++]);
-	MultiArray<float, 4>::Index dims;
-	Eigen::ArrayXf vdims(4);
-	for (size_t i = 0; i < 4; i++) { dims[i] = atoi(argv[optind++]); }
-	for (size_t i = 0; i < 4; i++) { vdims[i] = atof(argv[optind++]); }
-	Nifti::Header hdr(dims, vdims, dType);
+	typedef MultiArray<float, 5>::Index ind_t;
+	ind_t dims; dims.setOnes();
+	for (size_t i = 0; i < ndims; i++) { dims[i] = atoi(argv[optind++]); }
+	Nifti::Header hdr(dims, voxdims, dType);
 	hdr.setTransform(xform);
 	Nifti::File file(hdr, fName);
 
 	if (!isBlank) {
-		MultiArray<float, 4> data(dims);
-		MultiArray<float, 4>::Index starts; starts.setZero();
-		MultiArray<float, 4>::Index ends = data.dims();
-		for (size_t d = 0; d < 4; d++) {
+		MultiArray<float, 5> data(dims);
+		ind_t starts; starts.setZero();
+		ind_t ends = dims;
+		for (size_t d = 0; d < ndims; d++) {
 			switch (fillTypes.at(d)) {
 				case FillType::Zero:
 					stepLength[d] = 1;
@@ -180,7 +200,7 @@ int main(int argc, char **argv)
 		random_device seed;
 		mt19937_64 twist(seed());
 
-		MultiArray<float, 4>::Index index;
+		ind_t index; index.setZero();
 		function<void (const int&, const float&)> processDim = [&] (const int &d, const float& outVal) {
 			float inVal = outVal + startVal[d];
 			for (index[d] = starts[d];index[d] < ends[d]; index[d]++) {
@@ -196,7 +216,7 @@ int main(int argc, char **argv)
 				if ((index[d] % stepLength[d]) == (stepLength[d] - 1)) inVal += deltaVal[d];
 			}
 		};
-		processDim(3, 0.);
+		processDim(ndims - 1, 0.);
 		file.writeAll(data.begin(), data.end());
 	}
 	file.close();
