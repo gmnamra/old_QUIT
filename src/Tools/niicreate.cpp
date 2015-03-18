@@ -116,7 +116,6 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 	string fName(argv[optind++]);
-	fName += OutExt();
 	MultiArray<float, 4>::Index dims;
 	Eigen::ArrayXf vdims(4);
 	for (size_t i = 0; i < 4; i++) { dims[i] = atoi(argv[optind++]); }
