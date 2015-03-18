@@ -1,17 +1,14 @@
 #!/bin/bash
-set -ex
 
 # Tobias Wood 2015
 # Simple test script for Nifti I/O tools
 
-# Create some test files
+source ./test_common.sh
 
-QUITDIR=$PWD/../build
-export QUIT_EXT=NIFTI
 DATADIR="nii_data"
 mkdir -p $DATADIR
 
-$QUITDIR/niicreate $DATADIR/blank.nii 16 16 16 1 1 1 1 1
-$QUITDIR/niihdr $DATADIR/blank.nii
+echo "Starting NIFTI tests."
 
-echo "Tests complete"
+run_test $QUITDIR/niicreate $DATADIR/blank.nii 16 16 16 1 1 1 1 1
+run_test $QUITDIR/niihdr $DATADIR/blank.nii

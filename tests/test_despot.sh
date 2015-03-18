@@ -7,11 +7,14 @@
 
 # First, create input data
 
+source ./test_common.sh
+
 DATADIR="data"
-QUITDIR=$PWD/../build
 mkdir -p $DATADIR
 cd $DATADIR
 
-$QUITDIR/niicreate
+echo "Starting DESPOT tests"
+
+run_test $QUITDIR/niicreate
 
 cd ..
