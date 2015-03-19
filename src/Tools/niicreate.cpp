@@ -46,43 +46,34 @@ Main Options:\n\
 	--tr,  -t X             : Set the TR (default 1s)\n\
 File Content Options:\n\
 	--blank, -b     : Create the header information only\n\
-	--value, -v D   : Fill dimension D with constant value v (val)\n\
-	--slab, -l D    : Fill dimension D with a slab (val, start, end)\n\
-	--grad, -g D    : Fill dimension D with a smooth gradient (low, high)\n\
-	--step, -s D    : Fill dimension D with stepped data (low, high, steps)\n\
-	--uniform, -U D : Fill dimension D with uniform noise (mid, width)\n\
-	--gauss, -G D   : Fill dimension D with gaussian noise (mean, std dev)\n"
+	--fill, -f X    : Fill the entire image with value X (default 0)\n\
+	--grad, -g \"D L H\"    : Fill dimension D with a smooth gradient (low, high)\n\
+	--step, -s \"D L H S\"  : Fill dimension D with stepped data (low, high, steps)\n"
 };
 
-enum class FillType { Zero, Value, Slab, Gradient, Steps, Uniform, Gaussian };
+enum class FillType { Fill, Gradient, Steps };
 static bool verbose = false, isBlank = false;
 static int ndims = 3;
-static vector<FillType> fillTypes(4, FillType::Zero);
-static Eigen::Array4f startVal = Eigen::Array4f::Zero(), deltaVal = Eigen::Array4f::Zero();
-static Eigen::Array4i stepLength = Eigen::Array4i::Ones();
-static vector<uniform_real_distribution<float>> uniforms(4);
-static vector<normal_distribution<float>> gauss(4);
+static FillType fillType = FillType::Fill;
+static float startVal = 0, deltaVal = 0;
+static int stepLength = 1, fillDim = 0;
 static Nifti::DataType dType = Nifti::DataType::FLOAT64;
 static Eigen::Affine3f xform = Eigen::Affine3f::Identity();
 static struct option long_opts[] = {
-	{"help",    no_argument,       0, 'h'},
+	{"help",      no_argument,       0, 'h'},
 	{"precision", required_argument, 0, 'p'},
-	{"xform",   required_argument, 0, 'x'},
-	{"rank",    required_argument, 0, 'r'},
-	{"dims",    required_argument, 0, 'd'},
-	{"voxdims", required_argument, 0, 'v'},
-	{"tr",      required_argument, 0, 't'},
-	{"blank",   no_argument,       0, 'b'},
-	{"zero",    no_argument,       0, 'z'},
-	/*{"value",   required_argument, 0, 'v'},*/
-	{"slab",    required_argument, 0, 'l'},
-	{"grad",    required_argument, 0, 'g'},
-	{"step",    required_argument, 0, 's'},
-	{"uniform", required_argument, 0,'U'},
-	{"gauss",   required_argument, 0, 'G'},
+	{"xform",     required_argument, 0, 'x'},
+	{"rank",      required_argument, 0, 'r'},
+	{"dims",      required_argument, 0, 'd'},
+	{"voxdims",   required_argument, 0, 'v'},
+	{"tr",        required_argument, 0, 't'},
+	{"blank",     no_argument,       0, 'b'},
+	{"fill",      required_argument, 0, 'f'},
+	{"grad",      required_argument, 0, 'g'},
+	{"step",      required_argument, 0, 's'},
 	{0, 0, 0, 0}
 };
-static const char* short_opts = "p:r:d:t:x:bzv:l:g:s:U:G:h";
+static const char* short_opts = "hp:x:r:d:v:t:bf:g:s:";
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -91,7 +82,6 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	size_t expected_extra_args = 1;
 	typedef MultiArray<float, 5>::Index ind_t;
 	ind_t dims; dims.setOnes();
 	ArrayXf voxdims(5); voxdims.setOnes();
@@ -119,30 +109,48 @@ int main(int argc, char **argv)
 				break;
 			case 'd': {
 				string vals(optarg);
-				stringstream valstream(vals);
 				Array<unsigned long, Dynamic, 1> test(ndims);
-				QUIT::Read<Array<unsigned long, Dynamic, 1>>::FromLine(valstream, test);
+				QUIT::Read<Array<unsigned long, Dynamic, 1>>::FromString(vals, test);
 				dims.head(ndims) = test;
 			} break;
 			case 'v': {
 				string vals(optarg);
-				stringstream valstream(vals);
-				QUIT::Read<ArrayXf>::FromLine(valstream, voxdims.head(3));
+				QUIT::Read<ArrayXf>::FromString(vals, voxdims.head(3));
 			} break;
-			case 'b': isBlank = true; break;
 			case 't': voxdims[3] = atof(optarg); break;
-			case 'l': fillTypes.at(atoi(optarg)) = FillType::Slab; expected_extra_args += 3; break;
-			case 'g': fillTypes.at(atoi(optarg)) = FillType::Gradient; expected_extra_args += 2; break;
-			case 's': fillTypes.at(atoi(optarg)) = FillType::Steps; expected_extra_args += 3; break;
-			case 'U': fillTypes.at(atoi(optarg)) = FillType::Uniform; expected_extra_args += 2; break;
-			case 'G': fillTypes.at(atoi(optarg)) = FillType::Gaussian; expected_extra_args += 2; break;
+			case 'b': isBlank = true; break;
+			case 'f': fillType = FillType::Fill; startVal = atof(optarg); break;
+			case 'g': {
+				fillType = FillType::Gradient;
+				ArrayXf temp(3);
+				QUIT::Read<ArrayXf>::FromString(string(optarg), temp);
+				fillDim = temp[0];
+				startVal = temp[1];
+				deltaVal = (temp[2] - startVal) / (dims[fillDim] - 1);
+				stepLength = 1;
+			} break;
+			case 's': {
+				fillType = FillType::Steps;
+				ArrayXf temp(4);
+				QUIT::Read<ArrayXf>::FromString(string(optarg), temp);
+				fillDim = temp[0];
+				startVal = temp[1];
+				float endVal = temp[2];
+				int steps = temp[3];
+				stepLength = dims[fillDim] / steps;
+				deltaVal = (endVal - startVal) / (steps - 1);
+			} break;
 			case 'h':
 			case '?': // getopt will print an error message
 				return EXIT_FAILURE;
 		}
 	}
-	if ((argc - optind) != expected_extra_args) {
-		cerr << "Wrong number of arguments." << endl;
+	if ((argc - optind) < 1) {
+		cerr << "Missing input filename." << endl;
+		cout << usage << endl;
+		return EXIT_FAILURE;
+	} else if ((argc - optind) > 1) {
+		cerr << "Unexpected extra arguments." << endl;
 		cout << usage << endl;
 		return EXIT_FAILURE;
 	}
@@ -154,77 +162,19 @@ int main(int argc, char **argv)
 
 	if (!isBlank) {
 		MultiArray<float, 5> data(dims);
-		ind_t starts; starts.setZero();
-		ind_t ends = dims;
-		for (size_t d = 0; d < ndims; d++) {
-			switch (fillTypes.at(d)) {
-				case FillType::Zero:
-					stepLength[d] = 1;
-					break;
-				case FillType::Value:
-					startVal[d] = atof(argv[optind++]);
-					deltaVal[d] = 0;
-					stepLength[d] = 1;
-					break;
-				case FillType::Slab:
-					startVal[d] = atof(argv[optind++]);
-					deltaVal[d] = 0;
-					stepLength[d] = 1;
-					starts[d] = atoi(argv[optind++]);
-					ends[d] = atoi(argv[optind++]);
-					if (starts[d] >= data.dims()[d]) {
-						cerr << "Invalid slab start slice." << endl;
-						return EXIT_FAILURE;
-					}
-					if (ends[d] > data.dims()[d]) {
-						cerr << "Invalid slab end slice." << endl;
-						return EXIT_FAILURE;
-					}
-					break;
-				case FillType::Gradient:
-					startVal[d] = atof(argv[optind++]);
-					deltaVal[d] = (atof(argv[optind++]) - startVal[d]) / (dims[d] - 1);
-					stepLength[d] = 1;
-					break;
-				case FillType::Steps: {
-					startVal[d] = atof(argv[optind++]);
-					float endVal = atof(argv[optind++]);
-					int steps = atoi(argv[optind++]);
-					stepLength[d] = dims[d] / steps;
-					deltaVal[d] = (endVal - startVal[d]) / (steps - 1);
-				} break;
-				case FillType::Uniform: {
-					float lo = atof(argv[optind++]);
-					float hi = atof(argv[optind++]);
-					uniforms[d] = uniform_real_distribution<float>(lo, hi);
-				} break;
-				case FillType::Gaussian: {
-					float mean = atof(argv[optind++]);
-					float std  = atof(argv[optind++]);
-					gauss[d] = normal_distribution<float>(mean, std);
-				} break;
-			}
-		}
-		random_device seed;
-		mt19937_64 twist(seed());
+		ind_t start = ind_t::Zero();
+		ind_t size = dims;
+		size[fillDim] = 0;
 
-		ind_t index; index.setZero();
-		function<void (const int&, const float&)> processDim = [&] (const int &d, const float& outVal) {
-			float inVal = outVal + startVal[d];
-			for (index[d] = starts[d];index[d] < ends[d]; index[d]++) {
-				if (fillTypes[d] == FillType::Uniform)
-					inVal = outVal + uniforms[d].operator()(twist);
-				else if (fillTypes[d] == FillType::Gaussian)
-					inVal = outVal + gauss[d].operator()(twist);
-				if (d > 0) {
-					processDim(d - 1, inVal);
-				} else {
-					data[index] = inVal;
-				}
-				if ((index[d] % stepLength[d]) == (stepLength[d] - 1)) inVal += deltaVal[d];
+		float val = startVal;
+		for (int i = 0; i < dims[fillDim]; i++) {
+			start[fillDim] = i;
+			auto slice = data.slice<4>(start,size);
+			for (auto v = slice.begin(); v != slice.end(); ++v) {
+				*v = val;
 			}
-		};
-		processDim(ndims - 1, 0.);
+			if ((i % stepLength) == (stepLength - 1)) val += deltaVal;
+		}
 		file.writeAll(data.begin(), data.end());
 	}
 	file.close();
