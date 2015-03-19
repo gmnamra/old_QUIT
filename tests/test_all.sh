@@ -6,5 +6,6 @@
 source ./test_common.sh
 
 run_test "NIFTI tests" ./test_nifti.sh
-run_test "DESPOT tests" ./test_despot.sh
+run_test "Single-Component DESPOT tests" ./test_scdespot.sh
+run_test "Multi-Component DESPOT tests" ./test_mcdespot.sh
 
