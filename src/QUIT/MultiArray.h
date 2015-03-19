@@ -55,6 +55,7 @@ class MultiArray {
 				MultiArray &m_array;
 				Index m_index;
 				size_t m_packedIndex;
+				bool m_endflag;
 
 			public:
 				MultiArrayIterator(MultiArray &array, Index start = Index::Zero());
