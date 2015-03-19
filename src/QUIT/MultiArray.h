@@ -75,7 +75,6 @@ class MultiArray {
 		size_t m_offset;
 		Index  m_dims, m_strides;
 		bool   m_packed;
-		iterator m_begin, m_end;
 		
 		static Index CalcStrides(const Index &dims);
 	public:
@@ -100,8 +99,8 @@ class MultiArray {
 		reference operator[](const size_t i);
 		reference operator[](const Index &vox);
 		
-		const iterator &begin();
-		const iterator &end();
+		iterator begin();
+		iterator end();
 
 		std::string print() const;
 		friend std::ostream &operator<<(std::ostream &os, const MultiArray &v) {
