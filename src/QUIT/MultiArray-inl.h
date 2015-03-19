@@ -38,7 +38,8 @@ MultiArray<Tp, rank>::MultiArray(const Index &inDims) :
 	m_dims{inDims},
 	m_strides{CalcStrides(inDims)},
 	m_ptr{std::make_shared<std::vector<Tp>>(inDims.prod())},
-	m_packed{true}
+	m_packed{true},
+	m_begin{*this}, m_end{*this, inDims}
 {
 
 }
@@ -46,12 +47,14 @@ MultiArray<Tp, rank>::MultiArray(const Index &inDims) :
 template<typename Tp, size_t rank>
 MultiArray<Tp, rank>::MultiArray(const Eigen::Array<size_t, rank - 1, 1> &inDims, const size_t finalDim) :
 	m_offset{0},
-	m_packed{true}
+	m_packed{true},
+	m_begin{}
 {
 	m_dims.head(rank - 1) = inDims;
 	m_dims[rank - 1] = finalDim;
 	m_strides = CalcStrides(m_dims);
 	m_ptr = std::make_shared<std::vector<Tp>>(m_dims.prod());
+	m_end = iterator(*this, inDims);
 }
 
 template<typename Tp, size_t rank>
@@ -59,14 +62,13 @@ MultiArray<Tp, rank>::MultiArray(const Index &dims, const PtrTp &ptr, const Inde
 	m_dims{dims},
 	m_strides{strides},
 	m_offset{offset},
-	m_ptr{ptr}
+	m_ptr{ptr},
+	m_begin{*this}, m_end{*this, dims}
 {
 	if ((m_strides == Index::Zero()).all()) {
 		m_strides = CalcStrides(m_dims);
 	}
 	m_packed = (CalcStrides(m_dims) == m_strides).all();
-	//std::cout << "Created new MultiArray" << std::endl;
-	//std::cout << *this << std::endl;
 }
 
 template<typename Tp, size_t rank> auto MultiArray<Tp, rank>::dims()     const -> const Index & { return m_dims; }
@@ -282,15 +284,15 @@ bool MultiArray<Tp, rank>::iterator::operator!=(const iterator &other) const {
 }
 
 template<typename Tp, size_t rank>
-auto MultiArray<Tp, rank>::begin() -> iterator {
-	iterator b(*this);
-	return b;
+auto MultiArray<Tp, rank>::begin() -> const iterator &{
+	//iterator b(*this);
+	return m_begin;
 }
 
 template<typename Tp, size_t rank>
-auto MultiArray<Tp, rank>::end() -> iterator {
-	iterator e(*this, m_dims);
-	return e;
+auto MultiArray<Tp, rank>::end() -> const iterator &{
+	//iterator e(*this, m_dims);
+	return m_end;
 }
 
 #endif // MULTIARRAY_INL_H
