@@ -5,15 +5,18 @@
 
 # Simple test function
 function run_test {
-    "$@"
-    local STATUS=$?
-    if [ $STATUS -ne 0 ]; then
-        echo "Test $1 failed." >&1
-        exit $STATUS
-    else
-		echo "Test $1 passed." >&1
-    fi
-    return $STATUS
+	# $1 is test name, remainder is command to run
+	NAME=$1
+	shift
+	"$@"
+	local STATUS=$?
+	if [ $STATUS -ne 0 ]; then
+		echo "Test $NAME failed." >&1
+		exit $STATUS
+	else
+		echo "Test $NAME passed." >&1
+	fi
+	return $STATUS
 }
 
 # Setup environment

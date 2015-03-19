@@ -5,6 +5,6 @@
 
 source ./test_common.sh
 
-run_test ./test_nifti.sh
-run_test ./test_despot.sh
+run_test "NIFTI tests" ./test_nifti.sh
+run_test "DESPOT tests" ./test_despot.sh
 

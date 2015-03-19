@@ -10,5 +10,5 @@ mkdir -p $DATADIR
 
 echo "Starting NIFTI tests."
 
-run_test $QUITDIR/niicreate $DATADIR/blank.nii -d "16 16 16" -v "2 2 2"
-run_test $QUITDIR/niihdr $DATADIR/blank.nii
+run_test "Create nifti" $QUITDIR/niicreate $DATADIR/blank.nii -d "16 16 16" -v "2 2 2"
+run_test "Read header" $QUITDIR/niihdr $DATADIR/blank.nii
