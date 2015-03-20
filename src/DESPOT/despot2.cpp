@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 	MultiArray<double, 3> maskVol, B1Vol;
 	ThreadPool threads;
 	string procPath;
-	shared_ptr<SCD> model;
+	shared_ptr<SCD> model = make_shared<SCD>();
 
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {

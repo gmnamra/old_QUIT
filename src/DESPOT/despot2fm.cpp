@@ -383,7 +383,7 @@ int main(int argc, char **argv)
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
-	shared_ptr<SCD> model;
+	shared_ptr<SCD> model = make_shared<SCD>();
 	if (scale == Scale::None) {
 		hdr.intent_name = model->Names().at(0);
 		Nifti::File out(hdr, outPrefix + model->Names().at(0) + OutExt());

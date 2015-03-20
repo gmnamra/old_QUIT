@@ -408,10 +408,7 @@ int main(int argc, char **argv) {
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
 	size_t start = (scale == Scale::None) ? 0 : 1;
-	for (size_t p = start; p < PoolInfo::nParameters(pools); p++) {
-		hdr.intent_name = PoolInfo::Names(pools).at(p);
-		Nifti::File file(hdr, outPrefix + PoolInfo::Names(pools).at(p) + "" + OutExt());
-	for (size_t p = 1; p < model->nParameters(); p++) { // Skip PD for now
+	for (size_t p = start; p < model->nParameters(); p++) { // Skip PD for now
 		hdr.intent_name = model->Names().at(p);
 		Nifti::File file(hdr, outPrefix + model->Names().at(p) + "" + OutExt());
 		auto param = paramsVols.slice<3>({0,0,0,p},{-1,-1,-1,0});

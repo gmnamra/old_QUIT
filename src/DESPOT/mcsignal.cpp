@@ -158,17 +158,9 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	//**************************************************************************
-	#pragma mark  Set up sequences
-	//**************************************************************************
-	SequenceGroup sequences(Scale::None);
-	vector<string> filenames;
-	parseInput(sequences, filenames);
-	cout << sequences << endl;
-	//**************************************************************************
-	#pragma mark Read in parameter files
-	//**************************************************************************
-	// Build a Functor here so we can query number of parameters etc.
+	/***************************************************************************
+	 * mark Read in parameter files
+	 **************************************************************************/
 	cout << "Using " << model->Name() << " model." << endl;
 	MultiArray<float, 4> paramsVols;
 	Nifti::Header templateHdr;
@@ -193,6 +185,15 @@ int main(int argc, char **argv)
 		input.readVolumes(inVol.begin(), inVol.end(), 0, 1);
 	}
 	const auto d = paramsVols.dims();
+
+	/***************************************************************************
+	 * Set up sequences
+	 **************************************************************************/
+	SequenceGroup sequences(Scale::None);
+	vector<string> filenames;
+	parseInput(sequences, filenames);
+	cout << sequences << endl;
+
 	vector<MultiArray<complex<float>, 4>> signalVols(sequences.count()); //d.head(3), sequences.combinedSize());
 	for (size_t s = 0; s < sequences.count(); s++) {
 		signalVols[s] = MultiArray<complex<float>, 4>(d.head(3), sequences.sequence(s)->size());
@@ -206,14 +207,10 @@ int main(int argc, char **argv)
 					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 					for (size_t s = 0; s < sequences.count(); s++) {
 						const size_t sigsize = sequences.sequences()[s]->size();
-						ArrayXcd signal = sequences.sequences()[s]->signal(components, params, B1);
+						ArrayXcd signal = sequences.sequences()[s]->signal(model, params, B1);
 						ArrayXcd noise(sigsize);
 						noise.real() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
 						noise.imag() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
-						ArrayXcd signal = sequences.sequences()[s]->signal(model, params, B1);
-						ArrayXcd noise(sequences.size());
-						noise.real() = (ArrayXd::Ones(sequences.size()) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
-						noise.imag() = (ArrayXd::Ones(sequences.size()) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
 						signalVols[s].slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = (signal + noise).cast<complex<float>>();
 					}
 				}

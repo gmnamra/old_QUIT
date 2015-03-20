@@ -187,7 +187,7 @@ VectorXcd One_SSFP_Ellipse(carrd &flip, cdbl TR, cdbl PD, cdbl T1, cdbl T2, cdbl
     double theta = M_PI * f0 * TR;
     ArrayXd M = PD * sqrt(E2) * (1 - E1)*sin(flip) / (1 - E1*E2*E2-(E1-E2*E2)*cos(flip));
 
-    VectorXcd result(3, flip.size());
+    VectorXcd result(flip.size());
     result.real() = M * cos(theta);
     result.imag() = M * sin(theta);
 
@@ -246,12 +246,10 @@ VectorXcd Two_SSFP(carrd &flip, const double TR, const double phase,
 	Matrix6d R = Matrix6d::Zero();
 	R.block(0,0,3,3) = Relax(T1_a, T2_a);
 	R.block(3,3,3,3) = Relax(T1_b, T2_b);
-	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(f0);
-	double k_ab, k_ba, f_b;
 	Matrix6d O = Matrix6d::Zero();
 	O.block(0,0,3,3) = OffResonance(f0_a);
 	O.block(3,3,3,3) = OffResonance(f0_b);
-	double k_ab, k_ba, f_b = 1. - f_a;
+	double k_ab, k_ba, f_b;
 	CalcExchange(tau_a, f_a, f_b, k_ab, k_ba);
 	Matrix6d K = Exchange(k_ab, k_ba);
 	Matrix6d L = (-(R+O+K)*TR).exp();
