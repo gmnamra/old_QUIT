@@ -38,11 +38,11 @@ T1.nii
 T2.nii
 f0.nii
 SPGR
-$SPGR_FILE
 $SPGR_PAR
+$SPGR_FILE
 SSFP
-$SSFP_FILE
 $SSFP_PAR
+$SSFP_FILE
 END"
 echo "$MCSIG_INPUT" > mcsignal.in
 run_test "CREATE_SIGNALS" $QUITDIR/mcsignal --1 < mcsignal.in
