@@ -17,7 +17,8 @@
 #include <Eigen/Dense>
 #include <Nifti/Nifti.h>
 #include "QUIT/QUIT.h"
-#include "Model.h"
+#include "Models.h"
+#include "Sequence.h"
 
 using namespace std;
 using namespace Eigen;
@@ -47,7 +48,7 @@ Options:\n\
 	            f     : Use Finite Pulse Length correction.\n"
 };
 
-static auto components = Pools::One;
+static shared_ptr<Model> model = make_shared<SCD>();
 static bool verbose = false, prompt = true, finitesequences = false;
 static string outPrefix = "";
 static double sigma = 0.;
@@ -69,27 +70,27 @@ static struct option long_options[] = {
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-void parseInput(Sequences &cs, vector<string> &names);
-void parseInput(Sequences &cs, vector<string> &names) {
-	string type;
+void parseInput(SequenceGroup &cs, vector<string> &names);
+void parseInput(SequenceGroup &cs, vector<string> &names) {
+	string input;
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
-	while (getline(cin, type) && (type != "END") && (type != "")) {
-		if (type != "SPGR" && type != "SSFP") {
-			throw(std::runtime_error("Unknown signal type: " + type));
+	while (getline(cin, input) && (input != "END") && (input != "")) {
+		if (input == "SPGR") {
+			cs.addSequence(make_shared<SPGRSimple>(prompt));
+		} else if (input == "SPGRFinite") {
+			cs.addSequence(make_shared<SPGRFinite>(prompt));
+		} else if (input == "SSFP") {
+			cs.addSequence(make_shared<SSFPSimple>(prompt));
+		} else if (input == "SSFPFinite") {
+			cs.addSequence(make_shared<SSFPFinite>(prompt));
+		} else if (input == "SSFPEllipse") {
+			cs.addSequence(make_shared<SSFPEllipse>(prompt));
+		} else {
+			throw(std::runtime_error("Unknown signal type: " + input));
 		}
-		if (prompt) cout << "Enter output filename: " << flush;
-		string filename;
-		getline(cin, filename);
-		names.push_back(filename);
-		if ((type == "SPGR") && !finitesequences) {
-			cs.addSequence(SequenceType::SPGR, prompt);
-		} else if ((type == "SPGR" && finitesequences)) {
-			cs.addSequence(SequenceType::SPGR_Finite, prompt);
-		} else if ((type == "SSFP" && !finitesequences)) {
-			cs.addSequence(SequenceType::SSFP, prompt);
-		} else if ((type == "SSFP" && finitesequences)) {
-			cs.addSequence(SequenceType::SSFP_Finite, prompt);
-		}
+		if (prompt) cout << "Enter output filename: " << flush; getline(cin, input);
+		names.push_back(input);
+		getline(cin, input); // Just to eat the newline
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
@@ -132,9 +133,9 @@ int main(int argc, char **argv)
 				B1Vol.resize(B1File.matrix());
 				B1File.readVolumes(B1Vol.begin(), B1Vol.end(), 0, 1);
 				break;
-			case '1': components = Pools::One; break;
-			case '2': components = Pools::Two; break;
-			case '3': components = Pools::Three; break;
+			case '1': model = make_shared<SCD>(); break;
+			case '2': model = make_shared<MCD2>(); break;
+			case '3': model = make_shared<MCD3>(); break;
 			case 'M':
 				switch (*optarg) {
 					case 's': finitesequences = false; if (prompt) cout << "Simple sequences selected." << endl; break;
@@ -157,22 +158,30 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	/**************************************************************************
-	 * Read in parameter files
-	 *************************************************************************/
-	cout << "Using " << to_string(components) << " component sequences." << endl;
+	//**************************************************************************
+	#pragma mark  Set up sequences
+	//**************************************************************************
+	SequenceGroup sequences(Scale::None);
+	vector<string> filenames;
+	parseInput(sequences, filenames);
+	cout << sequences << endl;
+	//**************************************************************************
+	#pragma mark Read in parameter files
+	//**************************************************************************
+	// Build a Functor here so we can query number of parameters etc.
+	cout << "Using " << model->Name() << " model." << endl;
 	MultiArray<float, 4> paramsVols;
 	Nifti::Header templateHdr;
 	if (prompt) cout << "Loading parameters." << endl;
-	for (size_t i = 0; i < PoolInfo::nParameters(components); i++) {
-		if (prompt) cout << "Enter path to " << PoolInfo::Names(components)[i] << " file: " << flush;
-		string filename; getline(cin,filename);
+	for (size_t i = 0; i < model->nParameters(); i++) {
+		if (prompt) cout << "Enter path to " << model->Names()[i] << " file: " << flush;
+		string filename; cin >> filename;
 		cout << "Opening " << filename << endl;
 		Nifti::File input(filename);
 
 		if (i == 0) {
 			templateHdr = input.header();
-			paramsVols = MultiArray<float, 4>(input.matrix(), PoolInfo::nParameters(components));
+			paramsVols = MultiArray<float, 4>(input.matrix(), model->nParameters());
 		} else {
 			if (!input.header().matchesSpace(templateHdr)) {
 				cout << "Mismatched input volumes" << endl;
@@ -183,18 +192,7 @@ int main(int argc, char **argv)
 		cout << "Reading data." << endl;
 		input.readVolumes(inVol.begin(), inVol.end(), 0, 1);
 	}
-
 	const auto d = paramsVols.dims();
-
-
-	//**************************************************************************
-	#pragma mark  Set up sequences
-	//**************************************************************************
-	Sequences sequences(Scale::None);
-	vector<string> filenames;
-	parseInput(sequences, filenames);
-	cout << sequences << endl;
-
 	vector<MultiArray<complex<float>, 4>> signalVols(sequences.count()); //d.head(3), sequences.combinedSize());
 	for (size_t s = 0; s < sequences.count(); s++) {
 		signalVols[s] = MultiArray<complex<float>, 4>(d.head(3), sequences.sequence(s)->size());
@@ -212,6 +210,10 @@ int main(int argc, char **argv)
 						ArrayXcd noise(sigsize);
 						noise.real() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
 						noise.imag() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
+						ArrayXcd signal = sequences.sequences()[s]->signal(model, params, B1);
+						ArrayXcd noise(sequences.size());
+						noise.real() = (ArrayXd::Ones(sequences.size()) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
+						noise.imag() = (ArrayXd::Ones(sequences.size()) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
 						signalVols[s].slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = (signal + noise).cast<complex<float>>();
 					}
 				}

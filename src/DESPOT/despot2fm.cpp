@@ -15,11 +15,13 @@
 #include <iostream>
 #include <atomic>
 #include <Eigen/Dense>
+#include <unsupported/Eigen/LevenbergMarquardt>
+#include <unsupported/Eigen/NumericalDiff>
 
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
-#include "DESPOT.h"
-#include "DESPOT_Functors.h"
+#include "Models.h"
+#include "Sequence.h"
 #include "RegionContraction.h"
 
 using namespace std;
@@ -85,6 +87,53 @@ static struct option long_opts[] = {
 	{0, 0, 0, 0}
 };
 static const char* short_opts = "hvnm:o:f:b:s:p:S:FT:M:xcri:j:d:";
+
+//******************************************************************************
+// T2 Only Functor
+//******************************************************************************
+class FMFunctor : public DenseFunctor<double> {
+	public:
+		SequenceBase &m_sequence;
+		shared_ptr<SCD> m_model = make_shared<SCD>();
+		ArrayXcd m_data;
+		const double m_T1, m_B1;
+		const bool m_complex, m_debug;
+
+		FMFunctor(const double T1, SequenceBase &s, const ArrayXcd &d, const double B1, const bool fitComplex, const bool debug = false) :
+			DenseFunctor<double>(3, s.size()),
+			m_sequence(s), m_data(d), m_complex(fitComplex), m_debug(debug),
+			m_T1(T1), m_B1(B1)
+		{
+			assert(static_cast<size_t>(m_data.rows()) == values());
+		}
+
+		const bool constraint(const VectorXd &params) const {
+			Array4d fullparams;
+			fullparams << params(0), m_T1, params(1), params(2);
+			return m_model->ValidParameters(fullparams);
+		}
+
+		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
+			eigen_assert(diffs.size() == values());
+
+			Array4d fullparams;
+			fullparams << params(0), m_T1, params(1), params(2);
+			ArrayXcd s = m_sequence.signal(m_model, fullparams, m_B1);
+			if (m_complex) {
+				diffs = (s - m_data).abs();
+			} else {
+				diffs = s.abs() - m_data.abs();
+			}
+			if (m_debug) {
+				cout << endl << __PRETTY_FUNCTION__ << endl;
+				cout << "p:     " << params.transpose() << endl;
+				cout << "s:     " << s.transpose() << endl;
+				cout << "data:  " << m_data.transpose() << endl;
+				cout << "diffs: " << diffs.transpose() << endl;
+			}
+			return 0;
+		}
+};
 
 //******************************************************************************
 // Main
@@ -200,7 +249,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	size_t nFiles = argc - optind;
 	vector<MultiArray<complex<float>, 4>> ssfpData(nFiles);
-	Sequences sequences(scale);
+	SequenceGroup sequences(scale);
 	VectorXd inFlip;
 	for (size_t p = 0; p < nFiles; p++) {
 		if (verbose) cout << "Reading SSFP header from " << argv[optind] << endl;
@@ -208,9 +257,9 @@ int main(int argc, char **argv)
 		checkHeaders(inFile.header(), {T1File});
 		Agilent::ProcPar pp; ReadPP(inFile, pp);
 		if (fitFinite) {
-			sequences.addSequence(SequenceType::SSFP_Finite, prompt, pp);
+			sequences.addSequence(make_shared<SSFPFinite>(prompt, pp));
 		} else {
-			sequences.addSequence(SequenceType::SSFP, prompt, pp);
+			sequences.addSequence(make_shared<SSFPSimple>(prompt, pp));
 		}
 		if (sequences.sequence(sequences.count() - 1)->size() != inFile.dim(4)) {
 			throw(std::runtime_error("Number of volumes in file " + inFile.imagePath() + " does not match input."));
@@ -226,7 +275,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	ArrayXd thresh(PoolInfo::nParameters(Pools::One)); thresh.setConstant(0.05);
+	ArrayXd thresh(3); thresh.setConstant(0.05);
 	ArrayXd weights(sequences.size()); weights.setOnes();
 	Array2d f0Bounds(-0.5/sequences.minTR(),0.5/sequences.minTR());
 	if (f0fit == OffRes::FitSym) {
@@ -270,7 +319,7 @@ int main(int argc, char **argv)
 			if (!maskFile || (maskVol[idx] && T1Vol[idx] > 0.)) {
 				// -ve T1 is nonsensical, no point fitting
 				ArrayXcd signal = sequences.loadSignals(ssfpData, i, j, k, flipData);
-				ArrayXXd bounds(PoolInfo::nParameters(Pools::One), 2);
+				ArrayXXd bounds(3, 2);
 				bounds.setZero();
 				if (scale == Scale::None) {
 					bounds(0, 0) = 0.;
@@ -278,29 +327,25 @@ int main(int argc, char **argv)
 				} else {
 					bounds.row(0).setConstant(1.);
 				}
-				bounds.row(1).setConstant(T1Vol[idx]);
-				bounds(2,0) = 0.001;
-				bounds(2,1) = T1Vol[idx];
+				bounds(1,0) = 0.001;
+				bounds(1,1) = T1Vol[idx];
 				if (f0fit == OffRes::Map) {
-					bounds.row(3).setConstant(f0Vol[idx]);
+					bounds.row(2).setConstant(f0Vol[idx]);
 				} else {
-					bounds.row(3) = f0Bounds;
+					bounds.row(2) = f0Bounds;
 				}
 				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-				DESPOTFunctor func(sequences, Pools::One, signal, B1, fitComplex, false);
-				RegionContraction<DESPOTFunctor> rc(func, bounds, weights, thresh,
-													samples, retain, contract, expand, (voxI > 0), seed);
-				ArrayXd params(PoolInfo::nParameters(Pools::One)); params.setZero();
-				rc.optimise(params); // Add the voxel number to the time to get a decent random seed
+				FMFunctor func(T1Vol[idx], sequences, signal, B1, fitComplex, false);
+				RegionContraction<FMFunctor> rc(func, bounds, weights, thresh,
+				                                samples, retain, contract, expand, (voxI > 0), seed);
+				ArrayXd params(3); params.setZero();
+				rc.optimise(params);
 				double res = sqrt(rc.SoS() / sequences.size());
 				if (scale == Scale::None) {
-					// Skip T1
-					paramsVols[{i,j,k,0}] = params(0);
-					paramsVols[{i,j,k,1}] = params(2);
-					paramsVols[{i,j,k,2}] = params(3);
+					paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
 					res /= params(0); // Divide residual by PD to make it a fraction
 				} else {
-					paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.tail(2).cast<float>(); // Skip PD & T1
+					paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.tail(2).cast<float>(); // Skip PD
 				}
 				ResVol[{i,j,k}] = static_cast<float>(res);
 				if (all_residuals) {
@@ -338,30 +383,31 @@ int main(int argc, char **argv)
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
+	shared_ptr<SCD> model;
 	if (scale == Scale::None) {
-		hdr.intent_name = PoolInfo::Names(Pools::One).at(0);
-		Nifti::File out(hdr, outPrefix + PoolInfo::Names(Pools::One).at(0) + OutExt());
+		hdr.intent_name = model->Names().at(0);
+		Nifti::File out(hdr, outPrefix + model->Names().at(0) + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		hdr.intent_name = PoolInfo::Names(Pools::One).at(2);
-		out.open(outPrefix + PoolInfo::Names(Pools::One).at(2) + OutExt(), Nifti::Mode::Write);
+		hdr.intent_name = model->Names().at(2);
+		out.open(outPrefix + model->Names().at(2) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		hdr.intent_name = PoolInfo::Names(Pools::One).at(3);
-		out.open(outPrefix + PoolInfo::Names(Pools::One).at(3) + OutExt(), Nifti::Mode::Write);
+		hdr.intent_name = model->Names().at(3);
+		out.open(outPrefix + model->Names().at(3) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,2},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
 	} else {
-		hdr.intent_name = PoolInfo::Names(Pools::One).at(2);
-		Nifti::File out(hdr, outPrefix + PoolInfo::Names(Pools::One).at(2) + OutExt());
+		hdr.intent_name = model->Names().at(2);
+		Nifti::File out(hdr, outPrefix + model->Names().at(2) + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();
-		hdr.intent_name = PoolInfo::Names(Pools::One).at(3);
-		out.open(outPrefix + PoolInfo::Names(Pools::One).at(3) + OutExt(), Nifti::Mode::Write);
+		hdr.intent_name = model->Names().at(3);
+		out.open(outPrefix + model->Names().at(3) + OutExt(), Nifti::Mode::Write);
 		p = paramsVols.slice<3>({0,0,0,1},{-1,-1,-1,0});
 		out.writeVolumes(p.begin(), p.end());
 		out.close();

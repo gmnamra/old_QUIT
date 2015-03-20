@@ -14,11 +14,12 @@
 #include <iostream>
 #include <atomic>
 #include <Eigen/Dense>
+#include <unsupported/Eigen/LevenbergMarquardt>
+#include <unsupported/Eigen/NumericalDiff>
 
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
-#include "DESPOT.h"
-#include "DESPOT_Functors.h"
+#include "Sequence.h"
 
 using namespace std;
 using namespace Eigen;
@@ -79,6 +80,47 @@ static struct option long_opts[] =
 static const char *short_opts = "hm:o:b:t:c:vna:i:T:er";
 
 //******************************************************************************
+// T2 Only Functor
+//******************************************************************************
+class D2Functor : public DenseFunctor<double> {
+	public:
+		SequenceBase &m_sequence;
+		ArrayXcd m_data;
+		const double m_T1, m_B1;
+		const bool m_complex, m_debug;
+		const shared_ptr<SCD> m_model = make_shared<SCD>();
+
+		D2Functor(const double T1, SequenceBase &s, const ArrayXcd &d, const double B1, const bool fitComplex, const bool debug = false) :
+			DenseFunctor<double>(3, s.size()),
+			m_sequence(s), m_data(d), m_complex(fitComplex), m_debug(debug),
+			m_T1(T1), m_B1(B1), m_model()
+		{
+			assert(static_cast<size_t>(m_data.rows()) == values());
+		}
+
+		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
+			eigen_assert(diffs.size() == values());
+
+			Array4d fullparams;
+			fullparams << params(0), m_T1, params(1), params(2);
+			ArrayXcd s = m_sequence.signal(m_model, fullparams, m_B1);
+			if (m_complex) {
+				diffs = (s - m_data).abs();
+			} else {
+				diffs = s.abs() - m_data.abs();
+			}
+			if (m_debug) {
+				cout << endl << __PRETTY_FUNCTION__ << endl;
+				cout << "p:     " << params.transpose() << endl;
+				cout << "s:     " << s.transpose() << endl;
+				cout << "data:  " << m_data.transpose() << endl;
+				cout << "diffs: " << diffs.transpose() << endl;
+			}
+			return 0;
+		}
+};
+
+//******************************************************************************
 // Main
 //******************************************************************************
 int main(int argc, char **argv)
@@ -89,6 +131,7 @@ int main(int argc, char **argv)
 	MultiArray<double, 3> maskVol, B1Vol;
 	ThreadPool threads;
 	string procPath;
+	shared_ptr<SCD> model;
 
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
@@ -157,7 +200,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	Sequences ssfp(Scale::None);
+	SequenceGroup ssfp(Scale::None);
 	if (verbose) cout << "Opening SSFP file: " << argv[optind] << endl;
 	Nifti::File SSFPFile(argv[optind++]);
 	if (verbose) cout << "Checking headers for consistency." << endl;
@@ -166,9 +209,9 @@ int main(int argc, char **argv)
 	Agilent::ProcPar pp; ReadPP(SSFPFile, pp);
 	if (verbose) cout << "Reading sequence parameters." << endl;
 	if (elliptical) {
-		ssfp.addSequence(SequenceType::SSFP_Ellipse, prompt, pp);
+		ssfp.addSequence(make_shared<SSFPEllipse>(prompt, pp));
 	} else {
-		ssfp.addSequence(SequenceType::SSFP, prompt, pp);
+		ssfp.addSequence(make_shared<SSFPSimple>(prompt, pp));
 	}
 	if (ssfp.size() != SSFPFile.header().dim(4)) {
 		throw(std::runtime_error("The specified number of flip-angles and phase-cycles does not match the input file: " + SSFPFile.imagePath()));
@@ -250,7 +293,7 @@ int main(int argc, char **argv)
 						}
 					}
 				} else if (algo == Algos::NLLS) {
-					D2Functor f(T1, ssfp, Pools::One, data, B1, false, false);
+					D2Functor f(T1, ssfp, data, B1, false, false);
 					NumericalDiff<D2Functor> nDiff(f);
 					LevenbergMarquardt<NumericalDiff<D2Functor>> lm(nDiff);
 					lm.setMaxfev(nIterations);
@@ -270,7 +313,7 @@ int main(int argc, char **argv)
 					offRes = 0.;
 				}
 				T2 = clamp(T2, clamp_lo, clamp_hi);
-				ArrayXd theory = ssfp.signal(Pools::One, Vector4d(PD, T1, T2, offRes), B1).abs();
+				ArrayXd theory = ssfp.signal(model, Vector4d(PD, T1, T2, offRes), B1).abs();
 				ArrayXd resids = (s - theory);
 				if (all_residuals) {
 					ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = resids.cast<float>();

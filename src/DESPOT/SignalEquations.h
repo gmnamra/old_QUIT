@@ -1,5 +1,5 @@
 /*
- *  DESPOT.h
+ *  SignalEquations.h
  *
  *  Created by Tobias Wood on 17/10/2011.
  *  Copyright (c) 2011-2013 Tobias Wood.
@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef DESPOT_DESPOT
-#define DESPOT_DESPOT
+#ifndef DESPOT_SIGEQU
+#define DESPOT_SIGEQU
 
 #include <iostream>
 #include <exception>
@@ -30,6 +30,7 @@ double clamp(double value, double low, double high);
 // Magnetisation Evolution Matrices, helper functions etc.
 //******************************************************************************
 typedef const double cdbl; // To save tedious typing
+typedef const ArrayXd carrd;
 
 typedef Matrix<double, 6, 6> Matrix6d;
 typedef Matrix<double, 6, 1> Vector6d;
@@ -37,9 +38,9 @@ typedef Matrix<double, 9, 9> Matrix9d;
 typedef Matrix<double, 9, 1> Vector9d;
 typedef Matrix<double, 3, Dynamic> MagVector;
 
-const VectorXd SigMag(const MagVector &M_in);
-const VectorXcd SigComplex(const MagVector &M_in);
-const MagVector SumMC(const MatrixXd &M_in);
+VectorXd SigMag(const MagVector &M_in);
+VectorXcd SigComplex(const MagVector &M_in);
+MagVector SumMC(const MatrixXd &M_in);
 
 inline const Matrix3d Relax(cdbl &T1, cdbl &T2);
 inline const Matrix3d InfinitesimalRF(cdbl &dalpha);
@@ -51,22 +52,24 @@ const void CalcExchange(cdbl tau_a, cdbl f_a, double &f_b, double &k_ab, double 
 //******************************************************************************
 // Actual Signal Equations
 //******************************************************************************
-MagVector One_SPGR(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1);
-MagVector One_SSFP(const ArrayXd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1, cdbl T2, cdbl f0);
-MagVector One_SSFP_Finite(const ArrayXd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl TE, cdbl ph,
+VectorXcd One_SPGR(carrd &flip, cdbl TR, cdbl PD, cdbl T1);
+VectorXcd One_SSFP(carrd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1, cdbl T2, cdbl f0);
+VectorXcd One_SSFP_Finite(carrd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl TE, cdbl ph,
                           cdbl PD, cdbl T1, cdbl T2, cdbl f0);
-MagVector One_SSFP_Ellipse(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1, cdbl T2, cdbl f0);
-MagVector MP_RAGE(cdbl flip, cdbl TR, const int N, const ArrayXd &TI, cdbl TD, cdbl PD, cdbl T1);
+VectorXcd One_SSFP_Ellipse(carrd &flip, cdbl TR, cdbl PD, cdbl T1, cdbl T2, cdbl f0);
+VectorXcd MP_RAGE(cdbl flip, cdbl TR, const int N, carrd &TI, cdbl TD, cdbl PD, cdbl T1);
 
-MagVector Two_SPGR(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1_a, cdbl T1_b, cdbl tau_a, cdbl f_a);
-MagVector Two_SSFP(const ArrayXd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1_a, cdbl T2_a, cdbl T1_b, cdbl T2_b, cdbl tau_a, cdbl f_a, cdbl f0);
-MagVector Two_SSFP_Finite(const ArrayXd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl TE, cdbl ph,
+VectorXcd Two_SPGR(carrd &flip, cdbl TR, cdbl PD, cdbl T1_a, cdbl T1_b, cdbl tau_a, cdbl f_a);
+VectorXcd Two_SSFP(carrd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1_a, cdbl T2_a, cdbl T1_b, cdbl T2_b, cdbl tau_a, cdbl f_a, cdbl f0_a, cdbl f0_b);
+VectorXcd Two_SSFP_Finite(carrd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl TE, cdbl ph,
                           cdbl PD, cdbl T1_a, cdbl T2_a, cdbl T1_b, cdbl T2_b,
-                          cdbl tau_a, cdbl f_a, cdbl f0);
+                          cdbl tau_a, cdbl f_a, cdbl f0_a, cdbl f0_b);
 
-MagVector Three_SPGR(const ArrayXd &flip, cdbl TR, cdbl PD, cdbl T1_a, cdbl T1_b, cdbl T1_c, cdbl tau_a, cdbl f_a, cdbl f_c);
-MagVector Three_SSFP(const ArrayXd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1_a, cdbl T2_a, cdbl T1_b, cdbl T2_b, cdbl T1_c, cdbl T2_c, cdbl tau_a, cdbl f_a, cdbl f_c, cdbl f0);
-MagVector Three_SSFP_Finite(const ArrayXd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl TE, cdbl ph,
+VectorXcd Three_SPGR(carrd &flip, cdbl TR, cdbl PD, cdbl T1_a, cdbl T1_b, cdbl T1_c, cdbl tau_a, cdbl f_a, cdbl f_c);
+VectorXcd Three_SSFP(carrd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1_a, cdbl T2_a, cdbl T1_b, cdbl T2_b, cdbl T1_c, cdbl T2_c, cdbl tau_a, cdbl f_a, cdbl f_c, cdbl f0_a, cdbl f0_b, cdbl f0_c);
+VectorXcd Three_SSFP_Finite(carrd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl TE, cdbl ph,
                             cdbl PD, cdbl T1_a, cdbl T2_a, cdbl T1_b, cdbl T2_b, cdbl T1_c, cdbl T2_c,
-							cdbl tau_a, cdbl f_a, cdbl f_c, cdbl f0);
+                            cdbl tau_a, cdbl f_a, cdbl f_c,
+                            cdbl f0_a, cdbl f0_b, cdbl f0_c);
+
 #endif
