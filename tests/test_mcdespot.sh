@@ -8,7 +8,7 @@
 # First, create input data
 
 source ./test_common.sh
-SILENCE_TESTS="0"
+SILENCE_TESTS="1"
 
 DATADIR="mcdespot_$QUITVER"
 mkdir -p $DATADIR
@@ -16,7 +16,7 @@ cd $DATADIR
 
 DIMS="11 21 1"
 #DIMS="3 3 3"
-echo "Creating Parameter Volumes"
+
 $QUITDIR/niicreate -d "$DIMS" -f "1.0" PD.nii
 $QUITDIR/niicreate -d "$DIMS" -f "0.25" T1_a.nii
 $QUITDIR/niicreate -d "$DIMS" -f "0.015" T2_a.nii
@@ -55,7 +55,7 @@ $SSFP_FILE
 $SSFP_PAR
 END"
 echo "$MCSIG_INPUT" > mcsignal.in
-run_test "Create MCDESPOT data" $QUITDIR/mcsignal --2 < mcsignal.in
+run_test "CREATE_SIGNALS" $QUITDIR/mcsignal --2 < mcsignal.in
 
 echo "SPGR
 $SPGR_FILE
