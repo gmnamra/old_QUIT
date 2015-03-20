@@ -205,15 +205,19 @@ int main(int argc, char **argv) {
 	if (all_residuals) {
 		ResidsVols = MultiArray<float, 4>(dims, spgrSequence.size());
 	}
+	time_t startTime;
+	if (verbose)
+		startTime = printStartTime();
+	clock_t startClock = clock();
+	int voxCount = 0;
 	for (size_t k = 0; k < spgrFile.dim(3); k++) {
-		clock_t loopStart;
+		clock_t loopStart = clock();
 		if (verbose) cout << "Starting slice " << k << "..." << flush;
-		loopStart = clock();
-		atomic<int> voxCount{0};
+		atomic<int> sliceCount{0};
 		function<void (const size_t, const size_t)> process = [&] (const size_t i, const size_t j) {
 			const MultiArray<float, 3>::Index idx{i,j,k};
 			if (!maskFile || (maskVol[idx])) {
-				voxCount++;
+				sliceCount++;
 				double B1 = B1File ? B1Vol[idx] : 1.;
 				ArrayXd localAngles(spgrSequence.B1flip(B1));
 				double T1, PD;
@@ -258,23 +262,17 @@ int main(int argc, char **argv) {
 				ResVol[idx] = static_cast<float>(sqrt(resids.square().sum() / resids.rows()) / PD);
 			}
 		};
-			
 		threads.for_loop2(process, spgrFile.dim(1), spgrFile.dim(2));
-		
-		if (verbose) {
-			clock_t loopEnd = clock();
-			if (voxCount > 0)
-				cout << voxCount << " unmasked voxels, CPU time per voxel was "
-				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
-			cout << "finished." << endl;
-		}
-
+		if (verbose) printLoopTime(loopStart, sliceCount);
+		voxCount += sliceCount;
 		if (threads.interrupted())
 			break;
 	}
-
-	if (verbose)
+	if (verbose) {
+		printElapsedTime(startTime);
+		printElapsedClock(startClock, voxCount);
 		cout << "Writing results." << endl;
+	}
 	outPrefix = outPrefix + "D1_";
 	Nifti::Header outHdr = spgrFile.header();
 	outHdr.description = version;
