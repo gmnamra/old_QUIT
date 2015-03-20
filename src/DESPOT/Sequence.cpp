@@ -106,6 +106,7 @@ MPRAGE::MPRAGE(const ArrayXd &TI, const double TD, const double TR, const int N,
 }
 
 MPRAGE::MPRAGE(const bool prompt, const Agilent::ProcPar &pp) : Sequence() {
+	cout << __PRETTY_FUNCTION__ << endl;
 	if (pp) {
 		throw(runtime_error("MPRAGE Procpar reader not implemented."));
 	} else {
@@ -128,12 +129,36 @@ MPRAGE::MPRAGE(const bool prompt, const Agilent::ProcPar &pp) : Sequence() {
 	}
 }
 
+IRSPGR::IRSPGR(const bool prompt, const Agilent::ProcPar &pp) : MPRAGE() {
+	cout << __PRETTY_FUNCTION__ << endl;
+	if (pp)
+		throw(runtime_error("IRSPGR Procpar reader not implemented."));
+	if (prompt) cout << "Enter read-out flip-angle (degrees): " << flush;
+	ArrayXd inFlip(1);
+	QUIT::Read<ArrayXd>::FromLine(cin, inFlip);
+	m_flip = inFlip * M_PI / 180.;
+	if (prompt) cout << "Enter read-out TR (seconds): " << flush;
+	QUIT::Read<double>::FromLine(cin, m_TR);
+
+	int NPE2;
+	if (prompt) cout << "Enter original number of slices (PE2):";
+	QUIT::Read<int>::FromLine(cin, NPE2);
+	m_N = (NPE2 / 2) + 2;
+
+	int nTI;
+	if (prompt) cout << "Enter number of TIs: " << flush;
+	QUIT::Read<int>::FromLine(cin, nTI);
+	m_TI.resize(nTI);
+	if (prompt) cout << "Enter " << m_TI.size() << " TIs (seconds): " << flush;
+	QUIT::Read<ArrayXd>::FromLine(cin, m_TI);
+}
+
 ArrayXcd MPRAGE::signal(shared_ptr<Model> m, const VectorXd &par, const double B1) const {
 	return m->MPRAGE(par, m_flip[0] * B1, m_TR, m_N, m_TI, m_TD);
 }
 
 void MPRAGE::write(ostream &os) const {
-	os << "MP-RAGE" << endl;
+	os << name() << endl;
 	os << "TR: " << m_TR << "\tN: " << m_N << "\tAlpha: " << m_flip[0] * 180 / M_PI << "\tTD: " << m_TD << endl;
 	os << "TI: " << m_TI.transpose() << endl;
 	os << "TS: " << (m_TI + m_N*m_TR + m_TD).transpose() << endl;

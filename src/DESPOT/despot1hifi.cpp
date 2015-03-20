@@ -38,6 +38,7 @@ Options:\n\
 	--help, -h        : Print this message\n\
 	--verbose, -v     : Print more information\n\
 	--no-prompt, -n   : Suppress input prompts\n\
+	--non-ge, -N      : Use a generic MP-RAGE sequence, not GE IR-SPGR\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
 	--mask, -m file   : Mask input with specified file\n\
 	--thresh, -t n    : Threshold maps at PD < n\n\
@@ -48,7 +49,7 @@ Options:\n\
 	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
-static bool verbose = false, prompt = true;
+static bool verbose = false, prompt = true, GE = true;
 static size_t nIterations = 4;
 static string outPrefix;
 static double thresh = -numeric_limits<double>::infinity();
@@ -58,6 +59,7 @@ static const struct option long_opts[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"no-prompt", no_argument, 0, 'n'},
+	{"non-ge", no_argument, 0, 'N'},
 	{"mask", required_argument, 0, 'm'},
 	{"out", required_argument, 0, 'o'},
 	{"thresh", required_argument, 0, 't'},
@@ -68,7 +70,7 @@ static const struct option long_opts[] = {
 	{"threads", required_argument, 0, 'T'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "hvnm:o:t:c:s:p:i:T:";
+static const char *short_opts = "hvnNm:o:t:c:s:p:i:T:";
 
 // HIFI Functor - includes optimising B1
 class HIFIFunctor : public DenseFunctor<double> {
@@ -81,14 +83,16 @@ class HIFIFunctor : public DenseFunctor<double> {
 	public:
 		HIFIFunctor(SequenceBase &cs, const ArrayXd &data, const bool debug) :
 			DenseFunctor<double>(3, cs.size()),
-			m_sequence(cs), m_data(data), m_debug(debug), m_model()
+			m_sequence(cs), m_data(data), m_debug(debug), m_model(make_shared<SCD>())
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}
 
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
-			ArrayXcd s = m_sequence.signal(m_model, params.head(2), params(2));
+			VectorXd fullpar(4); // Including T2 and f0
+			fullpar << params[0], params[1], 0, 0;
+			ArrayXcd s = m_sequence.signal(m_model, fullpar, params[2]);
 			diffs = s.abs() - m_data;
 			if (m_debug) {
 				cout << endl << __PRETTY_FUNCTION__ << endl;
@@ -120,15 +124,16 @@ int main(int argc, char **argv) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
+			case 'N': GE = false; break;
 			case 'm':
-				cout << "Opening mask file: " << optarg << endl;
+				if (verbose) cout << "Opening mask file: " << optarg << endl;
 				maskFile.open(optarg, Nifti::Mode::Read);
 				maskVol.resize(maskFile.matrix());
 				maskFile.readVolumes(maskVol.begin(), maskVol.end(), 0, 1);
 				break;
 			case 'o':
 				outPrefix = optarg;
-				cout << "Output prefix will be: " << outPrefix << endl;
+				if (verbose) cout << "Output prefix will be: " << outPrefix << endl;
 				break;
 			case 't': thresh = atof(optarg); break;
 			case 'c':
@@ -154,18 +159,22 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 	
-	cout << "Opening SPGR file: " << argv[optind] << endl;
+	SequenceGroup combined(Scale::None);
+	if (verbose) cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind], Nifti::Mode::Read);	
 	Agilent::ProcPar pp; ReadPP(spgrFile, pp);
 	shared_ptr<Sequence> spgrSequence = make_shared<SPGRSimple>(prompt, pp);
-	
-	cout << "Opening IR-SPGR file: " << argv[++optind] << endl;
-	irFile.open(argv[optind], Nifti::Mode::Read);
-	shared_ptr<MPRAGE> mprage = make_shared<MPRAGE>(prompt);
-
-	SequenceGroup combined(Scale::None);
 	combined.addSequence(spgrSequence);
-	combined.addSequence(mprage);
+
+	if (verbose) cout << "Opening IR-SPGR file: " << argv[++optind] << endl;
+	irFile.open(argv[optind], Nifti::Mode::Read);
+	if (GE) {
+		shared_ptr<Sequence> irspgr = make_shared<IRSPGR>(prompt);
+		combined.addSequence(irspgr);
+	} else {
+		shared_ptr<Sequence> mprage = make_shared<MPRAGE>(prompt);
+		combined.addSequence(mprage);
+	}
 
 	checkHeaders(spgrFile.header(),{irFile, maskFile});
 	if (verbose) {
@@ -183,18 +192,21 @@ int main(int argc, char **argv) {
 	MultiArray<float, 3> PD_Vol(dims), T1_Vol(dims), B1_Vol(dims), res_Vol(dims);
 	if (stop_slice > dims[2])
 		stop_slice = dims[2];
-
+	time_t startTime;
+	if (verbose)
+		startTime = printStartTime();
+	clock_t startClock = clock();
+	int voxCount = 0;
 	for (size_t k = start_slice; k < stop_slice; k++) {
-		clock_t loopStart;
+		clock_t loopStart = clock();
 		// Read in data
 		if (verbose) cout << "Starting slice " << k << "..." << flush;
-		loopStart = clock();
-		atomic<int> voxCount{0};
+		atomic<int> sliceCount{0};
 		function<void (const size_t&, const size_t&)> processVox = [&] (const size_t &j, const size_t &i) {
 			double T1 = 0., PD = 0., B1 = 1., res = 0.; // Assume B1 field is uniform for classic DESPOT
 			const MultiArray<float, 3>::Index idx{i,j,k};
 			if (!maskFile || (maskVol[idx] > 0.)) {
-				voxCount++;
+				sliceCount++;
 				ArrayXd spgrSig = SPGR_Vols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().abs().cast<double>();
 
 				// Get a first guess with DESPOT1
@@ -228,7 +240,7 @@ int main(int argc, char **argv) {
 				T1 = clamp(T1, clamp_lo, clamp_hi);
 				ArrayXd theory = combined.signal(model, Vector2d(PD, T1), B1).abs();
 				ArrayXd resids = (combinedSig - theory);
-				res = resids.square().sum();
+				res = sqrt(resids.square().sum() / resids.rows()) / PD;
 			}
 			PD_Vol[idx] = PD;
 			T1_Vol[idx] = T1;
@@ -236,20 +248,17 @@ int main(int argc, char **argv) {
 			res_Vol[idx] = res;
 		};
 		threads.for_loop2(processVox, dims(1), dims(0));
-		
-		if (verbose) {
-			clock_t loopEnd = clock();
-			if (voxCount > 0)
-				cout << voxCount << " unmasked voxels, CPU time per voxel was "
-				          << ((loopEnd - loopStart) / ((float)voxCount * CLOCKS_PER_SEC)) << " s, ";
-			cout << "finished." << endl;
-		}
-
+		if (verbose) printLoopTime(loopStart, sliceCount);
+		voxCount += sliceCount;
 		if (threads.interrupted())
 			break;
 
 	}
-	
+	if (verbose) {
+		printElapsedTime(startTime);
+		printElapsedClock(startClock, voxCount);
+		cout << "Writing results." << endl;
+	}
 	//**************************************************************************
 	#pragma mark Write out data
 	//**************************************************************************

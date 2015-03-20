@@ -62,7 +62,7 @@ class Sequence : public SequenceBase {
 class SPGRSimple : public Sequence {
 	public:
 		SPGRSimple(const ArrayXd &flip, const double TR);
-		SPGRSimple(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		SPGRSimple(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
 		void write(ostream &os) const override;
 		string name() const override { return "SPGR"; };
@@ -71,7 +71,7 @@ class SPGRFinite : public SPGRSimple {
 	public:
 		double m_Trf, m_TE;
 		SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE);
-		SPGRFinite(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		SPGRFinite(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
 		void write(ostream &os) const override;
 		string name() const override { return "SPGR_Finite"; };
@@ -81,18 +81,27 @@ class MPRAGE : public Sequence {
 		ArrayXd m_TI;
 		double m_TD;
 		int m_N;
+		MPRAGE() : Sequence() {};
 		MPRAGE(const ArrayXd &TI, const double TD, const double TR, const int N, const double flip);
-		MPRAGE(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		MPRAGE(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		size_t size() const override { return m_TI.size(); };
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
 		void write(ostream &os) const override;
 		string name() const override { return "MPRAGE"; };
 };
+
+// Special class for GE IRSPGR, for backwards compatibility
+class IRSPGR : public MPRAGE {
+	public:
+		IRSPGR(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		string name() const override { return "IRSPGR"; };
+};
+
 class SSFPSimple : public Sequence {
 	public:
 		ArrayXd m_phases;
 		SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases);
-		SSFPSimple(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		SSFPSimple(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
 		size_t phases() const override;
 		void write(ostream& os) const override;
@@ -102,14 +111,14 @@ class SSFPFinite : public SSFPSimple {
 	public:
 		double m_Trf;
 		SSFPFinite(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases);
-		SSFPFinite(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		SSFPFinite(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SSFP_Finite"; } ;
 };
 class SSFPEllipse : public Sequence {
 	public:
-		SSFPEllipse(const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+		SSFPEllipse(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SSFP_Ellipse"; };
@@ -137,7 +146,7 @@ public:
 	double minTR() const;
 	ArrayXcd loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k, bool needsFlip = false) const;
 	
-	//void addSequence(const SequenceType &st, const bool prompt = false, const Agilent::ProcPar &pp = Agilent::ProcPar());
+	//void addSequence(const SequenceType &st, const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 	void addSequence(const shared_ptr<Sequence> &seq);
 };
 
