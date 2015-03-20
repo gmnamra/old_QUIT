@@ -72,25 +72,26 @@ static struct option long_options[] = {
 //******************************************************************************
 void parseInput(SequenceGroup &cs, vector<string> &names);
 void parseInput(SequenceGroup &cs, vector<string> &names) {
-	string input;
+	string type;
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
-	while (getline(cin, input) && (input != "END") && (input != "")) {
-		if (input == "SPGR") {
+	while (getline(cin, type) && (type != "END") && (type != "")) {
+		if (type == "SPGR") {
 			cs.addSequence(make_shared<SPGRSimple>(prompt));
-		} else if (input == "SPGRFinite") {
+		} else if (type == "SPGRFinite") {
 			cs.addSequence(make_shared<SPGRFinite>(prompt));
-		} else if (input == "SSFP") {
+		} else if (type == "SSFP") {
 			cs.addSequence(make_shared<SSFPSimple>(prompt));
-		} else if (input == "SSFPFinite") {
+		} else if (type == "SSFPFinite") {
 			cs.addSequence(make_shared<SSFPFinite>(prompt));
-		} else if (input == "SSFPEllipse") {
+		} else if (type == "SSFPEllipse") {
 			cs.addSequence(make_shared<SSFPEllipse>(prompt));
 		} else {
-			throw(std::runtime_error("Unknown signal type: " + input));
+			throw(std::runtime_error("Unknown signal type: " + type));
 		}
-		if (prompt) cout << "Enter output filename: " << flush; getline(cin, input);
-		names.push_back(input);
-		getline(cin, input); // Just to eat the newline
+		string filename;
+		if (prompt) cout << "Enter output filename: " << flush;
+		getline(cin, filename);
+		names.push_back(filename);
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
@@ -167,7 +168,8 @@ int main(int argc, char **argv)
 	if (prompt) cout << "Loading parameters." << endl;
 	for (size_t i = 0; i < model->nParameters(); i++) {
 		if (prompt) cout << "Enter path to " << model->Names()[i] << " file: " << flush;
-		string filename; cin >> filename;
+		string filename;
+		getline(cin, filename);
 		cout << "Opening " << filename << endl;
 		Nifti::File input(filename);
 
