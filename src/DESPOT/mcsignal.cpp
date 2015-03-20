@@ -43,7 +43,7 @@ Options:\n\
 	--no-prompt, -n   : Don't print prompts for input.\n\
 	--noise, -N val   : Add complex noise with std=val.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component sequences (default 3).\n\
-	--sequences, -M s     : Use simple sequences (default).\n\
+	--sequences, -M s : Use simple sequences (default).\n\
 	            f     : Use Finite Pulse Length correction.\n"
 };
 

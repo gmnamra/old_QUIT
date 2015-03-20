@@ -46,7 +46,7 @@ inline const Matrix3d InfinitesimalRF(cdbl &dalpha);
 inline const Matrix3d OffResonance(cdbl &inHertz);
 inline const Matrix3d Spoiling();
 inline const Matrix6d Exchange(cdbl &k_ab, cdbl &k_ba);
-const void CalcExchange(cdbl tau_a, cdbl f_a, cdbl f_b, double &k_ab, double &k_ba);
+const void CalcExchange(cdbl tau_a, cdbl f_a, double &f_b, double &k_ab, double &k_ba);
 
 //******************************************************************************
 // Actual Signal Equations
