@@ -5,7 +5,8 @@
 
 source ./test_common.sh
 
-run_test "NIFTI tests" ./test_nifti.sh
-run_test "Single-Component DESPOT tests" ./test_scdespot.sh
-run_test "Multi-Component DESPOT tests" ./test_mcdespot.sh
+run_test "NIFTI" ./test_nifti.sh
+run_test "SCDESPOT" ./test_scdespot.sh
+run_test "MCDESPOT" ./test_mcdespot.sh
 
+echo "All tests passed successfully."

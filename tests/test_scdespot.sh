@@ -8,12 +8,11 @@
 # First, create input data
 
 source ./test_common.sh
+SILENCE_TESTS="1"
 
-DATADIR="scdespot"
+DATADIR="scdespot_$QUITVER"
 mkdir -p $DATADIR
 cd $DATADIR
-
-echo "Starting DESPOT tests"
 
 DIMS="11 11 11"
 run_test "Create PD volume" $QUITDIR/niicreate -d "$DIMS" -f 1 PD.nii
@@ -64,3 +63,4 @@ compare_test "DESPOT2FM" T2.nii FM_T2.nii 0.05
 compare_test "DESPOT2GS" T2.nii D2_T2.nii 0.05
 
 cd ..
+SILENCE_TESTS="0"

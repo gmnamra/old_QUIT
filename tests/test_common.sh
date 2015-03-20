@@ -13,11 +13,17 @@ else
 fi
 
 # Simple test function
+SILENCE_TESTS=0
 function run_test {
 	# $1 is test name, remainder is command to run
 	NAME="$1"
 	shift
-	"$@"
+	echo "Starting test $NAME"
+	if [ "$SILENCE_TESTS" -eq "1" ]; then
+		"$@" > "$NAME.log"
+	else
+		"$@"
+	fi
 	local STATUS=$?
 	if [ $STATUS -ne 0 ]; then
 		echo "Test $NAME failed." >&2
@@ -56,3 +62,4 @@ function compare_test {
 # Setup environment
 QUITDIR=$PWD/../build
 export QUIT_EXT=NIFTI
+QUITVER=$(cat ../src/version | sed -e 's/^"//'  -e 's/"$//')

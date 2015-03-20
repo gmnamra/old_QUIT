@@ -8,14 +8,14 @@
 # First, create input data
 
 source ./test_common.sh
+SILENCE_TESTS="0"
 
-DATADIR="mcdespot"
+DATADIR="mcdespot_$QUITVER"
 mkdir -p $DATADIR
 cd $DATADIR
 
-echo "Starting DESPOT tests"
-
 DIMS="11 21 1"
+#DIMS="3 3 3"
 echo "Creating Parameter Volumes"
 $QUITDIR/niicreate -d "$DIMS" -f "1.0" PD.nii
 $QUITDIR/niicreate -d "$DIMS" -f "0.25" T1_a.nii
@@ -64,7 +64,8 @@ SSFP
 $SSFP_FILE
 $SSFP_PAR" > mcdespot.in
 
-run_test "MCDESPOT" $QUITDIR/mcdespot --2 -n -v -S 1 < mcdespot.in
+run_test "MCDESPOT" $QUITDIR/mcdespot --2 -n -v -S 1 -T 1 < mcdespot.in
 compare_test "MWF" f_a.nii 2C_f_a.nii 0.1
 
 cd ..
+SILENCE_TESTS="0"
