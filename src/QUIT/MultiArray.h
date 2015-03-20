@@ -53,8 +53,9 @@ class MultiArray {
 
 			private:
 				MultiArray &m_array;
-				Index m_index;
-				size_t m_packedIndex;
+				Index m_voxelIndex;
+				size_t m_dataIndex;
+				bool m_endflag;
 
 			public:
 				MultiArrayIterator(MultiArray &array, Index start = Index::Zero());

@@ -317,6 +317,10 @@ int main(int argc, char **argv) {
 				if (f0fit == OffRes::Map) {
 					localBounds.row(PoolInfo::nParameters(pools) - 1).setConstant(f0Vol[{i,j,k}]);
 				}
+				if (scale == Scale::None) {
+					localBounds(0, 0) = 0.;
+					localBounds(0, 1) = signal.abs().maxCoeff() * 25;
+				}
 				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 				DESPOTFunctor func(sequences, pools, signal, B1, fitComplex, false);
 				RegionContraction<DESPOTFunctor> rc(func, localBounds, weights, threshes,
@@ -359,7 +363,8 @@ int main(int argc, char **argv) {
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
-	for (size_t p = 1; p < PoolInfo::nParameters(pools); p++) { // Skip PD for now
+	size_t start = (scale == Scale::None) ? 0 : 1;
+	for (size_t p = start; p < PoolInfo::nParameters(pools); p++) {
 		hdr.intent_name = PoolInfo::Names(pools).at(p);
 		Nifti::File file(hdr, outPrefix + PoolInfo::Names(pools).at(p) + "" + OutExt());
 		auto param = paramsVols.slice<3>({0,0,0,p},{-1,-1,-1,0});

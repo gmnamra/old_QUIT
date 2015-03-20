@@ -18,7 +18,9 @@
 //******************************************************************************
 #pragma mark Versioning etc.
 //******************************************************************************
+const std::string version {
 #include "version"
+};
 
 const std::string credit_shared {
 "Written by tobias.wood@kcl.ac.uk, based on work by Sean Deoni. \n\

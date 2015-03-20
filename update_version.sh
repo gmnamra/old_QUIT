@@ -6,5 +6,5 @@
 #  Created by Tobias Wood on 05/03/2014.
 #
 
-VER="const std::string version { \"QUIT `git describe --tags`\" };"
+VER="\"QUIT_`git describe --tags`\""
 echo "$VER" > src/version

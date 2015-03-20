@@ -105,10 +105,13 @@ inline const Matrix6d Exchange(const double &k_ab, const double &k_ba) {
 }
 
 // Calculate the exchange rates from the residence time and fractions
-const void CalcExchange(const double tau_a, const double f_a, const double f_b, double &k_ab, double &k_ba) {
-	double tau_b = f_b * tau_a / f_a;
+const void CalcExchange(const double tau_a, const double f_a, double &f_b, double &k_ab, double &k_ba) {
+	const double feps = numeric_limits<float>::epsilon(); // Because we read from float files
+	f_b = 1.0 - f_a;
+	const double tau_b = f_b * tau_a / f_a;
 	k_ab = 1./tau_a; k_ba = 1./tau_b;
-	if ((f_a == 0.) || (f_b == 0.)) { // Only have 1 component, so no exchange
+	if ((fabs(f_a - 1.) <= feps) || (fabs(f_b - 1.) <= feps)) {
+		// Only have 1 component, so no exchange
 		k_ab = 0.;
 		k_ba = 0.;
 	}
@@ -221,7 +224,7 @@ MagVector Two_SPGR(const ArrayXd &flip, cdbl TR,
 	Matrix2d A, eATR;
 	Vector2d M0, Mobs;
 	MagVector signal(3, flip.size()); signal.setZero();
-	double k_ab, k_ba, f_b = 1. - f_a;
+	double k_ab, k_ba, f_b;
 	CalcExchange(tau_a, f_a, f_b, k_ab, k_ba);
 	M0 << f_a, f_b;
 	A << -((1./T1_a) + k_ab),                    k_ba,
@@ -244,7 +247,7 @@ MagVector Two_SSFP(const ArrayXd &flip, const double TR, const double phase,
 	R.block(0,0,3,3) = Relax(T1_a, T2_a);
 	R.block(3,3,3,3) = Relax(T1_b, T2_b);
 	Matrix6d O = Matrix6d::Zero(); O.block(0,0,3,3) = O.block(3,3,3,3) = OffResonance(f0);
-	double k_ab, k_ba, f_b = 1. - f_a;
+	double k_ab, k_ba, f_b;
 	CalcExchange(tau_a, f_a, f_b, k_ab, k_ba);
 	Matrix6d K = Exchange(k_ab, k_ba);
 	Matrix6d L = (-(R+O+K)*TR).exp();
@@ -283,7 +286,7 @@ MagVector Two_SSFP_Finite(const ArrayXd &flip, const bool spoil,
 	}
 	C.block(0,0,3,3) = C.block(3,3,3,3) = C3;
 	Matrix6d RpO = R + O;
-	double k_ab, k_ba, f_b = 1. - f_a;
+	double k_ab, k_ba, f_b;
 	CalcExchange(tau_a, f_a, f_b, k_ab, k_ba);
 	Matrix6d K = Exchange(k_ab, k_ba);
 	Matrix6d RpOpK = RpO + K;

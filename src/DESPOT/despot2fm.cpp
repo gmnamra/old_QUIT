@@ -65,7 +65,7 @@ static int verbose = false, prompt = true, all_residuals = false,
            voxI = 0, voxJ = 0, seed = -1;
 static double expand = 0.;
 static string outPrefix;
-static struct option long_options[] = {
+static struct option long_opts[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"no-prompt", no_argument, 0, 'n'},
@@ -84,6 +84,7 @@ static struct option long_options[] = {
 	{"resids", no_argument, 0, 'r'},
 	{0, 0, 0, 0}
 };
+static const char* short_opts = "hvnm:o:f:b:s:p:S:FT:M:xcri:j:d:";
 
 //******************************************************************************
 // Main
@@ -101,7 +102,7 @@ int main(int argc, char **argv)
 	//ThreadPool::EnableDebug = true;
 
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvnm:o:f:b:s:p:S:FT:M:xcri:j:d:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;

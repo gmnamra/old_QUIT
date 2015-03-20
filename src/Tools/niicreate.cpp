@@ -18,13 +18,14 @@
 #include "Nifti/Nifti.h"
 #include "QUIT/QUIT.h"
 using namespace std;
+using namespace Eigen;
 using namespace QUIT;
 
 //******************************************************************************
 // Arguments / Usage
 //******************************************************************************
 const string usage {
-"Usage is: niicreate [options] filename dims voxdims [extra arguments]\n\
+"Usage is: niicreate filename dims voxdims [options]\n\
 \n\
 This is a tool to create Nifti files, either blank headers with orientation\n\
 information, e.g. for registration, or files filled with simple patterns of\n\
@@ -34,44 +35,45 @@ else.\n\
 \n\
 Main Options:\n\
 	--help, -h       : Print this message\n\
-	--dtype, -t F    : Set the datatype to 64 bit float (default)\n\
-	            I    : Set the datatype to 16 bit int\n\
-	            C    : Set the datatype to 128 bit complex\n\
-	            NNN  : Set the datatype to the given valid Nifti datatype\n\
+	--precision, -p F    : Set the datatype to 32 bit float (default)\n\
+	                I    : Set the datatype to 16 bit int\n\
+	                C    : Set the datatype to 64 bit complex\n\
+	                NNN  : Set the datatype to the given valid Nifti datatype\n\
 	--xform, -x FILE : Copy header transform from another Nifti\n\
+	--rank, -r N     : Set number of dimensions (max 5, default 3)\n\
+	--dims, -d \"N N N\"    : Set the dimensions (default 16 16 16)\n\
+	--voxdims, -v \"X X X\" : Set the voxel dimensions (default 1mm iso)\n\
+	--tr,  -t X             : Set the TR (default 1s)\n\
 File Content Options:\n\
 	--blank, -b     : Create the header information only\n\
-	--value, -v D   : Fill dimension D with constant value v (val)\n\
-	--slab, -l D    : Fill dimension D with a slab (val, start, end)\n\
-	--grad, -g D    : Fill dimension D with a smooth gradient (low, high)\n\
-	--step, -s D    : Fill dimension D with stepped data (low, high, steps)\n\
-	--uniform, -U D : Fill dimension D with uniform noise (mid, width)\n\
-	--gauss, -G D   : Fill dimension D with gaussian noise (mean, std dev)\n"
+	--fill, -f X    : Fill the entire image with value X (default 0)\n\
+	--grad, -g \"D L H\"    : Fill dimension D with a smooth gradient (low, high)\n\
+	--step, -s \"D L H S\"  : Fill dimension D with stepped data (low, high, steps)\n"
 };
 
-enum class FillType { Zero, Value, Slab, Gradient, Steps, Uniform, Gaussian };
+enum class FillType { Fill, Gradient, Steps };
 static bool verbose = false, isBlank = false;
-static vector<FillType> fillTypes(4, FillType::Zero);
-static Eigen::Array4f startVal = Eigen::Array4f::Zero(), deltaVal = Eigen::Array4f::Zero();
-static Eigen::Array4i stepLength = Eigen::Array4i::Ones();
-static vector<uniform_real_distribution<float>> uniforms(4);
-static vector<normal_distribution<float>> gauss(4);
+static int ndims = 3;
+static FillType fillType = FillType::Fill;
+static float startVal = 0, deltaVal = 0;
+static int stepLength = 1, fillDim = 0;
 static Nifti::DataType dType = Nifti::DataType::FLOAT64;
 static Eigen::Affine3f xform = Eigen::Affine3f::Identity();
-static struct option long_options[] = {
-	{"help", no_argument, 0, 'h'},
-	{"dtype", required_argument, 0, 't'},
-	{"xform", required_argument, 0, 'x'},
-	{"blank", no_argument, 0, 'b'},
-	{"zero", no_argument, 0, 'z'},
-	{"value", required_argument, 0, 'v'},
-	{"slab", required_argument, 0, 'l'},
-	{"grad", required_argument, 0, 'g'},
-	{"step", required_argument, 0, 's'},
-	{"uniform", required_argument, 0,'U'},
-	{"gauss", required_argument, 0, 'G'},
+static struct option long_opts[] = {
+	{"help",      no_argument,       0, 'h'},
+	{"precision", required_argument, 0, 'p'},
+	{"xform",     required_argument, 0, 'x'},
+	{"rank",      required_argument, 0, 'r'},
+	{"dims",      required_argument, 0, 'd'},
+	{"voxdims",   required_argument, 0, 'v'},
+	{"tr",        required_argument, 0, 't'},
+	{"blank",     no_argument,       0, 'b'},
+	{"fill",      required_argument, 0, 'f'},
+	{"grad",      required_argument, 0, 'g'},
+	{"step",      required_argument, 0, 's'},
 	{0, 0, 0, 0}
 };
+static const char* short_opts = "hp:x:r:d:v:t:bf:g:s:";
 //******************************************************************************
 // Main
 //******************************************************************************
@@ -80,11 +82,14 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Argument Processing
 	//**************************************************************************
-	size_t expected_extra_args = 9;
+	typedef MultiArray<float, 5>::Index ind_t;
+	ind_t dims; dims.setOnes();
+	ArrayXf voxdims(5); voxdims.setOnes();
+
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "d:t:x:bzv:l:g:s:U:G:h", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
 		switch (c) {
-			case 't':
+			case 'p':
 				switch (*optarg) {
 					case 'F': dType = Nifti::DataType::FLOAT32; break;
 					case 'I': dType = Nifti::DataType::INT16; break;
@@ -95,107 +100,81 @@ int main(int argc, char **argv)
 				Nifti::File other(optarg);
 				xform = other.header().transform();
 			} break;
+			case 'r':
+				ndims = atoi(optarg);
+				if ((ndims < 2) || (ndims > 5)) {
+					cerr << "Invalid number of dimensions. Must be 2-5." << endl;
+					return EXIT_FAILURE;
+				}
+				break;
+			case 'd': {
+				string vals(optarg);
+				Array<unsigned long, Dynamic, 1> test(ndims);
+				QUIT::Read<Array<unsigned long, Dynamic, 1>>::FromString(vals, test);
+				dims.head(ndims) = test;
+			} break;
+			case 'v': {
+				string vals(optarg);
+				QUIT::Read<ArrayXf>::FromString(vals, voxdims.head(3));
+			} break;
+			case 't': voxdims[3] = atof(optarg); break;
 			case 'b': isBlank = true; break;
-			case 'v': fillTypes.at(atoi(optarg)) = FillType::Value; expected_extra_args += 1; break;
-			case 'l': fillTypes.at(atoi(optarg)) = FillType::Slab; expected_extra_args += 3; break;
-			case 'g': fillTypes.at(atoi(optarg)) = FillType::Gradient; expected_extra_args += 2; break;
-			case 's': fillTypes.at(atoi(optarg)) = FillType::Steps; expected_extra_args += 3; break;
-			case 'U': fillTypes.at(atoi(optarg)) = FillType::Uniform; expected_extra_args += 2; break;
-			case 'G': fillTypes.at(atoi(optarg)) = FillType::Gaussian; expected_extra_args += 2; break;
+			case 'f': fillType = FillType::Fill; startVal = atof(optarg); break;
+			case 'g': {
+				fillType = FillType::Gradient;
+				ArrayXf temp(3);
+				QUIT::Read<ArrayXf>::FromString(string(optarg), temp);
+				fillDim = temp[0];
+				startVal = temp[1];
+				deltaVal = (temp[2] - startVal) / (dims[fillDim] - 1);
+				stepLength = 1;
+			} break;
+			case 's': {
+				fillType = FillType::Steps;
+				ArrayXf temp(4);
+				QUIT::Read<ArrayXf>::FromString(string(optarg), temp);
+				fillDim = temp[0];
+				startVal = temp[1];
+				float endVal = temp[2];
+				int steps = temp[3];
+				stepLength = dims[fillDim] / steps;
+				deltaVal = (endVal - startVal) / (steps - 1);
+			} break;
 			case 'h':
 			case '?': // getopt will print an error message
 				return EXIT_FAILURE;
 		}
 	}
-	if ((argc - optind) != expected_extra_args) {
-		cerr << "Wrong number of arguments." << endl;
+	if ((argc - optind) < 1) {
+		cerr << "Missing input filename." << endl;
+		cout << usage << endl;
+		return EXIT_FAILURE;
+	} else if ((argc - optind) > 1) {
+		cerr << "Unexpected extra arguments." << endl;
 		cout << usage << endl;
 		return EXIT_FAILURE;
 	}
-
 	string fName(argv[optind++]);
-	fName += OutExt();
-	MultiArray<float, 4>::Index dims;
-	Eigen::ArrayXf vdims(4);
-	for (size_t i = 0; i < 4; i++) { dims[i] = atoi(argv[optind++]); }
-	for (size_t i = 0; i < 4; i++) { vdims[i] = atof(argv[optind++]); }
-	Nifti::Header hdr(dims, vdims, dType);
+
+	Nifti::Header hdr(dims, voxdims, dType);
 	hdr.setTransform(xform);
 	Nifti::File file(hdr, fName);
 
 	if (!isBlank) {
-		MultiArray<float, 4> data(dims);
-		MultiArray<float, 4>::Index starts; starts.setZero();
-		MultiArray<float, 4>::Index ends = data.dims();
-		for (size_t d = 0; d < 4; d++) {
-			switch (fillTypes.at(d)) {
-				case FillType::Zero:
-					stepLength[d] = 1;
-					break;
-				case FillType::Value:
-					startVal[d] = atof(argv[optind++]);
-					deltaVal[d] = 0;
-					stepLength[d] = 1;
-					break;
-				case FillType::Slab:
-					startVal[d] = atof(argv[optind++]);
-					deltaVal[d] = 0;
-					stepLength[d] = 1;
-					starts[d] = atoi(argv[optind++]);
-					ends[d] = atoi(argv[optind++]);
-					if (starts[d] >= data.dims()[d]) {
-						cerr << "Invalid slab start slice." << endl;
-						return EXIT_FAILURE;
-					}
-					if (ends[d] > data.dims()[d]) {
-						cerr << "Invalid slab end slice." << endl;
-						return EXIT_FAILURE;
-					}
-					break;
-				case FillType::Gradient:
-					startVal[d] = atof(argv[optind++]);
-					deltaVal[d] = (atof(argv[optind++]) - startVal[d]) / (dims[d] - 1);
-					stepLength[d] = 1;
-					break;
-				case FillType::Steps: {
-					startVal[d] = atof(argv[optind++]);
-					float endVal = atof(argv[optind++]);
-					int steps = atoi(argv[optind++]);
-					stepLength[d] = dims[d] / steps;
-					deltaVal[d] = (endVal - startVal[d]) / (steps - 1);
-				} break;
-				case FillType::Uniform: {
-					float lo = atof(argv[optind++]);
-					float hi = atof(argv[optind++]);
-					uniforms[d] = uniform_real_distribution<float>(lo, hi);
-				} break;
-				case FillType::Gaussian: {
-					float mean = atof(argv[optind++]);
-					float std  = atof(argv[optind++]);
-					gauss[d] = normal_distribution<float>(mean, std);
-				} break;
-			}
-		}
-		random_device seed;
-		mt19937_64 twist(seed());
+		MultiArray<float, 5> data(dims);
+		ind_t start = ind_t::Zero();
+		ind_t size = dims;
+		size[fillDim] = 0;
 
-		MultiArray<float, 4>::Index index;
-		function<void (const int&, const float&)> processDim = [&] (const int &d, const float& outVal) {
-			float inVal = outVal + startVal[d];
-			for (index[d] = starts[d];index[d] < ends[d]; index[d]++) {
-				if (fillTypes[d] == FillType::Uniform)
-					inVal = outVal + uniforms[d].operator()(twist);
-				else if (fillTypes[d] == FillType::Gaussian)
-					inVal = outVal + gauss[d].operator()(twist);
-				if (d > 0) {
-					processDim(d - 1, inVal);
-				} else {
-					data[index] = inVal;
-				}
-				if ((index[d] % stepLength[d]) == (stepLength[d] - 1)) inVal += deltaVal[d];
+		float val = startVal;
+		for (int i = 0; i < dims[fillDim]; i++) {
+			start[fillDim] = i;
+			auto slice = data.slice<4>(start,size);
+			for (auto v = slice.begin(); v != slice.end(); ++v) {
+				*v = val;
 			}
-		};
-		processDim(3, 0.);
+			if ((i % stepLength) == (stepLength - 1)) val += deltaVal;
+		}
 		file.writeAll(data.begin(), data.end());
 	}
 	file.close();

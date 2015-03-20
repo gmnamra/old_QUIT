@@ -220,34 +220,39 @@ std::string MultiArray<Tp, rank>::print() const {
 template<typename Tp, size_t rank>
 MultiArray<Tp, rank>::MultiArrayIterator::MultiArrayIterator(MultiArray &array, Index start) :
 	m_array(array),
-	m_index(start),
-	m_packedIndex(start.prod())
+	m_voxelIndex(start),
+	m_dataIndex(array.m_offset + (array.m_strides * start).sum()),
+	m_endflag(false)
 {
-
-}
-
-template<typename Tp, size_t rank>
-Tp &MultiArray<Tp, rank>::iterator::operator*() {
-	if (m_array.isPacked()) {
-		return m_array[m_packedIndex];
-	} else {
-		return m_array[m_index];
+	if ((start == m_array.m_dims).all()) {
+		m_endflag = true;
 	}
 }
 
 template<typename Tp, size_t rank>
+Tp &MultiArray<Tp, rank>::iterator::operator*() {
+	return (*m_array.m_ptr)[m_dataIndex];
+}
+
+template<typename Tp, size_t rank>
 auto MultiArray<Tp, rank>::iterator::operator++() -> iterator & {
-	if (m_array.isPacked()) {
-		m_packedIndex++;
-	} else {
-		for (size_t dim = 0; dim < rank; dim++) {
-			m_index[dim]++;
-			if (m_index[dim] == m_array.dims()[dim]) {
-				m_index[dim] = 0; // Reset this dim to zero, go and increment next dimension
-			} else {
-				break; // This dimension still has increments left
-			}
+	size_t dim;
+	for (dim = 0; dim < rank; dim++) {
+		m_voxelIndex[dim]++;
+		m_dataIndex += m_array.m_strides[dim];
+		if (m_voxelIndex[dim] == m_array.dims()[dim]) {
+			// We hit the end of this dimension, subtract off the accumulated increment
+			// and reset so we point to the first element of the subsequent 'column'
+			// when the next dimension is incremented.
+			m_dataIndex -= m_array.m_strides[dim] * m_voxelIndex[dim];
+			m_voxelIndex[dim] = 0;
+		} else {
+			// This dimension still has increments left
+			break;
 		}
+	}
+	if (dim == rank) {
+		m_endflag = true;
 	}
 	return *this;
 }
@@ -261,13 +266,14 @@ auto MultiArray<Tp, rank>::iterator::operator++(int) -> iterator {
 
 template<typename Tp, size_t rank>
 bool MultiArray<Tp, rank>::iterator::operator==(const iterator &other) const {
-	if (m_array.isPacked() && (m_packedIndex == other.m_packedIndex)) {
-		return true;
-	} else if ((m_index == other.m_index).all()) {
-		return true;
-	} else {
-		return false;
+	if (m_array.m_ptr == other.m_array.m_ptr) {
+		if (m_dataIndex == other.m_dataIndex) {
+			return true;
+		} else if (m_endflag && other.m_endflag) {
+			return true;
+		}
 	}
+	return false;
 }
 
 template<typename Tp, size_t rank>

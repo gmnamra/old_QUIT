@@ -43,11 +43,11 @@ Options:\n\
 	--no-prompt, -n   : Don't print prompts for input.\n\
 	--noise, -N val   : Add complex noise with std=val.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component sequences (default 3).\n\
-	--sequences, -M s     : Use simple sequences (default).\n\
+	--sequences, -M s : Use simple sequences (default).\n\
 	            f     : Use Finite Pulse Length correction.\n"
 };
 
-static auto components = Pools::Three;
+static auto components = Pools::One;
 static bool verbose = false, prompt = true, finitesequences = false;
 static string outPrefix = "";
 static double sigma = 0.;
@@ -91,7 +91,6 @@ void parseInput(Sequences &cs, vector<string> &names) {
 			cs.addSequence(SequenceType::SSFP_Finite, prompt);
 		}
 		// Print message ready for next loop
-		string temp; getline(cin, temp); // Just to eat the newline
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
 	}
 }
@@ -158,30 +157,22 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	//**************************************************************************
-	#pragma mark  Set up sequences
-	//**************************************************************************
-	Sequences sequences(Scale::None);
-	vector<string> filenames;
-	parseInput(sequences, filenames);
-	cout << sequences << endl;
-	//**************************************************************************
-	#pragma mark Read in parameter files
-	//**************************************************************************
-	// Build a Functor here so we can query number of parameters etc.
+	/**************************************************************************
+	 * Read in parameter files
+	 *************************************************************************/
 	cout << "Using " << to_string(components) << " component sequences." << endl;
 	MultiArray<float, 4> paramsVols;
 	Nifti::Header templateHdr;
 	if (prompt) cout << "Loading parameters." << endl;
-	for (size_t i = 0; i < PoolInfo::nParameters(Pools::One); i++) {
-		if (prompt) cout << "Enter path to " << PoolInfo::Names(Pools::One)[i] << " file: " << flush;
-		string filename; cin >> filename;
+	for (size_t i = 0; i < PoolInfo::nParameters(components); i++) {
+		if (prompt) cout << "Enter path to " << PoolInfo::Names(components)[i] << " file: " << flush;
+		string filename; getline(cin,filename);
 		cout << "Opening " << filename << endl;
 		Nifti::File input(filename);
 
 		if (i == 0) {
 			templateHdr = input.header();
-			paramsVols = MultiArray<float, 4>(input.matrix(), PoolInfo::nParameters(Pools::One));
+			paramsVols = MultiArray<float, 4>(input.matrix(), PoolInfo::nParameters(components));
 		} else {
 			if (!input.header().matchesSpace(templateHdr)) {
 				cout << "Mismatched input volumes" << endl;
@@ -192,7 +183,18 @@ int main(int argc, char **argv)
 		cout << "Reading data." << endl;
 		input.readVolumes(inVol.begin(), inVol.end(), 0, 1);
 	}
+
 	const auto d = paramsVols.dims();
+
+
+	//**************************************************************************
+	#pragma mark  Set up sequences
+	//**************************************************************************
+	Sequences sequences(Scale::None);
+	vector<string> filenames;
+	parseInput(sequences, filenames);
+	cout << sequences << endl;
+
 	vector<MultiArray<complex<float>, 4>> signalVols(sequences.count()); //d.head(3), sequences.combinedSize());
 	for (size_t s = 0; s < sequences.count(); s++) {
 		signalVols[s] = MultiArray<complex<float>, 4>(d.head(3), sequences.sequence(s)->size());
@@ -205,10 +207,11 @@ int main(int argc, char **argv)
 					ArrayXd params = paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
 					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 					for (size_t s = 0; s < sequences.count(); s++) {
+						const size_t sigsize = sequences.sequences()[s]->size();
 						ArrayXcd signal = sequences.sequences()[s]->signal(components, params, B1);
-						ArrayXcd noise(sequences.size());
-						noise.real() = (ArrayXd::Ones(sequences.size()) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
-						noise.imag() = (ArrayXd::Ones(sequences.size()) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
+						ArrayXcd noise(sigsize);
+						noise.real() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
+						noise.imag() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
 						signalVols[s].slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = (signal + noise).cast<complex<float>>();
 					}
 				}
@@ -225,7 +228,7 @@ int main(int argc, char **argv)
 	for (size_t i = 0; i < sequences.count(); i++) {
 		size_t thisSize = sequences.sequence(i)->size();
 		templateHdr.setDim(4, thisSize);
-		Nifti::File saveFile(templateHdr, outPrefix + filenames[i] + OutExt());
+		Nifti::File saveFile(templateHdr, outPrefix + filenames[i]);
 		auto thisSignal = signalVols[i].slice<4>({0,0,0,startVol},{-1,-1,-1,thisSize});
 		saveFile.writeVolumes(thisSignal.begin(), thisSignal.end());
 		saveFile.close();
