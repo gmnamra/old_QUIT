@@ -31,12 +31,16 @@ CXXFLAGS := -std=c++11 $(STDLIB) $(THREADS) -march=native -Wfatal-errors $(MOREF
 LDFLAGS  := -std=c++11 $(STDLIB) $(THREADS) -march=native -L$(BUILD_DIR)
 INCLUDE    := -I$(EIGEN_DIR) -Isrc -Isrc/Agilent
 
+#Create the versioning file
+VERSION :
+	@echo "\"QUIT_`git describe --tags`\"" > src/version
+
 #Rules for libNifti
 NIFTI_DIR  := Nifti
 NIFTI_SRC  := Nifti Header Internal ZipFile Extension
 NIFTI_OBJ  := $(addprefix $(BUILD_DIR)/$(NIFTI_DIR)/, $(addsuffix .o, $(NIFTI_SRC)))
 NIFTI_HDR  := $(addprefix $(SOURCE_DIR)/$(NIFTI_DIR)/, Nifti.h Nifti-inl.h Enum.h ExtensionCodes.h)
-$(BUILD_DIR)/$(NIFTI_DIR)/%.o : $(SOURCE_DIR)/$(NIFTI_DIR)/%.cpp | EIGEN
+$(BUILD_DIR)/$(NIFTI_DIR)/%.o : $(SOURCE_DIR)/$(NIFTI_DIR)/%.cpp | VERSION EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(BUILD_DIR)/libNifti.a : $(NIFTI_OBJ) $(NIFTI_HDR)
@@ -48,7 +52,7 @@ AGILENT_DIR := Agilent
 AGILENT_SRC := fdf fdfFile FID FIDFile procpar util
 AGILENT_OBJ := $(patsubst %, $(BUILD_DIR)/$(AGILENT_DIR)/%.o, $(AGILENT_SRC))
 AGILENT_HDR := $(addprefix $(SOURCE_DIR)/$(AGILENT_DIR)/, $(addsuffix .h, $(AGILENT_SRC)))
-$(BUILD_DIR)/$(AGILENT_DIR)/%.o : $(SOURCE_DIR)/$(AGILENT_DIR)/%.cpp | EIGEN
+$(BUILD_DIR)/$(AGILENT_DIR)/%.o : $(SOURCE_DIR)/$(AGILENT_DIR)/%.cpp | VERSION EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(BUILD_DIR)/libAgilent.a : $(AGILENT_OBJ)
@@ -61,7 +65,7 @@ QUIT_SRC   := Util ThreadPool
 QUIT_TPL   := MultiArray MultiArray-inl Volume Volume-inl
 QUIT_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, $(addsuffix .h, QUIT $(QUIT_SRC) $(QUIT_TPL)))
 QUIT_OBJ   := $(addprefix $(BUILD_DIR)/$(QUIT_DIR)/, $(addsuffix .o, $(QUIT_SRC)))
-$(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp $(NIFTI_HDR) $(AGILENT_HDR) | EIGEN
+$(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp $(NIFTI_HDR) $(AGILENT_HDR) | VERSION EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_HDR)
@@ -72,7 +76,7 @@ $(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_HDR)
 TOOL_DIR   := Tools
 TOOLS      := niihdr niiext niicreate niicomplex niinudge niigrad procparse fdf2nii fdfbval calctfm
 PYTOOLS    := fdf2nii.py
-$(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp $(NIFTI_HDR) $(QUIT_HDR) | EIGEN
+$(BUILD_DIR)/$(TOOL_DIR)/%.o : $(SOURCE_DIR)/$(TOOL_DIR)/%.cpp $(NIFTI_HDR) $(QUIT_HDR) | VERSION EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(addprefix $(BUILD_DIR)/, $(TOOLS)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(TOOL_DIR)/%.o libNifti.a libAgilent.a libQUIT.a
@@ -87,7 +91,7 @@ DESPOT_DIR  := DESPOT
 DESPOT_SRC  := SignalEquations Models Sequence
 DESPOT_HDR  := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, SignalEquations.h Models.h Sequence.h RegionContraction.h)
 DESPOT_OBJ  := $(patsubst %, $(BUILD_DIR)/$(DESPOT_DIR)/%.o, $(DESPOT_SRC))
-$(BUILD_DIR)/$(DESPOT_DIR)/%.o : $(SOURCE_DIR)/$(DESPOT_DIR)/%.cpp $(DESPOT_HDR) $(QUIT_HDR) $(NIFTI_HDR) | EIGEN
+$(BUILD_DIR)/$(DESPOT_DIR)/%.o : $(SOURCE_DIR)/$(DESPOT_DIR)/%.cpp $(DESPOT_HDR) $(QUIT_HDR) $(NIFTI_HDR) | VERSION EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(addprefix $(BUILD_DIR)/, $(DESPOT)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(DESPOT_DIR)/%.o $(DESPOT_OBJ) libNifti.a libAgilent.a libQUIT.a
@@ -97,7 +101,7 @@ $(addprefix $(BUILD_DIR)/, $(DESPOT)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(DESPOT_D
 #Rules for Misc
 MISC     := dixon
 MISC_DIR := Misc
-$(BUILD_DIR)/$(MISC_DIR)/%.o : $(SOURCE_DIR)/$(MISC_DIR)/%.cpp $(QUIT_HDR) $(NIFTI_HDR) | EIGEN
+$(BUILD_DIR)/$(MISC_DIR)/%.o : $(SOURCE_DIR)/$(MISC_DIR)/%.cpp $(QUIT_HDR) $(NIFTI_HDR) | VERSION EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(addprefix $(BUILD_DIR)/, $(MISC)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(MISC_DIR)/%.o $(MISC_OBJ) libNifti.a libAgilent.a libQUIT.a

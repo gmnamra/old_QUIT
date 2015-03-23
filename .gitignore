@@ -2,11 +2,7 @@
 eigen/
 build/
 bin/
-QUIT.xcworkspace/xcuserdata/
-src/Nifti.xcodeproj/xcuserdata/
-src/Agilent.xcodeproj/xcuserdata/
-src/DESPOT.xcodeproj/xcuserdata/
-src/Tools.xcodeproj/xcuserdata/
+src/version
 doc/html/
 *.bib
 *.bbl
