@@ -4,6 +4,7 @@ build/
 bin/
 src/version
 doc/html/
+tests/
 *.bib
 *.bbl
 *.aux
