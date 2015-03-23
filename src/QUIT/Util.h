@@ -65,25 +65,24 @@ template<typename T> class Read {
 	}
 };
 
-template<typename T, long N> class Read<Eigen::Array<T, N, 1>> {
-	public:
-	static void FromLine(std::istream & in, Eigen::Ref<Eigen::Array<T, N, 1>> vals) {
-		std::string line;
-		if (!std::getline(in, line)) {
-			throw(std::runtime_error("Failed to read input."));
+template<typename Derived> void ReadEigenFromString(const std::string &s, const Eigen::DenseBase<Derived> &cvals) {
+	std::istringstream stream(s);
+	Eigen::DenseBase<Derived> &vals = const_cast<Eigen::DenseBase<Derived> &>(cvals);
+	for (typename Eigen::DenseBase<Derived>::Index i = 0; i < vals.size(); i++) {
+		if (!(stream >> vals[i])) {
+			throw(std::runtime_error("Failed to parse input: " + s));
 		}
-		FromString(line, vals);
 	}
+}
 
-	static void FromString(const std::string &s, Eigen::Ref<Eigen::Array<T, N, 1>> vals) {
-		std::istringstream stream(s);
-		for (typename Eigen::Array<T, Eigen::Dynamic, 1>::Index i = 0; i < vals.size(); i++) {
-			if (!(stream >> vals[i])) {
-				throw(std::runtime_error("Failed to parse input: " + s));
-			}
-		}
+template<typename Derived> void ReadEigenFromLine(std::istream &in, const Eigen::DenseBase<Derived> &cvals) {
+	std::string line;
+	Eigen::DenseBase<Derived> &vals = const_cast<Eigen::DenseBase<Derived> &>(cvals);
+	if (!std::getline(in, line)) {
+		throw(std::runtime_error("Failed to read input."));
 	}
-};
+	ReadEigenFromString(line, vals);
+}
 
 } // End namespace QUIT
 
