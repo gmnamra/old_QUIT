@@ -25,6 +25,6 @@ git merge --no-ff development -m "Merging development branch for release $TAG"
 echo $VERSION > src/version
 git commit src/version -m "Updated version file for release $TAG"
 git tag $TAG
-git push github master --tags
+git push github master $TAG
 
 git checkout development
