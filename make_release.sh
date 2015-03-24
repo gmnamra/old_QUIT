@@ -1,24 +1,30 @@
-#!/bin/bash
+#!/bin/bash -e
 
-#  release.sh
-#  DESPOT
+# make_release.sh
+# DESPOT
 #
-#  Created by Tobias Wood on 05/03/2014.
+# Created by Tobias Wood on 05/03/2014.
 #
+# Merges development branch to master, sets the version string
+# and then applies the same string as a tag, then pushes the
+# whole lot to github.
 
-if [ -z "$1" ]
-then
-	echo "Must supply a release name."
+TAG="QUIT_$(date +%y%m%d)"
+PREFIX=QUIT
+
+STATUS=$(git status -s -uno)
+
+if [ -n "$STATUS" ]; then
+	echo "YOU HAVE UNCOMMITED CHANGES. ABORTING."
 	exit 1
 fi
 
-set -e
-set -x
+git checkout master
+# Use no-ff to make it clear we are merging a branch
+git merge --no-ff development -m "Merging development branch for release $TAG"
+echo $TAG > src/version
+git commit src/version -m "Updated version file for release $TAG"
+git tag $TAG
+git push github master --tags
 
-git tag $1
-./update_version.sh
-PREFIX=QUIT
-ARCHIVE=../${PREFIX}-$1.tar
-git archive -v --format tar --prefix ${PREFIX}/ --output ${ARCHIVE} $1
-tar -s :src:${PREFIX}/src: -v -r -f ${ARCHIVE} src/version
-gzip ${ARCHIVE}
+git checkout development
