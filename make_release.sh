@@ -9,8 +9,8 @@
 # and then applies the same string as a tag, then pushes the
 # whole lot to github.
 
-TAG="QUIT_$(date +%y%m%d)"
-PREFIX=QUIT
+TAG=$(date +%y%m%d)
+VERSION="\"QUIT_$TAG\""
 
 STATUS=$(git status -s -uno)
 
@@ -22,7 +22,7 @@ fi
 git checkout master
 # Use no-ff to make it clear we are merging a branch
 git merge --no-ff development -m "Merging development branch for release $TAG"
-echo $TAG > src/version
+echo $VERSION > src/version
 git commit src/version -m "Updated version file for release $TAG"
 git tag $TAG
 git push github master --tags
