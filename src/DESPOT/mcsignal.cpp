@@ -85,6 +85,10 @@ void parseInput(SequenceGroup &cs, vector<string> &names) {
 			cs.addSequence(make_shared<SSFPFinite>(prompt));
 		} else if (type == "SSFPEllipse") {
 			cs.addSequence(make_shared<SSFPEllipse>(prompt));
+		} else if (type == "IRSPGR") {
+			cs.addSequence(make_shared<IRSPGR>(prompt));
+		} else if (type == "MPRAGE") {
+			cs.addSequence(make_shared<MPRAGE>(prompt));
 		} else {
 			throw(std::runtime_error("Unknown signal type: " + type));
 		}
