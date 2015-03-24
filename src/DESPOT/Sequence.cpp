@@ -106,7 +106,6 @@ MPRAGE::MPRAGE(const ArrayXd &TI, const double TD, const double TR, const int N,
 }
 
 MPRAGE::MPRAGE(const bool prompt, const Agilent::ProcPar &pp) : Sequence() {
-	cout << __PRETTY_FUNCTION__ << endl;
 	if (pp) {
 		throw(runtime_error("MPRAGE Procpar reader not implemented."));
 	} else {
@@ -130,7 +129,6 @@ MPRAGE::MPRAGE(const bool prompt, const Agilent::ProcPar &pp) : Sequence() {
 }
 
 IRSPGR::IRSPGR(const bool prompt, const Agilent::ProcPar &pp) : MPRAGE() {
-	cout << __PRETTY_FUNCTION__ << endl;
 	if (pp)
 		throw(runtime_error("IRSPGR Procpar reader not implemented."));
 	if (prompt) cout << "Enter read-out flip-angle (degrees): " << flush;
