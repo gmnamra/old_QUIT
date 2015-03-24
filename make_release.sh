@@ -21,9 +21,9 @@ fi
 
 git checkout master
 # Use no-ff to make it clear we are merging a branch
-git merge --no-ff development
+git merge --no-ff development -m "Merging development branch for release $TAG"
 echo $TAG > src/version
-git commit src/version -m "Made release $TAG"
+git commit src/version -m "Updated version file for release $TAG"
 git tag $TAG
 #git push github master --tags
 
