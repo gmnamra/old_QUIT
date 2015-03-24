@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # make_release.sh
 # DESPOT
@@ -12,13 +12,20 @@
 TAG="QUIT_$(date +%y%m%d)"
 PREFIX=QUIT
 
+STATUS=$(git status -s -uno)
+
+if [ -n "$STATUS" ]; then
+	echo "YOU HAVE UNCOMMITED CHANGES. ABORTING."
+	exit 1
+fi
+
 git checkout master
 # Use no-ff to make it clear we are merging a branch
 git merge --no-ff development
 echo $TAG > src/version
 git commit src/version -m "Made release $TAG"
 git tag $TAG
-git push github master --tags
+#git push github master --tags
 
 ARCHIVE=../${TAG}.tar
 git archive -v --format tar --prefix ${PREFIX}/ --output ${ARCHIVE} $1
