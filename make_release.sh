@@ -25,10 +25,6 @@ git merge --no-ff development -m "Merging development branch for release $TAG"
 echo $TAG > src/version
 git commit src/version -m "Updated version file for release $TAG"
 git tag $TAG
-#git push github master --tags
-
-ARCHIVE=../${TAG}.tar
-git archive -v --format tar --prefix ${PREFIX}/ --output ${ARCHIVE} $1
-gzip ${ARCHIVE}
+git push github master --tags
 
 git checkout development
