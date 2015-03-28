@@ -137,7 +137,6 @@ template<typename Tp, size_t rank>
 template<size_t newRank>
 MultiArray<Tp, newRank> MultiArray<Tp, rank>::slice(const Index &start, const Index &inSize, const Index &inStrides) const {
 	typename MultiArray<Tp, newRank>::Index newDims, newStrides;
-
 	// Replace any "ALL" dimensions with actual size
 	Index size;
 	for (size_t i = 0; i < rank; i++) {
@@ -170,7 +169,7 @@ MultiArray<Tp, newRank> MultiArray<Tp, rank>::slice(const Index &start, const In
 	size_t to_dim = 0, from_dim = 0;
 	while(from_dim < rank) {
 		if (size[from_dim] > 0) {
-			newDims[to_dim] = m_dims[from_dim];
+			newDims[to_dim] = size[from_dim];
 			newStrides[to_dim] = m_strides[from_dim] * inStrides[from_dim];
 			to_dim++;
 		}
