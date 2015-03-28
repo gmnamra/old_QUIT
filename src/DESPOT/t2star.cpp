@@ -38,7 +38,6 @@ Options:\n\
 	--no-prompt, -n   : Suppress input prompts\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
 	--mask, -m file   : Mask input with specified file\n\
-	--echos, -e N     : Number of echos (timeseries input)\n\
 	--thresh, -t n    : Threshold maps at PD < n\n\
 	--clamp, -c n     : Clamp T2* between 0 and n\n\
 	--algo, -a L      : LLS algorithm (default)\n\
@@ -61,7 +60,6 @@ static struct option long_options[] =
 	{"no-prompt", no_argument, 0, 'n'},
 	{"out", required_argument, 0, 'o'},
 	{"mask", required_argument, 0, 'm'},
-	{"echos", required_argument, 0, 'e'},
 	{"thresh", required_argument, 0, 't'},
 	{"clamp", required_argument, 0, 'c'},
 	{"algo", required_argument, 0, 'a'},
@@ -95,7 +93,6 @@ int main(int argc, char **argv) {
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
-			case 'e': NE = atoi(optarg); break;
 			case 't': thresh = atof(optarg); break;
 			case 'c':
 				clamp_lo = 0;
@@ -132,19 +129,18 @@ int main(int argc, char **argv) {
 	if (pp) {
 		TE1 = pp.realValue("te");
 		ESP = pp.realValue("te2");
+		NE = static_cast<int>(pp.realValue("ne"));
 	} else {
 		if (prompt) cout << "Enter first echo-time: " << flush;
 		QUIT::Read<double>::FromLine(cin, TE1);
 		if (prompt) cout << "Enter echo spacing: " << flush;
 		QUIT::Read<double>::FromLine(cin, ESP);
+		if (prompt) cout << "Enter number of echos: " << flush;
+		QUIT::Read<int>::FromLine(cin, NE);
 	}
-	if (NE < 1) {
-		NE = inputFile.dim(4);
-	} else {
-		// Check that NE makes sense
-		if ((inputFile.dim(4) % NE) != 0) {
-			throw(runtime_error("Number of volumes is not a multiple of NE."));
-		}
+	// Check that NE makes sense
+	if ((inputFile.dim(4) % NE) != 0) {
+		throw(runtime_error("Number of volumes is not a multiple of NE."));
 	}
 	int NVols = inputFile.dim(4) / NE;
 
