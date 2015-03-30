@@ -55,20 +55,27 @@ $(BUILD_DIR)/libAgilent.a : $(AGILENT_OBJ)
 	@mkdir -p $(dir $@)
 	ar rcs $@ $(AGILENT_OBJ)
 
-#Rules for libQUIT
+#Rules for QUIT & libQUIT
 QUIT_DIR   := QUIT
-QUIT_SRC   := Util ThreadPool
-QUIT_TPL   := MultiArray MultiArray-inl Volume Volume-inl
-QUIT_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, $(addsuffix .h, QUIT $(QUIT_SRC) $(QUIT_TPL)))
-QUIT_OBJ   := $(addprefix $(BUILD_DIR)/$(QUIT_DIR)/, $(addsuffix .o, $(QUIT_SRC)))
-$(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp $(NIFTI_HDR) $(AGILENT_HDR) | EIGEN
+LIB_SRC   := Util ThreadPool
+LIB_TPL   := MultiArray MultiArray-inl Volume Volume-inl
+LIB_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, $(addsuffix .h, QUIT $(LIB_SRC) $(LIB_TPL)))
+LIB_OBJ   := $(addprefix $(BUILD_DIR)/$(QUIT_DIR)/, $(addsuffix .o, $(LIB_SRC)))
+EXE      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands phasemap t2star dixon
+EXE_SRC  := SignalEquations Models Sequence
+EXE_HDR  := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, SignalEquations.h Models.h Sequence.h RegionContraction.h)
+EXE_OBJ  := $(patsubst %, $(BUILD_DIR)/$(DESPOT_DIR)/%.o, $(DESPOT_SRC))
+$(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp $(QUIT_HDR) $(LIB_HDR) $(NIFTI_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(BUILD_DIR)/libQUIT.a : $(QUIT_OBJ) $(QUIT_HDR)
+$(BUILD_DIR)/libQUIT.a : $(LIB_OBJ) $(LIB_HDR)
 	@mkdir -p $(dir $@)
-	ar rcs $@ $(QUIT_OBJ)
+	ar rcs $@ $(LIB_OBJ)
+$(addprefix $(BUILD_DIR)/, $(EXE)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(QUIT_DIR)/%.o $(EXE_OBJ) libNifti.a libAgilent.a libQUIT.a
+	@mkdir -p $(dir $@)
+	$(CXX) $< $(EXE_OBJ) -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
 
-#Rules for tools
+#Rules for Tools
 TOOL_DIR   := Tools
 TOOLS      := niihdr niiext niicreate niicomplex niinudge niigrad procparse fdf2nii fdfbval calctfm
 PYTOOLS    := fdf2nii.py
@@ -80,19 +87,6 @@ $(addprefix $(BUILD_DIR)/, $(TOOLS)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(TOOL_DIR)
 	$(CXX) $< -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
 $(addprefix $(BUILD_DIR)/, $(PYTOOLS)) : $(BUILD_DIR)
 	cp $(patsubst $(BUILD_DIR)/%, $(SOURCE_DIR)/$(TOOL_DIR)/%, $@) $(BUILD_DIR)/
-
-#Rules for DESPOT
-DESPOT      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands phasemap t2star dixon
-DESPOT_DIR  := DESPOT
-DESPOT_SRC  := SignalEquations Models Sequence
-DESPOT_HDR  := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, SignalEquations.h Models.h Sequence.h RegionContraction.h)
-DESPOT_OBJ  := $(patsubst %, $(BUILD_DIR)/$(DESPOT_DIR)/%.o, $(DESPOT_SRC))
-$(BUILD_DIR)/$(DESPOT_DIR)/%.o : $(SOURCE_DIR)/$(DESPOT_DIR)/%.cpp $(DESPOT_HDR) $(QUIT_HDR) $(NIFTI_HDR) | EIGEN
-	@mkdir -p $(dir $@)
-	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(addprefix $(BUILD_DIR)/, $(DESPOT)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(DESPOT_DIR)/%.o $(DESPOT_OBJ) libNifti.a libAgilent.a libQUIT.a
-	@mkdir -p $(dir $@)
-	$(CXX) $< $(DESPOT_OBJ) -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
 
 TARGETS := $(TOOLS) $(PYTOOLS) $(DESPOT) $(MISC)
 LIB_TGT := libNifti.a libAgilent.a libQUIT.a
