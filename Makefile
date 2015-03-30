@@ -82,7 +82,7 @@ $(addprefix $(BUILD_DIR)/, $(PYTOOLS)) : $(BUILD_DIR)
 	cp $(patsubst $(BUILD_DIR)/%, $(SOURCE_DIR)/$(TOOL_DIR)/%, $@) $(BUILD_DIR)/
 
 #Rules for DESPOT
-DESPOT      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands phasemap t2star
+DESPOT      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands phasemap t2star dixon
 DESPOT_DIR  := DESPOT
 DESPOT_SRC  := SignalEquations Models Sequence
 DESPOT_HDR  := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, SignalEquations.h Models.h Sequence.h RegionContraction.h)
@@ -93,16 +93,6 @@ $(BUILD_DIR)/$(DESPOT_DIR)/%.o : $(SOURCE_DIR)/$(DESPOT_DIR)/%.cpp $(DESPOT_HDR)
 $(addprefix $(BUILD_DIR)/, $(DESPOT)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(DESPOT_DIR)/%.o $(DESPOT_OBJ) libNifti.a libAgilent.a libQUIT.a
 	@mkdir -p $(dir $@)
 	$(CXX) $< $(DESPOT_OBJ) -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
-
-#Rules for Misc
-MISC     := dixon
-MISC_DIR := Misc
-$(BUILD_DIR)/$(MISC_DIR)/%.o : $(SOURCE_DIR)/$(MISC_DIR)/%.cpp $(QUIT_HDR) $(NIFTI_HDR) | EIGEN
-	@mkdir -p $(dir $@)
-	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
-$(addprefix $(BUILD_DIR)/, $(MISC)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(MISC_DIR)/%.o $(MISC_OBJ) libNifti.a libAgilent.a libQUIT.a
-	@mkdir -p $(dir $@)
-	$(CXX) $< -o $@ $(LDFLAGS) -lQUIT -lAgilent -lNifti -lz
 
 TARGETS := $(TOOLS) $(PYTOOLS) $(DESPOT) $(MISC)
 LIB_TGT := libNifti.a libAgilent.a libQUIT.a
