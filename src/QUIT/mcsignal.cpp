@@ -45,14 +45,15 @@ Options:\n\
 	--noise, -N val   : Add complex noise with std=val.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component sequences (default 3).\n\
 	--sequences, -M s : Use simple sequences (default).\n\
-	            f     : Use Finite Pulse Length correction.\n"
+	            f     : Use Finite Pulse Length correction.\n\
+	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
 static shared_ptr<Model> model = make_shared<SCD>();
 static bool verbose = false, prompt = true, finitesequences = false;
 static string outPrefix = "";
 static double sigma = 0.;
-static struct option long_options[] = {
+static struct option long_opts[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
 	{"mask", required_argument, 0, 'm'},
@@ -64,31 +65,34 @@ static struct option long_options[] = {
 	{"3", no_argument, 0, '3'},
 	{"sequences", no_argument, 0, 'M'},
 	{"B1", required_argument, 0, 'b'},
+	{"threads", required_argument, 0, 'T'},
 	{0, 0, 0, 0}
 };
-
+static const char *short_opts = "hvnN:m:o:b:123M:T:";
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-void parseInput(SequenceGroup &cs, vector<string> &names);
-void parseInput(SequenceGroup &cs, vector<string> &names) {
+void parseInput(vector<shared_ptr<SequenceBase>> &cs, vector<string> &names);
+void parseInput(vector<shared_ptr<SequenceBase>> &cs, vector<string> &names) {
 	string type;
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
 	while (getline(cin, type) && (type != "END") && (type != "")) {
 		if (type == "SPGR") {
-			cs.addSequence(make_shared<SPGRSimple>(prompt));
+			cs.push_back(make_shared<SPGRSimple>(prompt));
 		} else if (type == "SPGRFinite") {
-			cs.addSequence(make_shared<SPGRFinite>(prompt));
+			cs.push_back(make_shared<SPGRFinite>(prompt));
 		} else if (type == "SSFP") {
-			cs.addSequence(make_shared<SSFPSimple>(prompt));
+			cs.push_back(make_shared<SSFPSimple>(prompt));
 		} else if (type == "SSFPFinite") {
-			cs.addSequence(make_shared<SSFPFinite>(prompt));
+			cs.push_back(make_shared<SSFPFinite>(prompt));
 		} else if (type == "SSFPEllipse") {
-			cs.addSequence(make_shared<SSFPEllipse>(prompt));
+			cs.push_back(make_shared<SSFPEllipse>(prompt));
 		} else if (type == "IRSPGR") {
-			cs.addSequence(make_shared<IRSPGR>(prompt));
+			cs.push_back(make_shared<IRSPGR>(prompt));
 		} else if (type == "MPRAGE") {
-			cs.addSequence(make_shared<MPRAGE>(prompt));
+			cs.push_back(make_shared<MPRAGE>(prompt));
+		} else if (type == "SPINECHO") {
+			cs.push_back(make_shared<MultiEcho>(prompt));
 		} else {
 			throw(std::runtime_error("Unknown signal type: " + type));
 		}
@@ -110,14 +114,15 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	cout << version << endl << credit_me << endl;
 	Eigen::initParallel();
-	
+	ThreadPool threads;
+
 	try { // To fix uncaught exceptions on Mac
 	
 	Nifti::File maskFile, B1File;
 	MultiArray<int8_t, 3> maskVol;
 	MultiArray<float, 3> B1Vol;
 	int indexptr = 0, c;
-	while ((c = getopt_long(argc, argv, "hvnN:m:o:b:123M:", long_options, &indexptr)) != -1) {
+	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
 		switch (c) {
 			case 'v': verbose = true; break;
 			case 'n': prompt = false; break;
@@ -151,6 +156,7 @@ int main(int argc, char **argv)
 						break;
 				}
 				break;
+			case 'T': threads.resize(atoi(optarg)); break;
 			case 'h':
 			case '?': // getopt will print an error message
 			default:
@@ -195,14 +201,16 @@ int main(int argc, char **argv)
 	/***************************************************************************
 	 * Set up sequences
 	 **************************************************************************/
-	SequenceGroup sequences(Scale::None);
+	vector<shared_ptr<SequenceBase>> sequences;
 	vector<string> filenames;
 	parseInput(sequences, filenames);
-	cout << sequences << endl;
+	for (auto& s : sequences) {
+		cout << s << endl;
+	}
 
-	vector<MultiArray<complex<float>, 4>> signalVols(sequences.count()); //d.head(3), sequences.combinedSize());
-	for (size_t s = 0; s < sequences.count(); s++) {
-		signalVols[s] = MultiArray<complex<float>, 4>(d.head(3), sequences.sequence(s)->size());
+	vector<MultiArray<complex<float>, 4>> signalVols(sequences.size()); //d.head(3), sequences.combinedSize());
+	for (size_t s = 0; s < sequences.size(); s++) {
+		signalVols[s] = MultiArray<complex<float>, 4>(d.head(3), sequences.at(s)->size());
 	}
 	cout << "Calculating..." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &k) {
@@ -211,9 +219,9 @@ int main(int argc, char **argv)
 				if (!maskFile || (maskVol[{i,j,k}])) {
 					ArrayXd params = paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
 					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-					for (size_t s = 0; s < sequences.count(); s++) {
-						const size_t sigsize = sequences.sequences()[s]->size();
-						ArrayXcd signal = sequences.sequences()[s]->signal(model, params, B1);
+					for (size_t s = 0; s < sequences.size(); s++) {
+						const size_t sigsize = sequences.at(s)->size();
+						ArrayXcd signal = sequences.at(s)->signal(model, params, B1);
 						ArrayXcd noise(sigsize);
 						noise.real() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
 						noise.imag() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
@@ -223,15 +231,14 @@ int main(int argc, char **argv)
 			}
 		}
 	};
-	ThreadPool threads;
 	threads.for_loop(calcVox, d[2]);
 	
 	cout << "Finished calculating." << endl;
 	cout << "Saving data." << endl;
 	templateHdr.setDatatype(Nifti::DataType::COMPLEX64);
 	size_t startVol = 0;
-	for (size_t i = 0; i < sequences.count(); i++) {
-		size_t thisSize = sequences.sequence(i)->size();
+	for (size_t i = 0; i < sequences.size(); i++) {
+		size_t thisSize = sequences.at(i)->size();
 		templateHdr.setDim(4, thisSize);
 		Nifti::File saveFile(templateHdr, outPrefix + filenames[i]);
 		auto thisSignal = signalVols[i].slice<4>({0,0,0,startVol},{-1,-1,-1,thisSize});
