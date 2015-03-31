@@ -1,5 +1,5 @@
 /*
- *  despot1_main.cpp
+ *  multiecho.cpp
  *
  *  Created by Tobias Wood on 27/01/2015.
  *  Copyright (c) 2015 Tobias Wood.
@@ -30,16 +30,17 @@ using namespace QUIT;
 // Arguments / Usage
 //******************************************************************************
 const string usage {
-"Usage is: t2star [options] input_file \n\
+"Usage is: multiecho [options] input_file \n\
 \
 Options:\n\
 	--help, -h        : Print this message\n\
 	--verbose, -v     : Print more information\n\
 	--no-prompt, -n   : Suppress input prompts\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
+	--star, -s        : Data is T2*, not T2\n\
 	--mask, -m file   : Mask input with specified file\n\
 	--thresh, -t n    : Threshold maps at PD < n\n\
-	--clamp, -c n     : Clamp T2* between 0 and n\n\
+	--clamp, -c n     : Clamp T2 between 0 and n\n\
 	--algo, -a L      : LLS algorithm (default)\n\
 	           A      : ARLO algorithm\n\
 	--resids, -r      : Write out per flip-angle residuals\n\
@@ -50,7 +51,7 @@ enum class Algo { LogLin, ARLO };
 static Algo algo = Algo::LogLin;
 static int NE = 0;
 static bool verbose = false, prompt = true, all_residuals = false;
-static string outPrefix;
+static string outPrefix, suffix;
 static double thresh = -numeric_limits<double>::infinity();
 static double clamp_lo = -numeric_limits<double>::infinity(), clamp_hi = numeric_limits<double>::infinity();
 static struct option long_options[] =
@@ -60,6 +61,7 @@ static struct option long_options[] =
 	{"no-prompt", no_argument, 0, 'n'},
 	{"out", required_argument, 0, 'o'},
 	{"mask", required_argument, 0, 'm'},
+	{"star", required_argument, 0, 's'},
 	{"thresh", required_argument, 0, 't'},
 	{"clamp", required_argument, 0, 'c'},
 	{"algo", required_argument, 0, 'a'},
@@ -67,13 +69,13 @@ static struct option long_options[] =
 	{"resids", no_argument, 0, 'r'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "hvnm:e:o:b:t:c:a:T:r";
+static const char *short_opts = "hvnm:se:o:b:t:c:a:T:r";
 //******************************************************************************
 // Main
 //******************************************************************************
 int main(int argc, char **argv) {
 	try { // To fix uncaught exceptions on Mac
-	cout << version << endl << credit_shared << endl;
+	cout << version << endl << credit_me << endl;
 	Eigen::initParallel();
 	Nifti::File inputFile, maskFile;
 	MultiArray<int8_t, 3> maskVol;
@@ -93,6 +95,7 @@ int main(int argc, char **argv) {
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
+			case 's': suffix = "star"; break;
 			case 't': thresh = atof(optarg); break;
 			case 'c':
 				clamp_lo = 0;
@@ -240,7 +243,7 @@ int main(int argc, char **argv) {
 	outHdr.setDatatype(Nifti::DataType::FLOAT32);
 	outHdr.intent = Nifti::Intent::Estimate;
 	outHdr.intent_name = "T2* (seconds)";
-	Nifti::File outFile(outHdr, outPrefix + "T2star" + OutExt());
+	Nifti::File outFile(outHdr, outPrefix + "T2" + suffix + OutExt());
 	outFile.writeVolumes(T2starVol.begin(), T2starVol.end());
 	outFile.close();
 	outHdr.intent_name = "PD (au)";
