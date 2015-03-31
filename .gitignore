@@ -8,7 +8,7 @@ src/Agilent.xcodeproj/xcuserdata/
 src/DESPOT.xcodeproj/xcuserdata/
 src/Tools.xcodeproj/xcuserdata/
 doc/html/
-tests/
+tests/*/
 *.bib
 *.bbl
 *.aux
