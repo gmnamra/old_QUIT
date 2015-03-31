@@ -63,8 +63,8 @@ LIB_HDR   := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, $(addsuffix .h, QUIT $(LIB_
 LIB_OBJ   := $(addprefix $(BUILD_DIR)/$(QUIT_DIR)/, $(addsuffix .o, $(LIB_SRC)))
 EXE      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpbands phasemap t2star dixon
 EXE_SRC  := SignalEquations Models Sequence
-EXE_HDR  := $(addprefix $(SOURCE_DIR)/$(DESPOT_DIR)/, SignalEquations.h Models.h Sequence.h RegionContraction.h)
-EXE_OBJ  := $(patsubst %, $(BUILD_DIR)/$(DESPOT_DIR)/%.o, $(DESPOT_SRC))
+EXE_HDR  := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, SignalEquations.h Models.h Sequence.h RegionContraction.h)
+EXE_OBJ  := $(patsubst %, $(BUILD_DIR)/$(QUIT_DIR)/%.o, $(EXE_SRC))
 $(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp $(QUIT_HDR) $(LIB_HDR) $(NIFTI_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
@@ -88,7 +88,7 @@ $(addprefix $(BUILD_DIR)/, $(TOOLS)) : $(BUILD_DIR)/% : $(BUILD_DIR)/$(TOOL_DIR)
 $(addprefix $(BUILD_DIR)/, $(PYTOOLS)) : $(BUILD_DIR)
 	cp $(patsubst $(BUILD_DIR)/%, $(SOURCE_DIR)/$(TOOL_DIR)/%, $@) $(BUILD_DIR)/
 
-TARGETS := $(TOOLS) $(PYTOOLS) $(DESPOT) $(MISC)
+TARGETS := $(EXE) $(TOOLS) $(PYTOOLS)
 LIB_TGT := libNifti.a libAgilent.a libQUIT.a
 
 all     : CXXFLAGS += -O3
