@@ -117,11 +117,17 @@ const void CalcExchange(const double tau_a, const double f_a, double &f_b, doubl
 	}
 }
 
-//******************************************************************************
-#pragma mark One Component Signals
-//******************************************************************************
+/******************************************************************************
+ * One Component Signals
+ *****************************************************************************/
+VectorXcd One_MultiEcho(carrd &TE, cdbl PD, cdbl T2) {
+	VectorXcd M = VectorXcd::Zero(TE.rows());
+	M.real() = PD * (-TE / T2).exp();
+	return M;
+}
+
 VectorXcd One_SPGR(carrd &flip, cdbl TR, cdbl PD, cdbl T1) {
-	VectorXcd M(flip.size()); M.setZero();
+	VectorXcd M = VectorXcd::Zero(flip.size());
 	ArrayXd sa = flip.sin();
 	ArrayXd ca = flip.cos();
 	double expT1 = exp(-TR / T1);
@@ -216,9 +222,9 @@ VectorXcd MP_RAGE(cdbl flip, cdbl TR, const int N, carrd &TI, cdbl TD,
 	return M;
 }
 
-//******************************************************************************
-#pragma mark Two Component Signals
-//******************************************************************************
+/******************************************************************************
+ * Two Component Signals
+ *****************************************************************************/
 VectorXcd Two_SPGR(carrd &flip, cdbl TR,
                    cdbl PD, cdbl T1_a, cdbl T1_b, cdbl tau_a, cdbl f_a) {
 	Matrix2d A, eATR;
