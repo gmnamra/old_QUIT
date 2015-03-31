@@ -164,12 +164,12 @@ int main(int argc, char **argv) {
 	if (verbose) cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind++], Nifti::Mode::Read);
 	Agilent::ProcPar pp; ReadPP(spgrFile, pp);
-	shared_ptr<Sequence> spgrSequence = make_shared<SPGRSimple>(prompt, pp);
+	shared_ptr<SteadyState> spgrSequence = make_shared<SPGRSimple>(prompt, pp);
 	combined.addSequence(spgrSequence);
 
 	if (verbose) cout << "Opening IR-SPGR file: " << argv[optind] << endl;
 	irFile.open(argv[optind], Nifti::Mode::Read);
-	shared_ptr<Sequence> irspgr;
+	shared_ptr<SteadyState> irspgr;
 	if (GE) {
 		irspgr = make_shared<IRSPGR>(prompt);
 	} else {
