@@ -33,7 +33,7 @@ enum class Scale { None, NormToMean };
 const string to_string(const Scale &p);
 
 //******************************************************************************
-// Sequence Functors
+// SteadyState Functors
 //******************************************************************************
 class SequenceBase {
 	public:
@@ -44,13 +44,28 @@ class SequenceBase {
 };
 ostream& operator<<(ostream& os, const SequenceBase& s);
 
-class Sequence : public SequenceBase {
+class MultiEcho : public SequenceBase {
+	public:
+		double m_ESP;
+		ArrayXd m_TE;
+
+		MultiEcho();
+		MultiEcho(const ArrayXd &te);
+		MultiEcho(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
+
+		size_t size() const override { return m_TE.rows(); };
+		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
+		void write(ostream &os) const override;
+		string name() const override { return "MultiEcho"; };
+};
+
+class SteadyState : public SequenceBase {
 	public:
 		double m_TR;
 		ArrayXd m_flip;
 
-		Sequence();
-		Sequence(const ArrayXd &flip, const double TR);
+		SteadyState();
+		SteadyState(const ArrayXd &flip, const double TR);
 		ArrayXd B1flip(const double B1) const;
 
 		virtual size_t size() const override { return angles() * phases(); };
@@ -58,8 +73,7 @@ class Sequence : public SequenceBase {
 		virtual size_t phases() const { return 1; };
 };
 
-
-class SPGRSimple : public Sequence {
+class SPGRSimple : public SteadyState {
 	public:
 		SPGRSimple(const ArrayXd &flip, const double TR);
 		SPGRSimple(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
@@ -76,12 +90,12 @@ class SPGRFinite : public SPGRSimple {
 		void write(ostream &os) const override;
 		string name() const override { return "SPGR_Finite"; };
 };
-class MPRAGE : public Sequence {
+class MPRAGE : public SteadyState {
 	public:
 		ArrayXd m_TI;
 		double m_TD;
 		int m_N;
-		MPRAGE() : Sequence() {};
+		MPRAGE() : SteadyState() {};
 		MPRAGE(const ArrayXd &TI, const double TD, const double TR, const int N, const double flip);
 		MPRAGE(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		size_t size() const override { return m_TI.size(); };
@@ -97,7 +111,7 @@ class IRSPGR : public MPRAGE {
 		string name() const override { return "IRSPGR"; };
 };
 
-class SSFPSimple : public Sequence {
+class SSFPSimple : public SteadyState {
 	public:
 		ArrayXd m_phases;
 		SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases);
@@ -116,7 +130,7 @@ class SSFPFinite : public SSFPSimple {
 		void write(ostream& os) const override;
 		string name() const override { return "SSFP_Finite"; } ;
 };
-class SSFPEllipse : public Sequence {
+class SSFPEllipse : public SteadyState {
 	public:
 		SSFPEllipse(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
@@ -129,7 +143,7 @@ enum class OffRes { Fit, FitSym, Map }; // Put this here so mcdespot and despot2
 class SequenceGroup : public SequenceBase {
 private:
 	Scale m_scaling;
-	vector<shared_ptr<Sequence>> m_sequences;
+	vector<shared_ptr<SteadyState>> m_sequences;
 
 public:
 	SequenceGroup(const Scale s);
@@ -137,8 +151,8 @@ public:
 	string name() const override { return "Sequences"; } ;
 
 	size_t count() const;
-	shared_ptr<Sequence> sequence(const size_t i) const;
-	vector<shared_ptr<Sequence>> &sequences();
+	shared_ptr<SteadyState> sequence(const size_t i) const;
+	vector<shared_ptr<SteadyState>> &sequences();
 
 	size_t size() const override;
 	ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1) const override;
@@ -146,8 +160,7 @@ public:
 	double minTR() const;
 	ArrayXcd loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k, bool needsFlip = false) const;
 	
-	//void addSequence(const SequenceType &st, const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
-	void addSequence(const shared_ptr<Sequence> &seq);
+	void addSequence(const shared_ptr<SteadyState> &seq);
 };
 
 #endif

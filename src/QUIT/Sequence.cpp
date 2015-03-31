@@ -20,20 +20,66 @@ const string to_string(const Scale &p) {
 	}
 }
 
-//******************************************************************************
-#pragma mark Sequence Functors
-//******************************************************************************
-Sequence::Sequence() : SequenceBase() {}
-Sequence::Sequence(const ArrayXd &flip, const double TR) :
-	SequenceBase(), m_flip(flip), m_TR(TR)
-{}
-
+/******************************************************************************
+ * SequenceBase
+ *****************************************************************************/
 ostream& operator<<(ostream& os, const SequenceBase& s) {
 	s.write(os);
 	return os;
 }
 
-ArrayXd Sequence::B1flip(const double B1) const {
+/******************************************************************************
+ * MultiEcho
+ *****************************************************************************/
+MultiEcho::MultiEcho() : SequenceBase() {}
+MultiEcho::MultiEcho(const ArrayXd &te) :
+	m_TE(te)
+{}
+
+MultiEcho::MultiEcho(const bool prompt, const Agilent::ProcPar &pp) :
+	SequenceBase()
+{
+	double TE1;
+	int NE;
+	if (pp) {
+		TE1 = pp.realValue("te");
+		m_ESP = pp.realValue("te2");
+		NE = static_cast<int>(pp.realValue("ne"));
+	} else {
+		if (prompt) cout << "Enter first echo-time: " << flush;
+		QUIT::Read<double>::FromLine(cin, TE1);
+		if (prompt) cout << "Enter echo spacing: " << flush;
+		QUIT::Read<double>::FromLine(cin, m_ESP);
+		if (prompt) cout << "Enter number of echos: " << flush;
+		QUIT::Read<int>::FromLine(cin, NE);
+	}
+	m_TE.resize(NE);
+	m_TE(0) = TE1;
+	for (int i = 1; i < NE; i++) {
+		m_TE(i) = m_TE(i-1) + m_ESP;
+	}
+}
+
+ArrayXcd MultiEcho::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
+	return m->MultiEcho(p, m_TE);
+}
+
+void MultiEcho::write(ostream &os) const {
+	os << "MultiEcho" << endl;
+	os << "TE: " << m_TE.transpose() << endl;
+}
+
+/******************************************************************************
+ * SteadyState
+ *****************************************************************************/
+SteadyState::SteadyState() : SequenceBase() {}
+SteadyState::SteadyState(const ArrayXd &flip, const double TR) :
+	SequenceBase(), m_flip(flip)
+{
+	m_TR = TR;
+}
+
+ArrayXd SteadyState::B1flip(const double B1) const {
 	return B1 * m_flip;
 }
 
@@ -41,10 +87,10 @@ ArrayXd Sequence::B1flip(const double B1) const {
 //                PD, T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0
 //				  PD, T1_a, T2_a, T1_b, T2_b, T1_c, T2_c, tau_a, f_a, f_c, f0
 SPGRSimple::SPGRSimple(const ArrayXd &flip, const double TR) :
-	Sequence(flip, TR)
+	SteadyState(flip, TR)
 {}
 SPGRSimple::SPGRSimple(const bool prompt, const Agilent::ProcPar &pp) :
-	Sequence()
+	SteadyState()
 {
 	if (pp) {
 		m_flip = pp.realValues("flip1") * M_PI / 180.;
@@ -100,12 +146,12 @@ ArrayXcd SPGRFinite::signal(shared_ptr<Model> m, const VectorXd &p, const double
 }
 
 MPRAGE::MPRAGE(const ArrayXd &TI, const double TD, const double TR, const int N, const double flip) :
-	Sequence(), m_TI(TI), m_TD(TD), m_N(N) {
+	SteadyState(), m_TI(TI), m_TD(TD), m_N(N) {
 	m_TR = TR;
 	m_flip.resize(1); m_flip[0] = flip;
 }
 
-MPRAGE::MPRAGE(const bool prompt, const Agilent::ProcPar &pp) : Sequence() {
+MPRAGE::MPRAGE(const bool prompt, const Agilent::ProcPar &pp) : SteadyState() {
 	if (pp) {
 		throw(runtime_error("MPRAGE Procpar reader not implemented."));
 	} else {
@@ -163,10 +209,10 @@ void MPRAGE::write(ostream &os) const {
 }
 
 SSFPSimple::SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases) :
-	Sequence(flip, TR), m_phases(phases)
+	SteadyState(flip, TR), m_phases(phases)
 {}
 SSFPSimple::SSFPSimple(const bool prompt, const Agilent::ProcPar &pp) :
-	Sequence()
+	SteadyState()
 {
 	if (pp) {
 		m_phases = pp.realValues("rfphase") * M_PI / 180.;
@@ -241,7 +287,7 @@ ArrayXcd SSFPFinite::signal(shared_ptr<Model> m, const VectorXd &p, const double
 }
 
 SSFPEllipse::SSFPEllipse(const bool prompt, const Agilent::ProcPar &pp) :
-	Sequence()
+	SteadyState()
 {
 	if (pp) {
 		m_flip = pp.realValues("flip1") * M_PI / 180.;
@@ -269,9 +315,9 @@ ArrayXcd SSFPEllipse::signal(shared_ptr<Model> m, const VectorXd &p, const doubl
 	return m->SSFPEllipse(p, B1*m_flip, m_TR);
 }
 
-//******************************************************************************
-#pragma mark Sequences Class
-//******************************************************************************
+/******************************************************************************
+  Sequences Class
+ *****************************************************************************/
 SequenceGroup::SequenceGroup(const Scale s) :
 	SequenceBase(), m_scaling(s)
 {}
@@ -286,11 +332,11 @@ size_t SequenceGroup::count() const {
 	return m_sequences.size();
 }
 
-shared_ptr<Sequence> SequenceGroup::sequence(const size_t i) const {
+shared_ptr<SteadyState> SequenceGroup::sequence(const size_t i) const {
 	return m_sequences.at(i);
 }
 
-vector<shared_ptr<Sequence>> &SequenceGroup::sequences() {
+vector<shared_ptr<SteadyState>> &SequenceGroup::sequences() {
 	return m_sequences;
 }
 
@@ -344,6 +390,6 @@ ArrayXcd SequenceGroup::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> 
 	return signal;
 }
 
-void SequenceGroup::addSequence(const shared_ptr<Sequence> &seq) {
+void SequenceGroup::addSequence(const shared_ptr<SteadyState> &seq) {
 	m_sequences.push_back(seq);
 }
