@@ -81,14 +81,14 @@ class T1Functor : public DenseFunctor<double> {
 		const ArrayXd m_data;
 		const bool m_debug;
 		const double m_B1;
-		const shared_ptr<SCD> m_model;
+		const shared_ptr<SCD> m_model = make_shared<SCD>();
 
 	public:
 		T1Functor(SequenceBase &cs, const ArrayXd &data,
 		          const double B1, const bool debug) :
 			DenseFunctor<double>(2, cs.size()),
 			m_sequence(cs), m_data(data),
-			m_B1(B1), m_debug(debug), m_model()
+			m_B1(B1), m_debug(debug)
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}

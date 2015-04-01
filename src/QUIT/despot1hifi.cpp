@@ -78,12 +78,12 @@ class HIFIFunctor : public DenseFunctor<double> {
 		const SequenceBase &m_sequence;
 		const ArrayXd m_data;
 		const bool m_debug;
-		const shared_ptr<SCD> m_model;
+		const shared_ptr<SCD> m_model = make_shared<SCD>();
 
 	public:
 		HIFIFunctor(SequenceBase &cs, const ArrayXd &data, const bool debug) :
 			DenseFunctor<double>(3, cs.size()),
-			m_sequence(cs), m_data(data), m_debug(debug), m_model(make_shared<SCD>())
+			m_sequence(cs), m_data(data), m_debug(debug)
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}

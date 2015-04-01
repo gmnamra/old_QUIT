@@ -93,7 +93,7 @@ class D2Functor : public DenseFunctor<double> {
 		D2Functor(const double T1, SequenceBase &s, const ArrayXcd &d, const double B1, const bool fitComplex, const bool debug = false) :
 			DenseFunctor<double>(3, s.size()),
 			m_sequence(s), m_data(d), m_complex(fitComplex), m_debug(debug),
-			m_T1(T1), m_B1(B1), m_model()
+			m_T1(T1), m_B1(B1)
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}
