@@ -43,14 +43,15 @@ Options:\n\
 	--clamp, -c n     : Clamp T2 between 0 and n\n\
 	--algo, -a L      : LLS algorithm (default)\n\
 	           A      : ARLO algorithm\n\
-	--its, -i N       : Max iterations for WLLS (default 4)\n\
+	           N      : Non-linear (Levenberg-Marquardt)\n\
+	--its, -i N       : Max iterations for non-linear (default 10)\n\
 	--resids, -r      : Write out per flip-angle residuals\n\
 	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
 enum class Algo { LogLin, ARLO, Nonlin };
 static Algo algo = Algo::LogLin;
-static int NE = 0, nIterations = 4;
+static int NE = 0, nIterations = 10;
 static bool verbose = false, prompt = true, all_residuals = false;
 static string outPrefix, suffix;
 static double thresh = -numeric_limits<double>::infinity();
@@ -78,21 +79,24 @@ class RelaxFunctor : public DenseFunctor<double> {
 		const SequenceBase &m_sequence;
 		const ArrayXd m_data;
 		const bool m_debug;
-		const shared_ptr<SCD> m_model;
+		const shared_ptr<SCD> m_model = make_shared<SCD>();
 
 	public:
 		RelaxFunctor(SequenceBase &cs, const ArrayXd &data,
 		          const double B1, const bool debug) :
 			DenseFunctor<double>(2, cs.size()),
 			m_sequence(cs), m_data(data),
-			m_debug(debug), m_model()
+			m_debug(debug)
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}
 
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
-			ArrayXcd s = m_sequence.signal(m_model, params, 1.0); // Fix B1 to 1.0 for now
+			VectorXd fullp = VectorXd::Zero(4);
+			fullp(0) = params(0);
+			fullp(2) = params(1);
+			ArrayXcd s = m_sequence.signal(m_model, fullp, 1.0); // Fix B1 to 1.0 for now
 			diffs = s.abs() - m_data;
 			if (m_debug) {
 				cout << endl << __PRETTY_FUNCTION__ << endl;
@@ -227,16 +231,16 @@ int main(int argc, char **argv) {
 						PD = (signal / (-X.col(0).array() / T2).exp()).mean();
 					} break;
 					case Algo::Nonlin: {
-						RelaxFunctor f(multiecho, signal, 1, true);
+						RelaxFunctor f(multiecho, signal, 1, false);
 						NumericalDiff<RelaxFunctor> nDiff(f);
 						LevenbergMarquardt<NumericalDiff<RelaxFunctor>> lm(nDiff);
-						lm.setMaxfev(250);
-						VectorXd p(4);
-						// Don't need T1 of f0 for this (yet)
+						lm.setMaxfev(nIterations * (NE + 1));
+						VectorXd p(2);
+						// Just PD & T2 for now
 						// Basic guess of T2=50ms
-						p << signal(0), 0., 0.05, 0.;
-						lm.lmder1(p);
-						PD = p(0); T2 = p(2);
+						p << signal(0), 0.05;
+						lm.minimize(p);
+						PD = p(0); T2 = p(1);
 					}
 					}
 
