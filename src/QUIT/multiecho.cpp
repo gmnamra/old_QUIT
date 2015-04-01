@@ -41,9 +41,9 @@ Options:\n\
 	--mask, -m file   : Mask input with specified file\n\
 	--thresh, -t n    : Threshold maps at PD < n\n\
 	--clamp, -c n     : Clamp T2 between 0 and n\n\
-	--algo, -a L      : LLS algorithm (default)\n\
-	           A      : ARLO algorithm\n\
-	           N      : Non-linear (Levenberg-Marquardt)\n\
+	--algo, -a l      : LLS algorithm (default)\n\
+	           a      : ARLO algorithm\n\
+	           n      : Non-linear (Levenberg-Marquardt)\n\
 	--its, -i N       : Max iterations for non-linear (default 10)\n\
 	--resids, -r      : Write out per flip-angle residuals\n\
 	--threads, -T N   : Use N threads (default=hardware limit)\n"
@@ -143,9 +143,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'a':
 				switch (*optarg) {
-					case 'L': algo = Algo::LogLin; if (verbose) cout << "LogLin algorithm selected." << endl; break;
-					case 'A': algo = Algo::ARLO; if (verbose) cout << "ARLO algorithm selected." << endl; break;
-					case 'N': algo = Algo::Nonlin; if (verbose) cout << "Non-linear algorithm (Levenberg Marquardt) selected." << endl; break;
+					case 'l': algo = Algo::LogLin; if (verbose) cout << "LogLin algorithm selected." << endl; break;
+					case 'a': algo = Algo::ARLO; if (verbose) cout << "ARLO algorithm selected." << endl; break;
+					case 'n': algo = Algo::Nonlin; if (verbose) cout << "Non-linear algorithm (Levenberg Marquardt) selected." << endl; break;
 					default:
 						cout << "Unknown algorithm type " << optarg << endl;
 						return EXIT_FAILURE;

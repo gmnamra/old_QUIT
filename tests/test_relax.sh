@@ -40,9 +40,9 @@ run_test "CREATE_SIGNALS" $QUITDIR/mcsignal --1 < mcsignal.in
 
 echo "$SPIN_PAR" > multiecho_spin.in
 
-run_test "SPINECHO_LOGLIN" $QUITDIR/multiecho $SPIN_FILE -n -aL -oL -v < multiecho_spin.in
-run_test "SPINECHO_ARLO" $QUITDIR/multiecho $SPIN_FILE -n -aA -oA -v < multiecho_spin.in
-run_test "SPINECHO_NONLIN" $QUITDIR/multiecho $SPIN_FILE -n -aN -oN -v -T1 < multiecho_spin.in
+run_test "SPINECHO_LOGLIN" $QUITDIR/multiecho $SPIN_FILE -n -al -oL -v < multiecho_spin.in
+run_test "SPINECHO_ARLO" $QUITDIR/multiecho $SPIN_FILE -n -aa -oA -v < multiecho_spin.in
+run_test "SPINECHO_NONLIN" $QUITDIR/multiecho $SPIN_FILE -n -an -oN -v -T1 < multiecho_spin.in
 compare_test "LOGLIN" T2.nii LME_T2.nii 0.01
 compare_test "ARLO" T2.nii AME_T2.nii 0.01
 compare_test "NONLIN" T2.nii NME_T2.nii 0.01

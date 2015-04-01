@@ -67,11 +67,13 @@ D2GS_PAR="3
 echo "$D2GS_PAR" > despot2gs.in
 
 run_test "DESPOT1" $QUITDIR/despot1 $SPGR_FILE -n < despot1.in
+run_test "DESPOT1LM" $QUITDIR/despot1 $SPGR_FILE -n -an -oN < despot1.in
 run_test "DESPOT1HIFI" $QUITDIR/despot1hifi $SPGR_FILE $MPRAGE_FILE -n -N < despot1hifi.in
 run_test "SSFPBANDS" $QUITDIR/ssfpbands -22 $SSFP_FILE
 run_test "DESPOT2FM" $QUITDIR/despot2fm D1_T1.nii $SSFP_FILE -n -fASYM -v < despot2fm.in
 run_test "DESPOT2GS" $QUITDIR/despot2 -e D1_T1.nii ${SSFP_FILE%.nii}_lreg_2p.nii -n < despot2gs.in
 compare_test "DESPOT1" T1.nii D1_T1.nii 0.01
+compare_test "DESPOT1LM" T1.nii ND1_T1.nii 0.01
 compare_test "HIFI_T1" T1.nii HIFI_T1.nii 0.01
 compare_test "DESPOT2FM" T2.nii FM_T2.nii 0.05
 compare_test "DESPOT2GS" T2.nii D2_T2.nii 0.05
