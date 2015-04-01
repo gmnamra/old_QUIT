@@ -44,14 +44,14 @@ Options:\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
 	           n      : NLLS (Levenberg-Marquardt)\n\
-	--its, -i N       : Max iterations for WLLS (default 4)\n\
+	--its, -i N       : Max iterations for WLLS/NLLS (default 10)\n\
 	--resids, -r      : Write out per flip-angle residuals\n\
 	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
 enum class Algos { LLS, WLLS, NLLS };
 static bool verbose = false, prompt = true, all_residuals = false;
-static size_t nIterations = 4;
+static size_t nIterations = 10;
 static string outPrefix;
 static double thresh = -numeric_limits<double>::infinity();
 static double clamp_lo = -numeric_limits<double>::infinity(), clamp_hi = numeric_limits<double>::infinity();
@@ -241,10 +241,10 @@ int main(int argc, char **argv) {
 					T1Functor f(spgrSequence, signal, B1, false);
 					NumericalDiff<T1Functor> nDiff(f);
 					LevenbergMarquardt<NumericalDiff<T1Functor>> lm(nDiff);
-					lm.setMaxfev(nIterations);
+					lm.setMaxfev(nIterations * (spgrSequence.size() + 1));
 					VectorXd p(4);
 					p << PD, T1, 0., 0.; // Don't need T2 of f0 for this (yet)
-					lm.lmder1(p);
+					lm.minimize(p);
 					PD = p(0); T1 = p(1);
 				}
 				if (PD < thresh) {
