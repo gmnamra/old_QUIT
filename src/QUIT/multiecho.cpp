@@ -38,8 +38,9 @@ Options:\n\
 	--no-prompt, -n   : Suppress input prompts\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
 	--mask, -m file   : Mask input with specified file\n\
-	--star, -s        : Data is T2*, not T2\n\
-	--weighted, -w    : Output weighted sum images (Posse 1999)\n\
+	--star, -S        : Data is T2*, not T2\n\
+	--sum, -s         : Output sum images\n\
+	--weighted, -w ?t : Output weighted sum (can fix T2, default average)\n\
 	--thresh, -t n    : Threshold maps at PD < n\n\
 	--clamp, -c n     : Clamp T2 between 0 and n\n\
 	--algo, -a l      : LLS algorithm (default)\n\
@@ -53,8 +54,9 @@ Options:\n\
 enum class Algo { LogLin, ARLO, Nonlin };
 static Algo algo = Algo::LogLin;
 static int NE = 0, nIterations = 10;
-static bool verbose = false, prompt = true, all_residuals = false, weightedSum = false;
+static bool verbose = false, prompt = true, all_residuals = false, sum = false, weightedSum = false;
 static string outPrefix, suffix;
+static double weightT2 = 0;
 static double thresh = -numeric_limits<double>::infinity();
 static double clamp_lo = -numeric_limits<double>::infinity(), clamp_hi = numeric_limits<double>::infinity();
 static struct option long_options[] =
@@ -64,8 +66,9 @@ static struct option long_options[] =
 	{"no-prompt", no_argument, 0, 'n'},
 	{"out", required_argument, 0, 'o'},
 	{"mask", required_argument, 0, 'm'},
-	{"star", no_argument, 0, 's'},
-	{"weighted", no_argument, 0, 'w'},
+	{"star", no_argument, 0, 'S'},
+	{"sum", no_argument, 0, 's'},
+	{"weighted", optional_argument, 0, 'w'},
 	{"thresh", required_argument, 0, 't'},
 	{"clamp", required_argument, 0, 'c'},
 	{"algo", required_argument, 0, 'a'},
@@ -74,7 +77,7 @@ static struct option long_options[] =
 	{"resids", no_argument, 0, 'r'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "hvnm:swe:o:b:t:c:a:i:T:r";
+static const char *short_opts = "hvnm:Ssw::e:o:b:t:c:a:i:T:r";
 
 class RelaxFunctor : public DenseFunctor<double> {
 	protected:
@@ -136,8 +139,13 @@ int main(int argc, char **argv) {
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
-			case 's': suffix = "star"; break;
-			case 'w': weightedSum = true; break;
+			case 'S': suffix = "star"; break;
+			case 's': sum = true; break;
+			case 'w':
+				weightedSum = true;
+				if (optarg)
+					weightT2 = atof(optarg);
+				break;
 			case 'i': nIterations = atoi(optarg); break;
 			case 't': thresh = atof(optarg); break;
 			case 'c':
@@ -200,12 +208,13 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	const auto dims = inputFile.matrix();
 	MultiArray<float, 4> T2Vol(dims, NVols), PDVol(dims, NVols), ResVol(dims, NVols);
-	MultiArray<float, 4> sumVol, ResidsVols;
+	MultiArray<float, 4> sumVol, weightedVol, ResidsVols;
 	if (all_residuals) {
 		ResidsVols = MultiArray<float, 4>(dims, inputFile.dim(4));
 	}
 	if (weightedSum) {
 		sumVol = MultiArray<float, 4>(dims, NVols);
+		weightedVol = MultiArray<float, 4>(dims, NVols);
 	}
 	for (size_t k = 0; k < dims[2]; k++) {
 		clock_t loopStart;
@@ -264,14 +273,18 @@ int main(int argc, char **argv) {
 					T2Vol[idx]  = static_cast<float>(T2);
 					PDVol[idx]  = static_cast<float>(PD);
 					ResVol[idx] = static_cast<float>(sqrt(resids.square().sum() / resids.rows()) / PD);
+					if (sum)
+						sumVol[idx] = static_cast<float>(signal.sum());
 				}
 				if (weightedSum) {
-					double avT2 = T2Vol.slice<1>({i,j,k,0},{0,0,0,NVols}).asArray().mean();
+					double avT2 = weightT2;
+					if (weightT2 == 0)
+						avT2 = T2Vol.slice<1>({i,j,k,0},{0,0,0,NVols}).asArray().mean();
 					auto weights = (multiecho.m_TE / avT2) * (-multiecho.m_TE / avT2).exp();
 					for (size_t outVol = 0; outVol < NVols; outVol++) {
 						ArrayXd signal = inputVols.slice<1>({i,j,k,outVol*NE},{0,0,0,NE}).asArray().abs().cast<double>();
 						auto sum = (signal * weights).sum();
-						sumVol[{i,j,k,outVol}] = sum;
+						weightedVol[{i,j,k,outVol}] = sum;
 					}
 				}
 			}
@@ -318,12 +331,20 @@ int main(int argc, char **argv) {
 		outFile.writeVolumes(ResidsVols.begin(), ResidsVols.end());
 		outFile.close();
 	}
+	if (sum) {
+		outHdr.intent_name = "Sum";
+		outHdr.setDim(4, NVols);
+		outFile.setHeader(outHdr);
+		outFile.open(outPrefix + "sum" + OutExt(), Nifti::Mode::Write);
+		outFile.writeVolumes(sumVol.begin(), sumVol.end());
+		outFile.close();
+	}
 	if (weightedSum) {
 		outHdr.intent_name = "Weighted Sum";
 		outHdr.setDim(4, NVols);
 		outFile.setHeader(outHdr);
 		outFile.open(outPrefix + "wsum" + OutExt(), Nifti::Mode::Write);
-		outFile.writeVolumes(sumVol.begin(), sumVol.end());
+		outFile.writeVolumes(weightedVol.begin(), weightedVol.end());
 		outFile.close();
 	}
 	cout << "All done." << endl;
