@@ -52,6 +52,8 @@ const void CalcExchange(cdbl tau_a, cdbl f_a, double &f_b, double &k_ab, double 
 //******************************************************************************
 // Actual Signal Equations
 //******************************************************************************
+VectorXcd One_MultiEcho(carrd &TE, cdbl PD, cdbl T1);
+
 VectorXcd One_SPGR(carrd &flip, cdbl TR, cdbl PD, cdbl T1);
 VectorXcd One_SSFP(carrd &flip, cdbl TR, cdbl ph, cdbl PD, cdbl T1, cdbl T2, cdbl f0);
 VectorXcd One_SSFP_Finite(carrd &flip, const bool spoil, cdbl TR, cdbl Trf, cdbl TE, cdbl ph,

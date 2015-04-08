@@ -12,6 +12,7 @@ const string to_string(const FieldStrength& f) {
 	}
 }
 
+VectorXcd Model::MultiEcho(cvecd &, carrd &) const { throw(logic_error(std::string(__PRETTY_FUNCTION__) + " not implemented.")); }
 VectorXcd Model::SPGR(cvecd &params, carrd &a, cdbl TR) const { throw(logic_error(std::string(__PRETTY_FUNCTION__) + " not implemented.")); }
 VectorXcd Model::SPGRFinite(cvecd &params, carrd &a, cdbl TR, cdbl T_rf, cdbl TE) const { throw(logic_error(std::string(__PRETTY_FUNCTION__) + " not implemented.")); }
 VectorXcd Model::MPRAGE(cvecd &params, cdbl a, cdbl TR, const int N, cvecd &TI, cdbl TD) const { throw(logic_error(std::string(__PRETTY_FUNCTION__) + " not implemented.")); }
@@ -46,6 +47,10 @@ bool SCD::ValidParameters(cvecd &params) const {
 		return false;
 	else
 		return true;
+}
+
+VectorXcd SCD::MultiEcho(cvecd &p, carrd &TE) const {
+	return One_MultiEcho(TE, p[0], p[2]);
 }
 
 VectorXcd SCD::SPGR(cvecd &p, carrd &a, cdbl TR) const {

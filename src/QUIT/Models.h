@@ -37,6 +37,7 @@ public:
 	virtual const vector<string> &Names() const = 0;
 	virtual ArrayXXd Bounds(const FieldStrength f, cdbl TR) const = 0;
 
+	virtual VectorXcd MultiEcho(cvecd &params, carrd &TE) const;
 	virtual VectorXcd SPGR(cvecd &params, carrd &a, cdbl TR) const;
 	virtual VectorXcd SPGRFinite(cvecd &params, carrd &a, cdbl TR, cdbl T_rf, cdbl TE) const;
 	virtual VectorXcd MPRAGE(cvecd &params, cdbl a, cdbl TR, const int N, cvecd &TI, cdbl TD) const;
@@ -57,6 +58,7 @@ public:\
 class SCD : public Model {
 	DECLARE_INTERFACE()
 
+	virtual VectorXcd MultiEcho(cvecd &params, carrd &TE) const override;
 	virtual VectorXcd SPGR(cvecd &params, carrd &a, cdbl TR) const override;
 	virtual VectorXcd SPGRFinite(cvecd &params, carrd &a, cdbl TR, cdbl T_rf, cdbl TE) const override;
 	virtual VectorXcd MPRAGE(cvecd &params, cdbl a, cdbl TR, const int N, cvecd &TI, cdbl TD) const override;

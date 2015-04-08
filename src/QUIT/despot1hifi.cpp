@@ -78,12 +78,12 @@ class HIFIFunctor : public DenseFunctor<double> {
 		const SequenceBase &m_sequence;
 		const ArrayXd m_data;
 		const bool m_debug;
-		const shared_ptr<SCD> m_model;
+		const shared_ptr<SCD> m_model = make_shared<SCD>();
 
 	public:
 		HIFIFunctor(SequenceBase &cs, const ArrayXd &data, const bool debug) :
 			DenseFunctor<double>(3, cs.size()),
-			m_sequence(cs), m_data(data), m_debug(debug), m_model(make_shared<SCD>())
+			m_sequence(cs), m_data(data), m_debug(debug)
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}
@@ -155,33 +155,39 @@ int main(int argc, char **argv) {
 		}
 	}
 	if ((argc - optind) != 2) {
-		cout << "Incorrect number of arguments." << endl << usage << endl;
+		cerr << "Incorrect number of arguments." << endl;
+		cout << usage << endl;
 		return EXIT_FAILURE;
 	}
 	
 	SequenceGroup combined(Scale::None);
 	if (verbose) cout << "Opening SPGR file: " << argv[optind] << endl;
-	spgrFile.open(argv[optind], Nifti::Mode::Read);	
+	spgrFile.open(argv[optind++], Nifti::Mode::Read);
 	Agilent::ProcPar pp; ReadPP(spgrFile, pp);
-	shared_ptr<Sequence> spgrSequence = make_shared<SPGRSimple>(prompt, pp);
+	shared_ptr<SteadyState> spgrSequence = make_shared<SPGRSimple>(prompt, pp);
 	combined.addSequence(spgrSequence);
 
-	if (verbose) cout << "Opening IR-SPGR file: " << argv[++optind] << endl;
+	if (verbose) cout << "Opening IR-SPGR file: " << argv[optind] << endl;
 	irFile.open(argv[optind], Nifti::Mode::Read);
+	shared_ptr<SteadyState> irspgr;
 	if (GE) {
-		shared_ptr<Sequence> irspgr = make_shared<IRSPGR>(prompt);
-		combined.addSequence(irspgr);
+		irspgr = make_shared<IRSPGR>(prompt);
 	} else {
-		shared_ptr<Sequence> mprage = make_shared<MPRAGE>(prompt);
-		combined.addSequence(mprage);
+		irspgr = make_shared<MPRAGE>(prompt);
 	}
+	combined.addSequence(irspgr);
 
+	if (spgrSequence->size() != spgrFile.header().dim(4)) {
+		throw(std::runtime_error("Specified number of flip-angles does not match number of volumes in file: " + spgrFile.imagePath()));
+	}
+	if (irspgr->size() != irFile.header().dim(4)) {
+		throw(std::runtime_error("Specified number of TIs does not match number of volumes in file: " + irFile.imagePath()));
+	}
 	checkHeaders(spgrFile.header(),{irFile, maskFile});
 	if (verbose) {
 		cout << combined << endl;
+		cout << "Reading image data..." << flush;
 	}
-
-	if (verbose) cout << "Reading image data..." << flush;
 	const auto dims = spgrFile.matrix();
 	MultiArray<float, 4> SPGR_Vols(dims, spgrFile.dim(4));
 	MultiArray<float, 4> IR_Vols(dims, irFile.dim(4));
@@ -189,6 +195,8 @@ int main(int argc, char **argv) {
 	irFile.readVolumes(IR_Vols.begin(), IR_Vols.end());
 	spgrFile.close();
 	irFile.close();
+	if (verbose) cout << "done" << endl;
+
 	MultiArray<float, 3> PD_Vol(dims), T1_Vol(dims), B1_Vol(dims), res_Vol(dims);
 	if (stop_slice > dims[2])
 		stop_slice = dims[2];

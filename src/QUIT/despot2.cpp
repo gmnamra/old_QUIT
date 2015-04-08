@@ -43,7 +43,7 @@ Options:\n\
 	--algo, -a l      : LLS algorithm (default)\n\
 	           w      : WLLS algorithm\n\
 	           n      : NLLS (Levenberg-Marquardt)\n\
-	--its, -i N       : Max iterations for WLLS (default 4)\n\
+	--its, -i N       : Max iterations for WLLS / NLLS (default 10)\n\
 	--resids, -r      : Write out per flip-angle residuals\n\
 	--threads, -T N   : Use N threads (default=hardware limit)\n\
 	--elliptical, -e  : Input is band-free elliptical data.\n\
@@ -54,7 +54,7 @@ Options:\n\
 
 enum class Algos { LLS, WLLS, NLLS };
 static int verbose = false, prompt = true, elliptical = false, negflip = false, meanf0 = false, all_residuals = false;
-static size_t nIterations = 4;
+static size_t nIterations = 10;
 static double thresh = -numeric_limits<double>::infinity();
 static double clamp_lo = -numeric_limits<double>::infinity(), clamp_hi = numeric_limits<double>::infinity();
 static Algos algo;
@@ -93,7 +93,7 @@ class D2Functor : public DenseFunctor<double> {
 		D2Functor(const double T1, SequenceBase &s, const ArrayXcd &d, const double B1, const bool fitComplex, const bool debug = false) :
 			DenseFunctor<double>(3, s.size()),
 			m_sequence(s), m_data(d), m_complex(fitComplex), m_debug(debug),
-			m_T1(T1), m_B1(B1), m_model()
+			m_T1(T1), m_B1(B1)
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}
@@ -296,14 +296,10 @@ int main(int argc, char **argv)
 					D2Functor f(T1, ssfp, data, B1, false, false);
 					NumericalDiff<D2Functor> nDiff(f);
 					LevenbergMarquardt<NumericalDiff<D2Functor>> lm(nDiff);
-					lm.setMaxfev(nIterations);
+					lm.setMaxfev(nIterations * (ssfp.size() + 1));
 					VectorXd p(3);
 					p << PD, T2, offRes;
-					//cout << "Running LM..." << endl;
-					//cout << "Start P: " << p.transpose() << endl;
-					lm.lmder1(p);
-					//cout << "End P: " << p.transpose() << endl;
-					//cout << "Finished LM" << endl;
+					lm.minimize(p);
 					PD = p(0); T2 = p(1); offRes = p(2);
 				}
 				if (PD < thresh) {
