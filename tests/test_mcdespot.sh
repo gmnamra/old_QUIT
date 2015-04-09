@@ -57,12 +57,14 @@ END"
 echo "$MCSIG_INPUT" > mcsignal.in
 run_test "CREATE_SIGNALS" $QUITDIR/mcsignal --2 < mcsignal.in
 
-echo "SPGR
-$SPGR_FILE
+echo "SPGR #Signal type
+# Test comment line
+$SPGR_FILE # Filename
 $SPGR_PAR
 SSFP
 $SSFP_FILE
-$SSFP_PAR" > mcdespot.in
+$SSFP_PAR
+END" > mcdespot.in
 
 run_test "MCDESPOT" $QUITDIR/mcdespot --2 -n -v -S 1 -T 1 < mcdespot.in
 compare_test "MWF" f_a.nii 2C_f_a.nii 0.1
