@@ -45,27 +45,22 @@ T randNorm(double sigma)
   return nd(twister);
 }
 
-
-template<typename T> class Read;
-
-template<typename T> class Read {
-	public:
-	static void FromLine(std::istream &in, T &val) {
-		std::string line;
-		if (!std::getline(in, line)) {
-			throw(std::runtime_error("Failed to read input."));
-		}
-		FromString(line, val);
+template<typename T> void Read(const std::string &s, T &val) {
+	std::istringstream stream(s);
+	if (!(stream >> val)) {
+		throw(std::runtime_error("Failed to parse input: " + s));
 	}
-	static void FromString(const std::string &s, T &val) {
-		std::istringstream stream(s);
-		if (!(stream >> val)) {
-			throw(std::runtime_error("Failed to parse input: " + s));
-		}
-	}
-};
+}
 
-template<typename Derived> void ReadEigenFromString(const std::string &s, const Eigen::DenseBase<Derived> &cvals) {
+template<typename T> void Read(std::istream &in, T &val) {
+	std::string line;
+	if (!std::getline(in, line)) {
+		throw(std::runtime_error("Failed to read input."));
+	}
+	Read(line, val);
+}
+
+template<typename Derived> void ReadEigen(const std::string &s, const Eigen::DenseBase<Derived> &cvals) {
 	std::istringstream stream(s);
 	Eigen::DenseBase<Derived> &vals = const_cast<Eigen::DenseBase<Derived> &>(cvals);
 	for (typename Eigen::DenseBase<Derived>::Index i = 0; i < vals.size(); i++) {
@@ -75,13 +70,13 @@ template<typename Derived> void ReadEigenFromString(const std::string &s, const 
 	}
 }
 
-template<typename Derived> void ReadEigenFromLine(std::istream &in, const Eigen::DenseBase<Derived> &cvals) {
+template<typename Derived> void ReadEigen(std::istream &in, const Eigen::DenseBase<Derived> &cvals) {
 	std::string line;
 	Eigen::DenseBase<Derived> &vals = const_cast<Eigen::DenseBase<Derived> &>(cvals);
 	if (!std::getline(in, line)) {
 		throw(std::runtime_error("Failed to read input."));
 	}
-	ReadEigenFromString(line, vals);
+	ReadEigen(line, vals);
 }
 
 } // End namespace QUIT

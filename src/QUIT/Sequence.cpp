@@ -47,11 +47,11 @@ MultiEcho::MultiEcho(const bool prompt, const Agilent::ProcPar &pp) :
 		NE = static_cast<int>(pp.realValue("ne"));
 	} else {
 		if (prompt) cout << "Enter first echo-time: " << flush;
-		QUIT::Read<double>::FromLine(cin, TE1);
+		QUIT::Read(cin, TE1);
 		if (prompt) cout << "Enter echo spacing: " << flush;
-		QUIT::Read<double>::FromLine(cin, m_ESP);
+		QUIT::Read(cin, m_ESP);
 		if (prompt) cout << "Enter number of echos: " << flush;
-		QUIT::Read<int>::FromLine(cin, NE);
+		QUIT::Read(cin, NE);
 	}
 	m_TE.resize(NE);
 	m_TE(0) = TE1;
@@ -98,13 +98,13 @@ SPGRSimple::SPGRSimple(const bool prompt, const Agilent::ProcPar &pp) :
 	} else {
 		size_t nFlip;
 		if (prompt) cout << "Enter number of flip-angles: " << flush;
-		QUIT::Read<size_t>::FromLine(cin, nFlip);
+		QUIT::Read(cin, nFlip);
 		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
-		QUIT::ReadEigenFromLine(cin, inAngles);
+		QUIT::ReadEigen(cin, inAngles);
 		m_flip = inAngles * M_PI / 180.;
 		if (prompt) cout << "Enter TR (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TR);
+		QUIT::Read(cin, m_TR);
 	}
 }
 
@@ -129,9 +129,9 @@ SPGRFinite::SPGRFinite(const bool prompt, const Agilent::ProcPar &pp) :
 		m_TE = pp.realValue("te");
 	} else {
 		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_Trf);
+		QUIT::Read(cin, m_Trf);
 		if (prompt) cout << "Enter TE (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TE);
+		QUIT::Read(cin, m_TE);
 	}
 }
 
@@ -157,20 +157,20 @@ MPRAGE::MPRAGE(const bool prompt, const Agilent::ProcPar &pp) : SteadyState() {
 	} else {
 		if (prompt) cout << "Enter read-out flip-angle (degrees): " << flush;
 		ArrayXd inFlip(1);
-		QUIT::ReadEigenFromLine(cin, inFlip);
+		QUIT::ReadEigen(cin, inFlip);
 		m_flip = inFlip * M_PI / 180.;
 		if (prompt) cout << "Enter read-out TR (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TR);
+		QUIT::Read(cin, m_TR);
 		if (prompt) cout << "Enter segment size: " << flush;
-		QUIT::Read<int>::FromLine(cin, m_N);
+		QUIT::Read(cin, m_N);
 		size_t nTI;
 		if (prompt) cout << "Enter number of inversion times: " << flush;
-		QUIT::Read<size_t>::FromLine(cin, nTI);
+		QUIT::Read(cin, nTI);
 		m_TI.resize(nTI);
 		if (prompt) cout << "Enter " << m_TI.size() << " inversion times (seconds): " << flush;
-		QUIT::ReadEigenFromLine(cin, m_TI);
+		QUIT::ReadEigen(cin, m_TI);
 		if (prompt) cout << "Enter delay time (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TD);
+		QUIT::Read(cin, m_TD);
 	}
 }
 
@@ -179,22 +179,22 @@ IRSPGR::IRSPGR(const bool prompt, const Agilent::ProcPar &pp) : MPRAGE() {
 		throw(runtime_error("IRSPGR Procpar reader not implemented."));
 	if (prompt) cout << "Enter read-out flip-angle (degrees): " << flush;
 	ArrayXd inFlip(1);
-	QUIT::ReadEigenFromLine(cin, inFlip);
+	QUIT::ReadEigen(cin, inFlip);
 	m_flip = inFlip * M_PI / 180.;
 	if (prompt) cout << "Enter read-out TR (seconds): " << flush;
-	QUIT::Read<double>::FromLine(cin, m_TR);
+	QUIT::Read(cin, m_TR);
 
 	int NPE2;
 	if (prompt) cout << "Enter original number of slices (PE2):";
-	QUIT::Read<int>::FromLine(cin, NPE2);
+	QUIT::Read(cin, NPE2);
 	m_N = (NPE2 / 2) + 2;
 
 	int nTI;
 	if (prompt) cout << "Enter number of TIs: " << flush;
-	QUIT::Read<int>::FromLine(cin, nTI);
+	QUIT::Read(cin, nTI);
 	m_TI.resize(nTI);
 	if (prompt) cout << "Enter " << m_TI.size() << " TIs (seconds): " << flush;
-	QUIT::ReadEigenFromLine(cin, m_TI);
+	QUIT::ReadEigen(cin, m_TI);
 }
 
 ArrayXcd MPRAGE::signal(shared_ptr<Model> m, const VectorXd &par, const double B1) const {
@@ -221,20 +221,20 @@ SSFPSimple::SSFPSimple(const bool prompt, const Agilent::ProcPar &pp) :
 	} else {
 		size_t nFlip;
 		if (prompt) cout << "Enter number of flip-angles: " << flush;
-		QUIT::Read<size_t>::FromLine(cin, nFlip);
+		QUIT::Read(cin, nFlip);
 		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
-		QUIT::ReadEigenFromLine(cin, inAngles);
+		QUIT::ReadEigen(cin, inAngles);
 		m_flip = inAngles * M_PI / 180.;
 		size_t nPhases;
 		if (prompt) cout << "Enter number of phase-cycles: " << flush;
-		QUIT::Read<size_t>::FromLine(cin, nPhases);
+		QUIT::Read(cin, nPhases);
 		ArrayXd inPhases(nPhases);
 		if (prompt) cout << "Enter " << inPhases.size() << " phase-cycles (degrees): " << flush;
-		QUIT::ReadEigenFromLine(cin, inPhases);
+		QUIT::ReadEigen(cin, inPhases);
 		m_phases = inPhases * M_PI / 180.;
 		if (prompt) cout << "Enter TR (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TR);
+		QUIT::Read(cin, m_TR);
 	}
 }
 
@@ -266,7 +266,7 @@ SSFPFinite::SSFPFinite(const bool prompt, const Agilent::ProcPar &pp) :
 		m_Trf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
 	} else {
 		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_Trf);
+		QUIT::Read(cin, m_Trf);
 	}
 }
 
@@ -295,13 +295,13 @@ SSFPEllipse::SSFPEllipse(const bool prompt, const Agilent::ProcPar &pp) :
 	} else {
 		size_t nFlip;
 		if (prompt) cout << "Enter number of flip-angles: " << flush;
-		QUIT::Read<size_t>::FromLine(cin, nFlip);
+		QUIT::Read(cin, nFlip);
 		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
-		QUIT::ReadEigenFromLine(cin, inAngles);
+		QUIT::ReadEigen(cin, inAngles);
 		m_flip = inAngles * M_PI / 180.;
 		if (prompt) cout << "Enter TR (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TR);
+		QUIT::Read(cin, m_TR);
 	}
 }
 
