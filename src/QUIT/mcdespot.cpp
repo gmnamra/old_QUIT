@@ -111,12 +111,12 @@ Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4
 	Nifti::Header hdr;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
-	while (getline(cin, type) && (type != "END") && (type != "")) {
+	while (Read(cin, type) && (type != "END") && (type != "")) {
 		if (type != "SPGR" && type != "SSFP") {
 			throw(std::runtime_error("Unknown signal type: " + type));
 		}
 		if (prompt) cout << "Enter image path: " << flush;
-		getline(cin, path);
+		Read(cin, path);
 		Nifti::File inFile(path);
 		if (signalVols.size() == 0) {
 			hdr = inFile.header(); // Save header info for later

@@ -76,7 +76,7 @@ void parseInput(vector<shared_ptr<SequenceBase>> &cs, vector<string> &names);
 void parseInput(vector<shared_ptr<SequenceBase>> &cs, vector<string> &names) {
 	string type;
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
-	while (getline(cin, type) && (type != "END") && (type != "")) {
+	while (Read(cin, type) && (type != "END") && (type != "")) {
 		if (type == "SPGR") {
 			cs.push_back(make_shared<SPGRSimple>(prompt));
 		} else if (type == "SPGRFinite") {
@@ -98,7 +98,7 @@ void parseInput(vector<shared_ptr<SequenceBase>> &cs, vector<string> &names) {
 		}
 		string filename;
 		if (prompt) cout << "Enter output filename: " << flush;
-		getline(cin, filename);
+		Read(cin, filename);
 		names.push_back(filename);
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
