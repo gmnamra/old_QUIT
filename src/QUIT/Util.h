@@ -40,24 +40,30 @@ Eigen::Vector3f parse_vector(char *str);
 template<typename T>
 T randNorm(double sigma)
 {
-  static std::mt19937_64 twister(time(NULL));
-  static std::normal_distribution<T> nd(0., sigma);
-  return nd(twister);
+	static std::mt19937_64 twister(time(NULL));
+	static std::normal_distribution<T> nd(0., sigma);
+	return nd(twister);
 }
 
-template<typename T> void Read(const std::string &s, T &val) {
+template<typename T> bool Read(const std::string &s, T &val) {
 	std::istringstream stream(s);
 	if (!(stream >> val)) {
 		throw(std::runtime_error("Failed to parse input: " + s));
 	}
+	return true;
 }
 
-template<typename T> void Read(std::istream &in, T &val) {
+template<typename T> bool Read(std::istream &in, T &val) {
 	std::string line;
-	if (!std::getline(in, line)) {
-		throw(std::runtime_error("Failed to read input."));
+	// Ignore comment lines. Use shell script convention
+	while (in.peek() == '#') {
+		if (!std::getline(in, line))
+			throw(std::runtime_error("Failed to read input."));
 	}
-	Read(line, val);
+	if (!std::getline(in, line)) {
+		throw(std::runtime_error("Failed to read input. Last line was: " + line));
+	}
+	return Read(line, val);
 }
 
 template<typename Derived> void ReadEigen(const std::string &s, const Eigen::DenseBase<Derived> &cvals) {
@@ -73,6 +79,11 @@ template<typename Derived> void ReadEigen(const std::string &s, const Eigen::Den
 template<typename Derived> void ReadEigen(std::istream &in, const Eigen::DenseBase<Derived> &cvals) {
 	std::string line;
 	Eigen::DenseBase<Derived> &vals = const_cast<Eigen::DenseBase<Derived> &>(cvals);
+	// Ignore comment lines. Use shell script convention
+	while (in.peek() == '#') {
+		if (!std::getline(in, line))
+			throw(std::runtime_error("Failed to read input."));
+	}
 	if (!std::getline(in, line)) {
 		throw(std::runtime_error("Failed to read input."));
 	}
