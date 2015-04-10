@@ -28,28 +28,29 @@ Calculates a transform to align the CoG to center and rotate it the right way.\n
 WARNING - If your CoG has negative values make sure you put -- before it.\n\
 \n\
 Options:\n\
-	--tfm, -t   : Output an Insight Transform file for ANTs\n\
-	--mat, -m   : Output a .mat file FSL (default)\n\
-	--comp, -p  : Write the \"compass point\" to stdout\n\
-	--corax, -c : Data has been rotated to match human coronal definition\n\
+	--tfm, -t            : Output an Insight Transform file for ANTs\n\
+	--mat, -m            : Output a .mat file FSL (default)\n\
+	--comp, -p           : Write the \"compass point\" to stdout\n\
+	--human, -H N        : N = 1 - Data is already in 'human' axes\n\
+	                       N = 2 - Add extra rotation to 'human' space\n\
 	--orig, -o \"X Y Z\" : Specify a different origin for angle calculation\n\
-	--in, -i    : Bottom of skull faces in towards origin (default opposite)\n";
+	--in, -i             : Bottom of skull faces in towards origin (default opposite)\n";
 
 static struct option long_opts[] =
 {
 	{"tfm", no_argument, 0, 't'},
 	{"mat", no_argument, 0, 'm'},
 	{"comp", no_argument, 0, 'p'},
-	{"corax", no_argument, 0, 'c'},
+	{"human", required_argument, 0, 'H'},
 	{"orig", required_argument, 0, 'o'},
 	{"in", no_argument, 0, 'i'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "tmphvco:i";
+static const char *short_opts = "tmphvH:o:i";
 enum class Format { FSL, ANTs };
 Format output = Format::FSL;
 Vector3f origin = Vector3f::Zero();
-bool verbose = false, compass = false, corax = false, inwards = false;
+bool verbose = false, compass = false, isHuman = false, makeHuman = false, inwards = false;
 
 int main(int argc, char **argv) {
 	int indexptr = 0, c;
@@ -59,7 +60,14 @@ int main(int argc, char **argv) {
 		case 'm': output = Format::FSL; break;
 		case 'p': compass = true; break;
 		case 'v': verbose = true; break;
-		case 'c': corax = true; break;
+		case 'H':
+			if (atoi(optarg) == 1)
+				isHuman = true;
+			else if (atoi(optarg) == 2)
+				makeHuman = true;
+			else
+				throw(runtime_error("Unknown option argument."));
+			break;
 		case 'o': origin = QUIT::parse_vector(optarg); break;
 		case 'i': inwards = true; break;
 		case '?': // getopt will print an error message
@@ -81,9 +89,9 @@ int main(int argc, char **argv) {
 	float z = atof(argv[optind++]);
 	string filename(argv[optind++]);
 
-	Vector3f CoG{x, y, z};
+	Vector3d CoG{x, y, z};
 	float angle;
-	if (corax) {
+	if (isHuman) {
 		angle = atan2(z - origin(2), x - origin(0));
 	} else {
 		angle = atan2(y - origin(1), x - origin(0));
@@ -101,8 +109,11 @@ int main(int argc, char **argv) {
 		angle = (M_PI / 2.) - angle;
 	else
 		angle =  (3. * M_PI / 2.) - angle;
-	Affine3f transform;
-	transform = Translation3f(-CoG) * AngleAxisf(-angle, Vector3f::UnitZ());
+	Affine3d transform;
+	transform = Translation3d(-CoG) * AngleAxisd(-angle, Vector3d::UnitZ());
+	if (makeHuman) {
+		transform = AngleAxisd(M_PI, Vector3d::UnitZ()) * AngleAxisd(M_PI / 2., Vector3d::UnitX()) * transform;
+	}
 	IOFormat fmt(StreamPrecision, DontAlignCols);
 	ofstream file(filename);
 	switch (output) {
