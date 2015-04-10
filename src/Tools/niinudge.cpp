@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 		Vector3f nudge;
 		switch (c) {
 		case 'n':
-			nudge = parse_vector(optarg);
+			ReadEigen(optarg, nudge);
 			for (Nifti::File &f : files) {
 				if (verbose) cout << "Nudging offset by: " << nudge.transpose() << " in file: " << f.imagePath() << endl;
 				Nifti::Header h = f.header();
@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
 			}
 			break;
 		case 'f':
-			nudge = parse_vector(optarg);
+			ReadEigen(optarg, nudge);
 			for (Nifti::File &f : files) {
 				if (verbose) cout << "Setting offset to: " << nudge.transpose() << " in file: " << f.imagePath() << endl;
 				Nifti::Header h = f.header();

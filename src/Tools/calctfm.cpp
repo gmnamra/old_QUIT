@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 			else
 				throw(runtime_error("Unknown option argument."));
 			break;
-		case 'o': origin = QUIT::parse_vector(optarg); break;
+		case 'o': QUIT::ReadEigen(optarg, origin); break;
 		case 'i': inwards = true; break;
 		case '?': // getopt will print an error message
 		case 'h':

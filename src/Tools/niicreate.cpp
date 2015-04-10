@@ -110,12 +110,12 @@ int main(int argc, char **argv)
 			case 'd': {
 				string vals(optarg);
 				Array<unsigned long, Dynamic, 1> test(ndims);
-				QUIT::ReadEigenFromString(vals, test);
+				QUIT::ReadEigen(vals, test);
 				dims.head(ndims) = test;
 			} break;
 			case 'v': {
 				string vals(optarg);
-				QUIT::ReadEigenFromString(vals, voxdims.head(3));
+				QUIT::ReadEigen(vals, voxdims.head(3));
 			} break;
 			case 't': voxdims[3] = atof(optarg); break;
 			case 'b': isBlank = true; break;
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 			case 'g': {
 				fillType = FillType::Gradient;
 				ArrayXf temp(3);
-				QUIT::ReadEigenFromString(string(optarg), temp);
+				QUIT::ReadEigen(string(optarg), temp);
 				fillDim = temp[0];
 				startVal = temp[1];
 				deltaVal = (temp[2] - startVal) / (dims[fillDim] - 1);
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 			case 's': {
 				fillType = FillType::Steps;
 				ArrayXf temp(4);
-				QUIT::ReadEigenFromString(string(optarg), temp);
+				QUIT::ReadEigen(string(optarg), temp);
 				fillDim = temp[0];
 				startVal = temp[1];
 				float endVal = temp[2];
