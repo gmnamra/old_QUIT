@@ -101,9 +101,9 @@ class D2Functor : public DenseFunctor<double> {
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
 
-			Array4d fullparams;
-			fullparams << params(0), m_T1, params(1), params(2);
-			ArrayXcd s = m_sequence.signal(m_model, fullparams, m_B1);
+			ArrayXd fullparams(5);
+			fullparams << params(0), m_T1, params(1), params(2), m_B1;
+			ArrayXcd s = m_sequence.signal(m_model, fullparams);
 			if (m_complex) {
 				diffs = (s - m_data).abs();
 			} else {
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
 				B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 				T1 = T1Vol[{i,j,k}];
 				E1 = exp(-TR / T1);
-				const ArrayXd localAngles(ssfp.sequence(0)->B1flip(B1));
+				const ArrayXd localAngles = (ssfp.sequence(0)->m_flip * B1);
 				ArrayXcd data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
 				const ArrayXd s = data.abs();
 				VectorXd Y = s / localAngles.sin();
@@ -309,7 +309,8 @@ int main(int argc, char **argv)
 					offRes = 0.;
 				}
 				T2 = clamp(T2, clamp_lo, clamp_hi);
-				ArrayXd theory = ssfp.signal(model, Vector4d(PD, T1, T2, offRes), B1).abs();
+				VectorXd p(5); p << PD, T1, T2, offRes, B1;
+				ArrayXd theory = ssfp.signal(model, p).abs();
 				ArrayXd resids = (s - theory);
 				if (all_residuals) {
 					ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = resids.cast<float>();

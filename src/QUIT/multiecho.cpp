@@ -98,10 +98,9 @@ class RelaxFunctor : public DenseFunctor<double> {
 
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
-			VectorXd fullp = VectorXd::Zero(4);
-			fullp(0) = params(0);
-			fullp(2) = params(1);
-			ArrayXcd s = m_sequence.signal(m_model, fullp, 1.0); // Fix B1 to 1.0 for now
+			VectorXd fullp(5);
+			fullp << params(0), 0, params(1), 0, 1.0; // Fix B1 to 1.0 for now
+			ArrayXcd s = m_sequence.signal(m_model, fullp);
 			diffs = s.abs() - m_data;
 			if (m_debug) {
 				cout << endl << __PRETTY_FUNCTION__ << endl;

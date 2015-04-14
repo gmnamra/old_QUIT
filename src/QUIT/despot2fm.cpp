@@ -116,9 +116,9 @@ class FMFunctor : public DenseFunctor<double> {
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
 
-			Array4d fullparams;
-			fullparams << params(0), m_T1, params(1), params(2);
-			ArrayXcd s = m_sequence.signal(m_model, fullparams, m_B1);
+			ArrayXd fullparams(5);
+			fullparams << params(0), m_T1, params(1), params(2), m_B1;
+			ArrayXcd s = m_sequence.signal(m_model, fullparams);
 			if (m_complex) {
 				diffs = (s - m_data).abs();
 			} else {
