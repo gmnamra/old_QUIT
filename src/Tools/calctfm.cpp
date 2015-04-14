@@ -102,17 +102,17 @@ int main(int argc, char **argv) {
 		static const array<string, 8> compass_points{"W","SW","S","SE","E","NE","N","NW"};
 		cout << compass_points[octant] << endl;
 	}
-	// Now we want to rotate the head so that the line to the CoG becomes parallel to (0, 1)
+	// We want to rotate the head so that the line to the CoG becomes parallel to (0, 1)
 	// or (0, -1) depending on whether the heads were scanned with bottom of skull towards center
-	// or not
+	// or top of skull towards center
 	if (inwards)
 		angle = (M_PI / 2.) - angle;
 	else
 		angle =  (3. * M_PI / 2.) - angle;
 	Affine3d transform;
-	transform = Translation3d(-CoG) * AngleAxisd(-angle, Vector3d::UnitZ());
+	transform = AngleAxisd(-angle, Vector3d::UnitZ());
 	if (makeHuman) {
-		transform = AngleAxisd(M_PI, Vector3d::UnitZ()) * AngleAxisd(M_PI / 2., Vector3d::UnitX()) * transform;
+		transform = transform * AngleAxisd(-M_PI / 2., Vector3d::UnitX()) * AngleAxisd(M_PI, Vector3d::UnitY());
 	}
 	IOFormat fmt(StreamPrecision, DontAlignCols);
 	ofstream file(filename);
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
 		file << "Parameters: " << transform.matrix().block(0, 0, 1, 3).format(fmt) << " "
 		                       << transform.matrix().block(1, 0, 1, 3).format(fmt) << " "
 		                       << transform.matrix().block(2, 0, 1, 3).format(fmt) << " "
-		                       << transform.matrix().block(0, 3, 3, 1).transpose().format(fmt) << endl;
+		                       << (-CoG).transpose().format(fmt) << endl;
 		file << "FixedParameters: 0 0 0" << endl;
 		break;
 	}
