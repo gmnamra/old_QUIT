@@ -53,10 +53,10 @@ class MultiEcho : public SequenceBase {
 		MultiEcho(const ArrayXd &te);
 		MultiEcho(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 
-		size_t size() const override { return m_TE.rows(); };
+		size_t size() const override { return m_TE.rows(); }
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream &os) const override;
-		string name() const override { return "MultiEcho"; };
+		string name() const override { return "MultiEcho"; }
 };
 
 class SteadyState : public SequenceBase {
@@ -67,9 +67,9 @@ class SteadyState : public SequenceBase {
 		SteadyState();
 		SteadyState(const ArrayXd &flip, const double TR);
 
-		virtual size_t size() const override { return angles() * phases(); };
+		virtual size_t size() const override { return angles() * phases(); }
 		virtual size_t angles() const { return m_flip.rows(); }
-		virtual size_t phases() const { return 1; };
+		virtual size_t phases() const { return 1; }
 };
 
 class SPGRSimple : public SteadyState {
@@ -78,7 +78,7 @@ class SPGRSimple : public SteadyState {
 		SPGRSimple(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream &os) const override;
-		string name() const override { return "SPGR"; };
+		string name() const override { return "SPGR"; }
 };
 class SPGRFinite : public SPGRSimple {
 	public:
@@ -87,27 +87,27 @@ class SPGRFinite : public SPGRSimple {
 		SPGRFinite(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream &os) const override;
-		string name() const override { return "SPGR_Finite"; };
+		string name() const override { return "SPGR_Finite"; }
 };
 class MPRAGE : public SteadyState {
 	public:
 		ArrayXd m_TI;
 		double m_TD;
 		int m_N;
-		MPRAGE() : SteadyState() {};
+		MPRAGE() : SteadyState() {}
 		MPRAGE(const ArrayXd &TI, const double TD, const double TR, const int N, const double flip);
 		MPRAGE(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
-		size_t size() const override { return m_TI.size(); };
+		size_t size() const override { return m_TI.size(); }
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream &os) const override;
-		string name() const override { return "MPRAGE"; };
+		string name() const override { return "MPRAGE"; }
 };
 
 // Special class for GE IRSPGR, for backwards compatibility
 class IRSPGR : public MPRAGE {
 	public:
 		IRSPGR(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
-		string name() const override { return "IRSPGR"; };
+		string name() const override { return "IRSPGR"; }
 };
 
 class SSFPSimple : public SteadyState {
@@ -118,7 +118,7 @@ class SSFPSimple : public SteadyState {
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		size_t phases() const override;
 		void write(ostream& os) const override;
-		string name() const override { return "SSFP"; } ;
+		string name() const override { return "SSFP"; }
 };
 class SSFPFinite : public SSFPSimple {
 	public:
@@ -127,14 +127,14 @@ class SSFPFinite : public SSFPSimple {
 		SSFPFinite(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream& os) const override;
-		string name() const override { return "SSFP_Finite"; } ;
+		string name() const override { return "SSFP_Finite"; }
 };
 class SSFPEllipse : public SteadyState {
 	public:
 		SSFPEllipse(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream& os) const override;
-		string name() const override { return "SSFP_Ellipse"; };
+		string name() const override { return "SSFP_Ellipse"; }
 };
 
 enum class OffRes { Fit, FitSym, Map }; // Put this here so mcdespot and despot2fm can access it
@@ -147,7 +147,7 @@ private:
 public:
 	SequenceGroup(const Scale s);
 	void write(ostream &os) const override;
-	string name() const override { return "Sequences"; } ;
+	string name() const override { return "Sequences"; }
 
 	size_t count() const;
 	shared_ptr<SteadyState> sequence(const size_t i) const;
