@@ -67,7 +67,6 @@ Options:\n\
 };
 
 static shared_ptr<Model> model = make_shared<MCD3>();
-static auto scale = Scale::NormToMean;
 static auto tesla = FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
@@ -240,8 +239,8 @@ int main(int argc, char **argv) {
 			case 'p': stop_slice = atoi(optarg); break;
 			case 'S':
 				switch (atoi(optarg)) {
-					case 1 : scale = Scale::None; break;
-					case 2 : scale = Scale::NormToMean; break;
+					case 1 : model->setScaling(Model::Scale::None); break;
+					case 2 : model->setScaling(Model::Scale::ToMean); break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						return EXIT_FAILURE;
@@ -301,7 +300,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	SequenceGroup sequences(scale);
+	SequenceGroup sequences;
 	// Build a Functor here so we can query number of parameters etc.
 	if (verbose) cout << "Using " << model->Name() << " model." << endl;
 	vector<MultiArray<complex<float>, 4>> signalVols;
@@ -361,7 +360,7 @@ int main(int argc, char **argv) {
 					localBounds.row(model->nParameters() - 2).setConstant(f0Vol[{i,j,k}]);
 				}
 				localBounds.row(model->nParameters() - 1).setConstant(B1);
-				if (scale == Scale::None) {
+				if (model->scaling() == Model::Scale::None) {
 					localBounds(0, 0) = 0.;
 					localBounds(0, 1) = signal.abs().maxCoeff() * 25;
 				}
@@ -407,7 +406,7 @@ int main(int argc, char **argv) {
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
-	size_t start = (scale == Scale::None) ? 0 : 1;
+	size_t start = (model->scaling() == Model::Scale::None) ? 0 : 1;
 	for (size_t p = start; p < model->nParameters(); p++) { // Skip PD for now
 		hdr.intent_name = model->Names().at(p);
 		Nifti::File file(hdr, outPrefix + model->Names().at(p) + "" + OutExt());

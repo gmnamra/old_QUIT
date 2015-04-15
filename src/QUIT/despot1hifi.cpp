@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 	
-	SequenceGroup combined(Scale::None);
+	SequenceGroup combined;
 	if (verbose) cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind++], Nifti::Mode::Read);
 	Agilent::ProcPar pp; ReadPP(spgrFile, pp);

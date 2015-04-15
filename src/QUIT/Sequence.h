@@ -26,16 +26,8 @@
 using namespace std;
 using namespace Eigen;
 
-//******************************************************************************
-// Some convenience Enums
-//******************************************************************************
-enum class Scale { None, NormToMean };
-const string to_string(const Scale &p);
-
-//******************************************************************************
-// SteadyState Functors
-//******************************************************************************
 class SequenceBase {
+
 	public:
 		virtual ArrayXcd signal(const shared_ptr<Model> m, const VectorXd &p) const = 0;
 		virtual size_t size() const = 0;
@@ -141,11 +133,10 @@ enum class OffRes { Fit, FitSym, Map }; // Put this here so mcdespot and despot2
 
 class SequenceGroup : public SequenceBase {
 private:
-	Scale m_scaling;
 	vector<shared_ptr<SteadyState>> m_sequences;
 
 public:
-	SequenceGroup(const Scale s);
+	SequenceGroup();
 	void write(ostream &os) const override;
 	string name() const override { return "Sequences"; }
 

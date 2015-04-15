@@ -200,7 +200,7 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	// Gather SSFP Data
 	//**************************************************************************
-	SequenceGroup ssfp(Scale::None);
+	SequenceGroup ssfp;
 	if (verbose) cout << "Opening SSFP file: " << argv[optind] << endl;
 	Nifti::File SSFPFile(argv[optind++]);
 	if (verbose) cout << "Checking headers for consistency." << endl;

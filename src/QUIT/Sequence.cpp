@@ -12,13 +12,7 @@
 
 #include "Sequence.h"
 
-const string to_string(const Scale &p) {
-	static const string sn{"None"}, snm{"Normalised to Mean"};
-	switch (p) {
-		case Scale::None: return sn;
-		case Scale::NormToMean: return snm;
-	}
-}
+
 
 /******************************************************************************
  * SequenceBase
@@ -309,10 +303,9 @@ ArrayXcd SSFPEllipse::signal(shared_ptr<Model> m, const VectorXd &p) const {
 }
 
 /******************************************************************************
-  Sequences Class
+ * SequenceGroup Class
  *****************************************************************************/
-SequenceGroup::SequenceGroup(const Scale s) :
-	SequenceBase(), m_scaling(s)
+SequenceGroup::SequenceGroup() : SequenceBase()
 {}
 
 void SequenceGroup::write(ostream &os) const {
@@ -345,10 +338,6 @@ ArrayXcd SequenceGroup::signal(shared_ptr<Model> m, const VectorXd &p) const {
 	size_t start = 0;
 	for (auto &sig : m_sequences) {
 		ArrayXcd thisResult = sig->signal(m, p);
-		switch (m_scaling) {
-			case Scale::None :       break;
-			case Scale::NormToMean : thisResult /= thisResult.abs().mean();
-		}
 		result.segment(start, sig->size()) = thisResult;
 		start += sig->size();
 	}
@@ -375,8 +364,6 @@ ArrayXcd SequenceGroup::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> 
 			ArrayXXcd flipped = Map<ArrayXXcd>(thisSig.data(), m_sequences.at(s)->phases(), m_sequences.at(s)->angles()).transpose();
 			thisSig = Map<ArrayXcd>(flipped.data(), thisSig.rows(), 1);
 		}
-		if (m_scaling == Scale::NormToMean)
-			thisSig /= thisSig.abs().mean();
 		signal.segment(start, thisSig.rows()) = thisSig;
 		start += thisSig.rows();
 	}

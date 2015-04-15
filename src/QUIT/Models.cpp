@@ -12,6 +12,27 @@ const string to_string(const FieldStrength& f) {
 	}
 }
 
+/*****************************************************************************/
+/* Base Class                                                                */
+/*****************************************************************************/
+
+string Model::to_string(const Scale &p) {
+	static const string sn{"None"}, snm{"Normalised to Mean"};
+	switch (p) {
+		case Scale::None: return sn;
+		case Scale::ToMean: return snm;
+	}
+}
+
+ArrayXcd Model::scale(const ArrayXcd &s) const {
+	ArrayXcd scaled(s.size());
+	switch (m_scaling) {
+		case Scale::None:   scaled = s; break;
+		case Scale::ToMean: scaled = s / s.abs().mean(); break;
+	}
+	return s;
+}
+
 VectorXcd Model::MultiEcho(cvecd &, carrd &) const { throw(logic_error(std::string(__PRETTY_FUNCTION__) + " not implemented.")); }
 VectorXcd Model::SPGR(cvecd &params, carrd &a, cdbl TR) const { throw(logic_error(std::string(__PRETTY_FUNCTION__) + " not implemented.")); }
 VectorXcd Model::SPGRFinite(cvecd &params, carrd &a, cdbl TR, cdbl T_rf, cdbl TE) const { throw(logic_error(std::string(__PRETTY_FUNCTION__) + " not implemented.")); }
@@ -51,31 +72,31 @@ bool SCD::ValidParameters(cvecd &params) const {
 }
 
 VectorXcd SCD::MultiEcho(cvecd &p, carrd &TE) const {
-	return One_MultiEcho(TE, p[0], p[2]);
+	return scale(One_MultiEcho(TE, p[0], p[2]));
 }
 
 VectorXcd SCD::SPGR(cvecd &p, carrd &a, cdbl TR) const {
-	return One_SPGR(a, TR, p[0], p[1], p[4]);
+	return scale(One_SPGR(a, TR, p[0], p[1], p[4]));
 }
 
 VectorXcd SCD::SPGRFinite(cvecd &p, carrd &a, cdbl TR, cdbl Trf, cdbl TE) const {
-	return One_SSFP_Finite(a, true, TR, Trf, TE, 0, p[0], p[1], p[2], p[3], p[4]);
+	return scale(One_SSFP_Finite(a, true, TR, Trf, TE, 0, p[0], p[1], p[2], p[3], p[4]));
 }
 
 VectorXcd SCD::MPRAGE(cvecd &p, cdbl a, cdbl TR, const int N, cvecd &TI, cdbl TD) const {
-	return MP_RAGE(a, TR, N, TI, TD, p[0], p[1], p[4]);
+	return scale(MP_RAGE(a, TR, N, TI, TD, p[0], p[1], p[4]));
 }
 
 VectorXcd SCD::SSFP(cvecd &p, carrd &a, cdbl TR, cdbl phi) const {
-	return One_SSFP(a, TR, phi, p[0], p[1], p[2], p[3], p[4]);
+	return scale(One_SSFP(a, TR, phi, p[0], p[1], p[2], p[3], p[4]));
 }
 
 VectorXcd SCD::SSFPFinite(cvecd &p, carrd &a, cdbl TR, cdbl Trf, cdbl phi) const {
-	return One_SSFP_Finite(a, false, TR, Trf, 0., phi, p[0], p[1], p[2], p[3], p[4]);
+	return scale(One_SSFP_Finite(a, false, TR, Trf, 0., phi, p[0], p[1], p[2], p[3], p[4]));
 }
 
 VectorXcd SCD::SSFPEllipse(cvecd &p, carrd &a, cdbl TR) const {
-	return One_SSFP_Ellipse(a, TR, p[0], p[1], p[2], p[3], p[4]);
+	return scale(One_SSFP_Ellipse(a, TR, p[0], p[1], p[2], p[3], p[4]));
 }
 
 /*****************************************************************************/
@@ -113,19 +134,19 @@ bool MCD2::ValidParameters(cvecd &params) const {
 }
 
 VectorXcd MCD2::SPGR(cvecd &p, carrd &a, cdbl TR) const {
-	return Two_SPGR(a, TR, p[0], p[1], p[3], p[5], p[6], p[8]);
+	return scale(Two_SPGR(a, TR, p[0], p[1], p[3], p[5], p[6], p[8]));
 }
 
 VectorXcd MCD2::SPGRFinite(cvecd &p, carrd &a, cdbl TR, cdbl Trf, cdbl TE) const {
-	return Two_SSFP_Finite(a, true, TR, Trf, TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[7], p[8]);
+	return scale(Two_SSFP_Finite(a, true, TR, Trf, TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[7], p[8]));
 }
 
 VectorXcd MCD2::SSFP(cvecd &p, carrd &a, cdbl TR, cdbl phi) const {
-	return Two_SSFP(a, TR, phi, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[7], p[8]);
+	return scale(Two_SSFP(a, TR, phi, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[7], p[8]));
 }
 
 VectorXcd MCD2::SSFPFinite(cvecd &p, carrd &a, cdbl TR, cdbl Trf, cdbl phi) const {
-	return Two_SSFP_Finite(a, false, TR, Trf, 0., phi, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[7], p[8]);
+	return scale(Two_SSFP_Finite(a, false, TR, Trf, 0., phi, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[7], p[8]));
 }
 
 /*****************************************************************************/
@@ -164,17 +185,17 @@ bool MCD3::ValidParameters(cvecd &params) const {
 }
 
 VectorXcd MCD3::SPGR(cvecd &p, carrd &a, cdbl TR) const {
-	return Three_SPGR(a, TR, p[0], p[1], p[3], p[5], p[7], p[8], p[9], p[11]);
+	return scale(Three_SPGR(a, TR, p[0], p[1], p[3], p[5], p[7], p[8], p[9], p[11]));
 }
 
 VectorXcd MCD3::SPGRFinite(cvecd &p, carrd &a, cdbl TR, cdbl Trf, cdbl TE) const {
-	return Three_SSFP_Finite(a, true, TR, Trf, TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[10], p[10], p[11]);
+	return scale(Three_SSFP_Finite(a, true, TR, Trf, TE, 0, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[10], p[10], p[11]));
 }
 
 VectorXcd MCD3::SSFP(cvecd &p, carrd &a, cdbl TR, cdbl phi) const {
-	return Three_SSFP(a, TR, phi, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[10], p[10], p[11]);
+	return scale(Three_SSFP(a, TR, phi, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[10], p[10], p[11]));
 }
 
 VectorXcd MCD3::SSFPFinite(cvecd &p, carrd &a, cdbl TR, cdbl Trf, cdbl phi) const {
-	return Three_SSFP_Finite(a, false, TR, Trf, 0., phi, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[10], p[10], p[11]);
+	return scale(Three_SSFP_Finite(a, false, TR, Trf, 0., phi, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[10], p[10], p[11]));
 }
