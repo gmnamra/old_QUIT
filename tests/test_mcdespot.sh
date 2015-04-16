@@ -14,7 +14,7 @@ DATADIR="mcdespot_$QUITVER"
 mkdir -p $DATADIR
 cd $DATADIR
 
-DIMS="11 21 1"
+DIMS="11 11 5"
 #DIMS="3 3 3"
 
 $QUITDIR/niicreate -d "$DIMS" -f "1.0" PD.nii
@@ -25,6 +25,7 @@ $QUITDIR/niicreate -d "$DIMS" -f "0.1" T2_b.nii
 $QUITDIR/niicreate -d "$DIMS" -g "0 0 1.0" f_a.nii
 $QUITDIR/niicreate -d "$DIMS" -f "0.1" tau_a.nii
 $QUITDIR/niicreate -d "$DIMS" -g "1 -25. 25." f0.nii
+$QUITDIR/niicreate -d "$DIMS" -g "2 0.5 1.5" B1.nii
 
 # Setup parameters
 SPGR_FILE="spgr.nii"
@@ -47,6 +48,7 @@ T2_b.nii
 tau_a.nii
 f_a.nii
 f0.nii
+B1.nii
 SPGR
 $SPGR_PAR
 $SPGR_FILE
@@ -66,7 +68,7 @@ $SSFP_FILE
 $SSFP_PAR
 END" > mcdespot.in
 
-run_test "MCDESPOT" $QUITDIR/mcdespot --2 -n -v -S 1 -T 1 < mcdespot.in
+run_test "MCDESPOT" $QUITDIR/mcdespot --2 -n -v -S 1 -T 1 -bB1.nii < mcdespot.in
 compare_test "MWF" f_a.nii 2C_f_a.nii 0.1
 
 cd ..

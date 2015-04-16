@@ -12,13 +12,7 @@
 
 #include "Sequence.h"
 
-const string to_string(const Scale &p) {
-	static const string sn{"None"}, snm{"Normalised to Mean"};
-	switch (p) {
-		case Scale::None: return sn;
-		case Scale::NormToMean: return snm;
-	}
-}
+
 
 /******************************************************************************
  * SequenceBase
@@ -60,7 +54,7 @@ MultiEcho::MultiEcho(const bool prompt, const Agilent::ProcPar &pp) :
 	}
 }
 
-ArrayXcd MultiEcho::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
+ArrayXcd MultiEcho::signal(shared_ptr<Model> m, const VectorXd &p) const {
 	return m->MultiEcho(p, m_TE);
 }
 
@@ -79,13 +73,6 @@ SteadyState::SteadyState(const ArrayXd &flip, const double TR) :
 	m_TR = TR;
 }
 
-ArrayXd SteadyState::B1flip(const double B1) const {
-	return B1 * m_flip;
-}
-
-// Parameters are PD, T1, T2, f0
-//                PD, T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0
-//				  PD, T1_a, T2_a, T1_b, T2_b, T1_c, T2_c, tau_a, f_a, f_c, f0
 SPGRSimple::SPGRSimple(const ArrayXd &flip, const double TR) :
 	SteadyState(flip, TR)
 {}
@@ -114,8 +101,8 @@ void SPGRSimple::write(ostream &os) const {
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
 
-ArrayXcd SPGRSimple::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
-	return m->SPGR(p, B1flip(B1), m_TR);
+ArrayXcd SPGRSimple::signal(shared_ptr<Model> m, const VectorXd &p) const {
+	return m->SPGR(p, m_flip, m_TR);
 }
 
 SPGRFinite::SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE) :
@@ -141,8 +128,8 @@ void SPGRFinite::write(ostream &os) const {
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
 
-ArrayXcd SPGRFinite::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
-	return m->SPGRFinite(p, B1flip(B1), m_TR, m_Trf, m_TE);
+ArrayXcd SPGRFinite::signal(shared_ptr<Model> m, const VectorXd &p) const {
+	return m->SPGRFinite(p, m_flip, m_TR, m_Trf, m_TE);
 }
 
 MPRAGE::MPRAGE(const ArrayXd &TI, const double TD, const double TR, const int N, const double flip) :
@@ -197,8 +184,8 @@ IRSPGR::IRSPGR(const bool prompt, const Agilent::ProcPar &pp) : MPRAGE() {
 	QUIT::ReadEigen(cin, m_TI);
 }
 
-ArrayXcd MPRAGE::signal(shared_ptr<Model> m, const VectorXd &par, const double B1) const {
-	return m->MPRAGE(par, m_flip[0] * B1, m_TR, m_N, m_TI, m_TD);
+ArrayXcd MPRAGE::signal(shared_ptr<Model> m, const VectorXd &par) const {
+	return m->MPRAGE(par, m_flip[0], m_TR, m_N, m_TI, m_TD);
 }
 
 void MPRAGE::write(ostream &os) const {
@@ -246,11 +233,11 @@ void SSFPSimple::write(ostream &os) const {
 
 size_t SSFPSimple::phases() const { return m_phases.rows(); }
 
-ArrayXcd SSFPSimple::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
+ArrayXcd SSFPSimple::signal(shared_ptr<Model> m, const VectorXd &p) const {
 	ArrayXcd s(size());
 	ArrayXcd::Index start = 0;
 	for (ArrayXcd::Index i = 0; i < m_phases.rows(); i++) {
-		s.segment(start, m_flip.rows()) = m->SSFP(p, B1flip(B1), m_TR, m_phases(i));
+		s.segment(start, m_flip.rows()) = m->SSFP(p, m_flip, m_TR, m_phases(i));
 		start += m_flip.rows();
 	}
 	return s;
@@ -276,11 +263,11 @@ void SSFPFinite::write(ostream &os) const {
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
 
-ArrayXcd SSFPFinite::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
+ArrayXcd SSFPFinite::signal(shared_ptr<Model> m, const VectorXd &p) const {
 	ArrayXcd s(size());
 	ArrayXcd::Index start = 0;
 	for (ArrayXcd::Index i = 0; i < m_phases.rows(); i++) {
-		s.segment(start, m_flip.rows()) = m->SSFPFinite(p, B1flip(B1), m_TR, m_Trf, m_phases(i));
+		s.segment(start, m_flip.rows()) = m->SSFPFinite(p, m_flip, m_TR, m_Trf, m_phases(i));
 		start += m_flip.rows();
 	}
 	return s;
@@ -311,15 +298,14 @@ void SSFPEllipse::write(ostream &os) const {
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
 
-ArrayXcd SSFPEllipse::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
-	return m->SSFPEllipse(p, B1*m_flip, m_TR);
+ArrayXcd SSFPEllipse::signal(shared_ptr<Model> m, const VectorXd &p) const {
+	return m->SSFPEllipse(p, m_flip, m_TR);
 }
 
 /******************************************************************************
-  Sequences Class
+ * SequenceGroup Class
  *****************************************************************************/
-SequenceGroup::SequenceGroup(const Scale s) :
-	SequenceBase(), m_scaling(s)
+SequenceGroup::SequenceGroup() : SequenceBase()
 {}
 
 void SequenceGroup::write(ostream &os) const {
@@ -347,15 +333,11 @@ size_t SequenceGroup::size() const {
 	return sz;
 }
 
-ArrayXcd SequenceGroup::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
+ArrayXcd SequenceGroup::signal(shared_ptr<Model> m, const VectorXd &p) const {
 	ArrayXcd result(size());
 	size_t start = 0;
 	for (auto &sig : m_sequences) {
-		ArrayXcd thisResult = sig->signal(m, p, B1);
-		switch (m_scaling) {
-			case Scale::None :       break;
-			case Scale::NormToMean : thisResult /= thisResult.abs().mean();
-		}
+		ArrayXcd thisResult = sig->signal(m, p);
 		result.segment(start, sig->size()) = thisResult;
 		start += sig->size();
 	}
@@ -382,8 +364,6 @@ ArrayXcd SequenceGroup::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> 
 			ArrayXXcd flipped = Map<ArrayXXcd>(thisSig.data(), m_sequences.at(s)->phases(), m_sequences.at(s)->angles()).transpose();
 			thisSig = Map<ArrayXcd>(flipped.data(), thisSig.rows(), 1);
 		}
-		if (m_scaling == Scale::NormToMean)
-			thisSig /= thisSig.abs().mean();
 		signal.segment(start, thisSig.rows()) = thisSig;
 		start += thisSig.rows();
 	}

@@ -67,7 +67,6 @@ Options:\n\
 };
 
 static shared_ptr<Model> model = make_shared<MCD3>();
-static auto scale = Scale::NormToMean;
 static auto tesla = FieldStrength::Three;
 static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
@@ -154,14 +153,12 @@ class MCDFunctor : public DenseFunctor<double> {
 		const SequenceBase &m_sequence;
 		const ArrayXcd &m_data;
 		const bool m_complex, m_debug;
-		const double m_B1;
 		const shared_ptr<Model> m_model;
 
 		MCDFunctor(SequenceBase &s, const ArrayXcd &d, shared_ptr<Model> m,
-		           const double B1, const bool fitComplex, const bool debug = false) :
+		           const bool fitComplex, const bool debug = false) :
 			DenseFunctor<double>(m->nParameters(), s.size()),
-			m_sequence(s), m_data(d), m_model(m),
-			m_B1(B1), m_complex(fitComplex), m_debug(debug)
+			m_sequence(s), m_data(d), m_model(m), m_complex(fitComplex), m_debug(debug)
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}
@@ -172,7 +169,7 @@ class MCDFunctor : public DenseFunctor<double> {
 
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
-			ArrayXcd s = m_sequence.signal(m_model, params, m_B1);
+			ArrayXcd s = m_sequence.signal(m_model, params);
 			if (m_complex) {
 				diffs = (s - m_data).abs();
 			} else {
@@ -242,8 +239,8 @@ int main(int argc, char **argv) {
 			case 'p': stop_slice = atoi(optarg); break;
 			case 'S':
 				switch (atoi(optarg)) {
-					case 1 : scale = Scale::None; break;
-					case 2 : scale = Scale::NormToMean; break;
+					case 1 : model->setScaling(Model::Scale::None); break;
+					case 2 : model->setScaling(Model::Scale::ToMean); break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						return EXIT_FAILURE;
@@ -303,7 +300,7 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	SequenceGroup sequences(scale);
+	SequenceGroup sequences;
 	// Build a Functor here so we can query number of parameters etc.
 	if (verbose) cout << "Using " << model->Name() << " model." << endl;
 	vector<MultiArray<complex<float>, 4>> signalVols;
@@ -326,7 +323,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	if (f0fit == OffRes::FitSym) {
-		bounds(model->nParameters() - 1, 0) = 0.;
+		bounds(model->nParameters() - 2, 0) = 0.;
 	}
 	ArrayXd weights(sequences.size()); weights.setOnes();
 	if (verbose) {
@@ -357,16 +354,18 @@ int main(int argc, char **argv) {
 		processVox = [&] (const size_t i, const size_t j) {
 			if (!maskFile || maskVol[{i,j,k}]) {
 				ArrayXcd signal = sequences.loadSignals(signalVols, i, j, k, flipData);
+				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 				ArrayXXd localBounds = bounds;
 				if (f0fit == OffRes::Map) {
-					localBounds.row(model->nParameters() - 1).setConstant(f0Vol[{i,j,k}]);
+					localBounds.row(model->nParameters() - 2).setConstant(f0Vol[{i,j,k}]);
 				}
-				if (scale == Scale::None) {
+				localBounds.row(model->nParameters() - 1).setConstant(B1);
+				if (model->scaling() == Model::Scale::None) {
 					localBounds(0, 0) = 0.;
 					localBounds(0, 1) = signal.abs().maxCoeff() * 25;
 				}
-				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-				MCDFunctor func(sequences, signal, model, B1, fitComplex, false);
+
+				MCDFunctor func(sequences, signal, model, fitComplex, false);
 				RegionContraction<MCDFunctor> rc(func, localBounds, weights, threshes,
 													samples, retain, contract, expand, (voxI != 0));
 				ArrayXd params(model->nParameters());
@@ -407,7 +406,7 @@ int main(int argc, char **argv) {
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
-	size_t start = (scale == Scale::None) ? 0 : 1;
+	size_t start = (model->scaling() == Model::Scale::None) ? 0 : 1;
 	for (size_t p = start; p < model->nParameters(); p++) { // Skip PD for now
 		hdr.intent_name = model->Names().at(p);
 		Nifti::File file(hdr, outPrefix + model->Names().at(p) + "" + OutExt());

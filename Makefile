@@ -65,7 +65,7 @@ EXE      := afi despot1 despot1hifi despot2 despot2fm mcdespot mcsignal ssfpband
 EXE_SRC  := SignalEquations Models Sequence
 EXE_HDR  := $(addprefix $(SOURCE_DIR)/$(QUIT_DIR)/, SignalEquations.h Models.h Sequence.h RegionContraction.h)
 EXE_OBJ  := $(patsubst %, $(BUILD_DIR)/$(QUIT_DIR)/%.o, $(EXE_SRC))
-$(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp $(QUIT_HDR) $(LIB_HDR) $(NIFTI_HDR) | EIGEN
+$(BUILD_DIR)/$(QUIT_DIR)/%.o : $(SOURCE_DIR)/$(QUIT_DIR)/%.cpp $(EXE_HDR) $(LIB_HDR) $(NIFTI_HDR) | EIGEN
 	@mkdir -p $(dir $@)
 	$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
 $(BUILD_DIR)/libQUIT.a : $(LIB_OBJ) $(LIB_HDR)

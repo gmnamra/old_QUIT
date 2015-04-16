@@ -90,9 +90,9 @@ class HIFIFunctor : public DenseFunctor<double> {
 
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
-			VectorXd fullpar(4); // Including T2 and f0
-			fullpar << params[0], params[1], 0, 0;
-			ArrayXcd s = m_sequence.signal(m_model, fullpar, params[2]);
+			VectorXd fullpar(5); // Add T2 and f0
+			fullpar << params(0), params(1), 0, 0, params(2);
+			ArrayXcd s = m_sequence.signal(m_model, fullpar);
 			diffs = s.abs() - m_data;
 			if (m_debug) {
 				cout << endl << __PRETTY_FUNCTION__ << endl;
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 	
-	SequenceGroup combined(Scale::None);
+	SequenceGroup combined;
 	if (verbose) cout << "Opening SPGR file: " << argv[optind] << endl;
 	spgrFile.open(argv[optind++], Nifti::Mode::Read);
 	Agilent::ProcPar pp; ReadPP(spgrFile, pp);
@@ -218,9 +218,9 @@ int main(int argc, char **argv) {
 				ArrayXd spgrSig = SPGR_Vols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().abs().cast<double>();
 
 				// Get a first guess with DESPOT1
-				VectorXd Y = spgrSig / spgrSequence->B1flip(1.0).sin();
+				VectorXd Y = spgrSig / spgrSequence->m_flip.sin();
 				MatrixXd X(Y.rows(), 2);
-				X.col(0) = spgrSig / spgrSequence->B1flip(1.0).tan();
+				X.col(0) = spgrSig / spgrSequence->m_flip.tan();
 				X.col(1).setOnes();
 				VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
 				T1 = -spgrSequence->m_TR / log(b[0]);
@@ -246,7 +246,8 @@ int main(int argc, char **argv) {
 					B1 = 0.;
 				}
 				T1 = clamp(T1, clamp_lo, clamp_hi);
-				ArrayXd theory = combined.signal(model, Vector2d(PD, T1), B1).abs();
+				VectorXd pfull(5); pfull << PD, T1, 0, 0, B1;
+				ArrayXd theory = combined.signal(model, pfull).abs();
 				ArrayXd resids = (combinedSig - theory);
 				res = sqrt(resids.square().sum() / resids.rows()) / PD;
 			}

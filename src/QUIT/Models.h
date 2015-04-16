@@ -31,11 +31,22 @@ static const string to_string(const FieldStrength& f);
 
 class Model {
 public:
+	enum class Scale { None, ToMean };
+	string to_string(const Scale &p);
+
+protected:
+	Scale m_scaling = Scale::None;
+	ArrayXcd scale(const ArrayXcd &signal) const;
+
+public:
 	virtual string Name() const = 0;
 	virtual size_t nParameters() const = 0;
 	virtual bool ValidParameters(cvecd &params) const = 0;
 	virtual const vector<string> &Names() const = 0;
 	virtual ArrayXXd Bounds(const FieldStrength f, cdbl TR) const = 0;
+
+	void setScaling(Scale s) { m_scaling = s; }
+	Scale scaling() const { return m_scaling; }
 
 	virtual VectorXcd MultiEcho(cvecd &params, carrd &TE) const;
 	virtual VectorXcd SPGR(cvecd &params, carrd &a, cdbl TR) const;
