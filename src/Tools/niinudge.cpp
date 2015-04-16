@@ -26,34 +26,32 @@ using namespace QUIT;
 
 const string usage = "niinudge - A utility for moving Nifti images in physical space.\n\
 \n\
-Usage: niinudge [options] file1 [other files]\n\
+Usage: niinudge [options] infile outfile\n\
 By default nothing happens. Specify one of the options to move your image.\n\
 Many of the options require a 3 dimensional vector argument. Valid formats for\n\
 this are:\n\
 X Y Z - Make sure you encase this format in quotes (\" \")!\n\
 \n\
 Options:\n\
-	--tfm, -t              : Output an Insight Transform file for ANTs\n\
-	--out, -o prefix       : Add a prefix to the output filenames\n\
-	--nudge, -n \"X Y Z\"  : Nudge the image (X Y Z added to current offset)\n\
-	--offset, -f \"X Y Z\" : Set the offset to (X,Y,Z)\n\
-	--cog, -c              : Move the Center of Gravity to the origin of the\n\
-	                         first image, and make subsequent images match\n\
-	--verbose, -v          : Print out what the program is doing\n\
-	-h, --help:   Print this message and quit.\n\
+	--nudge, -n \"X Y Z\"    : Nudge the image (X Y Z added to current offset)\n\
+	--offset, -f \"X Y Z\"   : Set the offset to (X,Y,Z)\n\
+	--cog, -c                : Move the Center of Gravity to the origin of the\n\
+	                           first image, and make subsequent images match\n\
+	--rotate, -r \"X/Y/Z a\" : Rotate about specifed axis by specified angle\n\
+	--verbose, -v            : Print out what the program is doing\n\
+	-h, --help               :   Print this message and quit.\n\
 ";
 
 static const struct option long_opts[] = {
-	{"tfm", no_argument, 0, 't'},
 	{"nudge",  required_argument, 0, 'n'},
-	{"out", required_argument, 0, 'o'},
 	{"offset", required_argument, 0, 'f'},
 	{"cog",    no_argument, 0, 'c'},
+	{"rotate", required_argument, 0, 'r'},
 	{"verbose", no_argument, 0, 'v'},
 	{"help",   no_argument, 0, 'h'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "tn:o:f:cvh";
+static const char *short_opts = "n:o:f:cr:vh";
 static string prefix;
 static int verbose = false, output_transform = false;
 
@@ -106,8 +104,6 @@ int main(int argc, char **argv) {
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
 		switch (c) {
-		case 't': output_transform = true; break;
-		case 'o': prefix = optarg; break;
 		case 'v': verbose = true; break;
 		case '?': // getopt will print an error message
 		case 'h':
@@ -122,80 +118,60 @@ int main(int argc, char **argv) {
 		cout << usage << endl;
 		return EXIT_FAILURE;
 	}
-	vector<Nifti::File> files;
-	vector<vector<char>> data;
-	files.reserve(argc - optind);
-	data.reserve(argc - optind);
-	while (optind < argc) {
-		files.emplace_back(Nifti::File(argv[optind++], Nifti::Mode::Read));
-		Nifti::File &f = files.back();
-		if (verbose) cout << "Opened file: " << f.imagePath() << endl;
-		data.emplace_back(vector<char>(f.dataSize()));
-		f.readBytes(data.back());
-		f.close();
-	}
+	string inFilename(argv[optind++]);
+	string outFilename(argv[optind++]);
+	if (verbose) cout << "Opening input file: " << inFilename << endl;
+	Nifti::File inFile(inFilename);
+	// Now reset optind and process options
 	optind = 1;
+	Nifti::Header hdr = inFile.header();
+	Affine3f xfm = hdr.transform();
+	if (verbose) cout << "Initial transform: " << endl << xfm.matrix() << endl;
 	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
-		Vector3f nudge;
 		switch (c) {
-		case 'n':
+		case 'n': {
+			Vector3f nudge;
 			ReadEigen(optarg, nudge);
-			for (Nifti::File &f : files) {
-				if (verbose) cout << "Nudging offset by: " << nudge.transpose() << " in file: " << f.imagePath() << endl;
-				Nifti::Header h = f.header();
-				Affine3f xfm = h.transform();
-				xfm = Translation3f(nudge) * xfm;
-				h.setTransform(xfm);
-				f.setHeader(h);
-			}
-			break;
-		case 'f':
+			if (verbose) cout << "Nudging by: " << nudge.transpose() << endl;
+			xfm = Translation3f(nudge) * xfm;
+		} break;
+		case 'f': {
+			Vector3f nudge;
 			ReadEigen(optarg, nudge);
-			for (Nifti::File &f : files) {
-				if (verbose) cout << "Setting offset to: " << nudge.transpose() << " in file: " << f.imagePath() << endl;
-				Nifti::Header h = f.header();
-				Affine3f xfm = h.transform();
-				xfm.translation() = nudge;
-				h.setTransform(xfm);
-				f.setHeader(h);
-			}
-			break;
+			if (verbose) cout << "Setting offset to: " << nudge.transpose() << endl;
+			xfm.translation() = nudge;
+		} break;
 		case 'c': {
-			if (verbose) cout << "Aligning origin to CoG in file: " << files.front().imagePath() << endl;
-			Vector3f CoG = calc_cog(files.front());
-			if (output_transform) {
-				Affine3f tfm(Translation3f(-CoG));
-				write_transform(tfm, files.front().basePath()+".tfm");
+			if (verbose) cout << "Aligning origin to CoG." << endl;
+			Vector3f CoG = calc_cog(inFile);
+			xfm = Translation3f(-CoG) * xfm;
+		} break;
+		case 'r': {
+			stringstream args{string{optarg}};
+			string axis; args >> axis;
+			float angle; args >> angle;
+			if (verbose) cout << "Rotating image by " << angle << " around " << axis << " axis." << endl;
+			if (axis == "X") {
+				xfm = AngleAxisf(angle * M_PI / 180., Vector3f::UnitX()) * xfm;
+			} else if (axis == "Y") {
+				xfm = AngleAxisf(angle * M_PI / 180., Vector3f::UnitY()) * xfm;
+			} else if (axis == "Z") {
+				xfm = AngleAxisf(angle * M_PI / 180., Vector3f::UnitZ()) * xfm;
 			} else {
-				Affine3f xfm1 = files.front().header().transform();
-				xfm1 = Translation3f(-CoG) * xfm1;
-				Vector3f offset = xfm1.translation();
-				for (Nifti::File &f : files) {
-					Nifti::Header h = f.header();
-					Affine3f xfm = h.transform();
-					xfm.translation() = offset;
-					h.setTransform(xfm);
-					f.setHeader(h);
-				}
+				throw(runtime_error("Invalid axis specification: " + axis));
 			}
 		} break;
-		case '?': // getopt will print an error message
-		case 'h':
-			break;
-		default:
-			break;
 		}
 	}
-	auto f = files.begin();
-	auto d = data.begin();
-	for (; f != files.end(); f++, d++) {
-		string outpath = prefix + f->imagePath();
-		if (verbose) cout << "Writing file: " << outpath << endl;
-		f->open(outpath, Nifti::Mode::Write);
-		f->writeBytes(*d);
-		f->close();
-	}
-
+	if (verbose) cout <<  "Final transform: " << endl << xfm.matrix() << endl;
+	vector<char> data(inFile.dataSize());
+	inFile.readBytes(data);
+	if (verbose) cout << "Writing file: " << outFilename << endl;
+	hdr.setTransform(xfm);
+	Nifti::File outFile(hdr, outFilename, inFile.extensions());
+	outFile.writeBytes(data);
+	inFile.close();
+	outFile.close();
 	return EXIT_SUCCESS;
 }
 
