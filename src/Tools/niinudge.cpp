@@ -27,31 +27,32 @@ using namespace QUIT;
 const string usage = "niinudge - A utility for moving Nifti images in physical space.\n\
 \n\
 Usage: niinudge [options] infile outfile\n\
-By default nothing happens. Specify one of the options to move your image.\n\
-Many of the options require a 3 dimensional vector argument. Valid formats for\n\
-this are:\n\
-X Y Z - Make sure you encase this format in quotes (\" \")!\n\
+By default nothing happens. Specify one or more options to move your image.\n\
+Transformations are applied sequentially in left-to-right order\n\
+Many of the options require a 3 dimensional vector argument. Make sure you \n\
+encase this format in quotes (\" \")!\n\
 \n\
 Options:\n\
-	--nudge, -n \"X Y Z\"    : Nudge the image (X Y Z added to current offset)\n\
-	--offset, -f \"X Y Z\"   : Set the offset to (X,Y,Z)\n\
-	--cog, -c                : Move the Center of Gravity to the origin of the\n\
-	                           first image, and make subsequent images match\n\
-	--rotate, -r \"X/Y/Z a\" : Rotate about specifed axis by specified angle\n\
-	--verbose, -v            : Print out what the program is doing\n\
-	-h, --help               :   Print this message and quit.\n\
+	--nudge, -n \"X Y Z\"  : Nudge the image (X Y Z added to current offset)\n\
+	--offset, -f \"X Y Z\" : Set the offset to (X,Y,Z)\n\
+	--cog, -c              : Move the Center of Gravity to the origin of the\n\
+	                         first image, and make subsequent images match\n\
+	-X angle               : Rotate about X axis by angle (in degrees)\n\
+	-Y angle               : Rotate about Y axis by angle (in degrees)\n\
+	-Z angle               : Rotate about Z axis by angle (in degrees)\n\
+	--verbose, -v          : Print out what the program is doing\n\
+	-h, --help             : Print this message and quit.\n\
 ";
 
 static const struct option long_opts[] = {
 	{"nudge",  required_argument, 0, 'n'},
 	{"offset", required_argument, 0, 'f'},
 	{"cog",    no_argument, 0, 'c'},
-	{"rotate", required_argument, 0, 'r'},
 	{"verbose", no_argument, 0, 'v'},
 	{"help",   no_argument, 0, 'h'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "n:o:f:cr:vh";
+static const char *short_opts = "n:o:f:cX:Y:Z:vh";
 static string prefix;
 static int verbose = false, output_transform = false;
 
@@ -146,21 +147,17 @@ int main(int argc, char **argv) {
 			Vector3f CoG = calc_cog(inFile);
 			xfm = Translation3f(-CoG) * xfm;
 		} break;
-		case 'r': {
-			stringstream args{string{optarg}};
-			string axis; args >> axis;
-			float angle; args >> angle;
-			if (verbose) cout << "Rotating image by " << angle << " around " << axis << " axis." << endl;
-			if (axis == "X") {
-				xfm = AngleAxisf(angle * M_PI / 180., Vector3f::UnitX()) * xfm;
-			} else if (axis == "Y") {
-				xfm = AngleAxisf(angle * M_PI / 180., Vector3f::UnitY()) * xfm;
-			} else if (axis == "Z") {
-				xfm = AngleAxisf(angle * M_PI / 180., Vector3f::UnitZ()) * xfm;
-			} else {
-				throw(runtime_error("Invalid axis specification: " + axis));
-			}
-		} break;
+		case 'X':
+			if (verbose) cout << "Rotating image by " << string(optarg) << " around X axis." << endl;
+			xfm = AngleAxisf(atof(optarg) * M_PI / 180., Vector3f::UnitX()) * xfm;
+			break;
+		case 'Y':
+			if (verbose) cout << "Rotating image by " << string(optarg) << " around Y axis." << endl;
+			xfm = AngleAxisf(atof(optarg) * M_PI / 180., Vector3f::UnitY()) * xfm;
+		case 'Z':
+			if (verbose) cout << "Rotating image by " << string(optarg) << " around Z axis." << endl;
+			xfm = AngleAxisf(atof(optarg) * M_PI / 180., Vector3f::UnitZ()) * xfm;
+			break;
 		}
 	}
 	if (verbose) cout <<  "Final transform: " << endl << xfm.matrix() << endl;
