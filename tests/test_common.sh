@@ -46,11 +46,12 @@ function compare_test {
 	if [ "$HAVE_FSL" -eq "1" ]; then
 		fslmaths $REF -sub $TEST $DIFF
 		MEAN=$(fslstats $DIFF -M)
-		TEST=$(echo "$MEAN $TOL" | awk ' { if(sqrt($1*$1)<=$2) { print 1 } else { print 0 }}')
+		ABSMEAN=$(echo $MEAN | awk ' { print sqrt($1*$1) } ' )
+		TEST=$(echo "$ABSMEAN $TOL" | awk ' { if($1<=$2) { print 1 } else { print 0 }}')
 		if [ "$TEST" -eq "1" ]; then
-			echo "Comparison test $NAME passed, value was $MEAN tolerance $TOL"
+			echo "Comparison test $NAME passed, value was $ABSMEAN tolerance $TOL"
 		else
-			echo "Comparison test $NAME failed, value was $MEAN tolerance $TOL"
+			echo "Comparison test $NAME failed, value was $ABSMEAN tolerance $TOL"
 			exit 1
 		fi
 	else
