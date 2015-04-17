@@ -27,11 +27,16 @@ SPGR_PAR="3
 5 10 15
 0.01"
 SSFP_FILE="ssfp.nii"
+SSFP_FLIP="15 30 45"
+SSFP_TR="0.005"
 SSFP_PAR="3
-15 30 45
+$SSFP_FLIP
 4
 0 90 180 270
-0.05"
+$SSFP_TR"
+D2GS_PAR="3
+$SSFP_FLIP
+$SSFP_TR"
 MPRAGE_FILE="mprage.nii"
 MPRAGE_PAR="5
 0.01
@@ -60,19 +65,15 @@ echo "$MCSIG_INPUT" > mcsignal.in
 run_test "CREATE_SIGNALS" $QUITDIR/mcsignal --1 < mcsignal.in
 
 echo "$SPGR_PAR" > despot1.in
-echo "$SPGR_PAR
-$MPRAGE_PAR" > despot1hifi.in
+echo "$SPGR_PAR\n$MPRAGE_PAR" > despot1hifi.in
 echo "$SSFP_PAR" > despot2fm.in
-D2GS_PAR="3
-15 30 45
-0.05"
 echo "$D2GS_PAR" > despot2gs.in
 
 run_test "DESPOT1" $QUITDIR/despot1 $SPGR_FILE -n -bB1.nii < despot1.in
 run_test "DESPOT1LM" $QUITDIR/despot1 $SPGR_FILE -n -an -oN -bB1.nii < despot1.in
 run_test "DESPOT1HIFI" $QUITDIR/despot1hifi $SPGR_FILE $MPRAGE_FILE -n -N < despot1hifi.in
 run_test "SSFPBANDS" $QUITDIR/ssfpbands -22 $SSFP_FILE
-run_test "DESPOT2FM" $QUITDIR/despot2fm D1_T1.nii $SSFP_FILE -n -fASYM -v -bB1.nii < despot2fm.in
+run_test "DESPOT2FM" $QUITDIR/despot2fm D1_T1.nii $SSFP_FILE -n -v -S1 -bB1.nii < despot2fm.in
 run_test "DESPOT2GS" $QUITDIR/despot2 -e D1_T1.nii ${SSFP_FILE%.nii}_lreg_2p.nii -n -bB1.nii < despot2gs.in
 compare_test "DESPOT1" T1.nii D1_T1.nii 0.01
 compare_test "DESPOT1LM" T1.nii ND1_T1.nii 0.01
