@@ -56,8 +56,8 @@ ArrayXXd SCD::Bounds(const FieldStrength f, cdbl TR) const {
 	size_t nP = nParameters();
 	ArrayXXd b(nP, 2);
 	switch (f) {
-		case FieldStrength::Three: b << 1.0, 1.0, 0.1, 4.5, 0.010, 2.500, -1./TR, 1./TR, 0.5, 1.5; break;
-		case FieldStrength::Seven: b << 1.0, 1.0, 0.1, 4.5, 0.010, 2.500, -1./TR, 1./TR, 0.5, 1.5; break;
+		case FieldStrength::Three: b << 1.0, 1.0, 0.1, 4.5, 0.010, 2.500, -0.5/TR, 0.5/TR, 1.0, 1.0; break;
+		case FieldStrength::Seven: b << 1.0, 1.0, 0.1, 4.5, 0.010, 2.500, -0.5/TR, 0.5/TR, 1.0, 1.0; break;
 		case FieldStrength::User:  b.setZero(); break;
 	}
 	return b;
@@ -114,8 +114,8 @@ ArrayXXd MCD2::Bounds(const FieldStrength f, cdbl TR) const {
 	size_t nP = nParameters();
 	ArrayXXd b(nP, 2);
 	switch (f) {
-		case FieldStrength::Three: b << 1.0, 1.0, 0.1, 0.5, 0.001, 0.030, 0.7, 4.5, 0.05, 0.20, 0.025, 0.60, 0.0, 1.0, -1./TR, 1./TR, 0.5, 1.5; break;
-		case FieldStrength::Seven: b << 1.0, 1.0, 0.1, 0.5, 0.001, 0.025, 1.5, 4.5, 0.04, 0.20, 0.025, 0.60, 0.0, 1.0, -1./TR, 1./TR, 0.5, 1.5; break;
+		case FieldStrength::Three: b << 1.0, 1.0, 0.1, 0.5, 0.001, 0.030, 0.7, 4.5, 0.05, 0.20, 0.025, 0.60, 0.0, 1.0, -0.5/TR, 0.5/TR, 1.0, 1.0; break;
+		case FieldStrength::Seven: b << 1.0, 1.0, 0.1, 0.5, 0.001, 0.025, 1.5, 4.5, 0.04, 0.20, 0.025, 0.60, 0.0, 1.0, -0.5/TR, 0.5/TR, 1.0, 1.0; break;
 		case FieldStrength::User:  b.setZero(); break;
 	}
 	return b;
@@ -164,8 +164,8 @@ ArrayXXd MCD3::Bounds(const FieldStrength f, cdbl TR) const {
 	size_t nP = nParameters();
 	ArrayXXd b(nP, 2);
 	switch (f) {
-		case FieldStrength::Three: b << 1.0, 1.0, 0.1, 0.5, 0.001, 0.030, 0.7, 2.0, 0.05, 0.20, 3.0, 4.5, 1.5, 2.5, 0.025, 0.60, 0.0, 1.0, 0.0, 1.0, -1./TR, 1./TR, 0.5, 1.5; break;
-		case FieldStrength::Seven: b << 1.0, 1.0, 0.1, 0.5, 0.001, 0.025, 1.5, 2.5, 0.04, 0.20, 3.0, 4.5, 1.5, 2.5, 0.025, 0.60, 0.0, 1.0, 0.0, 1.0, -1./TR, 1./TR, 0.5, 1.5; break;
+		case FieldStrength::Three: b << 1.0, 1.0, 0.1, 0.5, 0.001, 0.030, 0.7, 2.0, 0.05, 0.20, 3.0, 4.5, 1.5, 2.5, 0.025, 0.60, 0.0, 1.0, 0.0, 1.0, -0.5/TR, 0.5/TR, 1.0, 1.0; break;
+		case FieldStrength::Seven: b << 1.0, 1.0, 0.1, 0.5, 0.001, 0.025, 1.5, 2.5, 0.04, 0.20, 3.0, 4.5, 1.5, 2.5, 0.025, 0.60, 0.0, 1.0, 0.0, 1.0, -0.5/TR, 0.5/TR, 1.0, 1.0; break;
 		case FieldStrength::User:  b.setZero(); break;
 	}
 	return b;

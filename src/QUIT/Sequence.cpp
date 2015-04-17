@@ -232,6 +232,17 @@ void SSFPSimple::write(ostream &os) const {
 }
 
 size_t SSFPSimple::phases() const { return m_phases.rows(); }
+bool SSFPSimple::isSymmetric() const {
+	bool sym = true;
+	for (ArrayXcd::Index i = 0; i < m_phases.rows(); i++) {
+		if (!((abs(m_phases(i) - M_PI) <= (M_PI * numeric_limits<double>::epsilon())) ||
+		      (abs(m_phases(i) - 0.) <= numeric_limits<double>::epsilon()))) {
+			sym = false;
+			break; // Don't need to bother checking other values
+		}
+	}
+	return sym;
+}
 
 ArrayXcd SSFPSimple::signal(shared_ptr<Model> m, const VectorXd &p) const {
 	ArrayXcd s(size());
@@ -342,15 +353,6 @@ ArrayXcd SequenceGroup::signal(shared_ptr<Model> m, const VectorXd &p) const {
 		start += sig->size();
 	}
 	return result;
-}
-
-double SequenceGroup::minTR() const {
-	double minTR = numeric_limits<double>::max();
-	for (auto &s : m_sequences) {
-		if (s->m_TR < minTR)
-			minTR = s->m_TR;
-	}
-	return minTR;
 }
 
 ArrayXcd SequenceGroup::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs,

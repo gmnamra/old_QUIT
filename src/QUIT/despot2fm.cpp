@@ -58,7 +58,6 @@ Options:\n\
 };
 
 static auto tesla = FieldStrength::Three;
-static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, all_residuals = false,
            fitFinite = false, fitComplex = false, flipData = false,
@@ -166,17 +165,10 @@ int main(int argc, char **argv)
 				if (verbose) cout << "Output prefix will be: " << outPrefix << endl;
 				break;
 			case 'f':
-				if (string(optarg) == "SYM") {
-					f0fit = OffRes::FitSym;
-				} else if (string(optarg) == "ASYM") {
-					f0fit = OffRes::Fit;
-				} else {
-					if (verbose) cout << "Reading f0 file: " << optarg << endl;
-					f0File.open(optarg, Nifti::Mode::Read);
-					f0Vol.resize(f0File.dims());
-					f0File.readVolumes(f0Vol.begin(), f0Vol.end(), 0, 1);
-					f0fit = OffRes::Map;
-				}
+				if (verbose) cout << "Reading f0 file: " << optarg << endl;
+				f0File.open(optarg, Nifti::Mode::Read);
+				f0Vol.resize(f0File.dims());
+				f0File.readVolumes(f0Vol.begin(), f0Vol.end(), 0, 1);
 				break;
 			case 'b':
 				if (verbose) cout << "Reading B1 file: " << optarg << endl;
@@ -250,16 +242,23 @@ int main(int argc, char **argv)
 	size_t nFiles = argc - optind;
 	vector<MultiArray<complex<float>, 4>> ssfpData(nFiles);
 	SequenceGroup sequences;
+	bool isSymmetric = true;
+	double minTR = numeric_limits<double>::max();
 	for (size_t p = 0; p < nFiles; p++) {
 		if (verbose) cout << "Reading SSFP header from " << argv[optind] << endl;
 		Nifti::File inFile(argv[optind]);
 		checkHeaders(inFile.header(), {T1File});
 		Agilent::ProcPar pp; ReadPP(inFile, pp);
+		shared_ptr<SSFPSimple> temp;
 		if (fitFinite) {
-			sequences.addSequence(make_shared<SSFPFinite>(prompt, pp));
+			temp = make_shared<SSFPFinite>(prompt, pp);
 		} else {
-			sequences.addSequence(make_shared<SSFPSimple>(prompt, pp));
+			temp = make_shared<SSFPSimple>(prompt, pp);
 		}
+		isSymmetric = isSymmetric && temp->isSymmetric();
+		if (temp->TR() < minTR)
+			minTR = temp->TR();
+		sequences.addSequence(temp);
 		if (sequences.sequence(sequences.count() - 1)->size() != inFile.dim(4)) {
 			throw(std::runtime_error("Number of volumes in file " + inFile.imagePath() + " does not match input."));
 		}
@@ -276,8 +275,8 @@ int main(int argc, char **argv)
 
 	ArrayXd thresh(3); thresh.setConstant(0.05);
 	ArrayXd weights(sequences.size()); weights.setOnes();
-	Array2d f0Bounds(-0.5/sequences.minTR(),0.5/sequences.minTR());
-	if (f0fit == OffRes::FitSym) {
+	Array2d f0Bounds(-0.5/minTR,0.5/minTR);
+	if (isSymmetric) {
 		f0Bounds(0) = 0.;
 	}
 	
@@ -288,6 +287,7 @@ int main(int argc, char **argv)
 		} else {
 			cout << "Data order is flip-angle, then phase." << endl;
 		}
+		cout << "f0 Fitting bounds: " << f0Bounds.transpose() << endl;
 	}
 	//**************************************************************************
 	// Set up results data
@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 				}
 				bounds(1,0) = 0.001;
 				bounds(1,1) = T1Vol[idx];
-				if (f0fit == OffRes::Map) {
+				if (f0File) {
 					bounds.row(2).setConstant(f0Vol[idx]);
 				} else {
 					bounds.row(2) = f0Bounds;

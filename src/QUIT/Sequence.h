@@ -52,16 +52,21 @@ class MultiEcho : public SequenceBase {
 };
 
 class SteadyState : public SequenceBase {
-	public:
+	protected:
 		double m_TR;
 		ArrayXd m_flip;
 
+
+	public:
 		SteadyState();
 		SteadyState(const ArrayXd &flip, const double TR);
 
 		virtual size_t size() const override { return angles() * phases(); }
 		virtual size_t angles() const { return m_flip.rows(); }
 		virtual size_t phases() const { return 1; }
+
+		double TR() const { return m_TR; }
+		const ArrayXd & flip() const { return m_flip; }
 };
 
 class SPGRSimple : public SteadyState {
@@ -111,6 +116,8 @@ class SSFPSimple : public SteadyState {
 		size_t phases() const override;
 		void write(ostream& os) const override;
 		string name() const override { return "SSFP"; }
+
+		bool isSymmetric() const;
 };
 class SSFPFinite : public SSFPSimple {
 	public:
@@ -129,8 +136,6 @@ class SSFPEllipse : public SteadyState {
 		string name() const override { return "SSFP_Ellipse"; }
 };
 
-enum class OffRes { Fit, FitSym, Map }; // Put this here so mcdespot and despot2fm can access it
-
 class SequenceGroup : public SequenceBase {
 private:
 	vector<shared_ptr<SteadyState>> m_sequences;
@@ -146,8 +151,6 @@ public:
 
 	size_t size() const override;
 	ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
-	
-	double minTR() const;
 	ArrayXcd loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k, bool needsFlip = false) const;
 	
 	void addSequence(const shared_ptr<SteadyState> &seq);

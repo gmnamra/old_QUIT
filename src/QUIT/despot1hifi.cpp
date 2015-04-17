@@ -218,12 +218,12 @@ int main(int argc, char **argv) {
 				ArrayXd spgrSig = SPGR_Vols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().abs().cast<double>();
 
 				// Get a first guess with DESPOT1
-				VectorXd Y = spgrSig / spgrSequence->m_flip.sin();
+				VectorXd Y = spgrSig / spgrSequence->flip().sin();
 				MatrixXd X(Y.rows(), 2);
-				X.col(0) = spgrSig / spgrSequence->m_flip.tan();
+				X.col(0) = spgrSig / spgrSequence->flip().tan();
 				X.col(1).setOnes();
 				VectorXd b = (X.transpose() * X).partialPivLu().solve(X.transpose() * Y);
-				T1 = -spgrSequence->m_TR / log(b[0]);
+				T1 = -spgrSequence->TR() / log(b[0]);
 				PD = b[1] / (1. - b[0]);
 
 				ArrayXd irSig = IR_Vols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().abs().cast<double>();

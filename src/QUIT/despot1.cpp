@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
 	if (spgrSequence.size() != spgrFile.header().dim(4)) {
 		throw(std::runtime_error("Specified number of flip-angles does not match number of volumes in file: " + spgrFile.imagePath()));
 	}
-	double TR = spgrSequence.m_TR;
+	double TR = spgrSequence.TR();
 	cout << "Reading SPGR data..." << flush;
 	MultiArray<complex<float>, 4> spgrVols(spgrFile.dims().head(4));
 	spgrFile.readVolumes(spgrVols.begin(), spgrVols.end());
@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
 			if (!maskFile || (maskVol[idx])) {
 				sliceCount++;
 				double B1 = B1File ? B1Vol[idx] : 1.;
-				ArrayXd localAngles = (spgrSequence.m_flip * B1);
+				ArrayXd localAngles = (spgrSequence.flip() * B1);
 				double T1, PD;
 				ArrayXd signal = spgrVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().abs().cast<double>();
 				VectorXd Y = signal / localAngles.sin();

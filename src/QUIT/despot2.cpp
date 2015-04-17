@@ -226,7 +226,7 @@ int main(int argc, char **argv)
 	// Do the fitting
 	//**************************************************************************
 	const auto dims = SSFPFile.matrix();
-	double TR = ssfp.sequence(0)->m_TR;
+	double TR = ssfp.sequence(0)->TR();
 	MultiArray<float, 3> T2Vol(dims), PDVol(dims), ResVol(dims);
 	MultiArray<float, 4> ResidsVols;
 	if (all_residuals) {
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
 				B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 				T1 = T1Vol[{i,j,k}];
 				E1 = exp(-TR / T1);
-				const ArrayXd localAngles = (ssfp.sequence(0)->m_flip * B1);
+				const ArrayXd localAngles = (ssfp.sequence(0)->flip() * B1);
 				ArrayXcd data = ssfpVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<complex<double>>();
 				const ArrayXd s = data.abs();
 				VectorXd Y = s / localAngles.sin();
