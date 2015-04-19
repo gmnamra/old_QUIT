@@ -214,8 +214,12 @@ int main(int argc, char **argv)
 						const size_t sigsize = sequences.at(s)->size();
 						ArrayXcd signal = sequences.at(s)->signal(model, params);
 						ArrayXcd noise(sigsize);
-						noise.real() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
-						noise.imag() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
+						mt19937_64 twister(RandomSeed());
+						normal_distribution<double> gaussian(0., sigma / sqrt(2));
+						for (ArrayXcd::Index i = 0; i < sigsize; i++) {
+							noise.real()(i) = gaussian(twister);
+							noise.imag()(i) = gaussian(twister);
+						}
 						signalVols[s].slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = (signal + noise).cast<complex<float>>();
 					}
 				}

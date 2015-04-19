@@ -21,6 +21,8 @@
 
 #include <Eigen/Dense>
 
+#include "QUIT/Util.h"
+
 using namespace std;
 using namespace Eigen;
 
@@ -40,20 +42,6 @@ vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, ArrayXd::Index N)
 		indices[i] = allIndices[i];
 	}
     return indices;
-}
-
-mt19937_64::result_type NewSeed() {
-	static random_device rd;
-	static mt19937_64 rng;
-	static bool init = false;
-	mutex seed_mtx;
-	if (!init) {
-		rng = mt19937_64(rd());
-	}
-	seed_mtx.lock();
-	mt19937_64::result_type r = rng();
-	seed_mtx.unlock();
-	return r;
 }
 
 enum class RCStatus {
@@ -101,7 +89,7 @@ class RegionContraction {
 			eigen_assert((thresh >= 0.).all() && (thresh <= 1.).all());
 
 			if (seed < 0) {
-				m_rng = mt19937_64(NewSeed());
+				m_rng = mt19937_64(QUIT::RandomSeed());
 			} else {
 				m_rng = mt19937_64(seed);
 			}

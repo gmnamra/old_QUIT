@@ -102,4 +102,18 @@ void checkHeaders(const Nifti::Header &n1, std::vector<Nifti::File> ns) {
 	}
 }
 
+mt19937_64::result_type RandomSeed() {
+	static random_device rd;
+	static mt19937_64 rng;
+	static bool init = false;
+	mutex seed_mtx;
+	if (!init) {
+		rng = mt19937_64(rd());
+	}
+	seed_mtx.lock();
+	mt19937_64::result_type r = rng();
+	seed_mtx.unlock();
+	return r;
+}
+
 } // End namespace QUIT

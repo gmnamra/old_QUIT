@@ -35,14 +35,7 @@ time_t printElapsedTime(const time_t &start);
 void printElapsedClock(const clock_t &clockStart, const int voxCount);
 void printLoopTime(const clock_t &loopStart, const int voxCount);
 void checkHeaders(const Nifti::Header &n1, std::vector<Nifti::File> n_other); //!< Throws an exception if the passed in Nifti files do not share same matrix size and transform
-
-template<typename T>
-T randNorm(double sigma)
-{
-	static std::mt19937_64 twister(time(NULL));
-	static std::normal_distribution<T> nd(0., sigma);
-	return nd(twister);
-}
+std::mt19937_64::result_type RandomSeed(); // Thread-safe random seed
 
 template<typename T> bool Read(const std::string &s, T &val) {
 	std::istringstream stream(s);
