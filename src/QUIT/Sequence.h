@@ -118,6 +118,7 @@ class SSFPSimple : public SteadyState {
 		string name() const override { return "SSFP"; }
 
 		bool isSymmetric() const;
+		Array2d bandwidth() const;
 };
 class SSFPFinite : public SSFPSimple {
 	public:

@@ -102,14 +102,13 @@ static const char* short_options = "hvm:o:f:b:s:p:S:t:FT:M:xcrn123i:j:";
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4>> &signalVols, bool &isSym, double &minTR);
-Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4>> &signalVols, bool &isSym, double &minTR)
+Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4>> &signalVols, Array2d &f0Bandwidth);
+Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4>> &signalVols, Array2d &f0Bandwidth)
 {
 	Nifti::Header hdr;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
-	isSym = true;
-	minTR = numeric_limits<double>::max();
+	f0Bandwidth = Array2d::Zero();
 	while (Read(cin, type) && (type != "END") && (type != "")) {
 		if (type != "SPGR" && type != "SSFP") {
 			throw(std::runtime_error("Unknown signal type: " + type));
@@ -130,13 +129,11 @@ Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4
 			seq.addSequence(make_shared<SPGRFinite>(prompt, pp));
 		} else if ((type == "SSFP" && !fitFinite)) {
 			auto s = make_shared<SSFPSimple>(prompt, pp);
-			isSym = isSym && s->isSymmetric();
-			if (s->TR() < minTR) minTR = s->TR();
+			f0Bandwidth = s->bandwidth();
 			seq.addSequence(s);
 		} else if ((type == "SSFP" && fitFinite)) {
 			auto s = make_shared<SSFPFinite>(prompt, pp);
-			isSym = isSym && s->isSymmetric();
-			if (s->TR() < minTR) minTR = s->TR();
+			f0Bandwidth = s->bandwidth();
 			seq.addSequence(s);
 		}
 		if (seq.sequence(seq.count() - 1)->size() != inFile.dim(4)) {
@@ -238,9 +235,14 @@ int main(int argc, char **argv) {
 			case 'p': stop_slice = atoi(optarg); break;
 			case 'S': {
 				string mode(optarg);
-				if (mode == "MEAN") { model->setScaling(Model::Scale::None); }
-				else if (mode == "FIT") { model->setScaling(Model::Scale::None); }
-				else {
+				if (mode == "MEAN") {
+					if (verbose) cout << "Mean scaling selected." << endl;
+					model->setScaling(Model::Scale::ToMean);
+				} else if (mode == "FIT") {
+					if (verbose) cout << "Fit PD/M0 selected." << endl;
+					model->setScaling(Model::Scale::None);
+				} else {
+					if (verbose) cout << "Scale factor = " << atof(optarg) << endl;
 					model->setScaling(Model::Scale::None);
 					scaling = atof(optarg);
 				}
@@ -299,12 +301,11 @@ int main(int argc, char **argv) {
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
 	SequenceGroup sequences;
-	bool isSymmetric = true;
-	double minSSFPTR = 0;
+	Array2d f0Bandwidth;
 	// Build a Functor here so we can query number of parameters etc.
 	if (verbose) cout << "Using " << model->Name() << " model." << endl;
 	vector<MultiArray<complex<float>, 4>> signalVols;
-	Nifti::Header hdr = parseInput(sequences, signalVols, isSymmetric, minSSFPTR);
+	Nifti::Header hdr = parseInput(sequences, signalVols, f0Bandwidth);
 	checkHeaders(hdr, {maskFile, f0File, B1File});
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
@@ -314,7 +315,7 @@ int main(int argc, char **argv) {
 	MultiArray<float, 3> ResVol(hdr.matrix());
 	
 	ArrayXd threshes(model->nParameters()); threshes.setConstant(0.05);
-	ArrayXXd bounds = model->Bounds(tesla, minSSFPTR);
+	ArrayXXd bounds = model->Bounds(tesla, 0);
 	if (tesla == FieldStrength::User) {
 		if (prompt) cout << "Enter parameter pairs (low then high)" << endl;
 		for (size_t i = 0; i < model->nParameters() - 1; i++) {
@@ -322,9 +323,7 @@ int main(int argc, char **argv) {
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 	}
-	if (isSymmetric) {
-		bounds(model->nParameters() - 2, 0) = 0.;
-	}
+	bounds.row(model->nParameters() - 2) = f0Bandwidth;
 	ArrayXd weights(sequences.size()); weights.setOnes();
 	if (verbose) {
 		cout << sequences;
