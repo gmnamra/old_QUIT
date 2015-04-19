@@ -53,6 +53,7 @@ Options:\n\
 	--scale, -S MEAN  : Normalise signals to mean (default)\n\
 	            NONE  : Fit a scaling factor/proton density\n\
 	            x     : Fix to x\n\
+	--gauss, -g       : Use Gaussian Region Contraction\n\
 	--flip, -F        : Data order is phase, then flip-angle (default opposite)\n\
 	--tesla, -t 3     : Boundaries suitable for 3T (default)\n\
 	            7     : Boundaries suitable for 7T \n\
@@ -70,7 +71,7 @@ static auto tesla = FieldStrength::Three;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, all_residuals = false,
            fitFinite = false, fitComplex = false, flipData = false,
-           samples = 5000, retain = 50, contract = 10,
+           gauss = false, samples = 5000, retain = 50, contract = 10,
            voxI = 0, voxJ = 0;
 static double expand = 0., scaling = 0.;
 static string outPrefix;
@@ -84,6 +85,7 @@ static const struct option long_options[] = {
 	{"start", required_argument, 0, 's'},
 	{"stop", required_argument, 0, 'p'},
 	{"scale", required_argument, 0, 'S'},
+	{"gauss", no_argument, 0, 'g'},
 	{"flip", required_argument, 0, 'F'},
 	{"tesla", required_argument, 0, 't'},
 	{"sequences", no_argument, 0, 'M'},
@@ -97,7 +99,7 @@ static const struct option long_options[] = {
 	{"3", no_argument, 0, '3'},
 	{0, 0, 0, 0}
 };
-static const char* short_options = "hvm:o:f:b:s:p:S:t:FT:M:xcrn123i:j:";
+static const char* short_options = "hvm:o:f:b:s:p:S:gt:FT:M:xcrn123i:j:";
 
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
@@ -247,6 +249,9 @@ int main(int argc, char **argv) {
 					scaling = atof(optarg);
 				}
 			} break;
+			case 'g':
+				gauss = true;
+				break;
 			case 'F':
 				flipData = true;
 				break;
@@ -369,7 +374,7 @@ int main(int argc, char **argv) {
 				}
 				MCDFunctor func(sequences, signal, model, fitComplex, false);
 				RegionContraction<MCDFunctor> rc(func, localBounds, weights, threshes,
-													samples, retain, contract, expand, (voxI != 0));
+													samples, retain, contract, expand, gauss, (voxI != 0));
 				ArrayXd params(model->nParameters());
 				rc.optimise(params); // Add the voxel number to the time to get a decent random seed
 				paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
