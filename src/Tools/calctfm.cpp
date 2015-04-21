@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 			else
 				throw(runtime_error("Unknown option argument."));
 			break;
-		case 'o': QUIT::ReadEigen(optarg, origin); break;
+		case 'o': QUIT::ReadEigen(string(optarg), origin); break;
 		case 'i': inwards = true; break;
 		case '?': // getopt will print an error message
 		case 'h':
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
 		file << "Parameters: " << transform.matrix().block(0, 0, 1, 3).format(fmt) << " "
 		                       << transform.matrix().block(1, 0, 1, 3).format(fmt) << " "
 		                       << transform.matrix().block(2, 0, 1, 3).format(fmt) << " "
-		                       << (-CoG).transpose().format(fmt) << endl;
+		                       << -CoG(0) << " " << -CoG(1) << " " << CoG(2) << endl;
 		file << "FixedParameters: 0 0 0" << endl;
 		break;
 	}
