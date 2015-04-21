@@ -17,7 +17,6 @@
 #include <random>
 #include <iostream>
 #include <atomic>
-#include <mutex>
 
 #include <Eigen/Dense>
 
