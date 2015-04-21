@@ -18,6 +18,7 @@
 #include <vector>
 #include <random>
 #include <functional>
+#include <mutex>
 #include <time.h>
 
 #include <Eigen/Dense>
