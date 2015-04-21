@@ -24,10 +24,10 @@ using namespace std;
 using namespace Eigen;
 using namespace QUIT;
 
-const string usage = "niinudge - A utility for moving Nifti images in physical space.\n\
+const string usage = "niinudge - A utility changing Nifti transforms.\n\
 \n\
 Usage: niinudge [options] infile outfile\n\
-By default nothing happens. Specify one or more options to move your image.\n\
+By default nothing happens. Specify one or more options to change the transform.\n\
 Transformations are applied sequentially in left-to-right order\n\
 Many of the options require a 3 dimensional vector argument. Make sure you \n\
 encase this format in quotes (\" \")!\n\
@@ -40,6 +40,7 @@ Options:\n\
 	-X angle               : Rotate about X axis by angle (in degrees)\n\
 	-Y angle               : Rotate about Y axis by angle (in degrees)\n\
 	-Z angle               : Rotate about Z axis by angle (in degrees)\n\
+	-S scalefactor         : Multiply all dimensions by scalefactor\n\
 	--verbose, -v          : Print out what the program is doing\n\
 	-h, --help             : Print this message and quit.\n\
 ";
@@ -52,7 +53,7 @@ static const struct option long_opts[] = {
 	{"help",   no_argument, 0, 'h'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "n:o:f:cX:Y:Z:vh";
+static const char *short_opts = "n:o:f:cX:Y:Z:S:vh";
 static string prefix;
 static int verbose = false, output_transform = false;
 
@@ -157,6 +158,10 @@ int main(int argc, char **argv) {
 		case 'Z':
 			if (verbose) cout << "Rotating image by " << string(optarg) << " around Z axis." << endl;
 			xfm = AngleAxisf(atof(optarg) * M_PI / 180., Vector3f::UnitZ()) * xfm;
+			break;
+		case 'S':
+			if (verbose) cout << "Scaling image by " << string(optarg) << endl;
+			xfm = Scaling(static_cast<float>(atof(optarg))) * xfm;
 			break;
 		}
 	}
