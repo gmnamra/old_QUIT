@@ -336,7 +336,7 @@ int main(int argc, char **argv)
 				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 				FMFunctor func(model, T1Vol[idx], sequences, signal, B1, fitComplex, false);
 				RegionContraction<FMFunctor> rc(func, bounds, weights, thresh,
-				                                samples, retain, contract, expand, (voxI > 0), seed);
+				                                samples, retain, contract, expand, false, (voxI > 0), seed);
 				ArrayXd params(3); params.setZero();
 				rc.optimise(params);
 				double res = sqrt(rc.SoS() / sequences.size());
