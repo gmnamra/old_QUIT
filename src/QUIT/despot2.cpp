@@ -203,11 +203,8 @@ int main(int argc, char **argv)
 	SequenceGroup ssfp;
 	if (verbose) cout << "Opening SSFP file: " << argv[optind] << endl;
 	Nifti::File SSFPFile(argv[optind++]);
-	if (verbose) cout << "Checking headers for consistency." << endl;
 	checkHeaders(SSFPFile.header(), {T1File, maskFile, B1File});
-	if (verbose) cout << "Checking for ProcPar." << endl;
 	Agilent::ProcPar pp; ReadPP(SSFPFile, pp);
-	if (verbose) cout << "Reading sequence parameters." << endl;
 	if (elliptical) {
 		ssfp.addSequence(make_shared<SSFPEllipse>(prompt, pp));
 	} else {
