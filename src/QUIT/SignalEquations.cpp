@@ -233,9 +233,9 @@ VectorXcd Two_SPGR(carrd &flip, cdbl TR,
 	double k_ab, k_ba, f_b;
 	CalcExchange(tau_a, f_a, f_b, k_ab, k_ba);
 	M0 << f_a, f_b;
-	A << -((1./T1_a) + k_ab),                    k_ba,
-				       k_ab,      -((1./T1_b) + k_ba);
-	eATR = (A*TR).exp();
+	A << ((1./T1_a) + k_ab),            -k_ba,
+	                 -k_ab, ((1./T1_b) + k_ba);
+	eATR = (-TR*A).exp();
 	const Vector2d RHS = (Matrix2d::Identity() - eATR) * M0;
 	for (int i = 0; i < flip.size(); i++) {
 		const double a = flip[i] * B1;
@@ -258,7 +258,7 @@ VectorXcd Two_SSFP(carrd &flip, const double TR, const double phase,
 	double k_ab, k_ba, f_b;
 	CalcExchange(tau_a, f_a, f_b, k_ab, k_ba);
 	Matrix6d K = Exchange(k_ab, k_ba);
-	Matrix6d L = (-(R+O+K)*TR).exp();
+	Matrix6d L = (-TR*(R+O+K)).exp();
 	Vector6d M0; M0 << 0., 0., PD * f_a, 0., 0., PD * f_b;
 	const Vector6d eyemaM0 = (Matrix6d::Identity() - L) * M0;
 	Matrix6d A = Matrix6d::Zero();
