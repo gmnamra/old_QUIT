@@ -58,7 +58,9 @@ File::File(const string &filename, const Mode m) : File() {
 	open(filename, m);
 }
 
-#pragma mark Open/Header Routines
+/*
+ * Open/Header Routines
+ */
 
 void File::open(const string &path, const Mode &mode) {
 	if (m_mode != Mode::Closed) {
@@ -237,9 +239,9 @@ void File::writeHeader() {
 	}
 }
 
-
-
-#pragma mark Extensions
+/*
+ *  Extensions
+ */
 
 void File::addExtension(const int code, const vector<char> &data) {
 	m_extensions.emplace_back(code, data);
@@ -349,9 +351,14 @@ void File::writeExtensions() {
 	}
 }
 
-#pragma mark Path Getters
-
+/**
+ *  Returns the path without any extension
+ */
 const string &File::basePath() const { return m_basepath; }
+
+/**
+ *  Returns the path to the image file (will differ from the header for .hdr/.img pairs)
+ */
 string File::imagePath() const {
 	string path(m_basepath);
 	if (m_nii) {
@@ -364,6 +371,10 @@ string File::imagePath() const {
 	
 	return path;
 }
+
+/**
+ *  Returns the path to the header (will differ from the image for .hdr/.img pairs)
+ */
 string File::headerPath() const {
 	string path(m_basepath);
 	if (m_nii) {
