@@ -157,10 +157,10 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 	if (verbose) cout << version << endl << credit_me << endl;
+	if (verbose) cout << "Using " << model->Name() << " model." << endl;
 	/***************************************************************************
 	 * Read in parameter files
 	 **************************************************************************/
-	cout << "Using " << model->Name() << " model." << endl;
 	MultiArray<float, 4> paramsVols;
 	Nifti::Header templateHdr;
 	if (prompt) cout << "Loading parameters." << endl;
