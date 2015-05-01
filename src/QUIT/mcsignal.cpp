@@ -107,10 +107,6 @@ void parseInput(vector<shared_ptr<SequenceBase>> &cs, vector<string> &names) {
 //******************************************************************************
 int main(int argc, char **argv)
 {
-	//**************************************************************************
-	#pragma mark Argument Processing
-	//**************************************************************************
-	cout << version << endl << credit_me << endl;
 	Eigen::initParallel();
 	ThreadPool threads;
 
@@ -160,9 +156,9 @@ int main(int argc, char **argv)
 		cerr << usage << endl << "Incorrect number of arguments." << endl;
 		return EXIT_FAILURE;
 	}
-
+	if (verbose) cout << version << endl << credit_me << endl;
 	/***************************************************************************
-	 * mark Read in parameter files
+	 * Read in parameter files
 	 **************************************************************************/
 	cout << "Using " << model->Name() << " model." << endl;
 	MultiArray<float, 4> paramsVols;
@@ -172,7 +168,7 @@ int main(int argc, char **argv)
 		if (prompt) cout << "Enter path to " << model->Names()[i] << " file: " << flush;
 		string filename;
 		getline(cin, filename);
-		cout << "Opening " << filename << endl;
+		if (verbose) cout << "Opening " << filename << endl;
 		Nifti::File input(filename);
 
 		if (i == 0) {
@@ -185,7 +181,7 @@ int main(int argc, char **argv)
 			}
 		}
 		auto inVol = paramsVols.slice<3>({0,0,0,i},{-1,-1,-1,0});
-		cout << "Reading data." << endl;
+		if (verbose) cout << "Reading data." << endl;
 		input.readVolumes(inVol.begin(), inVol.end(), 0, 1);
 	}
 	const auto d = paramsVols.dims();
@@ -196,15 +192,17 @@ int main(int argc, char **argv)
 	vector<shared_ptr<SequenceBase>> sequences;
 	vector<string> filenames;
 	parseInput(sequences, filenames);
-	for (auto& s : sequences) {
-		cout << *s << endl;
+	if (verbose) {
+		for (auto& s : sequences) {
+			cout << *s << endl;
+		}
 	}
 
 	vector<MultiArray<complex<float>, 4>> signalVols(sequences.size()); //d.head(3), sequences.combinedSize());
 	for (size_t s = 0; s < sequences.size(); s++) {
 		signalVols[s] = MultiArray<complex<float>, 4>(d.head(3), sequences.at(s)->size());
 	}
-	cout << "Calculating..." << endl;
+	if (verbose) cout << "Calculating..." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &k) {
 		for (size_t j = 0; j < d[1]; j++) {
 			for (size_t i = 0; i < d[0]; i++) {
@@ -228,8 +226,8 @@ int main(int argc, char **argv)
 	};
 	threads.for_loop(calcVox, d[2]);
 	
-	cout << "Finished calculating." << endl;
-	cout << "Saving data." << endl;
+	if (verbose) cout << "Finished calculating." << endl;
+	if (verbose) cout << "Saving data." << endl;
 	templateHdr.setDatatype(Nifti::DataType::COMPLEX64);
 	size_t startVol = 0;
 	for (size_t i = 0; i < sequences.size(); i++) {
@@ -240,6 +238,10 @@ int main(int argc, char **argv)
 		saveFile.writeVolumes(thisSignal.begin(), thisSignal.end());
 		saveFile.close();
 	}
+	templateHdr.setDim(4, model->nParameters());
+	Nifti::File checkParams(templateHdr, outPrefix + "_checkP.nii");
+	checkParams.writeVolumes(paramsVols.begin(), paramsVols.end());
+	checkParams.close();
 	} catch (exception &e) {
 		cerr << e.what() << endl;
 		return EXIT_FAILURE;
