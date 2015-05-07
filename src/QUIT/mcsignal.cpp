@@ -238,10 +238,6 @@ int main(int argc, char **argv)
 		saveFile.writeVolumes(thisSignal.begin(), thisSignal.end());
 		saveFile.close();
 	}
-	templateHdr.setDim(4, model->nParameters());
-	Nifti::File checkParams(templateHdr, outPrefix + "_checkP.nii");
-	checkParams.writeVolumes(paramsVols.begin(), paramsVols.end());
-	checkParams.close();
 	} catch (exception &e) {
 		cerr << e.what() << endl;
 		return EXIT_FAILURE;
