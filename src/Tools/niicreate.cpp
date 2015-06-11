@@ -58,7 +58,6 @@ static FillType fillType = FillType::Fill;
 static float startVal = 0, deltaVal = 0;
 static int stepLength = 1, fillDim = 0;
 static Nifti::DataType dType = Nifti::DataType::FLOAT64;
-static Eigen::Affine3f xform = Eigen::Affine3f::Identity();
 static struct option long_opts[] = {
 	{"help",      no_argument,       0, 'h'},
 	{"precision", required_argument, 0, 'p'},
@@ -85,7 +84,8 @@ int main(int argc, char **argv)
 	typedef MultiArray<float, 5>::Index ind_t;
 	ind_t dims; dims.setOnes();
 	ArrayXf voxdims(5); voxdims.setOnes();
-
+	Eigen::Affine3f xform;
+	xform.matrix().diagonal() = Array4f(-1,-1,1,1);
 	int indexptr = 0, c;
 	while ((c = getopt_long(argc, argv, short_opts, long_opts, &indexptr)) != -1) {
 		switch (c) {
@@ -110,12 +110,14 @@ int main(int argc, char **argv)
 			case 'd': {
 				string vals(optarg);
 				Array<unsigned long, Dynamic, 1> test(ndims);
-				QUIT::ReadEigenFromString(vals, test);
+				QUIT::ReadEigen(vals, test);
 				dims.head(ndims) = test;
 			} break;
 			case 'v': {
 				string vals(optarg);
-				QUIT::ReadEigenFromString(vals, voxdims.head(3));
+				QUIT::ReadEigen(vals, voxdims.head(3));
+				Affine3f S; S = Scaling(voxdims[0], voxdims[1], voxdims[2]);
+				xform = S * xform;
 			} break;
 			case 't': voxdims[3] = atof(optarg); break;
 			case 'b': isBlank = true; break;
@@ -123,7 +125,7 @@ int main(int argc, char **argv)
 			case 'g': {
 				fillType = FillType::Gradient;
 				ArrayXf temp(3);
-				QUIT::ReadEigenFromString(string(optarg), temp);
+				QUIT::ReadEigen(string(optarg), temp);
 				fillDim = temp[0];
 				startVal = temp[1];
 				deltaVal = (temp[2] - startVal) / (dims[fillDim] - 1);
@@ -132,7 +134,7 @@ int main(int argc, char **argv)
 			case 's': {
 				fillType = FillType::Steps;
 				ArrayXf temp(4);
-				QUIT::ReadEigenFromString(string(optarg), temp);
+				QUIT::ReadEigen(string(optarg), temp);
 				fillDim = temp[0];
 				startVal = temp[1];
 				float endVal = temp[2];

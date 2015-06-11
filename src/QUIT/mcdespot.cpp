@@ -46,14 +46,14 @@ Options:\n\
 	--mask, -m file   : Mask input with specified file\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
 	--1, --2, --3     : Use 1, 2 or 3 component sequences (default 3)\n\
-	--f0, -f SYM      : Fit symmetric f0 map (default)\n\
-	         ASYM     : Fit asymmetric f0 map\n\
-	         file     : Use f0 Map file (in Hertz)\n\
+	--f0, -f file     : Use f0 Map file (in Hertz)\n\
 	--B1, -b file     : B1 Map file (ratio)\n\
 	--start, -s n     : Only start processing at slice n.\n\
 	--stop, -p n      : Finish at slice n-1\n\
-	--scale, -S 0     : Normalise signals to mean (default)\n\
-	            1     : Fit a scaling factor/proton density\n\
+	--scale, -S MEAN  : Normalise signals to mean (default)\n\
+	            NONE  : Fit a scaling factor/proton density\n\
+	            x     : Fix to x\n\
+	--gauss, -g       : Use Gaussian Region Contraction\n\
 	--flip, -F        : Data order is phase, then flip-angle (default opposite)\n\
 	--tesla, -t 3     : Boundaries suitable for 3T (default)\n\
 	            7     : Boundaries suitable for 7T \n\
@@ -67,15 +67,13 @@ Options:\n\
 };
 
 static shared_ptr<Model> model = make_shared<MCD3>();
-static auto scale = Scale::NormToMean;
 static auto tesla = FieldStrength::Three;
-static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, all_residuals = false,
            fitFinite = false, fitComplex = false, flipData = false,
-           samples = 5000, retain = 50, contract = 10,
+           gauss = false, samples = 5000, retain = 50, contract = 10,
            voxI = 0, voxJ = 0;
-static double expand = 0.;
+static double expand = 0., scaling = 0.;
 static string outPrefix;
 static const struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
@@ -87,6 +85,7 @@ static const struct option long_options[] = {
 	{"start", required_argument, 0, 's'},
 	{"stop", required_argument, 0, 'p'},
 	{"scale", required_argument, 0, 'S'},
+	{"gauss", no_argument, 0, 'g'},
 	{"flip", required_argument, 0, 'F'},
 	{"tesla", required_argument, 0, 't'},
 	{"sequences", no_argument, 0, 'M'},
@@ -100,23 +99,24 @@ static const struct option long_options[] = {
 	{"3", no_argument, 0, '3'},
 	{0, 0, 0, 0}
 };
-static const char* short_options = "hvm:o:f:b:s:p:S:t:FT:M:xcrn123i:j:";
+static const char* short_options = "hvm:o:f:b:s:p:S:gt:FT:M:xcrn123i:j:";
 
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
-Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4>> &signalVols);
-Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4>> &signalVols)
+Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4>> &signalVols, Array2d &f0Bandwidth);
+Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4>> &signalVols, Array2d &f0Bandwidth)
 {
 	Nifti::Header hdr;
 	string type, path;
 	if (prompt) cout << "Specify next image type (SPGR/SSFP): " << flush;
-	while (getline(cin, type) && (type != "END") && (type != "")) {
+	f0Bandwidth = Array2d::Zero();
+	while (Read(cin, type) && (type != "END") && (type != "")) {
 		if (type != "SPGR" && type != "SSFP") {
 			throw(std::runtime_error("Unknown signal type: " + type));
 		}
 		if (prompt) cout << "Enter image path: " << flush;
-		getline(cin, path);
+		Read(cin, path);
 		Nifti::File inFile(path);
 		if (signalVols.size() == 0) {
 			hdr = inFile.header(); // Save header info for later
@@ -130,9 +130,13 @@ Nifti::Header parseInput(SequenceGroup &seq, vector<MultiArray<complex<float>, 4
 		} else if ((type == "SPGR" && fitFinite)) {
 			seq.addSequence(make_shared<SPGRFinite>(prompt, pp));
 		} else if ((type == "SSFP" && !fitFinite)) {
-			seq.addSequence(make_shared<SSFPSimple>(prompt, pp));
+			auto s = make_shared<SSFPSimple>(prompt, pp);
+			f0Bandwidth = s->bandwidth();
+			seq.addSequence(s);
 		} else if ((type == "SSFP" && fitFinite)) {
-			seq.addSequence(make_shared<SSFPFinite>(prompt, pp));
+			auto s = make_shared<SSFPFinite>(prompt, pp);
+			f0Bandwidth = s->bandwidth();
+			seq.addSequence(s);
 		}
 		if (seq.sequence(seq.count() - 1)->size() != inFile.dim(4)) {
 			throw(std::runtime_error("Number of volumes in file " + inFile.imagePath() + " does not match input."));
@@ -154,14 +158,12 @@ class MCDFunctor : public DenseFunctor<double> {
 		const SequenceBase &m_sequence;
 		const ArrayXcd &m_data;
 		const bool m_complex, m_debug;
-		const double m_B1;
 		const shared_ptr<Model> m_model;
 
 		MCDFunctor(SequenceBase &s, const ArrayXcd &d, shared_ptr<Model> m,
-		           const double B1, const bool fitComplex, const bool debug = false) :
+		           const bool fitComplex, const bool debug = false) :
 			DenseFunctor<double>(m->nParameters(), s.size()),
-			m_sequence(s), m_data(d), m_model(m),
-			m_B1(B1), m_complex(fitComplex), m_debug(debug)
+			m_sequence(s), m_data(d), m_model(m), m_complex(fitComplex), m_debug(debug)
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
 		}
@@ -172,7 +174,7 @@ class MCDFunctor : public DenseFunctor<double> {
 
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
-			ArrayXcd s = m_sequence.signal(m_model, params, m_B1);
+			ArrayXcd s = m_sequence.signal(m_model, params);
 			if (m_complex) {
 				diffs = (s - m_data).abs();
 			} else {
@@ -220,17 +222,10 @@ int main(int argc, char **argv) {
 				cout << "Output prefix will be: " << outPrefix << endl;
 				break;
 			case 'f':
-				if (string(optarg) == "SYM") {
-					f0fit = OffRes::FitSym;
-				} else if (string(optarg) == "ASYM") {
-					f0fit = OffRes::Fit;
-				} else {
-					cout << "Reading f0 file: " << optarg << endl;
-					f0File.open(optarg, Nifti::Mode::Read);
-					f0Vol.resize(f0File.matrix());
-					f0File.readVolumes(f0Vol.begin(), f0Vol.end(), 0, 1);
-					f0fit = OffRes::Map;
-				}
+				cout << "Reading f0 file: " << optarg << endl;
+				f0File.open(optarg, Nifti::Mode::Read);
+				f0Vol.resize(f0File.matrix());
+				f0File.readVolumes(f0Vol.begin(), f0Vol.end(), 0, 1);
 				break;
 			case 'b':
 				cout << "Reading B1 file: " << optarg << endl;
@@ -240,15 +235,23 @@ int main(int argc, char **argv) {
 				break;
 			case 's': start_slice = atoi(optarg); break;
 			case 'p': stop_slice = atoi(optarg); break;
-			case 'S':
-				switch (atoi(optarg)) {
-					case 1 : scale = Scale::None; break;
-					case 2 : scale = Scale::NormToMean; break;
-					default:
-						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
-						return EXIT_FAILURE;
-						break;
-				} break;
+			case 'S': {
+				string mode(optarg);
+				if (mode == "MEAN") {
+					if (verbose) cout << "Mean scaling selected." << endl;
+					model->setScaling(Model::Scale::ToMean);
+				} else if (mode == "FIT") {
+					if (verbose) cout << "Fit PD/M0 selected." << endl;
+					model->setScaling(Model::Scale::None);
+				} else {
+					if (verbose) cout << "Scale factor = " << atof(optarg) << endl;
+					model->setScaling(Model::Scale::None);
+					scaling = atof(optarg);
+				}
+			} break;
+			case 'g':
+				gauss = true;
+				break;
 			case 'F':
 				flipData = true;
 				break;
@@ -264,7 +267,7 @@ int main(int argc, char **argv) {
 						cout << "Unknown boundaries type " << *optarg << endl;
 						return EXIT_FAILURE;
 						break;
-				} break;
+			} break;
 			case 'M':
 				switch (*optarg) {
 					case 's': fitFinite = false; if (verbose) cout << "Simple sequences selected." << endl; break;
@@ -273,8 +276,7 @@ int main(int argc, char **argv) {
 						cout << "Unknown sequences type " << *optarg << endl;
 						return EXIT_FAILURE;
 						break;
-				}
-				break;
+			} break;
 			case 'x':
 				fitComplex = true;
 				break;
@@ -303,11 +305,12 @@ int main(int argc, char **argv) {
 	//**************************************************************************
 	#pragma mark  Read input and set up corresponding SPGR & SSFP lists
 	//**************************************************************************
-	SequenceGroup sequences(scale);
+	SequenceGroup sequences;
+	Array2d f0Bandwidth;
 	// Build a Functor here so we can query number of parameters etc.
 	if (verbose) cout << "Using " << model->Name() << " model." << endl;
 	vector<MultiArray<complex<float>, 4>> signalVols;
-	Nifti::Header hdr = parseInput(sequences, signalVols);
+	Nifti::Header hdr = parseInput(sequences, signalVols, f0Bandwidth);
 	checkHeaders(hdr, {maskFile, f0File, B1File});
 	//**************************************************************************
 	#pragma mark Allocate memory and set up boundaries.
@@ -317,7 +320,7 @@ int main(int argc, char **argv) {
 	MultiArray<float, 3> ResVol(hdr.matrix());
 	
 	ArrayXd threshes(model->nParameters()); threshes.setConstant(0.05);
-	ArrayXXd bounds = model->Bounds(tesla, sequences.minTR());
+	ArrayXXd bounds = model->Bounds(tesla, 0);
 	if (tesla == FieldStrength::User) {
 		if (prompt) cout << "Enter parameter pairs (low then high)" << endl;
 		for (size_t i = 0; i < model->nParameters() - 1; i++) {
@@ -325,9 +328,7 @@ int main(int argc, char **argv) {
 			cin >> bounds(i, 0) >> bounds(i, 1);
 		}
 	}
-	if (f0fit == OffRes::FitSym) {
-		bounds(model->nParameters() - 1, 0) = 0.;
-	}
+	bounds.row(model->nParameters() - 2) = f0Bandwidth;
 	ArrayXd weights(sequences.size()); weights.setOnes();
 	if (verbose) {
 		cout << sequences;
@@ -357,18 +358,23 @@ int main(int argc, char **argv) {
 		processVox = [&] (const size_t i, const size_t j) {
 			if (!maskFile || maskVol[{i,j,k}]) {
 				ArrayXcd signal = sequences.loadSignals(signalVols, i, j, k, flipData);
-				ArrayXXd localBounds = bounds;
-				if (f0fit == OffRes::Map) {
-					localBounds.row(model->nParameters() - 1).setConstant(f0Vol[{i,j,k}]);
-				}
-				if (scale == Scale::None) {
-					localBounds(0, 0) = 0.;
-					localBounds(0, 1) = signal.abs().maxCoeff() * 25;
-				}
 				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-				MCDFunctor func(sequences, signal, model, B1, fitComplex, false);
+				ArrayXXd localBounds = bounds;
+				if (f0File) {
+					localBounds.row(model->nParameters() - 2).setConstant(f0Vol[{i,j,k}]);
+				}
+				localBounds.row(model->nParameters() - 1).setConstant(B1);
+				if (model->scaling() == Model::Scale::None) {
+					if (scaling == 0.) {
+						localBounds(0, 0) = 0.;
+						localBounds(0, 1) = signal.abs().maxCoeff() * 25;
+					} else {
+						localBounds.row(0).setConstant(scaling);
+					}
+				}
+				MCDFunctor func(sequences, signal, model, fitComplex, false);
 				RegionContraction<MCDFunctor> rc(func, localBounds, weights, threshes,
-													samples, retain, contract, expand, (voxI != 0));
+													samples, retain, contract, expand, gauss, (voxI != 0));
 				ArrayXd params(model->nParameters());
 				rc.optimise(params); // Add the voxel number to the time to get a decent random seed
 				paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
@@ -407,8 +413,9 @@ int main(int argc, char **argv) {
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
-	size_t start = (scale == Scale::None) ? 0 : 1;
-	for (size_t p = start; p < model->nParameters(); p++) { // Skip PD for now
+	size_t start = (model->scaling() == Model::Scale::None) ? 0 : 1; // Skip PD
+	size_t end = model->nParameters() - 1; // Skip B1 for now
+	for (size_t p = start; p < end; p++) {
 		hdr.intent_name = model->Names().at(p);
 		Nifti::File file(hdr, outPrefix + model->Names().at(p) + "" + OutExt());
 		auto param = paramsVols.slice<3>({0,0,0,p},{-1,-1,-1,0});

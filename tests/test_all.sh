@@ -6,6 +6,7 @@
 source ./test_common.sh
 
 run_test "NIFTI" ./test_nifti.sh
+run_test "RELAX" ./test_relax.sh
 run_test "SCDESPOT" ./test_scdespot.sh
 run_test "MCDESPOT" ./test_mcdespot.sh
 

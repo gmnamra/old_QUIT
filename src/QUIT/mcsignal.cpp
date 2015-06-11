@@ -30,7 +30,7 @@ using namespace QUIT;
 const string usage {
 "Usage is: mcsignal [options]\n\
 \n\
-Calculates multi-component DESPOT signals (mainly for debugging mcdespot).\n\
+Calculates multi-component DESPOT signals (mainly for testing purposes).\n\
 The program will prompt for input (unless --no-prompt specified)\n\
 \n\
 All times (TR) are in SECONDS. All angles are in degrees.\n\
@@ -40,7 +40,6 @@ Options:\n\
 	--verbose, -v     : Print extra information.\n\
 	--mask, -m file   : Only calculate inside the mask.\n\
 	--out, -o path    : Add a prefix to the output filenames\n\
-	--B1, -b file     : B1 Map file (ratio)\n\
 	--no-prompt, -n   : Don't print prompts for input.\n\
 	--noise, -N val   : Add complex noise with std=val.\n\
 	--1, --2, --3     : Use 1, 2 or 3 component sequences (default 3).\n\
@@ -64,11 +63,10 @@ static struct option long_opts[] = {
 	{"2", no_argument, 0, '2'},
 	{"3", no_argument, 0, '3'},
 	{"sequences", no_argument, 0, 'M'},
-	{"B1", required_argument, 0, 'b'},
 	{"threads", required_argument, 0, 'T'},
 	{0, 0, 0, 0}
 };
-static const char *short_opts = "hvnN:m:o:b:123M:T:";
+static const char *short_opts = "hvnN:m:o:123M:T:";
 //******************************************************************************
 #pragma mark Read in all required files and data from cin
 //******************************************************************************
@@ -76,7 +74,7 @@ void parseInput(vector<shared_ptr<SequenceBase>> &cs, vector<string> &names);
 void parseInput(vector<shared_ptr<SequenceBase>> &cs, vector<string> &names) {
 	string type;
 	if (prompt) cout << "Specify next signal type (SPGR/SSFP): " << flush;
-	while (getline(cin, type) && (type != "END") && (type != "")) {
+	while (Read(cin, type) && (type != "END") && (type != "")) {
 		if (type == "SPGR") {
 			cs.push_back(make_shared<SPGRSimple>(prompt));
 		} else if (type == "SPGRFinite") {
@@ -98,7 +96,7 @@ void parseInput(vector<shared_ptr<SequenceBase>> &cs, vector<string> &names) {
 		}
 		string filename;
 		if (prompt) cout << "Enter output filename: " << flush;
-		getline(cin, filename);
+		Read(cin, filename);
 		names.push_back(filename);
 		// Print message ready for next loop
 		if (prompt) cout << "Specify next image type (SPGR/SSFP, END to finish input): " << flush;
@@ -109,10 +107,6 @@ void parseInput(vector<shared_ptr<SequenceBase>> &cs, vector<string> &names) {
 //******************************************************************************
 int main(int argc, char **argv)
 {
-	//**************************************************************************
-	#pragma mark Argument Processing
-	//**************************************************************************
-	cout << version << endl << credit_me << endl;
 	Eigen::initParallel();
 	ThreadPool threads;
 
@@ -136,12 +130,6 @@ int main(int argc, char **argv)
 			case 'o':
 				outPrefix = optarg;
 				cout << "Output prefix will be: " << outPrefix << endl;
-				break;
-			case 'b':
-				cout << "Reading B1 file: " << optarg << endl;
-				B1File.open(optarg, Nifti::Mode::Read);
-				B1Vol.resize(B1File.matrix());
-				B1File.readVolumes(B1Vol.begin(), B1Vol.end(), 0, 1);
 				break;
 			case '1': model = make_shared<SCD>(); break;
 			case '2': model = make_shared<MCD2>(); break;
@@ -168,11 +156,11 @@ int main(int argc, char **argv)
 		cerr << usage << endl << "Incorrect number of arguments." << endl;
 		return EXIT_FAILURE;
 	}
-
+	if (verbose) cout << version << endl << credit_me << endl;
+	if (verbose) cout << "Using " << model->Name() << " model." << endl;
 	/***************************************************************************
-	 * mark Read in parameter files
+	 * Read in parameter files
 	 **************************************************************************/
-	cout << "Using " << model->Name() << " model." << endl;
 	MultiArray<float, 4> paramsVols;
 	Nifti::Header templateHdr;
 	if (prompt) cout << "Loading parameters." << endl;
@@ -180,7 +168,7 @@ int main(int argc, char **argv)
 		if (prompt) cout << "Enter path to " << model->Names()[i] << " file: " << flush;
 		string filename;
 		getline(cin, filename);
-		cout << "Opening " << filename << endl;
+		if (verbose) cout << "Opening " << filename << endl;
 		Nifti::File input(filename);
 
 		if (i == 0) {
@@ -193,7 +181,7 @@ int main(int argc, char **argv)
 			}
 		}
 		auto inVol = paramsVols.slice<3>({0,0,0,i},{-1,-1,-1,0});
-		cout << "Reading data." << endl;
+		if (verbose) cout << "Reading data." << endl;
 		input.readVolumes(inVol.begin(), inVol.end(), 0, 1);
 	}
 	const auto d = paramsVols.dims();
@@ -204,27 +192,32 @@ int main(int argc, char **argv)
 	vector<shared_ptr<SequenceBase>> sequences;
 	vector<string> filenames;
 	parseInput(sequences, filenames);
-	for (auto& s : sequences) {
-		cout << s << endl;
+	if (verbose) {
+		for (auto& s : sequences) {
+			cout << *s << endl;
+		}
 	}
 
 	vector<MultiArray<complex<float>, 4>> signalVols(sequences.size()); //d.head(3), sequences.combinedSize());
 	for (size_t s = 0; s < sequences.size(); s++) {
 		signalVols[s] = MultiArray<complex<float>, 4>(d.head(3), sequences.at(s)->size());
 	}
-	cout << "Calculating..." << endl;
+	if (verbose) cout << "Calculating..." << endl;
 	function<void (const size_t&)> calcVox = [&] (const size_t &k) {
 		for (size_t j = 0; j < d[1]; j++) {
 			for (size_t i = 0; i < d[0]; i++) {
 				if (!maskFile || (maskVol[{i,j,k}])) {
 					ArrayXd params = paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().cast<double>();
-					double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
 					for (size_t s = 0; s < sequences.size(); s++) {
 						const size_t sigsize = sequences.at(s)->size();
-						ArrayXcd signal = sequences.at(s)->signal(model, params, B1);
+						ArrayXcd signal = sequences.at(s)->signal(model, params);
 						ArrayXcd noise(sigsize);
-						noise.real() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
-						noise.imag() = (ArrayXd::Ones(sigsize) * sigma).unaryExpr(function<double(double)>(randNorm<double>));
+						mt19937_64 twister(RandomSeed());
+						normal_distribution<double> gaussian(0., sigma / sqrt(2));
+						for (ArrayXcd::Index i = 0; i < sigsize; i++) {
+							noise.real()(i) = gaussian(twister);
+							noise.imag()(i) = gaussian(twister);
+						}
 						signalVols[s].slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = (signal + noise).cast<complex<float>>();
 					}
 				}
@@ -233,8 +226,8 @@ int main(int argc, char **argv)
 	};
 	threads.for_loop(calcVox, d[2]);
 	
-	cout << "Finished calculating." << endl;
-	cout << "Saving data." << endl;
+	if (verbose) cout << "Finished calculating." << endl;
+	if (verbose) cout << "Saving data." << endl;
 	templateHdr.setDatatype(Nifti::DataType::COMPLEX64);
 	size_t startVol = 0;
 	for (size_t i = 0; i < sequences.size(); i++) {

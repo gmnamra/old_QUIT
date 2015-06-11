@@ -57,9 +57,7 @@ Options:\n\
 	--threads, -T N   : Use N threads (default=hardware limit)\n"
 };
 
-static auto scale = Scale::NormToMean;
 static auto tesla = FieldStrength::Three;
-static auto f0fit = OffRes::FitSym;
 static size_t start_slice = 0, stop_slice = numeric_limits<size_t>::max();
 static int verbose = false, prompt = true, all_residuals = false,
            fitFinite = false, fitComplex = false, flipData = false,
@@ -94,14 +92,14 @@ static const char* short_opts = "hvnm:o:f:b:s:p:S:FT:M:xcri:j:d:";
 class FMFunctor : public DenseFunctor<double> {
 	public:
 		SequenceBase &m_sequence;
-		shared_ptr<SCD> m_model = make_shared<SCD>();
+		shared_ptr<SCD> m_model;
 		ArrayXcd m_data;
 		const double m_T1, m_B1;
 		const bool m_complex, m_debug;
 
-		FMFunctor(const double T1, SequenceBase &s, const ArrayXcd &d, const double B1, const bool fitComplex, const bool debug = false) :
+		FMFunctor(const shared_ptr<SCD> m, const double T1, SequenceBase &s, const ArrayXcd &d, const double B1, const bool fitComplex, const bool debug = false) :
 			DenseFunctor<double>(3, s.size()),
-			m_sequence(s), m_data(d), m_complex(fitComplex), m_debug(debug),
+			m_model(m), m_sequence(s), m_data(d), m_complex(fitComplex), m_debug(debug),
 			m_T1(T1), m_B1(B1)
 		{
 			assert(static_cast<size_t>(m_data.rows()) == values());
@@ -116,9 +114,9 @@ class FMFunctor : public DenseFunctor<double> {
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
 
-			Array4d fullparams;
-			fullparams << params(0), m_T1, params(1), params(2);
-			ArrayXcd s = m_sequence.signal(m_model, fullparams, m_B1);
+			ArrayXd fullparams(5);
+			fullparams << params(0), m_T1, params(1), params(2), m_B1;
+			ArrayXcd s = m_sequence.signal(m_model, fullparams);
 			if (m_complex) {
 				diffs = (s - m_data).abs();
 			} else {
@@ -148,6 +146,7 @@ int main(int argc, char **argv)
 	MultiArray<float, 3> f0Vol, B1Vol;
 	string procPath;
 	ThreadPool threads;
+	shared_ptr<SCD> model = make_shared<SCD>();
 	//ThreadPool::EnableDebug = true;
 
 	int indexptr = 0, c;
@@ -166,17 +165,10 @@ int main(int argc, char **argv)
 				if (verbose) cout << "Output prefix will be: " << outPrefix << endl;
 				break;
 			case 'f':
-				if (string(optarg) == "SYM") {
-					f0fit = OffRes::FitSym;
-				} else if (string(optarg) == "ASYM") {
-					f0fit = OffRes::Fit;
-				} else {
-					if (verbose) cout << "Reading f0 file: " << optarg << endl;
-					f0File.open(optarg, Nifti::Mode::Read);
-					f0Vol.resize(f0File.dims());
-					f0File.readVolumes(f0Vol.begin(), f0Vol.end(), 0, 1);
-					f0fit = OffRes::Map;
-				}
+				if (verbose) cout << "Reading f0 file: " << optarg << endl;
+				f0File.open(optarg, Nifti::Mode::Read);
+				f0Vol.resize(f0File.dims());
+				f0File.readVolumes(f0Vol.begin(), f0Vol.end(), 0, 1);
 				break;
 			case 'b':
 				if (verbose) cout << "Reading B1 file: " << optarg << endl;
@@ -188,8 +180,8 @@ int main(int argc, char **argv)
 			case 'p': stop_slice = atoi(optarg); break;
 			case 'S':
 				switch (atoi(optarg)) {
-					case 0 : scale = Scale::NormToMean; break;
-					case 1 : scale = Scale::None; break;
+					case 0 : model->setScaling(Model::Scale::ToMean); break;
+					case 1 : model->setScaling(Model::Scale::None); break;
 					default:
 						cout << "Invalid scaling mode: " + to_string(atoi(optarg)) << endl;
 						return EXIT_FAILURE;
@@ -249,18 +241,24 @@ int main(int argc, char **argv)
 	//**************************************************************************
 	size_t nFiles = argc - optind;
 	vector<MultiArray<complex<float>, 4>> ssfpData(nFiles);
-	SequenceGroup sequences(scale);
-	VectorXd inFlip;
+	SequenceGroup sequences;
+	bool isSymmetric = true;
+	double minTR = numeric_limits<double>::max();
 	for (size_t p = 0; p < nFiles; p++) {
 		if (verbose) cout << "Reading SSFP header from " << argv[optind] << endl;
 		Nifti::File inFile(argv[optind]);
 		checkHeaders(inFile.header(), {T1File});
 		Agilent::ProcPar pp; ReadPP(inFile, pp);
+		shared_ptr<SSFPSimple> temp;
 		if (fitFinite) {
-			sequences.addSequence(make_shared<SSFPFinite>(prompt, pp));
+			temp = make_shared<SSFPFinite>(prompt, pp);
 		} else {
-			sequences.addSequence(make_shared<SSFPSimple>(prompt, pp));
+			temp = make_shared<SSFPSimple>(prompt, pp);
 		}
+		isSymmetric = isSymmetric && temp->isSymmetric();
+		if (temp->TR() < minTR)
+			minTR = temp->TR();
+		sequences.addSequence(temp);
 		if (sequences.sequence(sequences.count() - 1)->size() != inFile.dim(4)) {
 			throw(std::runtime_error("Number of volumes in file " + inFile.imagePath() + " does not match input."));
 		}
@@ -277,8 +275,8 @@ int main(int argc, char **argv)
 
 	ArrayXd thresh(3); thresh.setConstant(0.05);
 	ArrayXd weights(sequences.size()); weights.setOnes();
-	Array2d f0Bounds(-0.5/sequences.minTR(),0.5/sequences.minTR());
-	if (f0fit == OffRes::FitSym) {
+	Array2d f0Bounds(-0.5/minTR,0.5/minTR);
+	if (isSymmetric) {
 		f0Bounds(0) = 0.;
 	}
 	
@@ -289,12 +287,13 @@ int main(int argc, char **argv)
 		} else {
 			cout << "Data order is flip-angle, then phase." << endl;
 		}
+		cout << "f0 Fitting bounds: " << f0Bounds.transpose() << endl;
 	}
 	//**************************************************************************
 	// Set up results data
 	//**************************************************************************
 	size_t nParams = 2;
-	if (scale == Scale::None)
+	if (model->scaling() == Model::Scale::None)
 		nParams = 3;
 	MultiArray<float, 4> paramsVols(dims, nParams);
 	MultiArray<float, 4> ResidsVols(dims, sequences.size());
@@ -321,7 +320,7 @@ int main(int argc, char **argv)
 				ArrayXcd signal = sequences.loadSignals(ssfpData, i, j, k, flipData);
 				ArrayXXd bounds(3, 2);
 				bounds.setZero();
-				if (scale == Scale::None) {
+				if (model->scaling() == Model::Scale::None) {
 					bounds(0, 0) = 0.;
 					bounds(0, 1) = signal.abs().maxCoeff() * 25;
 				} else {
@@ -329,19 +328,19 @@ int main(int argc, char **argv)
 				}
 				bounds(1,0) = 0.001;
 				bounds(1,1) = T1Vol[idx];
-				if (f0fit == OffRes::Map) {
+				if (f0File) {
 					bounds.row(2).setConstant(f0Vol[idx]);
 				} else {
 					bounds.row(2) = f0Bounds;
 				}
 				double B1 = B1File ? B1Vol[{i,j,k}] : 1.;
-				FMFunctor func(T1Vol[idx], sequences, signal, B1, fitComplex, false);
+				FMFunctor func(model, T1Vol[idx], sequences, signal, B1, fitComplex, false);
 				RegionContraction<FMFunctor> rc(func, bounds, weights, thresh,
-				                                samples, retain, contract, expand, (voxI > 0), seed);
+				                                samples, retain, contract, expand, false, (voxI > 0), seed);
 				ArrayXd params(3); params.setZero();
 				rc.optimise(params);
 				double res = sqrt(rc.SoS() / sequences.size());
-				if (scale == Scale::None) {
+				if (model->scaling() == Model::Scale::None) {
 					paramsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = params.cast<float>();
 					res /= params(0); // Divide residual by PD to make it a fraction
 				} else {
@@ -383,8 +382,7 @@ int main(int argc, char **argv)
 	hdr.setDatatype(Nifti::DataType::FLOAT32);
 	hdr.description = version;
 	hdr.intent = Nifti::Intent::Estimate;
-	shared_ptr<SCD> model = make_shared<SCD>();
-	if (scale == Scale::None) {
+	if (model->scaling() == Model::Scale::None) {
 		hdr.intent_name = model->Names().at(0);
 		Nifti::File out(hdr, outPrefix + model->Names().at(0) + OutExt());
 		auto p = paramsVols.slice<3>({0,0,0,0},{-1,-1,-1,0});

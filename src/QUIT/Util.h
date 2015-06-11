@@ -18,6 +18,7 @@
 #include <vector>
 #include <random>
 #include <functional>
+#include <mutex>
 #include <time.h>
 
 #include <Eigen/Dense>
@@ -35,37 +36,30 @@ time_t printElapsedTime(const time_t &start);
 void printElapsedClock(const clock_t &clockStart, const int voxCount);
 void printLoopTime(const clock_t &loopStart, const int voxCount);
 void checkHeaders(const Nifti::Header &n1, std::vector<Nifti::File> n_other); //!< Throws an exception if the passed in Nifti files do not share same matrix size and transform
-Eigen::Vector3f parse_vector(char *str);
+std::mt19937_64::result_type RandomSeed(); // Thread-safe random seed
 
-template<typename T>
-T randNorm(double sigma)
-{
-  static std::mt19937_64 twister(time(NULL));
-  static std::normal_distribution<T> nd(0., sigma);
-  return nd(twister);
+template<typename T> bool Read(const std::string &s, T &val) {
+	std::istringstream stream(s);
+	if (!(stream >> val)) {
+		throw(std::runtime_error("Failed to parse input: " + s));
+	}
+	return true;
 }
 
-
-template<typename T> class Read;
-
-template<typename T> class Read {
-	public:
-	static void FromLine(std::istream &in, T &val) {
-		std::string line;
-		if (!std::getline(in, line)) {
+template<typename T> bool Read(std::istream &in, T &val) {
+	std::string line;
+	// Ignore comment lines. Use shell script convention
+	while (in.peek() == '#') {
+		if (!std::getline(in, line))
 			throw(std::runtime_error("Failed to read input."));
-		}
-		FromString(line, val);
 	}
-	static void FromString(const std::string &s, T &val) {
-		std::istringstream stream(s);
-		if (!(stream >> val)) {
-			throw(std::runtime_error("Failed to parse input: " + s));
-		}
+	if (!std::getline(in, line)) {
+		throw(std::runtime_error("Failed to read input. Last line was: " + line));
 	}
-};
+	return Read(line, val);
+}
 
-template<typename Derived> void ReadEigenFromString(const std::string &s, const Eigen::DenseBase<Derived> &cvals) {
+template<typename Derived> void ReadEigen(const std::string &s, const Eigen::DenseBase<Derived> &cvals) {
 	std::istringstream stream(s);
 	Eigen::DenseBase<Derived> &vals = const_cast<Eigen::DenseBase<Derived> &>(cvals);
 	for (typename Eigen::DenseBase<Derived>::Index i = 0; i < vals.size(); i++) {
@@ -75,13 +69,18 @@ template<typename Derived> void ReadEigenFromString(const std::string &s, const 
 	}
 }
 
-template<typename Derived> void ReadEigenFromLine(std::istream &in, const Eigen::DenseBase<Derived> &cvals) {
+template<typename Derived> void ReadEigen(std::istream &in, const Eigen::DenseBase<Derived> &cvals) {
 	std::string line;
 	Eigen::DenseBase<Derived> &vals = const_cast<Eigen::DenseBase<Derived> &>(cvals);
+	// Ignore comment lines. Use shell script convention
+	while (in.peek() == '#') {
+		if (!std::getline(in, line))
+			throw(std::runtime_error("Failed to read input."));
+	}
 	if (!std::getline(in, line)) {
 		throw(std::runtime_error("Failed to read input."));
 	}
-	ReadEigenFromString(line, vals);
+	ReadEigen(line, vals);
 }
 
 } // End namespace QUIT

@@ -95,7 +95,10 @@ class T1Functor : public DenseFunctor<double> {
 
 		int operator()(const Ref<VectorXd> &params, Ref<ArrayXd> diffs) const {
 			eigen_assert(diffs.size() == values());
-			ArrayXcd s = m_sequence.signal(m_model, params, m_B1);
+			VectorXd fullParams = VectorXd::Zero(5);
+			fullParams.head(2) = params;
+			fullParams(4) = m_B1;
+			ArrayXcd s = m_sequence.signal(m_model, fullParams);
 			diffs = s.abs() - m_data;
 			if (m_debug) {
 				cout << endl << __PRETTY_FUNCTION__ << endl;
@@ -191,7 +194,7 @@ int main(int argc, char **argv) {
 	if (spgrSequence.size() != spgrFile.header().dim(4)) {
 		throw(std::runtime_error("Specified number of flip-angles does not match number of volumes in file: " + spgrFile.imagePath()));
 	}
-	double TR = spgrSequence.m_TR;
+	double TR = spgrSequence.TR();
 	cout << "Reading SPGR data..." << flush;
 	MultiArray<complex<float>, 4> spgrVols(spgrFile.dims().head(4));
 	spgrFile.readVolumes(spgrVols.begin(), spgrVols.end());
@@ -219,7 +222,7 @@ int main(int argc, char **argv) {
 			if (!maskFile || (maskVol[idx])) {
 				sliceCount++;
 				double B1 = B1File ? B1Vol[idx] : 1.;
-				ArrayXd localAngles(spgrSequence.B1flip(B1));
+				ArrayXd localAngles = (spgrSequence.flip() * B1);
 				double T1, PD;
 				ArrayXd signal = spgrVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray().abs().cast<double>();
 				VectorXd Y = signal / localAngles.sin();
@@ -242,8 +245,8 @@ int main(int argc, char **argv) {
 					NumericalDiff<T1Functor> nDiff(f);
 					LevenbergMarquardt<NumericalDiff<T1Functor>> lm(nDiff);
 					lm.setMaxfev(nIterations * (spgrSequence.size() + 1));
-					VectorXd p(4);
-					p << PD, T1, 0., 0.; // Don't need T2 of f0 for this (yet)
+					VectorXd p(2);
+					p << PD, T1; // Don't need T2, f0 or B1 for this (yet)
 					lm.minimize(p);
 					PD = p(0); T1 = p(1);
 				}
@@ -252,7 +255,8 @@ int main(int argc, char **argv) {
 					T1 = 0.;
 				}
 				T1 = clamp(T1, clamp_lo, clamp_hi);
-				ArrayXd theory = spgrSequence.signal(model, Vector4d(PD, T1, 0., 0.), B1).abs();
+				VectorXd p(5); p << PD, T1, 0., 0., B1;
+				ArrayXd theory = spgrSequence.signal(model, p).abs();
 				ArrayXd resids = (signal - theory);
 				if (all_residuals) {
 					ResidsVols.slice<1>({i,j,k,0},{0,0,0,-1}).asArray() = resids.cast<float>();

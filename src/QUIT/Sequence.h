@@ -26,18 +26,10 @@
 using namespace std;
 using namespace Eigen;
 
-//******************************************************************************
-// Some convenience Enums
-//******************************************************************************
-enum class Scale { None, NormToMean };
-const string to_string(const Scale &p);
-
-//******************************************************************************
-// SteadyState Functors
-//******************************************************************************
 class SequenceBase {
+
 	public:
-		virtual ArrayXcd signal(const shared_ptr<Model> m, const VectorXd &p, const double B1 = 1.) const = 0;
+		virtual ArrayXcd signal(const shared_ptr<Model> m, const VectorXd &p) const = 0;
 		virtual size_t size() const = 0;
 		virtual void write(ostream &os) const = 0;
 		virtual string name() const = 0;
@@ -53,62 +45,66 @@ class MultiEcho : public SequenceBase {
 		MultiEcho(const ArrayXd &te);
 		MultiEcho(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
 
-		size_t size() const override { return m_TE.rows(); };
-		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
+		size_t size() const override { return m_TE.rows(); }
+		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream &os) const override;
-		string name() const override { return "MultiEcho"; };
+		string name() const override { return "MultiEcho"; }
 };
 
 class SteadyState : public SequenceBase {
-	public:
+	protected:
 		double m_TR;
 		ArrayXd m_flip;
 
+
+	public:
 		SteadyState();
 		SteadyState(const ArrayXd &flip, const double TR);
-		ArrayXd B1flip(const double B1) const;
 
-		virtual size_t size() const override { return angles() * phases(); };
+		virtual size_t size() const override { return angles() * phases(); }
 		virtual size_t angles() const { return m_flip.rows(); }
-		virtual size_t phases() const { return 1; };
+		virtual size_t phases() const { return 1; }
+
+		double TR() const { return m_TR; }
+		const ArrayXd & flip() const { return m_flip; }
 };
 
 class SPGRSimple : public SteadyState {
 	public:
 		SPGRSimple(const ArrayXd &flip, const double TR);
 		SPGRSimple(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
-		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
+		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream &os) const override;
-		string name() const override { return "SPGR"; };
+		string name() const override { return "SPGR"; }
 };
 class SPGRFinite : public SPGRSimple {
 	public:
 		double m_Trf, m_TE;
 		SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE);
 		SPGRFinite(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
-		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
+		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream &os) const override;
-		string name() const override { return "SPGR_Finite"; };
+		string name() const override { return "SPGR_Finite"; }
 };
 class MPRAGE : public SteadyState {
 	public:
 		ArrayXd m_TI;
 		double m_TD;
 		int m_N;
-		MPRAGE() : SteadyState() {};
+		MPRAGE() : SteadyState() {}
 		MPRAGE(const ArrayXd &TI, const double TD, const double TR, const int N, const double flip);
 		MPRAGE(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
-		size_t size() const override { return m_TI.size(); };
-		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
+		size_t size() const override { return m_TI.size(); }
+		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream &os) const override;
-		string name() const override { return "MPRAGE"; };
+		string name() const override { return "MPRAGE"; }
 };
 
 // Special class for GE IRSPGR, for backwards compatibility
 class IRSPGR : public MPRAGE {
 	public:
 		IRSPGR(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
-		string name() const override { return "IRSPGR"; };
+		string name() const override { return "IRSPGR"; }
 };
 
 class SSFPSimple : public SteadyState {
@@ -116,48 +112,46 @@ class SSFPSimple : public SteadyState {
 		ArrayXd m_phases;
 		SSFPSimple(const ArrayXd &flip, const double TR, const ArrayXd &phases);
 		SSFPSimple(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
-		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
+		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		size_t phases() const override;
 		void write(ostream& os) const override;
-		string name() const override { return "SSFP"; } ;
+		string name() const override { return "SSFP"; }
+
+		bool isSymmetric() const;
+		Array2d bandwidth() const;
 };
 class SSFPFinite : public SSFPSimple {
 	public:
 		double m_Trf;
 		SSFPFinite(const ArrayXd &flip, const double TR, const double Trf, const ArrayXd &phases);
 		SSFPFinite(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
-		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
+		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream& os) const override;
-		string name() const override { return "SSFP_Finite"; } ;
+		string name() const override { return "SSFP_Finite"; }
 };
 class SSFPEllipse : public SteadyState {
 	public:
 		SSFPEllipse(const bool prompt, const Agilent::ProcPar &pp = Agilent::ProcPar());
-		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1 = 1.) const override;
+		ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 		void write(ostream& os) const override;
-		string name() const override { return "SSFP_Ellipse"; };
+		string name() const override { return "SSFP_Ellipse"; }
 };
-
-enum class OffRes { Fit, FitSym, Map }; // Put this here so mcdespot and despot2fm can access it
 
 class SequenceGroup : public SequenceBase {
 private:
-	Scale m_scaling;
 	vector<shared_ptr<SteadyState>> m_sequences;
 
 public:
-	SequenceGroup(const Scale s);
+	SequenceGroup();
 	void write(ostream &os) const override;
-	string name() const override { return "Sequences"; } ;
+	string name() const override { return "Sequences"; }
 
 	size_t count() const;
 	shared_ptr<SteadyState> sequence(const size_t i) const;
 	vector<shared_ptr<SteadyState>> &sequences();
 
 	size_t size() const override;
-	ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par, const double B1) const override;
-	
-	double minTR() const;
+	ArrayXcd signal(shared_ptr<Model> m, const VectorXd &par) const override;
 	ArrayXcd loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs, const size_t i, const size_t j, const size_t k, bool needsFlip = false) const;
 	
 	void addSequence(const shared_ptr<SteadyState> &seq);

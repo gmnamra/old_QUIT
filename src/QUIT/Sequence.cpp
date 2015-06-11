@@ -12,13 +12,7 @@
 
 #include "Sequence.h"
 
-const string to_string(const Scale &p) {
-	static const string sn{"None"}, snm{"Normalised to Mean"};
-	switch (p) {
-		case Scale::None: return sn;
-		case Scale::NormToMean: return snm;
-	}
-}
+
 
 /******************************************************************************
  * SequenceBase
@@ -47,11 +41,11 @@ MultiEcho::MultiEcho(const bool prompt, const Agilent::ProcPar &pp) :
 		NE = static_cast<int>(pp.realValue("ne"));
 	} else {
 		if (prompt) cout << "Enter first echo-time: " << flush;
-		QUIT::Read<double>::FromLine(cin, TE1);
+		QUIT::Read(cin, TE1);
 		if (prompt) cout << "Enter echo spacing: " << flush;
-		QUIT::Read<double>::FromLine(cin, m_ESP);
+		QUIT::Read(cin, m_ESP);
 		if (prompt) cout << "Enter number of echos: " << flush;
-		QUIT::Read<int>::FromLine(cin, NE);
+		QUIT::Read(cin, NE);
 	}
 	m_TE.resize(NE);
 	m_TE(0) = TE1;
@@ -60,7 +54,7 @@ MultiEcho::MultiEcho(const bool prompt, const Agilent::ProcPar &pp) :
 	}
 }
 
-ArrayXcd MultiEcho::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
+ArrayXcd MultiEcho::signal(shared_ptr<Model> m, const VectorXd &p) const {
 	return m->MultiEcho(p, m_TE);
 }
 
@@ -79,13 +73,6 @@ SteadyState::SteadyState(const ArrayXd &flip, const double TR) :
 	m_TR = TR;
 }
 
-ArrayXd SteadyState::B1flip(const double B1) const {
-	return B1 * m_flip;
-}
-
-// Parameters are PD, T1, T2, f0
-//                PD, T1_a, T2_a, T1_b, T2_b, tau_a, f_a, f0
-//				  PD, T1_a, T2_a, T1_b, T2_b, T1_c, T2_c, tau_a, f_a, f_c, f0
 SPGRSimple::SPGRSimple(const ArrayXd &flip, const double TR) :
 	SteadyState(flip, TR)
 {}
@@ -98,13 +85,13 @@ SPGRSimple::SPGRSimple(const bool prompt, const Agilent::ProcPar &pp) :
 	} else {
 		size_t nFlip;
 		if (prompt) cout << "Enter number of flip-angles: " << flush;
-		QUIT::Read<size_t>::FromLine(cin, nFlip);
+		QUIT::Read(cin, nFlip);
 		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
-		QUIT::ReadEigenFromLine(cin, inAngles);
+		QUIT::ReadEigen(cin, inAngles);
 		m_flip = inAngles * M_PI / 180.;
 		if (prompt) cout << "Enter TR (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TR);
+		QUIT::Read(cin, m_TR);
 	}
 }
 
@@ -114,8 +101,8 @@ void SPGRSimple::write(ostream &os) const {
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
 
-ArrayXcd SPGRSimple::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
-	return m->SPGR(p, B1flip(B1), m_TR);
+ArrayXcd SPGRSimple::signal(shared_ptr<Model> m, const VectorXd &p) const {
+	return m->SPGR(p, m_flip, m_TR);
 }
 
 SPGRFinite::SPGRFinite(const ArrayXd &flip, const double TR, const double Trf, const double TE) :
@@ -129,9 +116,9 @@ SPGRFinite::SPGRFinite(const bool prompt, const Agilent::ProcPar &pp) :
 		m_TE = pp.realValue("te");
 	} else {
 		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_Trf);
+		QUIT::Read(cin, m_Trf);
 		if (prompt) cout << "Enter TE (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TE);
+		QUIT::Read(cin, m_TE);
 	}
 }
 
@@ -141,8 +128,8 @@ void SPGRFinite::write(ostream &os) const {
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
 
-ArrayXcd SPGRFinite::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
-	return m->SPGRFinite(p, B1flip(B1), m_TR, m_Trf, m_TE);
+ArrayXcd SPGRFinite::signal(shared_ptr<Model> m, const VectorXd &p) const {
+	return m->SPGRFinite(p, m_flip, m_TR, m_Trf, m_TE);
 }
 
 MPRAGE::MPRAGE(const ArrayXd &TI, const double TD, const double TR, const int N, const double flip) :
@@ -157,20 +144,20 @@ MPRAGE::MPRAGE(const bool prompt, const Agilent::ProcPar &pp) : SteadyState() {
 	} else {
 		if (prompt) cout << "Enter read-out flip-angle (degrees): " << flush;
 		ArrayXd inFlip(1);
-		QUIT::ReadEigenFromLine(cin, inFlip);
+		QUIT::ReadEigen(cin, inFlip);
 		m_flip = inFlip * M_PI / 180.;
 		if (prompt) cout << "Enter read-out TR (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TR);
+		QUIT::Read(cin, m_TR);
 		if (prompt) cout << "Enter segment size: " << flush;
-		QUIT::Read<int>::FromLine(cin, m_N);
+		QUIT::Read(cin, m_N);
 		size_t nTI;
 		if (prompt) cout << "Enter number of inversion times: " << flush;
-		QUIT::Read<size_t>::FromLine(cin, nTI);
+		QUIT::Read(cin, nTI);
 		m_TI.resize(nTI);
 		if (prompt) cout << "Enter " << m_TI.size() << " inversion times (seconds): " << flush;
-		QUIT::ReadEigenFromLine(cin, m_TI);
+		QUIT::ReadEigen(cin, m_TI);
 		if (prompt) cout << "Enter delay time (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TD);
+		QUIT::Read(cin, m_TD);
 	}
 }
 
@@ -179,26 +166,26 @@ IRSPGR::IRSPGR(const bool prompt, const Agilent::ProcPar &pp) : MPRAGE() {
 		throw(runtime_error("IRSPGR Procpar reader not implemented."));
 	if (prompt) cout << "Enter read-out flip-angle (degrees): " << flush;
 	ArrayXd inFlip(1);
-	QUIT::ReadEigenFromLine(cin, inFlip);
+	QUIT::ReadEigen(cin, inFlip);
 	m_flip = inFlip * M_PI / 180.;
 	if (prompt) cout << "Enter read-out TR (seconds): " << flush;
-	QUIT::Read<double>::FromLine(cin, m_TR);
+	QUIT::Read(cin, m_TR);
 
 	int NPE2;
 	if (prompt) cout << "Enter original number of slices (PE2):";
-	QUIT::Read<int>::FromLine(cin, NPE2);
+	QUIT::Read(cin, NPE2);
 	m_N = (NPE2 / 2) + 2;
 
 	int nTI;
 	if (prompt) cout << "Enter number of TIs: " << flush;
-	QUIT::Read<int>::FromLine(cin, nTI);
+	QUIT::Read(cin, nTI);
 	m_TI.resize(nTI);
 	if (prompt) cout << "Enter " << m_TI.size() << " TIs (seconds): " << flush;
-	QUIT::ReadEigenFromLine(cin, m_TI);
+	QUIT::ReadEigen(cin, m_TI);
 }
 
-ArrayXcd MPRAGE::signal(shared_ptr<Model> m, const VectorXd &par, const double B1) const {
-	return m->MPRAGE(par, m_flip[0] * B1, m_TR, m_N, m_TI, m_TD);
+ArrayXcd MPRAGE::signal(shared_ptr<Model> m, const VectorXd &par) const {
+	return m->MPRAGE(par, m_flip[0], m_TR, m_N, m_TI, m_TD);
 }
 
 void MPRAGE::write(ostream &os) const {
@@ -221,20 +208,20 @@ SSFPSimple::SSFPSimple(const bool prompt, const Agilent::ProcPar &pp) :
 	} else {
 		size_t nFlip;
 		if (prompt) cout << "Enter number of flip-angles: " << flush;
-		QUIT::Read<size_t>::FromLine(cin, nFlip);
+		QUIT::Read(cin, nFlip);
 		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
-		QUIT::ReadEigenFromLine(cin, inAngles);
+		QUIT::ReadEigen(cin, inAngles);
 		m_flip = inAngles * M_PI / 180.;
 		size_t nPhases;
 		if (prompt) cout << "Enter number of phase-cycles: " << flush;
-		QUIT::Read<size_t>::FromLine(cin, nPhases);
+		QUIT::Read(cin, nPhases);
 		ArrayXd inPhases(nPhases);
 		if (prompt) cout << "Enter " << inPhases.size() << " phase-cycles (degrees): " << flush;
-		QUIT::ReadEigenFromLine(cin, inPhases);
+		QUIT::ReadEigen(cin, inPhases);
 		m_phases = inPhases * M_PI / 180.;
 		if (prompt) cout << "Enter TR (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TR);
+		QUIT::Read(cin, m_TR);
 	}
 }
 
@@ -245,12 +232,39 @@ void SSFPSimple::write(ostream &os) const {
 }
 
 size_t SSFPSimple::phases() const { return m_phases.rows(); }
+bool SSFPSimple::isSymmetric() const {
+	bool sym = true;
+	for (ArrayXcd::Index i = 0; i < m_phases.rows(); i++) {
+		if (!((abs(m_phases(i) - M_PI) <= (M_PI * numeric_limits<double>::epsilon())) ||
+		      (abs(m_phases(i) - 0.) <= numeric_limits<double>::epsilon()))) {
+			sym = false;
+			break; // Don't need to bother checking other values
+		}
+	}
+	return sym;
+}
 
-ArrayXcd SSFPSimple::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
+Array2d SSFPSimple::bandwidth() const {
+	// For now, assume that if people have 4 phase-cycles they are sensible enough
+	// to space them over 2*pi instead of pi.
+
+	Array2d bw = Array2d::Zero();
+	bw(1) = 0.5/m_TR;
+	if (m_phases.rows() <= 2) {
+		if (!isSymmetric())
+			bw -= bw(1) / 2;
+	} else {
+		if (!isSymmetric())
+			bw(0) = -bw(1);
+	}
+	return bw;
+}
+
+ArrayXcd SSFPSimple::signal(shared_ptr<Model> m, const VectorXd &p) const {
 	ArrayXcd s(size());
 	ArrayXcd::Index start = 0;
 	for (ArrayXcd::Index i = 0; i < m_phases.rows(); i++) {
-		s.segment(start, m_flip.rows()) = m->SSFP(p, B1flip(B1), m_TR, m_phases(i));
+		s.segment(start, m_flip.rows()) = m->SSFP(p, m_flip, m_TR, m_phases(i));
 		start += m_flip.rows();
 	}
 	return s;
@@ -266,7 +280,7 @@ SSFPFinite::SSFPFinite(const bool prompt, const Agilent::ProcPar &pp) :
 		m_Trf = pp.realValue("p1") / 1.e6; // p1 is in microseconds
 	} else {
 		if (prompt) cout << "Enter RF Pulse Length (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_Trf);
+		QUIT::Read(cin, m_Trf);
 	}
 }
 
@@ -276,11 +290,11 @@ void SSFPFinite::write(ostream &os) const {
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
 
-ArrayXcd SSFPFinite::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
+ArrayXcd SSFPFinite::signal(shared_ptr<Model> m, const VectorXd &p) const {
 	ArrayXcd s(size());
 	ArrayXcd::Index start = 0;
 	for (ArrayXcd::Index i = 0; i < m_phases.rows(); i++) {
-		s.segment(start, m_flip.rows()) = m->SSFPFinite(p, B1flip(B1), m_TR, m_Trf, m_phases(i));
+		s.segment(start, m_flip.rows()) = m->SSFPFinite(p, m_flip, m_TR, m_Trf, m_phases(i));
 		start += m_flip.rows();
 	}
 	return s;
@@ -295,13 +309,13 @@ SSFPEllipse::SSFPEllipse(const bool prompt, const Agilent::ProcPar &pp) :
 	} else {
 		size_t nFlip;
 		if (prompt) cout << "Enter number of flip-angles: " << flush;
-		QUIT::Read<size_t>::FromLine(cin, nFlip);
+		QUIT::Read(cin, nFlip);
 		ArrayXd inAngles(nFlip);
 		if (prompt) cout << "Enter " << inAngles.size() << " flip-angles (degrees): " << flush;
-		QUIT::ReadEigenFromLine(cin, inAngles);
+		QUIT::ReadEigen(cin, inAngles);
 		m_flip = inAngles * M_PI / 180.;
 		if (prompt) cout << "Enter TR (seconds): " << flush;
-		QUIT::Read<double>::FromLine(cin, m_TR);
+		QUIT::Read(cin, m_TR);
 	}
 }
 
@@ -311,15 +325,14 @@ void SSFPEllipse::write(ostream &os) const {
 	os << "Angles: " << (m_flip * 180. / M_PI).transpose() << endl;
 }
 
-ArrayXcd SSFPEllipse::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
-	return m->SSFPEllipse(p, B1*m_flip, m_TR);
+ArrayXcd SSFPEllipse::signal(shared_ptr<Model> m, const VectorXd &p) const {
+	return m->SSFPEllipse(p, m_flip, m_TR);
 }
 
 /******************************************************************************
-  Sequences Class
+ * SequenceGroup Class
  *****************************************************************************/
-SequenceGroup::SequenceGroup(const Scale s) :
-	SequenceBase(), m_scaling(s)
+SequenceGroup::SequenceGroup() : SequenceBase()
 {}
 
 void SequenceGroup::write(ostream &os) const {
@@ -347,28 +360,15 @@ size_t SequenceGroup::size() const {
 	return sz;
 }
 
-ArrayXcd SequenceGroup::signal(shared_ptr<Model> m, const VectorXd &p, const double B1) const {
+ArrayXcd SequenceGroup::signal(shared_ptr<Model> m, const VectorXd &p) const {
 	ArrayXcd result(size());
 	size_t start = 0;
 	for (auto &sig : m_sequences) {
-		ArrayXcd thisResult = sig->signal(m, p, B1);
-		switch (m_scaling) {
-			case Scale::None :       break;
-			case Scale::NormToMean : thisResult /= thisResult.abs().mean();
-		}
+		ArrayXcd thisResult = sig->signal(m, p);
 		result.segment(start, sig->size()) = thisResult;
 		start += sig->size();
 	}
 	return result;
-}
-
-double SequenceGroup::minTR() const {
-	double minTR = numeric_limits<double>::max();
-	for (auto &s : m_sequences) {
-		if (s->m_TR < minTR)
-			minTR = s->m_TR;
-	}
-	return minTR;
 }
 
 ArrayXcd SequenceGroup::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> &sigs,
@@ -382,8 +382,6 @@ ArrayXcd SequenceGroup::loadSignals(vector<QUIT::MultiArray<complex<float>, 4>> 
 			ArrayXXcd flipped = Map<ArrayXXcd>(thisSig.data(), m_sequences.at(s)->phases(), m_sequences.at(s)->angles()).transpose();
 			thisSig = Map<ArrayXcd>(flipped.data(), thisSig.rows(), 1);
 		}
-		if (m_scaling == Scale::NormToMean)
-			thisSig /= thisSig.abs().mean();
 		signal.segment(start, thisSig.rows()) = thisSig;
 		start += thisSig.rows();
 	}

@@ -17,9 +17,10 @@
 #include <random>
 #include <iostream>
 #include <atomic>
-#include <mutex>
 
 #include <Eigen/Dense>
+
+#include "QUIT/Util.h"
 
 using namespace std;
 using namespace Eigen;
@@ -40,20 +41,6 @@ vector<size_t> index_partial_sort(const Ref<ArrayXd> &x, ArrayXd::Index N)
 		indices[i] = allIndices[i];
 	}
     return indices;
-}
-
-mt19937_64::result_type NewSeed() {
-	static random_device rd;
-	static mt19937_64 rng;
-	static bool init = false;
-	mutex seed_mtx;
-	if (!init) {
-		rng = mt19937_64(rd());
-	}
-	seed_mtx.lock();
-	mt19937_64::result_type r = rng();
-	seed_mtx.unlock();
-	return r;
 }
 
 enum class RCStatus {
@@ -82,17 +69,17 @@ class RegionContraction {
 		size_t m_nS, m_nR, m_maxContractions, m_contractions;
 		double m_expand, m_SoS;
 		RCStatus m_status;
-		bool m_debug;
+		bool m_gaussian, m_debug;
 	
 	public:
 		RegionContraction(Functor_t &f,
 						  const Ref<ArrayXXd> &startBounds, const ArrayXd &weights, const ArrayXd &thresh,
 						  const int nS = 5000, const int nR = 50, const int maxContractions = 10,
-						  const double expand = 0., const bool debug = false, const int seed = -1) :
+						  const double expand = 0., const bool gauss = false, const bool debug = false, const int seed = -1) :
 				m_f(f), m_startBounds(startBounds), m_currentBounds(startBounds),
 				m_nS(nS), m_nR(nR), m_maxContractions(maxContractions),
 				m_threshes(thresh), m_expand(expand), m_residuals(f.values()), m_contractions(0),
-				m_status(RCStatus::NotStarted), m_weights(weights), m_debug(debug)
+				m_status(RCStatus::NotStarted), m_weights(weights), m_gaussian(gauss), m_debug(debug)
 		{
 			eigen_assert(f.inputs() == startBounds.rows());
 			eigen_assert(startBounds.cols() == 2);
@@ -101,7 +88,7 @@ class RegionContraction {
 			eigen_assert((thresh >= 0.).all() && (thresh <= 1.).all());
 
 			if (seed < 0) {
-				m_rng = mt19937_64(NewSeed());
+				m_rng = mt19937_64(QUIT::RandomSeed());
 			} else {
 				m_rng = mt19937_64(seed);
 			}
@@ -145,10 +132,11 @@ class RegionContraction {
 			ArrayXXd retained(m_f.inputs(), m_nR);
 			ArrayXXd residuals(m_f.values(), m_nS);
 			ArrayXXd retainedRes(m_f.values(), m_nR);
+			ArrayXd gauss_mu(m_f.inputs()), gauss_sigma(m_f.inputs());
 			vector<size_t> indices(m_nR);
 			m_currentBounds = m_startBounds;
 			m_residuals.setZero();
-			
+
 			if ((m_startBounds != m_startBounds).any() || (m_startBounds >= numeric_limits<double>::infinity()).any()) {
 				warn_mtx.lock();
 				if (!boundsWarning) {
@@ -186,10 +174,22 @@ class RegionContraction {
 					ArrayXd tempSample(nP);
 					size_t nTries = 0;
 					do {
-						for (int p = 0; p < nP; p++)
-							tempSample(p) = uniform(m_rng);
-						tempSample *= width();
-						tempSample += m_currentBounds.col(0);
+						if (!m_gaussian || (m_contractions == 0)) {
+							for (int p = 0; p < nP; p++) {
+								tempSample(p) = uniform(m_rng);
+							}
+							tempSample *= width();
+							tempSample += m_currentBounds.col(0);
+						} else {
+							for (int p = 0; p < nP; p++) {
+								normal_distribution<double> gauss(gauss_mu(p), gauss_sigma(p));
+								tempSample(p) = gauss(m_rng);
+								if (tempSample(p) < m_currentBounds(p, 0))
+									tempSample(p) = m_currentBounds(p, 0);
+								if (tempSample(p) > m_currentBounds(p, 1))
+									tempSample(p) = m_currentBounds(p, 1);
+							}
+						}
 						nTries++;
 						if (nTries > 100) {
 							warn_mtx.lock();
@@ -233,6 +233,10 @@ class RegionContraction {
 				// Find the min and max for each parameter in the top nR samples
 				m_currentBounds.col(0) = retained.rowwise().minCoeff();
 				m_currentBounds.col(1) = retained.rowwise().maxCoeff();
+				if (m_gaussian) {
+					gauss_mu = retained.rowwise().mean();
+					gauss_sigma = ((retained.colwise() - gauss_mu).square().rowwise().sum() / m_f.inputs()).sqrt();
+				}
 				// Terminate if all the desired parameters have converged
 				if (m_debug) {
 					cout << "Best sample:    " << retained.col(0).transpose() << endl;
@@ -243,6 +247,10 @@ class RegionContraction {
 					cout << "Current thresh: " << (m_threshes * startWidth()).transpose() << endl;
 					cout << "Width < Thresh: " << (width() <= (m_threshes * startWidth())).transpose() << endl;
 					cout << "Converged:      " << (width() <= (m_threshes * startWidth())).all() << endl;
+					if (m_gaussian) {
+						cout << "Gaussian mu:    " << gauss_mu.transpose() << endl;
+						cout << "Gaussian sigma: "<<  gauss_sigma.transpose() << endl;
+					}
 				}
 				if (((width() <= (m_threshes * startWidth())).all()) ||
 				    (previousBest == retained.col(0)).all()) {
